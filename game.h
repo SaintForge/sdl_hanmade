@@ -3,20 +3,25 @@
  * Filename: game.h
  * Author: Sierra
  * Created: Пн окт  9 14:15:31 2017 (+0300)
- * Last-Updated: Вт окт 10 14:09:43 2017 (+0300)
+ * Last-Updated: Чт окт 12 17:22:21 2017 (+0300)
  *           By: Sierra
  */
 
 #if !defined(GAME_H)
 
+#include <SDL2/SDL.h>
+
+#define Assert(Expression) if(!(Expression)) {*(int *)0 = 0;}
+
+typedef SDL_Rect game_rect;
+
 struct game_offscreen_buffer
 {
-		 u32 *Memory;
 		 int Width;
 		 int Height;
-		 int Pitch;
+		 SDL_Texture *Memory;
+		 SDL_Renderer *Renderer;
 };
-
 
 struct game_button_state
 {
@@ -43,12 +48,22 @@ struct game_input
 		 };
 };
 
+struct game_bitmap
+{
+		 u32 Width;
+		 u32 Height;
+		 SDL_Texture *Texture;
+};
+
 struct game_memory
 {
 		 bool IsInitialized;
-		 u32 StorageSize;
-		 u32 *Storage;
+
+		 game_bitmap SpriteOne; //NOTE(Max): Maybe change it to SDL_Texture???
+		 /* game_bitmap SpriteTwo; */
 };
+
+
 
 static bool GameUpdateAndRender(game_memory *Memory,
 																game_input *Input,

@@ -3,7 +3,7 @@
 // Filename: win32_platform.cpp
 // Author: Sierra
 // Created: Пн окт  9 12:00:49 2017 (+0300)
-// Last-Updated: Вт окт 10 17:04:34 2017 (+0300)
+// Last-Updated: Чт окт 12 17:28:24 2017 (+0300)
 //           By: Sierra
 //
 
@@ -55,7 +55,7 @@ SDLCreateTexture(sdl_offscreen_buffer *Buffer, SDL_Renderer* Renderer, int Width
 		 if(Buffer->Memory)
 		 {
 					Buffer->Texture = SDL_CreateTexture(Renderer, SDL_PIXELFORMAT_RGBA8888,
-																							SDL_TEXTUREACCESS_STREAMING,
+																							SDL_TEXTUREACCESS_TARGET,
 																							Width, Height);
 					if(Buffer->Texture)
 					{
@@ -141,7 +141,6 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
 										{
 												 SDLProcessKeyPress(&Input->Escape, IsDown, WasDown);
 										}
-
 							 }										 
             
 					} break;
@@ -154,18 +153,72 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
 static void
 SDLUpdateWindow(SDL_Window* Window, SDL_Renderer *Renderer, sdl_offscreen_buffer *Buffer)
 {
-		 SDL_UpdateTexture(Buffer->Texture, 0, Buffer->Memory, Buffer->Pitch);
+		 SDL_SetRenderTarget(Renderer, NULL);
 		 SDL_RenderCopy(Renderer, Buffer->Texture, 0, 0);
 		 SDL_RenderPresent(Renderer);
 }
 
 
+static void
+SDLLoadGameBitmapFromSurface(SDL_Renderer *Renderer, game_bitmap *Bitmap, char *FileName)
+{
+		 SDL_Surface *Surface = IMG_Load(FileName);
+
+		 Bitmap->Width = Surface->w;
+		 Bitmap->Height = Surface->h;
+		 Bitmap->Texture = SDL_CreateTextureFromSurface(Renderer, Surface);
+
+		 SDL_FreeSurface(Surface);
+}
+
+static void
+SDLLoadGameMemoryFromBinary(SDL_RWops *&BinaryFile, game_memory * GameMemory)
+{
+		 u8 BytesPerPixel = 4;
+		 u32 Width = 100;
+		 u32 Height = 100;
+		 u32 SurfaceSize = Width * Height;
+
+     // TODO(Max): Elaborate that!!!
+		 SDL_Surface *Surface = 0;
+		 
+		 printf("Read: %d\n",SDL_RWread(BinaryFile, GameMemory->SpriteOne.Texture,
+																		BytesPerPixel, SurfaceSize));
+		 GameMemory->SpriteOne.Width = Width;
+		 GameMemory->SpriteOne.Height = Height;
+}
+
+#if ASSET_BUILD
+static void
+SDLWriteGameAssetsToFile(SDL_RWops *&BinaryFile, char * FileName)
+{
+		 SDL_Surface *Surface = IMG_Load(FileName);
+		 Assert(Surface);
+
+		 u8 BytesPerPixel = Surface->format->BytesPerPixel;
+		 u32 Width = Surface->w;
+		 u32 Height = Surface->h;
+		 u32 SurfaceSize = Width * Height;
+		 printf("Bytes = %d\n",BytesPerPixel);
+		 printf("Width = %d\n",Width);
+		 printf("Height = %d\n",Height);
+		 printf("SurfaceSize = %d\n",SurfaceSize);
+
+		 printf("Wrote: %d\n",SDL_RWwrite(BinaryFile, Surface->pixels, BytesPerPixel, SurfaceSize));
+
+		 SDL_FreeSurface(Surface);
+}
+#endif
+
 int main(int argc, char **argv)
 {
 		 SDL_Init(SDL_INIT_VIDEO);
 
+		 SDL_DisplayMode Display = {};
+		 SDL_GetDesktopDisplayMode(0, &Display);
+		 
 		 SDL_Window *Window = SDL_CreateWindow("This is window", SDL_WINDOWPOS_CENTERED,
-																					 SDL_WINDOWPOS_CENTERED, 1024, 768,
+																					 SDL_WINDOWPOS_CENTERED, Display.w, Display.h,
 																					 SDL_WINDOW_ALLOW_HIGHDPI);
 		 if(Window)
 		 {
@@ -183,21 +236,25 @@ int main(int argc, char **argv)
 							 SDLChangeBufferColor(&BackBuffer, 0, 0, 0, 255);
 							 SDLUpdateWindow(Window, Renderer, &BackBuffer);
 
-							 game_input Input = {};
-							 
-							 game_memory Memory = {};
+							 SDL_RWops *BinaryFile = SDL_RWFromFile("package.bin", "wb");
+							 Assert(BinaryFile);
 
-							 int ImageWidth, ImageHeight, BytesPerPixel;
-							 Memory.Storage = (u32*)stbi_load("sample.png", &ImageWidth, &ImageHeight, &BytesPerPixel, 4);
+							 SDLWriteGameAssetsToFile(BinaryFile, "grid_cell.png");
+							 SDLWriteGameAssetsToFile(BinaryFile, "grid_cell.png");
+
+							 SDL_RWclose(BinaryFile);
+
+							 game_memory Memory = {};
+							 BinaryFile = SDL_RWFromFile("package.bin", "rb");
+							 Assert(BinaryFile);
+
+							 SDLLoadGameMemoryFromBinary(BinaryFile, &Memory);
+
+							 // SDLLoadGameBitmapFromSurface(Renderer, &Memory.SpriteOne, "sample.png");
 							 
-							 if(Memory.Storage)
-							 {
-										Memory.StorageSize += (ImageWidth + ImageHeight) * BytesPerPixel;
-							 }
-							 else
-							 {
-										printf("Failed to load sample.png!\n");
-							 }
+							 SDL_RWclose(BinaryFile);
+							 
+							 game_input Input = {};
 
 							 while(IsRunning)
 							 {
@@ -211,10 +268,10 @@ int main(int argc, char **argv)
 										}
 
 										game_offscreen_buffer Buffer = {};
-										Buffer.Memory = BackBuffer.Memory;
-										Buffer.Width  = BackBuffer.Width;
-										Buffer.Height = BackBuffer.Height;
-										Buffer.Pitch  = BackBuffer.Pitch;
+										Buffer.Renderer = Renderer;
+										Buffer.Memory   = BackBuffer.Texture;
+										Buffer.Width    = BackBuffer.Width;
+										Buffer.Height   = BackBuffer.Height;
 
 										
 										if(GameUpdateAndRender(&Memory, &Input, &Buffer))

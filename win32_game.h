@@ -4,7 +4,7 @@
  * Filename: win32_game.h
  * Author: Sierra
  * Created: Вт окт 10 10:26:51 2017 (+0300)
- * Last-Updated: Вт окт 10 14:09:50 2017 (+0300)
+ * Last-Updated: Чт окт 12 16:04:08 2017 (+0300)
  *           By: Sierra
  */
 
