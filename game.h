@@ -3,17 +3,28 @@
  * Filename: game.h
  * Author: Sierra
  * Created: Пн окт  9 14:15:31 2017 (+0300)
- * Last-Updated: Чт окт 12 17:22:21 2017 (+0300)
+ * Last-Updated: Пт окт 13 16:19:05 2017 (+0300)
  *           By: Sierra
  */
 
 #if !defined(GAME_H)
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
 
-#define Assert(Expression) if(!(Expression)) {*(int *)0 = 0;}
+#include <stdio.h>
 
-typedef SDL_Rect game_rect;
+void LogErrorLine(const char* Message, int Line)
+{
+		 fprintf(stderr, "Assert fail in %s: %d\n",Message, Line);
+}
+
+#define Assert(Expression) if(!(Expression)) { LogErrorLine( __FILE__, __LINE__); *(int *)0 = 0;  } 
+
+typedef SDL_Rect    game_rect;
+typedef SDL_Texture game_texture;
+typedef Mix_Chunk   game_sound;
+typedef Mix_Music   game_music;
 
 struct game_offscreen_buffer
 {
@@ -50,23 +61,26 @@ struct game_input
 
 struct game_bitmap
 {
-		 u32 Width;
-		 u32 Height;
-		 SDL_Texture *Texture;
+		 u32 Width, Height;
+		 game_texture *Texture;
 };
 
 struct game_memory
 {
 		 bool IsInitialized;
 
-		 game_bitmap SpriteOne; //NOTE(Max): Maybe change it to SDL_Texture???
-		 /* game_bitmap SpriteTwo; */
+		 game_bitmap SpriteOne;
+		 game_bitmap SpriteTwo;
+
+		 game_sound *SoundOne;
+		 game_sound *SoundTwo;
+
+		 game_sound *MusicOne;
 };
 
 
 
-static bool GameUpdateAndRender(game_memory *Memory,
-																game_input *Input,
+static bool GameUpdateAndRender(game_memory *Memory, game_input *Input,
 																game_offscreen_buffer *Buffer);
 
 #define GAME_H

@@ -3,7 +3,7 @@
 // Filename: game.cpp
 // Author: Sierra
 // Created: Вт окт 10 10:32:14 2017 (+0300)
-// Last-Updated: Чт окт 12 17:19:17 2017 (+0300)
+// Last-Updated: Пт окт 13 12:07:46 2017 (+0300)
 //           By: Sierra
 //
 
@@ -57,20 +57,20 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 		 bool ShouldQuit = false;
 
 		 static game_rect SpriteQuad1 = {};
-		 // static game_rect SpriteQuad2 = {};
+		 static game_rect SpriteQuad2 = {};
 
 		 if(!Memory->IsInitialized)
 		 {
 					Assert(Memory->SpriteOne.Texture);
-					// Assert(Memory->SpriteTwo.Texture);
+					Assert(Memory->SpriteTwo.Texture);
 
 					SpriteQuad1.w = Memory->SpriteOne.Width;
 					SpriteQuad1.h = Memory->SpriteOne.Height;
 					SpriteQuad1.x = 0; SpriteQuad1.y = 0;
 
-					// SpriteQuad2.w = Memory->SpriteTwo.Width;
-					// SpriteQuad2.h = Memory->SpriteTwo.Height;
-					// SpriteQuad2.x = Buffer->Width - SpriteQuad2.w; SpriteQuad2.y = 0;
+					SpriteQuad2.w = Memory->SpriteTwo.Width;
+					SpriteQuad2.h = Memory->SpriteTwo.Height;
+					SpriteQuad2.x = 200; SpriteQuad2.y = 0;
 
 					Memory->IsInitialized = true;
 		 }
@@ -93,8 +93,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 		 }
 
 		 GameRenderBitmapToBuffer(Buffer, &Memory->SpriteOne, &SpriteQuad1);
-
-
+		 GameRenderBitmapToBuffer(Buffer, &Memory->SpriteTwo, &SpriteQuad2);
 
 		 return (ShouldQuit);
 }
