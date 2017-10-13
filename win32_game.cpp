@@ -3,7 +3,7 @@
 // Filename: win32_platform.cpp
 // Author: Sierra
 // Created: Пн окт  9 12:00:49 2017 (+0300)
-// Last-Updated: Пт окт 13 16:42:50 2017 (+0300)
+// Last-Updated: Пт окт 13 17:33:18 2017 (+0300)
 //           By: Sierra
 //
 
@@ -160,7 +160,20 @@ SDLUpdateWindow(SDL_Window* Window, SDL_Renderer *Renderer, sdl_offscreen_buffer
 static void
 SDLLoadGameSound(SDL_RWops *&BinaryFile, game_sound *&Sound)
 {
+		 // NOTE(Max): For some reason if you load big amount of bytes,
+		 // Mix_LoadWAV_RW function sets your SDL_RWops cursor to zero
+		 u64 Offset = SDL_RWtell(BinaryFile);
+		 u64 ByteSize = 0;
+		 printf("offset before reading %d\n", Offset);
+		 SDL_RWread(BinaryFile, &ByteSize, sizeof(u64), 1);
+		 printf("Going to read %u bytes \n",ByteSize + sizeof(u64));
+		 
 		 Sound = Mix_LoadWAV_RW(BinaryFile, 0);
+
+		 Offset = Offset + ByteSize + sizeof(u64);
+		 SDL_RWseek(BinaryFile, Offset, RW_SEEK_SET);
+		 printf("offset after reading %d\n", Offset);
+		 
 }
 
 static void
@@ -222,7 +235,8 @@ SDLWriteGameSoundToFile(SDL_RWops *&BinaryTarget, char* SourceFile)
 		 Assert(Samples);
 		 SDL_RWread(BinarySource, Samples, ByteSize, 1);
 		 SDL_RWclose(BinarySource);
-		 
+
+		 SDL_RWwrite(BinaryTarget, &ByteSize, sizeof(u64), 1);
 		 SDL_RWwrite(BinaryTarget, Samples, ByteSize, 1);
 		 free(Samples);
 }
@@ -290,8 +304,6 @@ int main(int argc, char **argv)
 							 SDLWriteGameSoundToFile(BinaryFile, "focus.wav");
 							 SDLWriteGameSoundToFile(BinaryFile, "cannon_fire.wav");
 							 SDLWriteGameSoundToFile(BinaryFile, "amb_ending_water.ogg");
-							 // SDLWriteGameSoundToFile(BinaryFile, "amb_ending_water.ogg");
-							 // SDLWriteGameSoundToFile(BinaryFile, "amb_ending_water.ogg");
 							 
 							 SDL_RWclose(BinaryFile);
 #endif
@@ -301,27 +313,19 @@ int main(int argc, char **argv)
 							 
 							 SDLLoadGameBitmap(BinaryFile, Renderer, &Memory.SpriteOne);
 							 SDLLoadGameBitmap(BinaryFile, Renderer, &Memory.SpriteTwo);
-							 
+
 							 SDLLoadGameSound(BinaryFile, Memory.SoundOne);
 							 SDLLoadGameSound(BinaryFile, Memory.SoundTwo);
 
 							 u32 TicksStart = SDL_GetTicks();
-							 
-							 // Mix_Chunk *chunk  = 0;
-							 // Mix_Chunk *chunk2 = 0;
-							 SDLLoadGameSound(BinaryFile, Memory.MusicOne);
-							 // SDLLoadGameSound(BinaryFile, chunk);
-							 // SDLLoadGameSound(BinaryFile, chunk2);
 
-							 // Assert(chunk);
+							 SDLLoadGameSound(BinaryFile, Memory.MusicOne);
 
 							 u32 TicksEnd = SDL_GetTicks();
 							 u32 TimeElapsedMs = TicksEnd - TicksStart;
 							 printf("Time Elapsed (ms) = %u\n",TimeElapsedMs);
 
-							 // SDL_RWclose(BinaryFile);
-
-
+							 SDL_RWclose(BinaryFile);
 							 
 							 game_input Input = {};
 
