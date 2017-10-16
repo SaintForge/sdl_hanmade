@@ -1,14 +1,14 @@
 
-/* win32_game.h --- 
+/* main_game.h --- 
  * 
- * Filename: win32_game.h
+ * Filename: main_game.h
  * Author: Sierra
  * Created: Вт окт 10 10:26:51 2017 (+0300)
- * Last-Updated: Пт окт 13 11:38:50 2017 (+0300)
+ * Last-Updated: Пн окт 16 12:56:14 2017 (+0300)
  *           By: Sierra
  */
 
-#if !defined(WIN32_GAME_H)
+#if !defined(MAIN_GAME_H)
 
 struct sdl_offscreen_buffer
 {
@@ -40,7 +40,8 @@ struct sdl_memory_bitmap
 		 u8 BitsPerPixel;
 };
 
-#define WIN32_GAME_H
+
+#define MAIN_GAME_H
 #endif
 
 

@@ -3,17 +3,19 @@
 // Filename: win32_platform.cpp
 // Author: Sierra
 // Created: Пн окт  9 12:00:49 2017 (+0300)
-// Last-Updated: Пт окт 13 17:33:18 2017 (+0300)
+// Last-Updated: Пн окт 16 16:32:32 2017 (+0300)
 //           By: Sierra
 //
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
 #include <stdint.h>
+#include <string>
 
 typedef int8_t   s8;
 typedef int16_t s16;
@@ -25,8 +27,10 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
-#include "win32_game.h"
+#include "main_game.h"
+
 #include "game.cpp"
+#include "asset_game.cpp"
 
 static void
 SDLChangeBufferColor(sdl_offscreen_buffer *Buffer, u8 Red, u8 Green, u8 Blue, u8 Alpha)
@@ -44,7 +48,7 @@ SDLChangeBufferColor(sdl_offscreen_buffer *Buffer, u8 Red, u8 Green, u8 Blue, u8
 }
 
 static void
-SDLCreateTexture(sdl_offscreen_buffer *Buffer, SDL_Renderer* Renderer, int Width, int Height)
+SDLCreateBufferTexture(sdl_offscreen_buffer *Buffer, SDL_Renderer* Renderer, int Width, int Height)
 {
 		 int BytesPerPixel = 4;
 		 Buffer->Width  = Width;
@@ -71,6 +75,16 @@ SDLCreateTexture(sdl_offscreen_buffer *Buffer, SDL_Renderer* Renderer, int Width
 		 }
 }
 
+static SDL_Texture*
+SDLUploadTexture(SDL_Renderer *&Renderer, game_rect *Quad, char* FileName)
+{
+		 SDL_Surface *Surface = IMG_Load(FileName);
+		 Quad->w = Surface->w;
+		 Quad->h = Surface->h;
+		 SDL_Texture *Texture = SDL_CreateTextureFromSurface(Renderer, Surface);
+
+		 return (Texture);
+}
 
 
 window_dimension SDLGetWindowDimension(SDL_Window* Window)
@@ -158,118 +172,32 @@ SDLUpdateWindow(SDL_Window* Window, SDL_Renderer *Renderer, sdl_offscreen_buffer
 }
 
 static void
-SDLLoadGameSound(SDL_RWops *&BinaryFile, game_sound *&Sound)
+SDLReloadFontTexture(TTF_Font *&Font, SDL_Texture *&Texture, SDL_Rect *Quad,
+										 char* Text, SDL_Renderer*& Renderer)
 {
-		 // NOTE(Max): For some reason if you load big amount of bytes,
-		 // Mix_LoadWAV_RW function sets your SDL_RWops cursor to zero
-		 u64 Offset = SDL_RWtell(BinaryFile);
-		 u64 ByteSize = 0;
-		 printf("offset before reading %d\n", Offset);
-		 SDL_RWread(BinaryFile, &ByteSize, sizeof(u64), 1);
-		 printf("Going to read %u bytes \n",ByteSize + sizeof(u64));
-		 
-		 Sound = Mix_LoadWAV_RW(BinaryFile, 0);
+		 SDL_Surface *Surface = 0;
 
-		 Offset = Offset + ByteSize + sizeof(u64);
-		 SDL_RWseek(BinaryFile, Offset, RW_SEEK_SET);
-		 printf("offset after reading %d\n", Offset);
-		 
-}
+		 if(Texture)
+		 {
+					SDL_DestroyTexture(Texture);
+		 }
 
-static void
-SDLLoadGameBitmap(SDL_RWops *&BinaryFile, SDL_Renderer *&Renderer, game_bitmap * GameBitmap)
-{
-		 SDL_Surface *TempSurface = 0;
-		 sdl_memory_bitmap BitmapInfo = {};
-		 
-		 SDL_RWread(BinaryFile, &BitmapInfo, sizeof(sdl_memory_bitmap), 1);
+		 Surface = TTF_RenderUTF8_Blended(Font, Text, {255,255,255});
+		 Quad->w = Surface->w;
+		 Quad->h = Surface->h;
 
-		 void *Pixels = malloc(BitmapInfo.BytesPerPixel * BitmapInfo.Width * BitmapInfo.Height);
-		 Assert(Pixels);
-
-		 SDL_RWread(BinaryFile, Pixels, BitmapInfo.BytesPerPixel * BitmapInfo.Width *
-								BitmapInfo.Height, 1);
-
-		 TempSurface =
-					SDL_CreateRGBSurfaceFrom(Pixels, BitmapInfo.Width, BitmapInfo.Height, BitmapInfo.BitsPerPixel, BitmapInfo.Pitch,
-																	 BitmapInfo.Rmask, BitmapInfo.Gmask, BitmapInfo.Bmask, BitmapInfo.Amask);
-		 Assert(TempSurface);
-
-		 GameBitmap->Width   = TempSurface->w;
-		 GameBitmap->Height  = TempSurface->h;
-		 GameBitmap->Texture = SDL_CreateTextureFromSurface(Renderer, TempSurface);
-		 Assert(GameBitmap->Texture);
-
-		 free(Pixels);
-		 SDL_FreeSurface(TempSurface);
-}
-
-#if ASSET_BUILD
-
-static u32
-SDLSizeOfFile(SDL_RWops *&BinaryFile)
-{
-		 u32 DefaultOffset = SDL_RWtell(BinaryFile);
-		 SDL_RWseek(BinaryFile, 0, RW_SEEK_END);
-		 
-		 u32 ByteSize = SDL_RWtell(BinaryFile);
-		 SDL_RWseek(BinaryFile, DefaultOffset, RW_SEEK_SET);
-
-		 return (ByteSize);
-}
-
-static void
-SDLWriteGameSoundToFile(SDL_RWops *&BinaryTarget, char* SourceFile)
-{
-		 u64 ByteSize  = 0;
-		 void *Samples = 0;
-		 SDL_RWops *BinarySource = 0;
-
-		 BinarySource = SDL_RWFromFile(SourceFile, "rb");
-		 Assert(BinarySource);
-		 
-		 ByteSize = SDLSizeOfFile(BinarySource);
-		 printf("ByteSize = %d\n",ByteSize);
-
-		 Samples = malloc(ByteSize);
-		 Assert(Samples);
-		 SDL_RWread(BinarySource, Samples, ByteSize, 1);
-		 SDL_RWclose(BinarySource);
-
-		 SDL_RWwrite(BinaryTarget, &ByteSize, sizeof(u64), 1);
-		 SDL_RWwrite(BinaryTarget, Samples, ByteSize, 1);
-		 free(Samples);
-}
-
-static void
-SDLWriteGameBitmapToFile(SDL_RWops *&BinaryFile, char * FileName)
-{
-		 SDL_Surface *Surface = IMG_Load(FileName);
-		 Assert(Surface);
-
-		 sdl_memory_bitmap BitmapInfo = {};
-		 BitmapInfo.Width         = Surface->w;
-		 BitmapInfo.Height        = Surface->h;
-		 BitmapInfo.Pitch         = Surface->pitch;
-		 BitmapInfo.Rmask         = Surface->format->Rmask;
-		 BitmapInfo.Gmask         = Surface->format->Gmask;
-		 BitmapInfo.Bmask         = Surface->format->Bmask;
-		 BitmapInfo.Amask         = Surface->format->Amask;
-		 BitmapInfo.BytesPerPixel = Surface->format->BytesPerPixel;
-		 BitmapInfo.BitsPerPixel  = Surface->format->BitsPerPixel;
-		 
-		 printf("Wrote bitmap_info: %d\n",SDL_RWwrite(BinaryFile, &BitmapInfo,	sizeof(sdl_memory_bitmap), 1));
-		 
-		 printf("Wrote bitmap: %d\n",SDL_RWwrite(BinaryFile, Surface->pixels, BitmapInfo.BytesPerPixel * BitmapInfo.Width * BitmapInfo.Height, 1));
-
+		 Texture = SDL_CreateTextureFromSurface(Renderer, Surface);
+		 Assert(Texture);
 		 SDL_FreeSurface(Surface);
 }
-#endif
 
 int main(int argc, char **argv)
 {
+		 SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+		 
 		 SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
 		 Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096);
+		 TTF_Init();
 
 		 SDL_DisplayMode Display = {};
 		 SDL_GetDesktopDisplayMode(0, &Display);
@@ -289,49 +217,37 @@ int main(int argc, char **argv)
 							 window_dimension Dimension = SDLGetWindowDimension(Window);
 							 
 							 sdl_offscreen_buffer BackBuffer = {};
-							 SDLCreateTexture(&BackBuffer, Renderer, Dimension.Width, Dimension.Height);
+							 SDLCreateBufferTexture(&BackBuffer, Renderer, Dimension.Width, Dimension.Height);
 							 SDLChangeBufferColor(&BackBuffer, 0, 0, 0, 255);
 							 SDLUpdateWindow(Window, Renderer, &BackBuffer);
 
-							 SDL_RWops *BinaryFile = 0;
 #if ASSET_BUILD
-							 printf("Writing\n");
-							 BinaryFile = SDL_RWFromFile("package.bin", "wb");
-							 
-							 SDLWriteGameBitmapToFile(BinaryFile, "grid_cell.png");
-							 SDLWriteGameBitmapToFile(BinaryFile, "grid_cell.png");
-
-							 SDLWriteGameSoundToFile(BinaryFile, "focus.wav");
-							 SDLWriteGameSoundToFile(BinaryFile, "cannon_fire.wav");
-							 SDLWriteGameSoundToFile(BinaryFile, "amb_ending_water.ogg");
-							 
-							 SDL_RWclose(BinaryFile);
+							 // NOTE: This is for packaging data to the disk
+							 SDLAssetBuildBinaryFile();
 #endif
 							 game_memory Memory = {};
 
-							 BinaryFile = SDL_RWFromFile("package.bin", "rb");
-							 
-							 SDLLoadGameBitmap(BinaryFile, Renderer, &Memory.SpriteOne);
-							 SDLLoadGameBitmap(BinaryFile, Renderer, &Memory.SpriteTwo);
+							 u64 TotalByteAmount = SDLSizeOfBinaryFile("package.bin");
 
-							 SDLLoadGameSound(BinaryFile, Memory.SoundOne);
-							 SDLLoadGameSound(BinaryFile, Memory.SoundTwo);
+							 thread_data ThreadData = {};
+							 ThreadData.Renderer      = Renderer;
+							 ThreadData.Memory        = &Memory;
+							 ThreadData.ByteAmount    = 0;
+							 ThreadData.IsInitialized = false;
 
-							 u32 TicksStart = SDL_GetTicks();
+							 SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread",
+																		 (void*)&ThreadData);
 
-							 SDLLoadGameSound(BinaryFile, Memory.MusicOne);
+							 game_rect LoadingBarQuad = {};
+							 SDL_Texture *LoadingBarTexture =
+										SDLUploadTexture(Renderer, &LoadingBarQuad, "../data/sprites/button.png");
 
-							 u32 TicksEnd = SDL_GetTicks();
-							 u32 TimeElapsedMs = TicksEnd - TicksStart;
-							 printf("Time Elapsed (ms) = %u\n",TimeElapsedMs);
-
-							 SDL_RWclose(BinaryFile);
+							 LoadingBarQuad.h = 10;
+							 LoadingBarQuad.w = 0;
+							 LoadingBarQuad.x = 0;
+							 LoadingBarQuad.y = (Dimension.Height / 2) + (LoadingBarQuad.h / 2);
 							 
 							 game_input Input = {};
-
-							 Mix_PlayChannel(-1, Memory.SoundOne, 0);
-							 Mix_PlayChannel(-1, Memory.SoundTwo, 0);
-							 Mix_PlayChannel(-1, Memory.MusicOne, -1);
 
 							 while(IsRunning)
 							 {
@@ -350,12 +266,18 @@ int main(int argc, char **argv)
 										Buffer.Width    = BackBuffer.Width;
 										Buffer.Height   = BackBuffer.Height;
 
-										
-										if(GameUpdateAndRender(&Memory, &Input, &Buffer))
+										if(ThreadData.IsInitialized)
 										{
-												 IsRunning = false;
+												 if(GameUpdateAndRender(&Memory, &Input, &Buffer))
+												 {
+															IsRunning = false;
+												 }
 										}
 
+										LoadingBarQuad.w = (ThreadData.ByteAmount * Dimension.Width) / TotalByteAmount;
+										
+										// draw loading screen
+										GameRenderBitmapToBuffer(&Buffer, LoadingBarTexture, &LoadingBarQuad);
 										SDLUpdateWindow(Window, Renderer, &BackBuffer);
 							 }
 
@@ -364,12 +286,13 @@ int main(int argc, char **argv)
 					{
 							 printf("Failed to create SDL_Renderer!\n", SDL_GetError());
 					}
-					
+
 		 }
 		 else
 		 {
 					printf("Failed to create SDL_Window!\n", SDL_GetError());
 		 }
+
 
 		 return 0;
 }

@@ -3,7 +3,7 @@
 // Filename: game.cpp
 // Author: Sierra
 // Created: Вт окт 10 10:32:14 2017 (+0300)
-// Last-Updated: Пт окт 13 12:07:46 2017 (+0300)
+// Last-Updated: Пн окт 16 16:18:40 2017 (+0300)
 //           By: Sierra
 //
 
@@ -45,11 +45,12 @@ GameCopyImageToBuffer(game_bitmap* GameBitmap, u32 X, u32 Y,
 #endif
 
 static void
-GameRenderBitmapToBuffer(game_offscreen_buffer *Buffer, game_bitmap *Bitmap, game_rect *Quad)
+GameRenderBitmapToBuffer(game_offscreen_buffer *Buffer, game_texture *Texture, game_rect *Quad)
 {
 		 SDL_SetRenderTarget(Buffer->Renderer, Buffer->Memory);
-		 SDL_RenderCopy(Buffer->Renderer, Bitmap->Texture, 0, Quad);
+		 SDL_RenderCopy(Buffer->Renderer, Texture, 0, Quad);
 }
+
 
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
@@ -61,17 +62,19 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 
 		 if(!Memory->IsInitialized)
 		 {
-					Assert(Memory->SpriteOne.Texture);
-					Assert(Memory->SpriteTwo.Texture);
-
-					SpriteQuad1.w = Memory->SpriteOne.Width;
-					SpriteQuad1.h = Memory->SpriteOne.Height;
+					SDL_QueryTexture(Memory->GridCell, 0, 0, &SpriteQuad1.w, &SpriteQuad1.h);
+					Assert(Memory->GridCell);
 					SpriteQuad1.x = 0; SpriteQuad1.y = 0;
-
-					SpriteQuad2.w = Memory->SpriteTwo.Width;
-					SpriteQuad2.h = Memory->SpriteTwo.Height;
+					printf("quad1.w = %d\n",SpriteQuad1.w);
+					printf("quad2.w = %d\n",SpriteQuad2.w);
+					
+					SDL_QueryTexture(Memory->SpriteO_D, 0, 0, &SpriteQuad2.w, &SpriteQuad2.h);
 					SpriteQuad2.x = 200; SpriteQuad2.y = 0;
 
+					Mix_PlayChannel(-1, Memory->SoundOne, 0);
+					Mix_PlayChannel(-1, Memory->SoundTwo, 0);
+					Mix_PlayChannel(-1, Memory->MusicOne, -1);
+					
 					Memory->IsInitialized = true;
 		 }
 
@@ -92,8 +95,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 					Input->WasPressed = false;
 		 }
 
-		 GameRenderBitmapToBuffer(Buffer, &Memory->SpriteOne, &SpriteQuad1);
-		 GameRenderBitmapToBuffer(Buffer, &Memory->SpriteTwo, &SpriteQuad2);
+		 GameRenderBitmapToBuffer(Buffer, Memory->GridCell, &SpriteQuad1);
+		 GameRenderBitmapToBuffer(Buffer, Memory->SpriteO_D, &SpriteQuad2);
 
 		 return (ShouldQuit);
 }

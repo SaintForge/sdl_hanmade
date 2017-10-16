@@ -3,7 +3,7 @@
  * Filename: game.h
  * Author: Sierra
  * Created: Пн окт  9 14:15:31 2017 (+0300)
- * Last-Updated: Пт окт 13 16:19:05 2017 (+0300)
+ * Last-Updated: Пн окт 16 16:09:54 2017 (+0300)
  *           By: Sierra
  */
 
@@ -59,18 +59,19 @@ struct game_input
 		 };
 };
 
-struct game_bitmap
-{
-		 u32 Width, Height;
-		 game_texture *Texture;
-};
-
 struct game_memory
 {
 		 bool IsInitialized;
 
-		 game_bitmap SpriteOne;
-		 game_bitmap SpriteTwo;
+		 game_texture *GridCell;
+		 
+		 game_texture *SpriteI_D;
+		 game_texture *SpriteI_M;
+		 game_texture *SpriteI_S;
+
+		 game_texture *SpriteO_D;
+		 game_texture *SpriteO_M;
+		 game_texture *SpriteO_S;
 
 		 game_sound *SoundOne;
 		 game_sound *SoundTwo;

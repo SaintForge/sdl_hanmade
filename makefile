@@ -1,4 +1,4 @@
-OBJS = win32_game.cpp
+OBJS = main_game.cpp
 OBJ_NAME = build/main
 
 all: $(OBJS)
