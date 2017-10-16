@@ -3,7 +3,7 @@
  * Filename: asset_game.h
  * Author: Sierra
  * Created: Пн окт 16 10:08:17 2017 (+0300)
- * Last-Updated: Пн окт 16 16:38:46 2017 (+0300)
+ * Last-Updated: Пн окт 16 16:43:35 2017 (+0300)
  *           By: Sierra
  */
 
@@ -109,10 +109,11 @@ SDLLoadGameBitmap(SDL_RWops *&BinaryFile, SDL_Renderer *&Renderer, game_texture 
 		 void *Pixels = malloc(BitmapInfo.BytesPerPixel * BitmapInfo.Width * BitmapInfo.Height);
 		 Assert(Pixels);
 
-		 SDL_RWread(BinaryFile, Pixels, BitmapInfo.BytesPerPixel * BitmapInfo.Width *
-								BitmapInfo.Height, 1);
+		 SDL_RWread(BinaryFile, Pixels,
+								BitmapInfo.BytesPerPixel * BitmapInfo.Width * BitmapInfo.Height, 1);
 
-		 TempSurface = SDL_CreateRGBSurfaceFrom(Pixels, BitmapInfo.Width, BitmapInfo.Height, BitmapInfo.BitsPerPixel, BitmapInfo.Pitch,
+		 TempSurface =
+					SDL_CreateRGBSurfaceFrom(Pixels, BitmapInfo.Width, BitmapInfo.Height, BitmapInfo.BitsPerPixel, BitmapInfo.Pitch,
 																	 BitmapInfo.Rmask, BitmapInfo.Gmask, BitmapInfo.Bmask, BitmapInfo.Amask);
 		 Assert(TempSurface);
 

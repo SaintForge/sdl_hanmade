@@ -3,7 +3,7 @@
  * Filename: assert_game.h
  * Author: Sierra
  * Created: Пн окт 16 16:29:29 2017 (+0300)
- * Last-Updated: Пн окт 16 16:31:26 2017 (+0300)
+ * Last-Updated: Пн окт 16 16:40:49 2017 (+0300)
  *           By: Sierra
  */
 
@@ -17,7 +17,6 @@ struct thread_data
 		 s64 ByteAmount;
 		 bool IsInitialized;
 };
-
 
 #if _WIN32
 
