@@ -1,10 +1,9 @@
-
-/* main_game.h --- 
+/* linux_game.h --- 
  * 
- * Filename: main_game.h
+ * Filename: linux_game.h
  * Author: Sierra
  * Created: Вт окт 10 10:26:51 2017 (+0300)
- * Last-Updated: Пн окт 16 12:56:14 2017 (+0300)
+ * Last-Updated: Вт окт 17 11:24:50 2017 (+0300)
  *           By: Sierra
  */
 
@@ -18,7 +17,6 @@ struct sdl_offscreen_buffer
 		 int Height;
 		 int Pitch;
 };
-
 
 struct window_dimension
 {
@@ -39,7 +37,6 @@ struct sdl_memory_bitmap
 		 u8 BytesPerPixel;
 		 u8 BitsPerPixel;
 };
-
 
 #define MAIN_GAME_H
 #endif

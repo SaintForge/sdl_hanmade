@@ -3,7 +3,7 @@
  * Filename: game.h
  * Author: Sierra
  * Created: Пн окт  9 14:15:31 2017 (+0300)
- * Last-Updated: Пн окт 16 16:46:34 2017 (+0300)
+ * Last-Updated: Вт окт 17 13:37:15 2017 (+0300)
  *           By: Sierra
  */
 
@@ -22,6 +22,7 @@ void LogErrorLine(const char* Message, int Line)
 #define Assert(Expression) if(!(Expression)) { LogErrorLine( __FILE__, __LINE__); *(int *)0 = 0;  } 
 
 typedef SDL_Rect    game_rect;
+typedef SDL_Point   game_point;
 typedef SDL_Texture game_texture;
 typedef SDL_Surface game_surface;
 typedef Mix_Chunk   game_sound;

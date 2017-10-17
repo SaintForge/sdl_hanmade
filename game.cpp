@@ -3,11 +3,19 @@
 // Filename: game.cpp
 // Author: Sierra
 // Created: Вт окт 10 10:32:14 2017 (+0300)
-// Last-Updated: Пн окт 16 16:18:40 2017 (+0300)
+// Last-Updated: Вт окт 17 17:54:22 2017 (+0300)
 //           By: Sierra
 //
 
 #include "game.h"
+#include <vector>
+
+static void
+GameRenderBitmapToBuffer(game_offscreen_buffer *Buffer, game_texture *Texture, game_rect *Quad)
+{
+		 SDL_SetRenderTarget(Buffer->Renderer, Buffer->Memory);
+		 SDL_RenderCopy(Buffer->Renderer, Texture, 0, Quad);
+}
 
 #if 0
 static void
@@ -44,11 +52,138 @@ GameCopyImageToBuffer(game_bitmap* GameBitmap, u32 X, u32 Y,
 }
 #endif
 
-static void
-GameRenderBitmapToBuffer(game_offscreen_buffer *Buffer, game_texture *Texture, game_rect *Quad)
+enum figure_entity_form
 {
-		 SDL_SetRenderTarget(Buffer->Renderer, Buffer->Memory);
-		 SDL_RenderCopy(Buffer->Renderer, Texture, 0, Quad);
+		 O_figure, I_figure, L_figure, J_figure,
+		 Z_figure, S_figure, T_figure
+};
+
+enum figure_entity_type
+{
+		 classic, stone, mirror
+};
+
+struct figure_entity
+{
+		 bool IsIdle;
+		 bool IsStick;
+		 float Angle;
+		 float DefaultAnlge;
+		 game_point Center;
+		 game_point DefaultCenter;
+		 game_point Shell[4];
+		 game_point DefaultShell[4];
+		 game_rect AreaQuad;
+		 figure_entity_form Form;
+		 figure_entity_type Type;
+		 game_texture *Texture;
+};
+
+static figure_entity*
+CreateNewFigureEntity(figure_entity_form Form, figure_entity_type Type,
+											u32 BlockSize, game_texture *&Texture)
+{
+		 figure_entity *Figure = (figure_entity *)malloc(sizeof(figure_entity));
+		 Assert(Figure);
+
+     int Index           = 0;
+     int RowAmount       = 0;
+     int ColumnAmount    = 0;
+		 float CenterOffset  = 0.5f;
+		 
+     std::vector<std::vector<int>> matrix(2);
+     for (int i = 0; i < 2; i++)
+     {
+					matrix[i].resize(4);
+     }
+
+     switch(Form)
+     {
+					case I_figure:
+					{
+							 matrix = { {1, 1, 1, 1}, {0, 0, 0, 0} };
+							 RowAmount = 4;
+							 ColumnAmount = 1;
+					} break;
+	  
+					case O_figure:
+					{
+							 matrix = { { 1, 1 }, { 1, 1 } };
+							 RowAmount = 2;
+							 ColumnAmount = 2;
+					}break;
+	  
+					case Z_figure:
+					{
+							 matrix = { {1, 1, 0}, {0, 1, 1} };
+							 RowAmount = 3;
+							 ColumnAmount = 2;
+					}break;
+	  
+					case S_figure:
+					{
+							 matrix = { {0, 1, 1}, {1, 1, 0} };
+							 RowAmount = 3;
+							 ColumnAmount = 2;
+					}break;
+	  
+					case T_figure:
+					{
+							 matrix = { {0, 1, 0}, {1, 1, 1} };
+							 CenterOffset = 0.75f;
+							 RowAmount = 3;
+							 ColumnAmount = 2;
+					}break;
+	  
+					case L_figure:
+					{
+							 matrix = { {0, 0, 1},{1, 1, 1} };
+							 CenterOffset = 0.75f;
+							 RowAmount = 3;
+							 ColumnAmount = 2;
+					}break;
+	  
+					case J_figure:
+					{
+							 matrix = { {1, 0, 0}, {1, 1, 1} };
+							 CenterOffset = 0.75f;
+							 RowAmount = 3;
+							 ColumnAmount = 2;
+					}break;
+     }
+
+     Figure->AreaQuad.x = 0;
+     Figure->AreaQuad.y = 0;
+		 Figure->AreaQuad.w = RowAmount*BlockSize;
+     Figure->AreaQuad.h = ColumnAmount*BlockSize;
+
+     Figure->Center.x = Figure->AreaQuad.x + (Figure->AreaQuad.w / 2);
+     Figure->Center.y = Figure->AreaQuad.y + (((float)Figure->AreaQuad.h) * CenterOffset);
+		 Figure->DefaultCenter = Figure->Center;
+     
+     for (u32 i = 0; i < 2; i++)
+     {
+					for (u32 j = 0; j < 4; j++)
+					{
+							 if(matrix[i][j] == 1)
+							 {
+										Figure->Shell[Index].x = Figure->AreaQuad.x + (j * BlockSize) + (BlockSize / 2);
+										Figure->Shell[Index].y = Figure->AreaQuad.y + (i * BlockSize) + (BlockSize / 2);
+										Figure->DefaultShell[Index] = Figure->Shell[Index];
+										Index++;
+							 }
+					}
+     }
+
+		 Figure->IsIdle = true;
+		 Figure->IsIdle = false;
+		 Figure->Angle  = 0.0f;
+		 Figure->DefaultAnlge = 0.0f;
+		 Figure->Form = Form;
+		 Figure->Type = Type;
+		 Figure->Texture = Texture;
+
+		 return (Figure);
 }
 
 
@@ -56,28 +191,29 @@ static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
 		 bool ShouldQuit = false;
+		 u32 BlockSize = 40;
+		 game_rect rect = {};
+		 rect.w = 100;
+		 rect.h = 100;
 
-		 static game_rect SpriteQuad1 = {};
-		 static game_rect SpriteQuad2 = {};
+		 game_rect rect2 = {};
+		 rect2.x = 100;
+		 rect2.y = 100;
+
+		 SDL_QueryTexture(Memory->SpriteI_D, 0, 0, &rect2.w, &rect2.h);
+		 // rect2.w = 100;
+		 // rect2.h = 100;
+
+		 // figure_entity *Figure = 0;
 
 		 if(!Memory->IsInitialized)
 		 {
-					SDL_QueryTexture(Memory->GridCell, 0, 0, &SpriteQuad1.w, &SpriteQuad1.h);
-					Assert(Memory->GridCell);
-					SpriteQuad1.x = 0; SpriteQuad1.y = 0;
-					printf("quad1.w = %d\n",SpriteQuad1.w);
-					printf("quad2.w = %d\n",SpriteQuad2.w);
-					
-					SDL_QueryTexture(Memory->SpriteO_D, 0, 0, &SpriteQuad2.w, &SpriteQuad2.h);
-					SpriteQuad2.x = 200; SpriteQuad2.y = 0;
+					// Figure = CreateNewFigureEntity(I_figure, classic, BlockSize, Memory->SpriteI_D);
+					// Assert(Figure->Texture);
 
 					Mix_PlayChannel(-1, Memory->SoundOne, 0);
-					Mix_PlayChannel(-1, Memory->SoundTwo, 0);
-					Mix_PlayChannel(-1, Memory->MusicOne, -1);
-					
 					Memory->IsInitialized = true;
 		 }
-
 		 
 		 if(Input->WasPressed)
 		 {
@@ -95,8 +231,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 					Input->WasPressed = false;
 		 }
 
-		 GameRenderBitmapToBuffer(Buffer, Memory->GridCell, &SpriteQuad1);
-		 GameRenderBitmapToBuffer(Buffer, Memory->SpriteO_D, &SpriteQuad2);
+		 
+		 GameRenderBitmapToBuffer(Buffer, Memory->GridCell, &rect);
+		 GameRenderBitmapToBuffer(Buffer, Memory->SpriteI_D, &rect2);
 
 		 return (ShouldQuit);
 }
+

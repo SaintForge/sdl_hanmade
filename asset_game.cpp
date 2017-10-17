@@ -3,7 +3,7 @@
  * Filename: asset_game.h
  * Author: Sierra
  * Created: Пн окт 16 10:08:17 2017 (+0300)
- * Last-Updated: Пн окт 16 16:43:35 2017 (+0300)
+ * Last-Updated: Вт окт 17 17:54:19 2017 (+0300)
  *           By: Sierra
  */
 
@@ -41,7 +41,7 @@ SDLWriteGameSoundToFile(SDL_RWops *&BinaryTarget, const char* SourceFile)
 		 Assert(BinarySource);
 		 
 		 ByteSize = SDLSizeOfSDL_RWops(BinarySource);
-		 printf("ByteSize = %d\n",ByteSize);
+		 // printf("ByteSize = %lu\n",ByteSize);
 
 		 Samples = malloc(ByteSize);
 		 Assert(Samples);
@@ -70,9 +70,10 @@ SDLWriteGameBitmapToFile(SDL_RWops *&BinaryFile, const char * FileName)
 		 BitmapInfo.BytesPerPixel = Surface->format->BytesPerPixel;
 		 BitmapInfo.BitsPerPixel  = Surface->format->BitsPerPixel;
 		 
-		 printf("Wrote bitmap_info: %d\n",SDL_RWwrite(BinaryFile, &BitmapInfo,	sizeof(sdl_memory_bitmap), 1));
+		 SDL_RWwrite(BinaryFile, &BitmapInfo,	sizeof(sdl_memory_bitmap), 1);
 		 
-		 printf("Wrote bitmap: %d\n",SDL_RWwrite(BinaryFile, Surface->pixels, BitmapInfo.BytesPerPixel * BitmapInfo.Width * BitmapInfo.Height, 1));
+		 SDL_RWwrite(BinaryFile, Surface->pixels,
+								 BitmapInfo.BytesPerPixel * BitmapInfo.Width * BitmapInfo.Height, 1);
 
 		 SDL_FreeSurface(Surface);
 }
@@ -95,14 +96,13 @@ SDLLoadGameSound(SDL_RWops *&BinaryFile, game_sound *&Sound, s64 *ByteCount)
 		 *ByteCount = Offset;
 }
 
+#if 0
 static void
 SDLLoadGameBitmap(SDL_RWops *&BinaryFile, SDL_Renderer *&Renderer, game_texture *&GameBitmap,
-		 s64 *ByteCount)
+									s64 *ByteCount)
 {
 		 SDL_Surface *TempSurface = 0;
 		 sdl_memory_bitmap BitmapInfo = {};
-
-		 u64 ByteOffset = SDL_RWtell(BinaryFile);
 
 		 SDL_RWread(BinaryFile, &BitmapInfo, sizeof(sdl_memory_bitmap), 1);
 
@@ -126,16 +126,78 @@ SDLLoadGameBitmap(SDL_RWops *&BinaryFile, SDL_Renderer *&Renderer, game_texture 
 		 *ByteCount = SDL_RWtell(BinaryFile);
 }
 
+#endif
+
+static void
+SDLLoadGameSoundFromMemory(void *&Memory, game_sound *&Sound, s64* ByteCount)
+{
+		 u64 *ByteSize = (u64*)Memory;
+		 printf("ByteSize = %d\n", *ByteSize);
+		 Memory += sizeof(u64);
+		 ByteCount += sizeof(u64);
+
+		 u8* SoundBuffer = (u8*)Memory;
+		 Sound = Mix_QuickLoad_RAW(SoundBuffer, *ByteSize);
+		 Assert(Sound);
+
+		 Memory += *ByteSize;
+		 *ByteCount += *ByteSize;
+}
+
+static void
+SDLLoadBitmapFromMemory(void *&Memory, game_texture *& Texture, s64 *ByteOffset,
+												SDL_Renderer *&Renderer)
+{
+		 Assert(Memory);
+		 SDL_Surface *TempSurface = 0;
+		 sdl_memory_bitmap *BitmapInfo = (sdl_memory_bitmap*)Memory;
+
+		 u64 BytePerSurface =
+					BitmapInfo->BytesPerPixel * BitmapInfo->Width * BitmapInfo->Height;
+		 
+		 Memory += sizeof(sdl_memory_bitmap);
+		 *ByteOffset += sizeof(sdl_memory_bitmap);
+
+		 TempSurface =
+					SDL_CreateRGBSurfaceFrom(Memory, BitmapInfo->Width, BitmapInfo->Height, BitmapInfo->BitsPerPixel, BitmapInfo->Pitch,
+																	 BitmapInfo->Rmask, BitmapInfo->Gmask, BitmapInfo->Bmask, BitmapInfo->Amask);
+		 Assert(TempSurface);
+
+		 Memory += BytePerSurface;
+		 *ByteOffset += BytePerSurface;
+
+		 Texture = SDL_CreateTextureFromSurface(Renderer, TempSurface);
+		 Assert(Texture);
+
+		 SDL_FreeSurface(TempSurface);
+}
+
+static void
+SDLReadEntireFile(char* FileName, void *&Memory)
+{
+		 SDL_RWops *BinaryFile = SDL_RWFromFile(FileName, "rb");
+		 u64 ByteAmount = SDLSizeOfSDL_RWops(BinaryFile);
+		 // printf("ByteAmount = %d\n", ByteAmount);
+
+		 Memory = malloc(ByteAmount);
+		 Assert(Memory);
+
+		 SDL_RWread(BinaryFile, Memory, ByteAmount, 1);
+
+		 SDL_RWclose(BinaryFile);
+}
+
+
 static void
 SDLAssetBuildBinaryFile()
 {
 		 SDL_RWops *BinaryFile = SDL_RWFromFile("package.bin", "wb");
-							 
+
 		 SDLWriteGameBitmapToFile(BinaryFile, grid_cell);
-		 SDLWriteGameBitmapToFile(BinaryFile, SpriteO_D);
+		 SDLWriteGameBitmapToFile(BinaryFile, SpriteI_D);
 
 		 SDLWriteGameSoundToFile(BinaryFile, focus);
-		 SDLWriteGameSoundToFile(BinaryFile, cannon_fire);
+		 // SDLWriteGameSoundToFile(BinaryFile, cannon_fire);
 		 SDLWriteGameSoundToFile(BinaryFile, amb_ending_water);
 		 
 		 SDL_RWclose(BinaryFile);
@@ -144,26 +206,28 @@ SDLAssetBuildBinaryFile()
 static int
 SDLAssetLoadBinaryFile(void *Data)
 {
-		 printf("loading assets...\n");
-		 SDL_RWops *BinaryFile = SDL_RWFromFile("package.bin", "rb");
+		 thread_data  *ThreadData = (thread_data*)Data;
+		 
+		 void *Memory = 0;
+		 SDLReadEntireFile("package.bin", Memory);
+		 
+		 s64 *ByteOffset          = &ThreadData->ByteAmount;
+		 SDL_Renderer *Renderer   = ThreadData->Renderer;
+		 game_memory  *GameMemory = ThreadData->Memory;
 
-		 thread_data *ThreadData = (thread_data*)Data;
+		 SDLLoadBitmapFromMemory(Memory, GameMemory->GridCell, ByteOffset, Renderer);
+		 SDLLoadBitmapFromMemory(Memory, GameMemory->SpriteI_D, ByteOffset, Renderer);
+		 
+		 // SDLLoadGameBitmap(BinaryFile, Renderer, Memory->GridCell, &ThreadData->ByteAmount);
+		 // SDLLoadGameBitmap(BinaryFile, Renderer, Memory->SpriteI_D, &ThreadData->ByteAmount);
 
-		 SDL_Renderer *Renderer = ThreadData->Renderer;
-		 game_memory *Memory    = ThreadData->Memory;
-		 s64 *ByteOffset        = &ThreadData->ByteAmount;
+		 SDLLoadGameSoundFromMemory(Memory, GameMemory->SoundOne, ByteOffset);
+		 SDLLoadGameSoundFromMemory(Memory, GameMemory->MusicOne, ByteOffset);
+		 // SDLLoadGameSound(BinaryFile, Memory->SoundTwo, &ThreadData->ByteAmount);
+		 // SDLLoadGameSound(BinaryFile, Memory->MusicOne, &ThreadData->ByteAmount);
 
-		 SDLLoadGameBitmap(BinaryFile, Renderer, Memory->GridCell, &ThreadData->ByteAmount);
-		 SDLLoadGameBitmap(BinaryFile, Renderer, Memory->SpriteO_D, &ThreadData->ByteAmount);
-
-		 SDLLoadGameSound(BinaryFile, Memory->SoundOne, &ThreadData->ByteAmount);
-		 SDLLoadGameSound(BinaryFile, Memory->SoundTwo, &ThreadData->ByteAmount);
-		 SDLLoadGameSound(BinaryFile, Memory->MusicOne, &ThreadData->ByteAmount);
-
-		 SDL_RWclose(BinaryFile);
+		 // SDL_RWclose(BinaryFile);
 
 		 ThreadData->IsInitialized = true;
-		 printf("loaded assets\n");
-
 		 return (1);
 }

@@ -1,4 +1,4 @@
-OBJS = main_game.cpp
+OBJS = linux_game.cpp
 OBJ_NAME = build/main
 
 all: $(OBJS)

@@ -1,9 +1,9 @@
-// win32_platform.cpp ---
+// linux_platform.cpp ---
 // 
-// Filename: win32_platform.cpp
+// Filename: linux_platform.cpp
 // Author: Sierra
 // Created: Пн окт  9 12:00:49 2017 (+0300)
-// Last-Updated: Пн окт 16 16:32:32 2017 (+0300)
+// Last-Updated: Вт окт 17 16:46:23 2017 (+0300)
 //           By: Sierra
 //
 
@@ -27,7 +27,23 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
-#include "main_game.h"
+#include "linux_game.h"
+
+/* Bitmaps */
+static const char* grid_cell = "../data/grid_cell.png";
+
+static const char* SpriteI_D = "../data/sprites/i_d.png";
+static const char* SpriteI_M = "../data/sprites/i_m.png";
+static const char* SpriteI_S = "../data/sprites/i_s.png";
+
+static const char* SpriteO_D = "../data/sprites/o_d.png";
+static const char* SpriteO_M = "../data/sprites/o_m.png";
+static const char* SpriteO_S = "../data/sprites/o_s.png";
+
+/* Sound */
+static const char* focus = "../data/focus.wav";
+static const char* cannon_fire = "../data/cannon_fire.wav";
+static const char* amb_ending_water = "../data/amb_ending_water.ogg";
 
 #include "game.cpp"
 #include "asset_game.cpp"
@@ -66,7 +82,7 @@ SDLCreateBufferTexture(sdl_offscreen_buffer *Buffer, SDL_Renderer* Renderer, int
 					}
 					else
 					{
-							 printf("Failed to create SDL_Texture!\n", SDL_GetError());
+							 printf("Failed to create SDL_Texture!%s\n", SDL_GetError());
 					}
 		 }
 		 else
@@ -234,13 +250,12 @@ int main(int argc, char **argv)
 							 ThreadData.Memory        = &Memory;
 							 ThreadData.ByteAmount    = 0;
 							 ThreadData.IsInitialized = false;
-
+							 
 							 SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread",
-																		 (void*)&ThreadData);
-
+																													(void*)&ThreadData);
+							 
 							 game_rect LoadingBarQuad = {};
-							 SDL_Texture *LoadingBarTexture =
-										SDLUploadTexture(Renderer, &LoadingBarQuad, "../data/sprites/button.png");
+							 SDL_Texture *LoadingBarTexture =	SDLUploadTexture(Renderer, &LoadingBarQuad, "../data/sprites/button.png");
 
 							 LoadingBarQuad.h = 10;
 							 LoadingBarQuad.w = 0;
@@ -284,7 +299,7 @@ int main(int argc, char **argv)
 					}
 					else
 					{
-							 printf("Failed to create SDL_Renderer!\n", SDL_GetError());
+							 printf("Failed to create SDL_Renderer! %s\n", SDL_GetError());
 					}
 
 		 }
