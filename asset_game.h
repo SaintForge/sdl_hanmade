@@ -3,7 +3,7 @@
  * Filename: assert_game.h
  * Author: Sierra
  * Created: Пн окт 16 16:29:29 2017 (+0300)
- * Last-Updated: Вт окт 17 09:03:38 2017 (+0300)
+ * Last-Updated: Ср окт 18 17:39:12 2017 (+0300)
  *           By: Sierra
  */
 
@@ -16,6 +16,58 @@ struct thread_data
 
 		 s64 ByteAmount;
 		 bool IsInitialized;
+};
+
+enum asset_type
+{
+		 AssetType_None,
+		 AssetType_Bitmap,
+		 AssetType_Sound,
+		 AssetType_Music
+};
+
+struct asset_audio_header
+{
+		 bool IsMusic;
+};
+
+struct asset_bitmap_header
+{
+		 u32 Width;
+		 u32 Height;
+		 u32 Pitch;
+		 u32 Rmask;
+		 u32 Gmask;
+		 u32 Bmask;
+		 u32 Amask;
+		 u8 BytesPerPixel;
+		 u8 BitsPerPixel;
+};
+
+struct asset_audio
+{
+		 asset_audio_header Header;
+		 void *Data;
+};
+
+struct asset_bitmap
+{
+		 asset_bitmap_header Header;
+		 void *Data;
+};
+
+struct asset_header
+{
+		 asset_header *Next;
+		 asset_header *Prev;
+
+		 u32 AssetSize;
+		 asset_type AssetType;
+		 union
+		 {
+					asset_audio  Audio;
+		 			asset_bitmap Bitmap;
+		 };
 };
 
 

@@ -3,7 +3,7 @@
 // Filename: linux_platform.cpp
 // Author: Sierra
 // Created: Пн окт  9 12:00:49 2017 (+0300)
-// Last-Updated: Ср окт 18 09:50:41 2017 (+0300)
+// Last-Updated: Ср окт 18 17:42:29 2017 (+0300)
 //           By: Sierra
 //
 
@@ -189,7 +189,7 @@ SDLReloadFontTexture(TTF_Font *&Font, SDL_Texture *&Texture, SDL_Rect *Quad,
 										 char* Text, SDL_Renderer*& Renderer)
 {
 		 SDL_Surface *Surface = 0;
-
+		 
 		 if(Texture)
 		 {
 					SDL_DestroyTexture(Texture);
@@ -237,6 +237,7 @@ int main(int argc, char **argv)
 #if ASSET_BUILD
 							 // NOTE: This is for packaging data to the disk
 							 SDLAssetBuildBinaryFile();
+							 printf("builded!\n");
 #endif
 							 game_memory Memory = {};
 

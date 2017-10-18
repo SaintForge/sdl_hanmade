@@ -3,7 +3,7 @@
  * Filename: linux_game.h
  * Author: Sierra
  * Created: Вт окт 10 10:26:51 2017 (+0300)
- * Last-Updated: Ср окт 18 20:58:39 2017 (+0400)
+ * Last-Updated: Ср окт 18 12:34:46 2017 (+0300)
  *           By: Sierra
  */
 
@@ -22,20 +22,6 @@ struct window_dimension
 {
 		 int Width;
 		 int Height;
-};
-
-struct sdl_memory_bitmap
-{
-		 u32 Width;
-		 u32 Height;
-		 u32 Pitch;
-		 u32 Rmask;
-		 u32 Gmask;
-		 u32 Bmask;
-		 u32 Amask;
-
-		 u8 BytesPerPixel;
-		 u8 BitsPerPixel;
 };
 
 #define LINUX_GAME_H
