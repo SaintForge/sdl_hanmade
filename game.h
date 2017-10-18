@@ -3,7 +3,7 @@
  * Filename: game.h
  * Author: Sierra
  * Created: Пн окт  9 14:15:31 2017 (+0300)
- * Last-Updated: Ср окт 18 22:43:57 2017 (+0400)
+ * Last-Updated: Ср окт 18 10:02:25 2017 (+0300)
  *           By: Sierra
  */
 
@@ -11,7 +11,7 @@
 
 /* TODO(Max): Check if we need these headers here!!! */
 #include <SDL2/SDL.h>
-/* #include <SDL2/SDL_mixer.h> */
+#include <SDL2/SDL_mixer.h>
 
 #include <stdio.h>
 
@@ -79,7 +79,7 @@ struct game_memory
 		 game_sound *SoundOne;
 		 game_sound *SoundTwo;
 
-		 game_sound *MusicOne;
+		 game_music *MusicOne;
 };
 
 

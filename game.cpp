@@ -3,7 +3,7 @@
 // Filename: game.cpp
 // Author: Sierra
 // Created: Вт окт 10 10:32:14 2017 (+0300)
-// Last-Updated: Ср окт 18 22:55:11 2017 (+0400)
+// Last-Updated: Ср окт 18 10:19:28 2017 (+0300)
 //           By: Sierra
 //
 
@@ -201,18 +201,16 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 		 rect2.y = 100;
 
 		 SDL_QueryTexture(Memory->SpriteI_D, 0, 0, &rect2.w, &rect2.h);
-		 // rect2.w = 100;
-		 // rect2.h = 100;
-
-		 // figure_entity *Figure = 0;
 
 		 if(!Memory->IsInitialized)
 		 {
 					// Figure = CreateNewFigureEntity(I_figure, classic, BlockSize, Memory->SpriteI_D);
 					// Assert(Figure->Texture);
 
-					// Mix_PlayChannel(-1, Memory->SoundOne, 1);
-					Mix_PlayChannel(-1, Memory->SoundTwo, 0);
+					Mix_PlayChannel(-1, Memory->SoundOne, 0);
+					// Mix_PlayChannel(-1, Memory->SoundTwo, 0);
+					// Mix_PlayChannel(-1, Memory->MusicOne, 0);
+					Mix_PlayMusic(Memory->MusicOne, 0);
 					Memory->IsInitialized = true;
 		 }
 		 

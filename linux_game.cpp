@@ -3,7 +3,7 @@
 // Filename: linux_platform.cpp
 // Author: Sierra
 // Created: Пн окт  9 12:00:49 2017 (+0300)
-// Last-Updated: Ср окт 18 21:15:37 2017 (+0400)
+// Last-Updated: Ср окт 18 09:50:41 2017 (+0300)
 //           By: Sierra
 //
 
@@ -241,6 +241,7 @@ int main(int argc, char **argv)
 							 game_memory Memory = {};
 
 							 u64 TotalByteAmount = SDLSizeOfBinaryFile("package.bin");
+							 printf("should read %d bytes\n", TotalByteAmount);
 
 							 thread_data ThreadData = {};
 							 ThreadData.Renderer      = Renderer;
@@ -258,7 +259,7 @@ int main(int argc, char **argv)
 							 LoadingBarQuad.w = 0;
 							 LoadingBarQuad.x = 0;
 							 LoadingBarQuad.y = (Dimension.Height / 2) + (LoadingBarQuad.h / 2);
-							 
+
 							 game_input Input = {};
 
 							 while(IsRunning)

@@ -3,7 +3,7 @@
 // Filename: win32_game.cpp
 // Author: 
 // Created: Ср окт 18 20:51:21 2017 (+0400)
-// Last-Updated: Чт окт 19 07:54:57 2017 (+0400)
+// Last-Updated: Ср окт 18 09:08:20 2017 (+0300)
 //           By: Sierra
 //
 
@@ -275,7 +275,7 @@ int main(int argc, char **argv)
 
 #if ASSET_BUILD
 							 // NOTE: This is for packaging data to the disk
-							 // SDLAssetBuildBinaryFile();
+							 SDLAssetBuildBinaryFile();
 #endif
 							 game_memory Memory = {};
 
