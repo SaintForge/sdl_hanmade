@@ -3,7 +3,7 @@
 // Filename: game.cpp
 // Author: Sierra
 // Created: Вт окт 10 10:32:14 2017 (+0300)
-// Last-Updated: Чт окт 19 10:21:08 2017 (+0300)
+// Last-Updated: Чт окт 19 16:58:50 2017 (+0300)
 //           By: Sierra
 //
 
@@ -212,20 +212,19 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 					// Figure = CreateNewFigureEntity(I_figure, classic, BlockSize, Memory->SpriteI_D);
 					// Assert(Figure->Texture);
 
-					// Mix_PlayChannel(-1, Memory->SoundOne, 0);
-					// Mix_PlayChannel(-1, Memory->SoundTwo, 0);
-					// Mix_PlayChannel(-1, Memory->MusicOne, 0);
-					// Mix_PlayMusic(Memory->MusicOne, 0);
-					printf("memory init\n");
-
 					Memory->GridCell = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
 					Memory->SpriteI_D = GetTexture(Memory, "i_d.png", Buffer->Renderer);
 
 					Memory->SoundOne = GetSound(Memory, "focus.wav");
-					Assert(Memory->SoundOne);
+					Memory->MusicOne = GetMusic(Memory, "amb_ending_water.ogg");
+					Mix_VolumeMusic(MIX_MAX_VOLUME);
+					
 					Mix_PlayChannel(-1, Memory->SoundOne, 0);
+					Mix_PlayMusic(Memory->MusicOne, -1);
 					
 					Memory->IsInitialized = true;
+					printf("memory init!\n");
+
 		 }
 		 
 		 if(Input->WasPressed)

@@ -3,7 +3,7 @@
  * Filename: game.h
  * Author: Sierra
  * Created: Пн окт  9 14:15:31 2017 (+0300)
- * Last-Updated: Чт окт 19 10:01:13 2017 (+0300)
+ * Last-Updated: Чт окт 19 16:44:44 2017 (+0300)
  *           By: Sierra
  */
 
@@ -66,7 +66,7 @@ struct game_memory
 		 game_sound *SoundOne;
 		 /* game_sound *SoundTwo; */
 
-		 /* game_music *MusicOne; */
+		 game_music *MusicOne;
 
 		 void *Storage;
 		 u32 StorageSpace;

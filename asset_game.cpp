@@ -3,7 +3,7 @@
  * Filename: asset_game.h
  * Author: Sierra
  * Created: Пн окт 16 10:08:17 2017 (+0300)
- * Last-Updated: Чт окт 19 10:24:21 2017 (+0300)
+ * Last-Updated: Чт окт 19 16:58:14 2017 (+0300)
  *           By: Sierra
  */
 
@@ -209,9 +209,6 @@ SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
 		 char FullName[128];
 		 strcpy(FullName, SpritePath);
 		 strcat(FullName, FileName);
-
-		 printf("FileName - %s\n", FileName);
-		 printf("FullName - %s\n", FullName);
 		 
 		 SDL_Surface *Surface = IMG_Load(FullName);
 		 Assert(Surface);
@@ -279,67 +276,111 @@ SDLWriteSoundToFile(SDL_RWops *&BinaryFile, const char *FileName)
 }
 
 static void
-SDLWriteMusicToFile(SDL_RWops *&BinaryFile, char *FileName)
+SDLWriteMusicToFile(SDL_RWops *&BinaryFile, const char *FileName)
 {
-		 // TODO(max): try to read Mix_Music instead
-		 SDL_RWops *SoundFile = SDL_RWFromFile(FileName, "rb");
-		 Assert(SoundFile);
+		 char FullName[128];
+		 strcpy(FullName, SoundPath);
+		 strcat(FullName, FileName);
+		 
+		 SDL_RWops *MusicFile = SDL_RWFromFile(FullName, "rb");
+		 Assert(MusicFile);
 
 		 asset_header AssetHeader = {};
-		 AssetHeader.AssetSize = SDLSizeOfSDL_RWops(SoundFile);
+		 AssetHeader.AssetSize = SDLSizeOfSDL_RWops(MusicFile);
 		 AssetHeader.AssetType = AssetType_Music;
+		 strcpy(AssetHeader.AssetName, FileName);
 		 AssetHeader.Audio.Header.IsMusic = true;
 		 
 		 void *Memory = malloc(AssetHeader.AssetSize);
 		 Assert(Memory);
 
-		 SDL_RWread(SoundFile, Memory, AssetHeader.AssetSize, 1);
+		 SDL_RWread(MusicFile, Memory, AssetHeader.AssetSize, 1);
 		 
 		 SDL_RWwrite(BinaryFile, &AssetHeader, sizeof(asset_header), 1);
 		 SDL_RWwrite(BinaryFile, Memory, AssetHeader.AssetSize, 1);
 
 		 free(Memory);
-		 SDL_RWclose(SoundFile);
+		 SDL_RWclose(MusicFile);
+}
+
+static bool
+IsAsset(asset_header* AssetHeader, asset_type AssetType, char* AssetName)
+{
+		 bool Result = false;
+
+		 if(AssetHeader->AssetType == AssetType)
+		 {
+					if(strcmp(AssetHeader->AssetName, AssetName) == 0)
+					{
+							 Result = true;
+					}
+		 }
+
+		 return(Result);
+}
+
+static asset_header*
+GetAssetHeader(game_memory *Memory, asset_type AssetType, char* AssetName)
+{
+		 asset_header *AssetHeader = (asset_header*)Memory->Storage;
+		 u32 TotalByteSize = 0;
+		 
+		 while(TotalByteSize < Memory->StorageSpace)
+		 {
+					if(IsAsset(AssetHeader, AssetType, AssetName))
+					{
+							 return AssetHeader;
+					}
+					else
+					{
+							 TotalByteSize += (sizeof(asset_header) + AssetHeader->AssetSize);
+							 AssetHeader = ((asset_header*)(((u8*)AssetHeader) +
+																							sizeof(asset_header) + AssetHeader->AssetSize));
+					}
+		 }
+
+		 return(NULL);
+}
+
+static game_music*
+GetMusic(game_memory *Memory, char* FileName)
+{
+		 game_music *Music = NULL;
+
+		 asset_header *AssetHeader = GetAssetHeader(Memory, AssetType_Music, FileName);
+		 if(AssetHeader)
+		 {
+					asset_audio *Audio = &AssetHeader->Audio;
+					asset_audio_header *Header = &Audio->Header;
+
+					Audio->Data = (u8*)AssetHeader;
+					Audio->Data = Audio->Data + sizeof(asset_header);
+
+					void *MusicData = ((void*)Audio->Data);
+					SDL_RWops *RWMusic = SDL_RWFromConstMem(MusicData, AssetHeader->AssetSize);
+					Music = Mix_LoadMUS_RW(RWMusic, 1);
+					Assert(Music);
+		 }
+
+		 return(Music);
 }
 
 static game_sound*
 GetSound(game_memory *Memory, char* FileName)
 {
-		 asset_header *AssetHeader = (asset_header*)Memory->Storage;
-		 u32 TotalByteSize = 0;
-
-		 printf("Memory->StorageSpace = %d\n", Memory->StorageSpace);
-
 		 game_sound *Sound = NULL;
-		 while(TotalByteSize < Memory->StorageSpace)
+		 
+		 asset_header *AssetHeader = GetAssetHeader(Memory, AssetType_Sound, FileName);
+		 if(AssetHeader)
 		 {
-					printf("AssetHeader->AssetName = %s\n", AssetHeader->AssetName);
-					printf("AssetHeader->AssetSize = %d\n", AssetHeader->AssetSize);
-					printf("AssetHeader->AssetType = %d\n", AssetHeader->AssetType);
-					
-					if(AssetHeader->AssetType == AssetType_Sound)
-					{
-							 if(strcmp(AssetHeader->AssetName, FileName) == 0)
-							 {
-										asset_audio *Audio = &AssetHeader->Audio;
-										asset_audio_header *Header = &Audio->Header;
+					asset_audio *Audio = &AssetHeader->Audio;
+					asset_audio_header *Header = &Audio->Header;
 
-										printf("AssetHeader->Name = %s\n", AssetHeader->AssetName);
+					Audio->Data = (u8*)AssetHeader;
+					Audio->Data = Audio->Data + sizeof(asset_header);
 
-										Audio->Data = (u8*)AssetHeader;
-										Audio->Data = Audio->Data + sizeof(asset_header);
-
-										Sound = Mix_QuickLoad_WAV(Audio->Data);
-										Assert(Sound);
-										break;
-							 }
-					}
-
-					TotalByteSize += (sizeof(asset_header) + AssetHeader->AssetSize);
-					AssetHeader = ((asset_header*)(((u8*)AssetHeader) +
-																				 sizeof(asset_header) + AssetHeader->AssetSize));
-
-					printf("TotalByteSize = %d\n",TotalByteSize);
+					Sound = Mix_QuickLoad_WAV(Audio->Data);
+					Assert(Sound);
 		 }
 
 		 return(Sound);
@@ -348,35 +389,25 @@ GetSound(game_memory *Memory, char* FileName)
 static game_texture*
 GetTexture(game_memory *Memory, char* FileName, SDL_Renderer *&Renderer)
 {
-		 asset_header *AssetHeader = (asset_header*)Memory->Storage;
-
 		 game_texture *Texture = NULL;
-		 while(AssetHeader)
+		 
+		 asset_header *AssetHeader = GetAssetHeader(Memory, AssetType_Bitmap, FileName);
+		 if(AssetHeader)
 		 {
-		 			if(AssetHeader->AssetType == AssetType_Bitmap)
-		 			{
-							 if(strcmp(AssetHeader->AssetName, FileName) == 0)
-							 {
-										asset_bitmap *Bitmap = &AssetHeader->Bitmap;
-										asset_bitmap_header *Header = &Bitmap->Header;
+					asset_bitmap *Bitmap = &AssetHeader->Bitmap;
+					asset_bitmap_header *Header = &Bitmap->Header;
 										
-										Bitmap->Data = (void*)AssetHeader;
-										Bitmap->Data = ((u8*)Bitmap->Data) + sizeof(asset_header);
-										game_surface *Surface =
-												 SDL_CreateRGBSurfaceFrom(Bitmap->Data,
-																									Header->Width, Header->Height,
-																									Header->BitsPerPixel, Header->Pitch,
-																									Header->Rmask, Header->Gmask,
-																									Header->Bmask, Header->Amask);
+					Bitmap->Data = (void*)AssetHeader;
+					Bitmap->Data = ((u8*)Bitmap->Data) + sizeof(asset_header);
+					game_surface *Surface =
+							 SDL_CreateRGBSurfaceFrom(Bitmap->Data,
+																				Header->Width, Header->Height,
+																				Header->BitsPerPixel, Header->Pitch,
+																				Header->Rmask, Header->Gmask,
+																				Header->Bmask, Header->Amask);
 										
-										Texture = SDL_CreateTextureFromSurface(Renderer, Surface);
-										Assert(Texture);
-										break;
-							 }
-					}
-
-					AssetHeader = ((asset_header*)(((u8*)AssetHeader) +
-																				 sizeof(asset_header) + AssetHeader->AssetSize));
+					Texture = SDL_CreateTextureFromSurface(Renderer, Surface);
+					Assert(Texture);
 		 }
 
 		 return(Texture);
@@ -392,13 +423,11 @@ SDLAssetLoadBinaryFile(void *Data)
 		 game_memory  *GameMemory = ThreadData->Memory;
 
 		 SDLReadEntireFile("package.bin", GameMemory);
-		 // TODO(max): Finish loading audio assets
-
+		 
 		 ThreadData->IsInitialized = true;
-		 printf("%llu total bytes read\n", *ByteOffset);
+		 printf("%llu total bytes read\n", GameMemory->StorageSpace);
 
-		 // free(Memory);
-		 return (1);
+		 return(1);
 }
 
 static void
@@ -410,14 +439,8 @@ SDLAssetBuildBinaryFile()
 		 SDLWriteBitmapToFile(BinaryFile, SpriteI_D);
 		 
 		 SDLWriteSoundToFile(BinaryFile, focus);
-					
-		 // SDLWriteGameBitmapToFile(BinaryFile, grid_cell);
-		 // SDLWriteGameBitmapToFile(BinaryFile, SpriteI_D);
-
-		 // SDLWriteGameSoundToFile(BinaryFile, focus);
-		 // SDLWriteGameSoundToFile(BinaryFile, cannon_fire);
-		 // SDLWriteGameSoundToFile(BinaryFile, amb_ending_water);
-
+		 SDLWriteMusicToFile(BinaryFile, amb_ending_water);
+		 
 		 SDL_RWclose(BinaryFile);
 
 }

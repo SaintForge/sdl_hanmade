@@ -3,7 +3,7 @@
 // Filename: linux_platform.cpp
 // Author: Sierra
 // Created: Пн окт  9 12:00:49 2017 (+0300)
-// Last-Updated: Чт окт 19 09:57:09 2017 (+0300)
+// Last-Updated: Чт окт 19 16:45:07 2017 (+0300)
 //           By: Sierra
 //
 
@@ -51,7 +51,7 @@ static const char* SpriteO_S = "../data/sprites/o_s.png";
 /* Sound */
 static const char* focus = "focus.wav";
 static const char* cannon_fire = "../data/cannon_fire.wav";
-static const char* amb_ending_water = "../data/amb_ending_water.ogg";
+static const char* amb_ending_water = "amb_ending_water.ogg";
 
 #include "game.cpp"
 #include "asset_game.cpp"
