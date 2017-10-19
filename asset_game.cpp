@@ -3,7 +3,7 @@
  * Filename: asset_game.h
  * Author: Sierra
  * Created: Пн окт 16 10:08:17 2017 (+0300)
- * Last-Updated: Чт окт 19 22:08:06 2017 (+0400)
+ * Last-Updated: Чт окт 19 10:24:21 2017 (+0300)
  *           By: Sierra
  */
 
@@ -209,6 +209,9 @@ SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
 		 char FullName[128];
 		 strcpy(FullName, SpritePath);
 		 strcat(FullName, FileName);
+
+		 printf("FileName - %s\n", FileName);
+		 printf("FullName - %s\n", FullName);
 		 
 		 SDL_Surface *Surface = IMG_Load(FullName);
 		 Assert(Surface);
@@ -233,7 +236,6 @@ SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
 		 
 		 AssetHeader.Bitmap.Data = 0;
 		 AssetHeader.Bitmap.Header = BitmapHeader;
-		 printf("AssetName = %s\n", AssetHeader.AssetName);
 		 printf("AssetSize = %u\n", AssetHeader.AssetSize);
 
 		 SDL_RWwrite(BinaryFile, &AssetHeader, sizeof(asset_header), 1);
@@ -243,17 +245,26 @@ SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
 }
 
 static void
-SDLWriteSoundToFile(SDL_RWops *&BinaryFile, char *FileName)
+SDLWriteSoundToFile(SDL_RWops *&BinaryFile, const char *FileName)
 {
-		 // TODO(max): try to read Mix_Chunk instead
-		 SDL_RWops *SoundFile = SDL_RWFromFile(FileName, "rb");
+		 char FullName[128];
+		 strcpy(FullName, SoundPath);
+		 strcat(FullName, FileName);
+		 
+		 printf("FileName - %s\n", FileName);
+		 printf("FullName - %s\n", FullName);
+		 
+		 SDL_RWops *SoundFile = SDL_RWFromFile(FullName, "rb");
 		 Assert(SoundFile);
 
-		 asset_header AssetHeader = {};
-		 // AssetHeader.AssetName = FileName;
+		 asset_header AssetHeader;
 		 AssetHeader.AssetSize = SDLSizeOfSDL_RWops(SoundFile);
 		 AssetHeader.AssetType = AssetType_Sound;
+		 strcpy(AssetHeader.AssetName, FileName);
 		 AssetHeader.Audio.Header.IsMusic = false;
+
+
+		 printf("AssetSize = %u\n", AssetHeader.AssetSize);
 		 
 		 void *Memory = malloc(AssetHeader.AssetSize);
 		 Assert(Memory);
@@ -276,7 +287,7 @@ SDLWriteMusicToFile(SDL_RWops *&BinaryFile, char *FileName)
 
 		 asset_header AssetHeader = {};
 		 AssetHeader.AssetSize = SDLSizeOfSDL_RWops(SoundFile);
-		 AssetHeader.AssetType = AssetType_Sound;
+		 AssetHeader.AssetType = AssetType_Music;
 		 AssetHeader.Audio.Header.IsMusic = true;
 		 
 		 void *Memory = malloc(AssetHeader.AssetSize);
@@ -289,6 +300,49 @@ SDLWriteMusicToFile(SDL_RWops *&BinaryFile, char *FileName)
 
 		 free(Memory);
 		 SDL_RWclose(SoundFile);
+}
+
+static game_sound*
+GetSound(game_memory *Memory, char* FileName)
+{
+		 asset_header *AssetHeader = (asset_header*)Memory->Storage;
+		 u32 TotalByteSize = 0;
+
+		 printf("Memory->StorageSpace = %d\n", Memory->StorageSpace);
+
+		 game_sound *Sound = NULL;
+		 while(TotalByteSize < Memory->StorageSpace)
+		 {
+					printf("AssetHeader->AssetName = %s\n", AssetHeader->AssetName);
+					printf("AssetHeader->AssetSize = %d\n", AssetHeader->AssetSize);
+					printf("AssetHeader->AssetType = %d\n", AssetHeader->AssetType);
+					
+					if(AssetHeader->AssetType == AssetType_Sound)
+					{
+							 if(strcmp(AssetHeader->AssetName, FileName) == 0)
+							 {
+										asset_audio *Audio = &AssetHeader->Audio;
+										asset_audio_header *Header = &Audio->Header;
+
+										printf("AssetHeader->Name = %s\n", AssetHeader->AssetName);
+
+										Audio->Data = (u8*)AssetHeader;
+										Audio->Data = Audio->Data + sizeof(asset_header);
+
+										Sound = Mix_QuickLoad_WAV(Audio->Data);
+										Assert(Sound);
+										break;
+							 }
+					}
+
+					TotalByteSize += (sizeof(asset_header) + AssetHeader->AssetSize);
+					AssetHeader = ((asset_header*)(((u8*)AssetHeader) +
+																				 sizeof(asset_header) + AssetHeader->AssetSize));
+
+					printf("TotalByteSize = %d\n",TotalByteSize);
+		 }
+
+		 return(Sound);
 }
 
 static game_texture*
@@ -354,6 +408,9 @@ SDLAssetBuildBinaryFile()
 		 
 		 SDLWriteBitmapToFile(BinaryFile, grid_cell);
 		 SDLWriteBitmapToFile(BinaryFile, SpriteI_D);
+		 
+		 SDLWriteSoundToFile(BinaryFile, focus);
+					
 		 // SDLWriteGameBitmapToFile(BinaryFile, grid_cell);
 		 // SDLWriteGameBitmapToFile(BinaryFile, SpriteI_D);
 
