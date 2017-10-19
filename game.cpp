@@ -3,7 +3,7 @@
 // Filename: game.cpp
 // Author: Sierra
 // Created: Вт окт 10 10:32:14 2017 (+0300)
-// Last-Updated: Чт окт 19 16:58:50 2017 (+0300)
+// Last-Updated: Чт окт 19 17:33:16 2017 (+0300)
 //           By: Sierra
 //
 
@@ -53,33 +53,6 @@ GameCopyImageToBuffer(game_bitmap* GameBitmap, u32 X, u32 Y,
 		 printf("GameCopyImageToBuffer\n");
 }
 #endif
-
-enum figure_entity_form
-{
-		 O_figure, I_figure, L_figure, J_figure,
-		 Z_figure, S_figure, T_figure
-};
-
-enum figure_entity_type
-{
-		 classic, stone, mirror
-};
-
-struct figure_entity
-{
-		 bool IsIdle;
-		 bool IsStick;
-		 float Angle;
-		 float DefaultAnlge;
-		 game_point Center;
-		 game_point DefaultCenter;
-		 game_point Shell[4];
-		 game_point DefaultShell[4];
-		 game_rect AreaQuad;
-		 figure_entity_form Form;
-		 figure_entity_type Type;
-		 game_texture *Texture;
-};
 
 static figure_entity*
 CreateNewFigureEntity(figure_entity_form Form, figure_entity_type Type,
@@ -212,16 +185,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 					// Figure = CreateNewFigureEntity(I_figure, classic, BlockSize, Memory->SpriteI_D);
 					// Assert(Figure->Texture);
 
-					Memory->GridCell = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
-					Memory->SpriteI_D = GetTexture(Memory, "i_d.png", Buffer->Renderer);
-
-					Memory->SoundOne = GetSound(Memory, "focus.wav");
-					Memory->MusicOne = GetMusic(Memory, "amb_ending_water.ogg");
-					Mix_VolumeMusic(MIX_MAX_VOLUME);
-					
-					Mix_PlayChannel(-1, Memory->SoundOne, 0);
-					Mix_PlayMusic(Memory->MusicOne, -1);
-					
 					Memory->IsInitialized = true;
 					printf("memory init!\n");
 
@@ -244,9 +207,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 		 }
 
 		 
-		 GameRenderBitmapToBuffer(Buffer, Memory->GridCell, &rect);
-		 GameRenderBitmapToBuffer(Buffer, Memory->SpriteI_D, &rect2);
-
 		 return (ShouldQuit);
 }
 

@@ -3,7 +3,7 @@
  * Filename: asset_game.h
  * Author: Sierra
  * Created: Пн окт 16 10:08:17 2017 (+0300)
- * Last-Updated: Чт окт 19 16:58:14 2017 (+0300)
+ * Last-Updated: Чт окт 19 17:13:53 2017 (+0300)
  *           By: Sierra
  */
 
@@ -435,12 +435,14 @@ SDLAssetBuildBinaryFile()
 {
 		 SDL_RWops *BinaryFile = SDL_RWFromFile("package.bin", "wb");
 		 
-		 SDLWriteBitmapToFile(BinaryFile, grid_cell);
-		 SDLWriteBitmapToFile(BinaryFile, SpriteI_D);
+		 SDLWriteBitmapToFile(BinaryFile, "grid_cell.png");
+		 SDLWriteBitmapToFile(BinaryFile, "i_d.png");
+		 SDLWriteBitmapToFile(BinaryFile, "i_m.png");
+		 SDLWriteBitmapToFile(BinaryFile, "i_s.png");
 		 
-		 SDLWriteSoundToFile(BinaryFile, focus);
-		 SDLWriteMusicToFile(BinaryFile, amb_ending_water);
-		 
+		 SDLWriteSoundToFile(BinaryFile, "focus.wav");
+		 SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
+
 		 SDL_RWclose(BinaryFile);
 
 }

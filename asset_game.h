@@ -3,7 +3,7 @@
  * Filename: assert_game.h
  * Author: Sierra
  * Created: Пн окт 16 16:29:29 2017 (+0300)
- * Last-Updated: Чт окт 19 09:51:21 2017 (+0300)
+ * Last-Updated: Чт окт 19 17:15:00 2017 (+0300)
  *           By: Sierra
  */
 
@@ -74,6 +74,31 @@ struct asset_header
 static game_texture* GetTexture(game_memory *Memory, char* FileName, SDL_Renderer*& Renderer);
 static game_sound* GetSound(game_memory *Memory, char* FileName);
 static game_music* GetMusic(game_memory *Memory, char* FileName);
+
+static void FreeSound(game_sound *&Sound)
+{
+		 if(Sound)
+		 {
+					Mix_FreeChunk(Sound);
+		 }
+}
+
+static void FreeMusic(game_music *&Music)
+{
+		 if(Music)
+		 {
+					Mix_FreeMusic(Music);
+		 }
+}
+
+static void FreeTexture(game_texture *&Texture)
+{
+		 if(Texture)
+		 {
+					SDL_DestroyTexture(Texture);
+		 }
+}
+
 
 #define ASSERT_GAME_H
 #endif

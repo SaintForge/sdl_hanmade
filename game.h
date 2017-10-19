@@ -3,7 +3,7 @@
  * Filename: game.h
  * Author: Sierra
  * Created: Пн окт  9 14:15:31 2017 (+0300)
- * Last-Updated: Чт окт 19 16:44:44 2017 (+0300)
+ * Last-Updated: Чт окт 19 17:40:54 2017 (+0300)
  *           By: Sierra
  */
 
@@ -14,7 +14,35 @@ void LogErrorLine(const char* Message, int Line)
 		 fprintf(stderr, "Assert fail in %s: %d\n",Message, Line);
 }
 
-#define Assert(Expression) if(!(Expression)) { LogErrorLine( __FILE__, __LINE__); *(int *)0 = 0;  } 
+#define Assert(Expression) if(!(Expression)) { LogErrorLine( __FILE__, __LINE__); *(int *)0 = 0;  }
+
+enum figure_entity_form
+{
+		 O_figure, I_figure, L_figure, J_figure,
+		 Z_figure, S_figure, T_figure
+};
+
+enum figure_entity_type
+{
+		 classic, stone, mirror
+};
+
+struct figure_entity
+{
+		 bool IsIdle;
+		 bool IsStick;
+		 float Angle;
+		 float DefaultAnlge;
+		 game_point Center;
+		 game_point DefaultCenter;
+		 game_point Shell[4];
+		 game_point DefaultShell[4];
+		 game_rect AreaQuad;
+		 figure_entity_form Form;
+		 figure_entity_type Type;
+		 game_texture *Texture;
+};
+
 
 struct game_offscreen_buffer
 {
@@ -52,24 +80,14 @@ struct game_input
 struct game_memory
 {
 		 bool IsInitialized;
-
-		 game_texture *GridCell;
 		 
-		 game_texture *SpriteI_D;
-		 /* game_texture *SpriteI_M; */
-		 /* game_texture *SpriteI_S; */
-
-		 /* game_texture *SpriteO_D; */
-		 /* game_texture *SpriteO_M; */
-		 /* game_texture *SpriteO_S; */
-
-		 game_sound *SoundOne;
-		 /* game_sound *SoundTwo; */
-
-		 game_music *MusicOne;
-
 		 void *Storage;
 		 u32 StorageSpace;
+};
+
+struct game_state
+{
+		 figure_entity Figure[2];
 };
 
 

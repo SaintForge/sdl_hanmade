@@ -3,7 +3,7 @@
 // Filename: linux_platform.cpp
 // Author: Sierra
 // Created: Пн окт  9 12:00:49 2017 (+0300)
-// Last-Updated: Чт окт 19 16:45:07 2017 (+0300)
+// Last-Updated: Чт окт 19 17:01:42 2017 (+0300)
 //           By: Sierra
 //
 
@@ -36,22 +36,6 @@ typedef uint64_t u64;
 
 static const char* SpritePath = "../data/sprites/";
 static const char* SoundPath  = "../data/sound/";
-
-/* Bitmaps */
-static const char* grid_cell = "grid_cell.png";
-
-static const char* SpriteI_D = "i_d.png";
-static const char* SpriteI_M = "../data/sprites/i_m.png";
-static const char* SpriteI_S = "../data/sprites/i_s.png";
-
-static const char* SpriteO_D = "../data/sprites/o_d.png";
-static const char* SpriteO_M = "../data/sprites/o_m.png";
-static const char* SpriteO_S = "../data/sprites/o_s.png";
-
-/* Sound */
-static const char* focus = "focus.wav";
-static const char* cannon_fire = "../data/cannon_fire.wav";
-static const char* amb_ending_water = "amb_ending_water.ogg";
 
 #include "game.cpp"
 #include "asset_game.cpp"
