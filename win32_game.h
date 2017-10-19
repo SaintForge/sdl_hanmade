@@ -1,13 +1,12 @@
-/* linux_game.h --- 
+/* win32_game.h --- 
  * 
- * Filename: linux_game.h
- * Author: Sierra
- * Created: Вт окт 10 10:26:51 2017 (+0300)
- * Last-Updated: Ср окт 18 20:58:39 2017 (+0400)
+ * Filename: win32_game.h
+ * Author: 
+ * Created: Ср окт 18 20:58:16 2017 (+0400)
+ * Last-Updated: Ср окт 18 20:59:52 2017 (+0400)
  *           By: Sierra
  */
-
-#if !defined(LINUX_GAME_H)
+#if !defined(WIN32_GAME_H)
 
 struct sdl_offscreen_buffer
 {
@@ -38,7 +37,7 @@ struct sdl_memory_bitmap
 		 u8 BitsPerPixel;
 };
 
-#define LINUX_GAME_H
+#define WIN32_GAME_H
 #endif
 
 

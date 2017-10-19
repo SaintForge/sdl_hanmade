@@ -1,15 +1,16 @@
-// linux_platform.cpp ---
+// win32_game.cpp --- 
 // 
-// Filename: linux_platform.cpp
-// Author: Sierra
-// Created: Пн окт  9 12:00:49 2017 (+0300)
-// Last-Updated: Ср окт 18 21:15:37 2017 (+0400)
+// Filename: win32_game.cpp
+// Author: 
+// Created: Ср окт 18 20:51:21 2017 (+0400)
+// Last-Updated: Чт окт 19 07:54:57 2017 (+0400)
 //           By: Sierra
 //
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-#include <SDL2/SDL_ttf.h>
+#include <SDL2\SDL.h>
+#include <SDL2\SDL_image.h>
+#include <SDL2\SDL_ttf.h>
+#include <SDL2\SDL_mixer.h>
 
 #include <stdint.h>
 #include <string>
@@ -24,23 +25,23 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
-#include "linux_game.h"
+#include "win32_game.h"
 
 /* Bitmaps */
-static const char* grid_cell = "../data/grid_cell.png";
+static const char* grid_cell = "..\\data\\sprites\\grid_cell.png";
 
-static const char* SpriteI_D = "../data/sprites/i_d.png";
-static const char* SpriteI_M = "../data/sprites/i_m.png";
-static const char* SpriteI_S = "../data/sprites/i_s.png";
+static const char* SpriteI_D = "..\\data\\sprites\\i_d.png";
+static const char* SpriteI_M = "..\\data\\sprites\\i_m.png";
+static const char* SpriteI_S = "..\\data\\sprites\\i_s.png";
 
-static const char* SpriteO_D = "../data/sprites/o_d.png";
-static const char* SpriteO_M = "../data/sprites/o_m.png";
-static const char* SpriteO_S = "../data/sprites/o_s.png";
+static const char* SpriteO_D = "..\\data\\sprites\\o_d.png";
+static const char* SpriteO_M = "..\\data\\sprites\\o_m.png";
+static const char* SpriteO_S = "..\\data\\sprites\\o_s.png";
 
 /* Sound */
-static const char* focus = "../data/focus.wav";
-static const char* cannon_fire = "../data/cannon_fire.wav";
-static const char* amb_ending_water = "../data/amb_ending_water.ogg";
+static const char* focus = "..\\data\\sound\\focus_enter_new.wav";
+static const char* cannon_fire = "..\\data\\sound\\cable_powered1.wav";
+static const char* amb_ending_water = "..\\data\\sound\\amb_ending_water.ogg";
 
 #include "game.cpp"
 #include "asset_game.cpp"
@@ -204,31 +205,69 @@ SDLReloadFontTexture(TTF_Font *&Font, SDL_Texture *&Texture, SDL_Rect *Quad,
 		 SDL_FreeSurface(Surface);
 }
 
+static void
+SDLAudioCallback(void *UserData, Uint8 *AudioData, int Length)
+{
+    memset(AudioData, 0, Length);
+}
+
+static void
+SDLInitAudio(s32 SamplesPerSecond, s32 BufferSize)
+{
+    SDL_AudioSpec AudioSettings = {0};
+
+    AudioSettings.freq = SamplesPerSecond;
+    AudioSettings.format = AUDIO_S16LSB;
+    AudioSettings.channels = 2;
+    AudioSettings.samples = BufferSize;
+    AudioSettings.callback = &SDLAudioCallback;
+
+    SDL_OpenAudio(&AudioSettings, 0);
+
+    printf("Initialised an Audio device at frequency %d Hz, %d Channels\n",
+           AudioSettings.freq, AudioSettings.channels);
+
+    if (AudioSettings.format != AUDIO_S16LSB)
+    {
+        printf("Oops! We didn't get AUDIO_S16LSB as our sample format!\n");
+        SDL_CloseAudio();
+    }
+
+    SDL_PauseAudio(0);
+}
+
+#undef main
 int main(int argc, char **argv)
 {
 		 SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
 		 
 		 SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
-		 Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096);
+		 IMG_Init(IMG_INIT_PNG);
 		 TTF_Init();
+		 // Mix_OpenAudio( 44100, AUDIO_S16LSB, 2, 2048 );
+		 Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
+		 // SDLInitAudio(44100, 2048);
+
+
 
 		 SDL_DisplayMode Display = {};
 		 SDL_GetDesktopDisplayMode(0, &Display);
-		 
+
 		 SDL_Window *Window = SDL_CreateWindow("This is window", SDL_WINDOWPOS_CENTERED,
 																					 SDL_WINDOWPOS_CENTERED, Display.w, Display.h,
-																					 SDL_WINDOW_ALLOW_HIGHDPI|SDL_WINDOW_FULLSCREEN);
+																					 SDL_WINDOW_ALLOW_HIGHDPI);
+
 		 if(Window)
 		 {
 					SDL_Renderer* Renderer = SDL_CreateRenderer(Window, -1,
 																											SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
 					SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
-					
+
 					if(Renderer)
 					{
 							 bool IsRunning = true;
 							 window_dimension Dimension = SDLGetWindowDimension(Window);
-							 
+
 							 sdl_offscreen_buffer BackBuffer = {};
 							 SDLCreateBufferTexture(&BackBuffer, Renderer, Dimension.Width, Dimension.Height);
 							 SDLChangeBufferColor(&BackBuffer, 0, 0, 0, 255);
@@ -236,7 +275,7 @@ int main(int argc, char **argv)
 
 #if ASSET_BUILD
 							 // NOTE: This is for packaging data to the disk
-							 SDLAssetBuildBinaryFile();
+							 // SDLAssetBuildBinaryFile();
 #endif
 							 game_memory Memory = {};
 
@@ -249,11 +288,11 @@ int main(int argc, char **argv)
 							 ThreadData.IsInitialized = false;
 							 
 							 SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread",
-																													(void*)&ThreadData);
+							 																						(void*)&ThreadData);
 							 
 							 game_rect LoadingBarQuad = {};
-							 SDL_Texture *LoadingBarTexture =	SDLUploadTexture(Renderer, &LoadingBarQuad, "../data/sprites/button.png");
-
+							 SDL_Texture *LoadingBarTexture =	SDLUploadTexture(Renderer, &LoadingBarQuad, "..\\data\\sprites\\button.png");
+							 
 							 LoadingBarQuad.h = 10;
 							 LoadingBarQuad.w = 0;
 							 LoadingBarQuad.x = 0;
@@ -278,6 +317,7 @@ int main(int argc, char **argv)
 										Buffer.Width    = BackBuffer.Width;
 										Buffer.Height   = BackBuffer.Height;
 
+										printf("ThreadData.IsInint = %d\n",ThreadData.IsInitialized);
 										if(ThreadData.IsInitialized)
 										{
 												 if(GameUpdateAndRender(&Memory, &Input, &Buffer))
@@ -294,17 +334,7 @@ int main(int argc, char **argv)
 							 }
 
 					}
-					else
-					{
-							 printf("Failed to create SDL_Renderer! %s\n", SDL_GetError());
-					}
-
 		 }
-		 else
-		 {
-					printf("Failed to create SDL_Window!\n", SDL_GetError());
-		 }
-
-
+				 
 		 return 0;
 }

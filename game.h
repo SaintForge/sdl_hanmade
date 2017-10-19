@@ -3,14 +3,15 @@
  * Filename: game.h
  * Author: Sierra
  * Created: Пн окт  9 14:15:31 2017 (+0300)
- * Last-Updated: Вт окт 17 13:37:15 2017 (+0300)
+ * Last-Updated: Ср окт 18 22:43:57 2017 (+0400)
  *           By: Sierra
  */
 
 #if !defined(GAME_H)
 
+/* TODO(Max): Check if we need these headers here!!! */
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_mixer.h>
+/* #include <SDL2/SDL_mixer.h> */
 
 #include <stdio.h>
 
