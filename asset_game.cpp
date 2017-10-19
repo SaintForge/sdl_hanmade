@@ -3,7 +3,7 @@
  * Filename: asset_game.h
  * Author: Sierra
  * Created: Пн окт 16 10:08:17 2017 (+0300)
- * Last-Updated: Ср окт 18 17:42:02 2017 (+0300)
+ * Last-Updated: Чт окт 19 21:56:19 2017 (+0400)
  *           By: Sierra
  */
 
@@ -174,8 +174,10 @@ SDLLoadBitmapFromMemory(void *&Memory, game_texture *& Texture, s64 *ByteOffset,
 		 *ByteOffset += sizeof(asset_memory_bitmap);
 
 		 TempSurface =
-					SDL_CreateRGBSurfaceFrom(Memory, BitmapInfo->Width, BitmapInfo->Height, BitmapInfo->BitsPerPixel, BitmapInfo->Pitch,
-																	 BitmapInfo->Rmask, BitmapInfo->Gmask, BitmapInfo->Bmask, BitmapInfo->Amask);
+					SDL_CreateRGBSurfaceFrom(Memory, BitmapInfo->Width, BitmapInfo->Height,
+																	 BitmapInfo->BitsPerPixel, BitmapInfo->Pitch,
+																	 BitmapInfo->Rmask, BitmapInfo->Gmask,
+																	 BitmapInfo->Bmask, BitmapInfo->Amask);
 		 Assert(TempSurface);
 
 		 Memory = ((u8*) Memory) + BytePerSurface;
@@ -188,47 +190,51 @@ SDLLoadBitmapFromMemory(void *&Memory, game_texture *& Texture, s64 *ByteOffset,
 }
 #endif
 static void
-SDLReadEntireFile(char* FileName, void *&Memory)
+SDLReadEntireFile(char* FileName, game_memory *&Memory)
 {
 		 SDL_RWops *BinaryFile = SDL_RWFromFile(FileName, "rb");
-		 u64 ByteAmount = SDLSizeOfSDL_RWops(BinaryFile);
+		 Memory->StorageSpace = SDLSizeOfSDL_RWops(BinaryFile);
 
-		 Memory = malloc(ByteAmount);
-		 Assert(Memory);
+		 Memory->Storage = malloc(Memory->StorageSpace);
+		 Assert(Memory->Storage);
 
-		 SDL_RWread(BinaryFile, Memory, ByteAmount, 1);
-
+		 SDL_RWread(BinaryFile, Memory->Storage, Memory->StorageSpace, 1);
 		 SDL_RWclose(BinaryFile);
 }
 
-static u32
-SDLGetBitmapHeader(asset_bitmap_header *BitmapHeader, SDL_Surface *&Surface)
-{
-		 BitmapHeader->Width   = Surface->w;
-		 BitmapHeader->Height  = Surface->h;
-		 BitmapHeader->Pitch   = Surface->pitch;
-		 BitmapHeader->Rmask   = Surface->format->Rmask;
-		 BitmapHeader->Gmask   = Surface->format->Gmask;
-		 BitmapHeader->Bmask   = Surface->format->Bmask;
-		 BitmapHeader->Amask   = Surface->format->Amask;
-		 BitmapHeader->BytesPerPixel = Surface->format->BytesPerPixel;
-		 BitmapHeader->BitsPerPixel  = Surface->format->BitsPerPixel;
-
-		 u32 ByteAmount = BitmapHeader->Width *
-					BitmapHeader->Height * BitmapHeader->BytesPerPixel;
-
-		 return(ByteAmount);
-}
 
 static void
 SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
 {
-		 SDL_Surface *Surface = IMG_Load(FileName);
+		 char FullName[128];
+		 strcpy(FullName, SpritePath);
+		 strcat(FullName, FileName);
+		 
+		 SDL_Surface *Surface = IMG_Load(FullName);
 		 Assert(Surface);
 
-		 asset_header AssetHeader  = {};
-		 AssetHeader.AssetSize = SDLGetBitmapHeader(&AssetHeader.Bitmap.Header, Surface);
+		 asset_bitmap_header BitmapHeader;
+		 BitmapHeader.Width   = Surface->w;
+		 BitmapHeader.Height  = Surface->h;
+		 BitmapHeader.Pitch   = Surface->pitch;
+		 BitmapHeader.Rmask   = Surface->format->Rmask;
+		 BitmapHeader.Gmask   = Surface->format->Gmask;
+		 BitmapHeader.Bmask   = Surface->format->Bmask;
+		 BitmapHeader.Amask   = Surface->format->Amask;
+		 BitmapHeader.BytesPerPixel = Surface->format->BytesPerPixel;
+		 BitmapHeader.BitsPerPixel  = Surface->format->BitsPerPixel;
+
+		 u32 ByteAmount = BitmapHeader.Width * BitmapHeader.Height * BitmapHeader.BytesPerPixel;
+
+		 asset_header AssetHeader = {};
+		 AssetHeader.AssetSize = ByteAmount;
 		 AssetHeader.AssetType = AssetType_Bitmap;
+		 strcpy(AssetHeader.AssetName, FileName);
+		 
+		 AssetHeader.Bitmap.Data = 0;
+		 AssetHeader.Bitmap.Header = BitmapHeader;
+		 printf("AssetName = %s\n", AssetHeader.AssetName);
+		 printf("AssetSize = %u\n", AssetHeader.AssetSize);
 
 		 SDL_RWwrite(BinaryFile, &AssetHeader, sizeof(asset_header), 1);
 		 SDL_RWwrite(BinaryFile, Surface->pixels, AssetHeader.AssetSize, 1);
@@ -244,6 +250,7 @@ SDLWriteSoundToFile(SDL_RWops *&BinaryFile, char *FileName)
 		 Assert(SoundFile);
 
 		 asset_header AssetHeader = {};
+		 // AssetHeader.AssetName = FileName;
 		 AssetHeader.AssetSize = SDLSizeOfSDL_RWops(SoundFile);
 		 AssetHeader.AssetType = AssetType_Sound;
 		 AssetHeader.Audio.Header.IsMusic = false;
@@ -284,17 +291,54 @@ SDLWriteMusicToFile(SDL_RWops *&BinaryFile, char *FileName)
 		 SDL_RWclose(SoundFile);
 }
 
+static game_texture*
+GetTexture(game_memory *Memory, char* FileName, SDL_Renderer *&Renderer)
+{
+		 asset_header *AssetHeader = (asset_header*)Memory->Storage;
+
+		 game_texture *Texture = NULL;
+		 while(AssetHeader)
+		 {
+		 			if(AssetHeader->AssetType == AssetType_Bitmap)
+		 			{
+							 if(strcmp(AssetHeader->AssetName, FileName) == 0)
+							 {
+										asset_bitmap *Bitmap = &AssetHeader->Bitmap;
+										asset_bitmap_header *Header = &Bitmap->Header;
+										
+										// Bitmap->Data = AssetHeader + sizeof(asset_header);
+										Bitmap->Data = (void*)AssetHeader;
+										Bitmap->Data = ((u8*)Bitmap->Data) + sizeof(asset_header);
+										game_surface *Surface =
+												 SDL_CreateRGBSurfaceFrom(Bitmap->Data,
+																									Header->Width, Header->Height,
+																									Header->BitsPerPixel, Header->Pitch,
+																									Header->Rmask, Header->Gmask,
+																									Header->Bmask, Header->Amask);
+										Texture = SDL_CreateTextureFromSurface(Renderer, Surface);
+										Assert(Texture);
+										break;
+							 }
+					}
+
+					void *Data = ((void*)AssetHeader);
+					Data = ((u8*)Data) + sizeof(asset_header) + AssetHeader->AssetSize;
+					AssetHeader = ((asset_header*) Data);
+		 }
+
+		 return(Texture);
+}
+
 static int
 SDLAssetLoadBinaryFile(void *Data)
 {
 		 thread_data  *ThreadData = (thread_data*)Data;
 		 
-		 void *Memory = 0;
-		 SDLReadEntireFile("package.bin", Memory);
-		 
 		 s64 *ByteOffset          = &ThreadData->ByteAmount;
 		 SDL_Renderer *Renderer   = ThreadData->Renderer;
 		 game_memory  *GameMemory = ThreadData->Memory;
+
+		 SDLReadEntireFile("package.bin", GameMemory);
 
 		 // SDLLoadBitmapFromMemory(Memory, GameMemory->GridCell, ByteOffset, Renderer);
 		 // SDLLoadBitmapFromMemory(Memory, GameMemory->SpriteI_D, ByteOffset, Renderer);
@@ -303,7 +347,7 @@ SDLAssetLoadBinaryFile(void *Data)
 		 // SDLLoadGameMusicFromMemory(Memory, GameMemory->MusicOne, ByteOffset);
 		 
 		 ThreadData->IsInitialized = true;
-		 printf("%d total bytes read\n", *ByteOffset);
+		 printf("%llu total bytes read\n", *ByteOffset);
 
 		 // free(Memory);
 		 return (1);

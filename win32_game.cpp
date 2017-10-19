@@ -3,7 +3,7 @@
 // Filename: win32_game.cpp
 // Author: 
 // Created: Ср окт 18 20:51:21 2017 (+0400)
-// Last-Updated: Ср окт 18 09:08:20 2017 (+0300)
+// Last-Updated: Чт окт 19 21:43:27 2017 (+0400)
 //           By: Sierra
 //
 
@@ -12,8 +12,16 @@
 #include <SDL2\SDL_ttf.h>
 #include <SDL2\SDL_mixer.h>
 
+#include <stdio.h>
 #include <stdint.h>
-#include <string>
+#include <string.h>
+
+typedef SDL_Rect    game_rect;
+typedef SDL_Point   game_point;
+typedef SDL_Texture game_texture;
+typedef SDL_Surface game_surface;
+typedef Mix_Chunk   game_sound;
+typedef Mix_Music   game_music;
 
 typedef int8_t   s8;
 typedef int16_t s16;
@@ -27,10 +35,13 @@ typedef uint64_t u64;
 
 #include "win32_game.h"
 
-/* Bitmaps */
-static const char* grid_cell = "..\\data\\sprites\\grid_cell.png";
+static const char* SpritePath = "..\\data\\sprites\\";
+static const char* SoundPath  = "..\\data\\sound\\";
 
-static const char* SpriteI_D = "..\\data\\sprites\\i_d.png";
+/* Bitmaps */
+static const char* grid_cell = "grid_cell.png";
+
+static const char* SpriteI_D = "i_d.png";
 static const char* SpriteI_M = "..\\data\\sprites\\i_m.png";
 static const char* SpriteI_S = "..\\data\\sprites\\i_s.png";
 
@@ -242,13 +253,12 @@ int main(int argc, char **argv)
 		 SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
 		 
 		 SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
+		 Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096);
 		 IMG_Init(IMG_INIT_PNG);
 		 TTF_Init();
 		 // Mix_OpenAudio( 44100, AUDIO_S16LSB, 2, 2048 );
-		 Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
+
 		 // SDLInitAudio(44100, 2048);
-
-
 
 		 SDL_DisplayMode Display = {};
 		 SDL_GetDesktopDisplayMode(0, &Display);
@@ -280,6 +290,7 @@ int main(int argc, char **argv)
 							 game_memory Memory = {};
 
 							 u64 TotalByteAmount = SDLSizeOfBinaryFile("package.bin");
+							 printf("should read %llu bytes\n", TotalByteAmount);
 
 							 thread_data ThreadData = {};
 							 ThreadData.Renderer      = Renderer;
@@ -317,7 +328,6 @@ int main(int argc, char **argv)
 										Buffer.Width    = BackBuffer.Width;
 										Buffer.Height   = BackBuffer.Height;
 
-										printf("ThreadData.IsInint = %d\n",ThreadData.IsInitialized);
 										if(ThreadData.IsInitialized)
 										{
 												 if(GameUpdateAndRender(&Memory, &Input, &Buffer))

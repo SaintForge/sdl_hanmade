@@ -3,7 +3,7 @@
  * Filename: assert_game.h
  * Author: Sierra
  * Created: Пн окт 16 16:29:29 2017 (+0300)
- * Last-Updated: Ср окт 18 17:39:12 2017 (+0300)
+ * Last-Updated: Чт окт 19 21:15:39 2017 (+0400)
  *           By: Sierra
  */
 
@@ -60,7 +60,8 @@ struct asset_header
 {
 		 asset_header *Next;
 		 asset_header *Prev;
-
+		 
+		 char AssetName[128];
 		 u32 AssetSize;
 		 asset_type AssetType;
 		 union
@@ -70,6 +71,9 @@ struct asset_header
 		 };
 };
 
+static game_texture* GetTexture(game_memory *Memory, char* FileName, SDL_Renderer*& Renderer);
+static game_texture* GetSound(game_memory *Memory, char* FileName);
+static game_texture* GetMusic(game_memory *Memory, char* FileName);
 
 #define ASSERT_GAME_H
 #endif
