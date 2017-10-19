@@ -3,7 +3,7 @@
  * Filename: asset_game.h
  * Author: Sierra
  * Created: Пн окт 16 10:08:17 2017 (+0300)
- * Last-Updated: Чт окт 19 21:56:19 2017 (+0400)
+ * Last-Updated: Чт окт 19 22:08:06 2017 (+0400)
  *           By: Sierra
  */
 
@@ -306,7 +306,6 @@ GetTexture(game_memory *Memory, char* FileName, SDL_Renderer *&Renderer)
 										asset_bitmap *Bitmap = &AssetHeader->Bitmap;
 										asset_bitmap_header *Header = &Bitmap->Header;
 										
-										// Bitmap->Data = AssetHeader + sizeof(asset_header);
 										Bitmap->Data = (void*)AssetHeader;
 										Bitmap->Data = ((u8*)Bitmap->Data) + sizeof(asset_header);
 										game_surface *Surface =
@@ -315,15 +314,15 @@ GetTexture(game_memory *Memory, char* FileName, SDL_Renderer *&Renderer)
 																									Header->BitsPerPixel, Header->Pitch,
 																									Header->Rmask, Header->Gmask,
 																									Header->Bmask, Header->Amask);
+										
 										Texture = SDL_CreateTextureFromSurface(Renderer, Surface);
 										Assert(Texture);
 										break;
 							 }
 					}
 
-					void *Data = ((void*)AssetHeader);
-					Data = ((u8*)Data) + sizeof(asset_header) + AssetHeader->AssetSize;
-					AssetHeader = ((asset_header*) Data);
+					AssetHeader = ((asset_header*)(((u8*)AssetHeader) +
+																				 sizeof(asset_header) + AssetHeader->AssetSize));
 		 }
 
 		 return(Texture);
@@ -339,13 +338,8 @@ SDLAssetLoadBinaryFile(void *Data)
 		 game_memory  *GameMemory = ThreadData->Memory;
 
 		 SDLReadEntireFile("package.bin", GameMemory);
+		 // TODO(max): Finish loading audio assets
 
-		 // SDLLoadBitmapFromMemory(Memory, GameMemory->GridCell, ByteOffset, Renderer);
-		 // SDLLoadBitmapFromMemory(Memory, GameMemory->SpriteI_D, ByteOffset, Renderer);
-		 
-		 // SDLLoadGameSoundFromMemory(Memory, GameMemory->SoundOne, ByteOffset);
-		 // SDLLoadGameMusicFromMemory(Memory, GameMemory->MusicOne, ByteOffset);
-		 
 		 ThreadData->IsInitialized = true;
 		 printf("%llu total bytes read\n", *ByteOffset);
 
