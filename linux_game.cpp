@@ -3,7 +3,7 @@
 // Filename: linux_platform.cpp
 // Author: Sierra
 // Created: Пн окт  9 12:00:49 2017 (+0300)
-// Last-Updated: Чт окт 19 17:01:42 2017 (+0300)
+// Last-Updated: Пт окт 20 09:58:41 2017 (+0300)
 //           By: Sierra
 //
 
@@ -236,27 +236,12 @@ int main(int argc, char **argv)
 #endif
 							 game_memory Memory = {};
 
-							 u64 TotalByteAmount = SDLSizeOfBinaryFile("package.bin");
-							 printf("should read %d bytes\n", TotalByteAmount);
-
-							 thread_data ThreadData = {};
-							 ThreadData.Renderer      = Renderer;
-							 ThreadData.Memory        = &Memory;
-							 ThreadData.ByteAmount    = 0;
-							 ThreadData.IsInitialized = false;
-							 
+							 u64 TotalAssetSize = SDLSizeOfBinaryFile("package.bin");
 							 SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread",
-																													(void*)&ThreadData);
-							 
-							 game_rect LoadingBarQuad = {};
-							 SDL_Texture *LoadingBarTexture =	SDLUploadTexture(Renderer, &LoadingBarQuad, "../data/sprites/button.png");
-
-							 LoadingBarQuad.h = 10;
-							 LoadingBarQuad.w = 0;
-							 LoadingBarQuad.x = 0;
-							 LoadingBarQuad.y = (Dimension.Height / 2) + (LoadingBarQuad.h / 2);
-
+																													(void*)&Memory);
 							 game_input Input = {};
+
+							 bool MemoryReady = false;
 
 							 while(IsRunning)
 							 {
@@ -275,7 +260,7 @@ int main(int argc, char **argv)
 										Buffer.Width    = BackBuffer.Width;
 										Buffer.Height   = BackBuffer.Height;
 
-										if(ThreadData.IsInitialized)
+										if(MemoryReady)
 										{
 												 if(GameUpdateAndRender(&Memory, &Input, &Buffer))
 												 {
@@ -283,13 +268,17 @@ int main(int argc, char **argv)
 												 }
 										}
 
-										LoadingBarQuad.w = (ThreadData.ByteAmount * Dimension.Width) / TotalByteAmount;
-										
 										// draw loading screen
-										GameRenderBitmapToBuffer(&Buffer, LoadingBarTexture, &LoadingBarQuad);
 										SDLUpdateWindow(Window, Renderer, &BackBuffer);
-							 }
 
+										if(!MemoryReady)
+										{
+												 if((Memory.AssetsSpace) == TotalAssetSize)
+												 {
+															MemoryReady = true;
+												 }
+										}
+							 }
 					}
 					else
 					{

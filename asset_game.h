@@ -3,20 +3,11 @@
  * Filename: assert_game.h
  * Author: Sierra
  * Created: Пн окт 16 16:29:29 2017 (+0300)
- * Last-Updated: Чт окт 19 17:15:00 2017 (+0300)
+ * Last-Updated: Пт окт 20 09:24:05 2017 (+0300)
  *           By: Sierra
  */
 
 #if !defined(ASSERT_GAME_H)
-
-struct thread_data
-{
-		 SDL_Renderer *Renderer;
-		 game_memory *Memory;
-
-		 s64 ByteAmount;
-		 bool IsInitialized;
-};
 
 enum asset_type
 {

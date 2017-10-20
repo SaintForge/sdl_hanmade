@@ -3,7 +3,7 @@
  * Filename: game.h
  * Author: Sierra
  * Created: Пн окт  9 14:15:31 2017 (+0300)
- * Last-Updated: Чт окт 19 17:40:54 2017 (+0300)
+ * Last-Updated: Пт окт 20 10:07:58 2017 (+0300)
  *           By: Sierra
  */
 
@@ -77,18 +77,20 @@ struct game_input
 		 };
 };
 
+struct game_state
+{
+		 figure_entity *Figure[2];
+};
+
 struct game_memory
 {
 		 bool IsInitialized;
+		 game_state *State;
 		 
-		 void *Storage;
-		 u32 StorageSpace;
+		 void *Assets;
+		 u32 AssetsSpace;
 };
 
-struct game_state
-{
-		 figure_entity Figure[2];
-};
 
 
 static bool GameUpdateAndRender(game_memory *Memory, game_input *Input,

@@ -3,7 +3,7 @@
  * Filename: asset_game.h
  * Author: Sierra
  * Created: Пн окт 16 10:08:17 2017 (+0300)
- * Last-Updated: Чт окт 19 17:13:53 2017 (+0300)
+ * Last-Updated: Пт окт 20 09:58:16 2017 (+0300)
  *           By: Sierra
  */
 
@@ -189,16 +189,18 @@ SDLLoadBitmapFromMemory(void *&Memory, game_texture *& Texture, s64 *ByteOffset,
 		 SDL_FreeSurface(TempSurface);
 }
 #endif
+
+
 static void
 SDLReadEntireFile(char* FileName, game_memory *&Memory)
 {
 		 SDL_RWops *BinaryFile = SDL_RWFromFile(FileName, "rb");
-		 Memory->StorageSpace = SDLSizeOfSDL_RWops(BinaryFile);
+		 Memory->AssetsSpace = SDLSizeOfSDL_RWops(BinaryFile);
 
-		 Memory->Storage = malloc(Memory->StorageSpace);
-		 Assert(Memory->Storage);
+		 Memory->Assets = malloc(Memory->AssetsSpace);
+		 Assert(Memory->Assets);
 
-		 SDL_RWread(BinaryFile, Memory->Storage, Memory->StorageSpace, 1);
+		 SDL_RWread(BinaryFile, Memory->Assets, Memory->AssetsSpace, 1);
 		 SDL_RWclose(BinaryFile);
 }
 
@@ -322,10 +324,10 @@ IsAsset(asset_header* AssetHeader, asset_type AssetType, char* AssetName)
 static asset_header*
 GetAssetHeader(game_memory *Memory, asset_type AssetType, char* AssetName)
 {
-		 asset_header *AssetHeader = (asset_header*)Memory->Storage;
+		 asset_header *AssetHeader = (asset_header*)Memory->Assets;
 		 u32 TotalByteSize = 0;
 		 
-		 while(TotalByteSize < Memory->StorageSpace)
+		 while(TotalByteSize < Memory->AssetsSpace)
 		 {
 					if(IsAsset(AssetHeader, AssetType, AssetName))
 					{
@@ -416,17 +418,8 @@ GetTexture(game_memory *Memory, char* FileName, SDL_Renderer *&Renderer)
 static int
 SDLAssetLoadBinaryFile(void *Data)
 {
-		 thread_data  *ThreadData = (thread_data*)Data;
-		 
-		 s64 *ByteOffset          = &ThreadData->ByteAmount;
-		 SDL_Renderer *Renderer   = ThreadData->Renderer;
-		 game_memory  *GameMemory = ThreadData->Memory;
-
-		 SDLReadEntireFile("package.bin", GameMemory);
-		 
-		 ThreadData->IsInitialized = true;
-		 printf("%llu total bytes read\n", GameMemory->StorageSpace);
-
+		 game_memory *Memory = ((game_memory*) Data);
+		 SDLReadEntireFile("package.bin", Memory);
 		 return(1);
 }
 
@@ -439,6 +432,10 @@ SDLAssetBuildBinaryFile()
 		 SDLWriteBitmapToFile(BinaryFile, "i_d.png");
 		 SDLWriteBitmapToFile(BinaryFile, "i_m.png");
 		 SDLWriteBitmapToFile(BinaryFile, "i_s.png");
+		 
+		 SDLWriteBitmapToFile(BinaryFile, "o_d.png");
+		 SDLWriteBitmapToFile(BinaryFile, "o_m.png");
+		 SDLWriteBitmapToFile(BinaryFile, "o_s.png");
 		 
 		 SDLWriteSoundToFile(BinaryFile, "focus.wav");
 		 SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");

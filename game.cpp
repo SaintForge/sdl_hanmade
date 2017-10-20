@@ -3,7 +3,7 @@
 // Filename: game.cpp
 // Author: Sierra
 // Created: Вт окт 10 10:32:14 2017 (+0300)
-// Last-Updated: Чт окт 19 17:33:16 2017 (+0300)
+// Last-Updated: Пт окт 20 10:08:42 2017 (+0300)
 //           By: Sierra
 //
 
@@ -56,7 +56,7 @@ GameCopyImageToBuffer(game_bitmap* GameBitmap, u32 X, u32 Y,
 
 static figure_entity*
 CreateNewFigureEntity(figure_entity_form Form, figure_entity_type Type,
-											u32 BlockSize, game_texture *&Texture)
+											u32 BlockSize)
 {
 		 figure_entity *Figure = (figure_entity *)malloc(sizeof(figure_entity));
 		 Assert(Figure);
@@ -156,7 +156,6 @@ CreateNewFigureEntity(figure_entity_form Form, figure_entity_type Type,
 		 Figure->DefaultAnlge = 0.0f;
 		 Figure->Form = Form;
 		 Figure->Type = Type;
-		 Figure->Texture = Texture;
 
 		 return (Figure);
 }
@@ -168,22 +167,22 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 		 bool ShouldQuit = false;
 		 u32 BlockSize = 40;
 		 
-		 game_rect rect = {};
-		 rect.w = 100;
-		 rect.h = 100;
-
-		 game_rect rect2 = {};
-		 rect2.x = 300;
-		 rect2.y = 400;
-		 rect2.w = 80;
-		 rect2.h = 20;
-
 		 // SDL_QueryTexture(Memory->SpriteI_D, 0, 0, &rect2.w, &rect2.h);
 
 		 if(!Memory->IsInitialized)
 		 {
-					// Figure = CreateNewFigureEntity(I_figure, classic, BlockSize, Memory->SpriteI_D);
-					// Assert(Figure->Texture);
+					Memory->State = (game_state*)malloc(sizeof(game_state));
+					Assert(Memory->State);
+
+					Memory->State->Figure[1] = CreateNewFigureEntity(I_figure, classic, BlockSize);
+					Memory->State->Figure[1]->Texture = GetTexture(Memory, "i_d.png", Buffer->Renderer);
+					Memory->State->Figure[1]->AreaQuad.x = 0;
+					Memory->State->Figure[1]->AreaQuad.y = 0;					
+					
+					Memory->State->Figure[2] = CreateNewFigureEntity(O_figure, classic, BlockSize);
+					Memory->State->Figure[2]->Texture = GetTexture(Memory, "o_d.png", Buffer->Renderer);
+					Memory->State->Figure[2]->AreaQuad.x = 100;
+					Memory->State->Figure[2]->AreaQuad.y = 200;
 
 					Memory->IsInitialized = true;
 					printf("memory init!\n");
@@ -206,7 +205,13 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 					Input->WasPressed = false;
 		 }
 
+		 GameRenderBitmapToBuffer(Buffer, Memory->State->Figure[1]->Texture,
+															&Memory->State->Figure[1]->AreaQuad);
+
+		 GameRenderBitmapToBuffer(Buffer, Memory->State->Figure[2]->Texture,
+															&Memory->State->Figure[2]->AreaQuad);
+
 		 
-		 return (ShouldQuit);
+		 return(ShouldQuit);
 }
 
