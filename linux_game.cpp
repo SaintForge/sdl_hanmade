@@ -3,7 +3,7 @@
 // Filename: linux_platform.cpp
 // Author: Sierra
 // Created: Пн окт  9 12:00:49 2017 (+0300)
-// Last-Updated: Пт окт 20 09:58:41 2017 (+0300)
+// Last-Updated: Пт окт 20 16:35:04 2017 (+0300)
 //           By: Sierra
 //
 
@@ -31,6 +31,9 @@ typedef uint8_t   u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
+
+typedef float real32;
+typedef double real64;
 
 #include "linux_game.h"
 
@@ -111,26 +114,46 @@ SDLProcessKeyPress(game_button_state *NewState, bool IsDown, bool WasDown)
 		 NewState->WasDown = WasDown;
 }
 
+static void
+SDLProcessMousePress(game_button_state *NewState, bool IsDown, bool WasDown)
+{
+		 NewState->IsDown  = IsDown;
+		 NewState->WasDown = WasDown;
+}
+
 bool HandleEvent(SDL_Event *Event, game_input *Input)
 {
 		 bool ShouldQuit = false;
 
 		 switch(Event->type)
 		 {
+					case SDL_MOUSEMOTION:
+					{
+							 Input->MouseX = Event->motion.x;
+							 Input->MouseY = Event->motion.y;
+
+							 Input->MouseRelX = Event->motion.xrel;
+							 Input->MouseRelY = Event->motion.yrel;
+					} break;
+
 					case SDL_QUIT:
 					{
 							 printf("SDL_QUIT\n");
 							 ShouldQuit = true;
 					} break;
-
+					
+					case SDL_MOUSEBUTTONDOWN:
+					case SDL_MOUSEBUTTONUP:
 					case SDL_KEYDOWN:
 					case SDL_KEYUP:
 					{
 							 SDL_Keycode KeyCode = Event->key.keysym.sym;
-							 bool IsDown = (Event->key.state == SDL_PRESSED);
+							 u8 Button = Event->button.button;
+							 
+							 bool IsDown = (Event->key.state == SDL_PRESSED) ||	(Event->button.state == SDL_PRESSED);
 							 bool WasDown = false;
 
-							 if (Event->key.state == SDL_RELEASED)
+							 if ((Event->key.state == SDL_RELEASED) || (Event->button.state == SDL_RELEASED))
 							 {
 										WasDown = true;
 							 }
@@ -142,7 +165,15 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
 							 if(Event->key.repeat == 0)
 							 {
 										Input->WasPressed = true;
-										
+
+										if(Button == SDL_BUTTON_LEFT)
+										{
+												 SDLProcessMousePress(&Input->LeftClick, IsDown, WasDown);
+										}
+										if(Button == SDL_BUTTON_RIGHT)
+										{
+												 SDLProcessMousePress(&Input->RightClick, IsDown, WasDown);
+										}
 										if(KeyCode == SDLK_w)
 										{
 												 SDLProcessKeyPress(&Input->Up, IsDown, WasDown);
@@ -167,6 +198,7 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
             
 					} break;
 		 }
+		 
 
 		 return (ShouldQuit);
 }
@@ -174,9 +206,8 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
 static void
 SDLUpdateWindow(SDL_Window* Window, SDL_Renderer *Renderer, sdl_offscreen_buffer *Buffer)
 {
-		 SDL_SetRenderTarget(Renderer, NULL);
-		 SDL_RenderCopy(Renderer, Buffer->Texture, 0, 0);
 		 SDL_RenderPresent(Renderer);
+		 SDL_RenderClear(Renderer);
 }
 
 static void
@@ -210,9 +241,10 @@ int main(int argc, char **argv)
 		 SDL_DisplayMode Display = {};
 		 SDL_GetDesktopDisplayMode(0, &Display);
 		 
-		 SDL_Window *Window = SDL_CreateWindow("This is window", SDL_WINDOWPOS_CENTERED,
-																					 SDL_WINDOWPOS_CENTERED, Display.w, Display.h,
-																					 SDL_WINDOW_ALLOW_HIGHDPI|SDL_WINDOW_FULLSCREEN);
+		 SDL_Window *Window = SDL_CreateWindow("This is window",
+																					 SDL_WINDOWPOS_CENTERED,
+																					 SDL_WINDOWPOS_CENTERED, 640, 480,
+																					 SDL_WINDOW_ALLOW_HIGHDPI);
 		 if(Window)
 		 {
 					SDL_Renderer* Renderer = SDL_CreateRenderer(Window, -1,

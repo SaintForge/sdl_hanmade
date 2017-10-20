@@ -3,7 +3,7 @@
  * Filename: game.h
  * Author: Sierra
  * Created: Пн окт  9 14:15:31 2017 (+0300)
- * Last-Updated: Пт окт 20 10:07:58 2017 (+0300)
+ * Last-Updated: Пт окт 20 16:18:51 2017 (+0300)
  *           By: Sierra
  */
 
@@ -14,6 +14,7 @@ void LogErrorLine(const char* Message, int Line)
 		 fprintf(stderr, "Assert fail in %s: %d\n",Message, Line);
 }
 
+#define Round(x) ((x)>=0?(float)((x)+0.5):(float)((x)-0.5))
 #define Assert(Expression) if(!(Expression)) { LogErrorLine( __FILE__, __LINE__); *(int *)0 = 0;  }
 
 enum figure_entity_form
@@ -75,6 +76,9 @@ struct game_input
 							 game_button_state Escape;
 					};
 		 };
+
+		 s32 MouseX, MouseY;
+		 s32 MouseRelX, MouseRelY;
 };
 
 struct game_state
@@ -86,7 +90,7 @@ struct game_memory
 {
 		 bool IsInitialized;
 		 game_state *State;
-		 
+
 		 void *Assets;
 		 u32 AssetsSpace;
 };

@@ -3,7 +3,7 @@
  * Filename: asset_game.h
  * Author: Sierra
  * Created: Пн окт 16 10:08:17 2017 (+0300)
- * Last-Updated: Пт окт 20 09:58:16 2017 (+0300)
+ * Last-Updated: Пт окт 20 15:11:50 2017 (+0300)
  *           By: Sierra
  */
 
@@ -380,7 +380,7 @@ GetSound(game_memory *Memory, char* FileName)
 
 					Audio->Data = (u8*)AssetHeader;
 					Audio->Data = Audio->Data + sizeof(asset_header);
-
+					
 					Sound = Mix_QuickLoad_WAV(Audio->Data);
 					Assert(Sound);
 		 }

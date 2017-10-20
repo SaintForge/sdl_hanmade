@@ -3,7 +3,7 @@
 // Filename: game.cpp
 // Author: Sierra
 // Created: Вт окт 10 10:32:14 2017 (+0300)
-// Last-Updated: Пт окт 20 10:08:42 2017 (+0300)
+// Last-Updated: Пт окт 20 16:28:29 2017 (+0300)
 //           By: Sierra
 //
 
@@ -13,9 +13,17 @@
 #include <vector>
 
 static void
-GameRenderBitmapToBuffer(game_offscreen_buffer *Buffer, game_texture *Texture, game_rect *Quad)
+DEBUGRenderQuad(game_offscreen_buffer *Buffer, game_rect *AreaQuad, SDL_Color color)
 {
 		 SDL_SetRenderTarget(Buffer->Renderer, Buffer->Memory);
+		 SDL_SetRenderDrawColor(Buffer->Renderer, color.r, color.g, color.b, 255);
+		 SDL_RenderDrawRect(Buffer->Renderer, AreaQuad);
+}
+
+static void
+GameRenderBitmapToBuffer(game_offscreen_buffer *Buffer, game_texture *Texture, game_rect *Quad)
+{
+		 // SDL_SetRenderTarget(Buffer->Renderer, Buffer->Memory);
 		 SDL_RenderCopy(Buffer->Renderer, Texture, 0, Quad);
 }
 
@@ -55,8 +63,9 @@ GameCopyImageToBuffer(game_bitmap* GameBitmap, u32 X, u32 Y,
 #endif
 
 static figure_entity*
-CreateNewFigureEntity(figure_entity_form Form, figure_entity_type Type,
-											u32 BlockSize)
+CreateNewFigureEntity(game_offscreen_buffer *Buffer,
+											game_memory *Memory, char* AssetName, u32 X, u32 Y,
+											figure_entity_form Form, figure_entity_type Type,	u32 BlockSize)
 {
 		 figure_entity *Figure = (figure_entity *)malloc(sizeof(figure_entity));
 		 Assert(Figure);
@@ -127,8 +136,8 @@ CreateNewFigureEntity(figure_entity_form Form, figure_entity_type Type,
 					}break;
      }
 
-     Figure->AreaQuad.x = 0;
-     Figure->AreaQuad.y = 0;
+     Figure->AreaQuad.x = X;
+     Figure->AreaQuad.y = Y;
 		 Figure->AreaQuad.w = RowAmount*BlockSize;
      Figure->AreaQuad.h = ColumnAmount*BlockSize;
 
@@ -156,38 +165,123 @@ CreateNewFigureEntity(figure_entity_form Form, figure_entity_type Type,
 		 Figure->DefaultAnlge = 0.0f;
 		 Figure->Form = Form;
 		 Figure->Type = Type;
+		 Figure->Texture = GetTexture(Memory, AssetName, Buffer->Renderer);
 
 		 return (Figure);
 }
 
+static void
+DestroyFigureEntity(figure_entity *Entity)
+{
+		 if(Entity)
+		 {
+					FreeTexture(Entity->Texture);
+					free(Entity);
+		 }
+}
+
+
+inline static bool
+IsPointInsideRect(s32 X, s32 Y, game_rect *Quad)
+{
+		 if(!Quad) return false;
+
+		 if(X < Quad->x)                return false;
+		 else if(Y < Quad->y)           return false;
+		 else if(X > Quad->x + Quad->w) return false;
+		 else if(Y > Quad->y + Quad->h) return false;
+		 else                           return true;
+}
+
+static void
+FigureEntityMove(figure_entity *Entity, float XShift, float YShift)
+{
+		 int XOffset = Entity->AreaQuad.x - Entity->Center.x;
+		 int YOffset = Entity->AreaQuad.y - Entity->Center.y;
+
+		 Entity->Center.x += XShift;
+		 Entity->Center.y += YShift;
+
+		 Entity->AreaQuad.x = Entity->Center.x + XOffset;
+		 Entity->AreaQuad.y = Entity->Center.y + YOffset;
+
+		 for (u32 i = 0; i < 4; ++i)
+		 {
+					Entity->Shell[i].x += XShift;
+					Entity->Shell[i].y += YShift;
+		 }
+}
+
+static void
+FigureEntityMoveTo(figure_entity *Entity, s32 NewPointX, s32 NewPointY)
+{
+		 s32 XShift = NewPointX - Entity->Center.x;
+		 s32 YShift = NewPointY - Entity->Center.y;
+		 FigureEntityMove(Entity, XShift, YShift);
+}
+
+static void
+FigureEntityScaleBlock(figure_entity *Entity, u32 BlockSize, s32 ScaleRatio)
+{
+		 real32 OldWidth  = Entity->AreaQuad.w;
+		 real32 OldHeight = Entity->AreaQuad.h;
+
+		 u32 RowBlocks    = (Entity->AreaQuad.w) / (BlockSize);
+		 u32 ColumnBlocks = (Entity->AreaQuad.h) / (BlockSize);
+
+		 BlockSize += ScaleRatio;
+		 Entity->AreaQuad.w = RowBlocks * BlockSize;
+		 Entity->AreaQuad.h = ColumnBlocks *BlockSize;
+
+		 float WidthRatio  = (Entity->Center.x - Entity->AreaQuad.w) / OldWidth;
+		 float HeightRatio = (Entity->Center.x - Entity->AreaQuad.h) / OldHeight;
+		 
+		 float NewPointX = Round((WidthRatio * Entity->AreaQuad.w) + Entity->AreaQuad.x);
+		 float NewPointY = Round((HeightRatio * Entity->AreaQuad.h) + Entity->AreaQuad.y);
+		 Entity->Center.x = NewPointX;
+		 Entity->Center.y = NewPointY;
+
+		 for (u32 i = 0; i < 4; ++i)
+		 {
+					WidthRatio  = (Entity->Shell[i].x - Entity->AreaQuad.w) / OldWidth;
+					HeightRatio = (Entity->Shell[i].y - Entity->AreaQuad.h) / OldHeight;
+
+					NewPointX = Round((WidthRatio * Entity->AreaQuad.w) + Entity->AreaQuad.w);
+					NewPointX = Round((HeightRatio * Entity->AreaQuad.h) + Entity->AreaQuad.h);
+
+					Entity->Shell[i].x = NewPointX;
+					Entity->Shell[i].y = NewPointY;
+		 }
+		 
+}
 
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
 		 bool ShouldQuit = false;
 		 u32 BlockSize = 40;
-		 
-		 // SDL_QueryTexture(Memory->SpriteI_D, 0, 0, &rect2.w, &rect2.h);
 
+		 static bool Grabbed = false;
+		 static s32 GrabIndex = 0;
+		 
 		 if(!Memory->IsInitialized)
 		 {
 					Memory->State = (game_state*)malloc(sizeof(game_state));
 					Assert(Memory->State);
 
-					Memory->State->Figure[1] = CreateNewFigureEntity(I_figure, classic, BlockSize);
-					Memory->State->Figure[1]->Texture = GetTexture(Memory, "i_d.png", Buffer->Renderer);
-					Memory->State->Figure[1]->AreaQuad.x = 0;
-					Memory->State->Figure[1]->AreaQuad.y = 0;					
+					game_state *State = Memory->State;
+					State->Figure[0] =
+							 CreateNewFigureEntity(Buffer, Memory, "i_d.png", 0, 0, I_figure, classic, BlockSize);
 					
-					Memory->State->Figure[2] = CreateNewFigureEntity(O_figure, classic, BlockSize);
-					Memory->State->Figure[2]->Texture = GetTexture(Memory, "o_d.png", Buffer->Renderer);
-					Memory->State->Figure[2]->AreaQuad.x = 100;
-					Memory->State->Figure[2]->AreaQuad.y = 200;
+					State->Figure[1] =
+							 CreateNewFigureEntity(Buffer, Memory, "o_d.png", 100, 100, O_figure, classic, BlockSize);
 
 					Memory->IsInitialized = true;
 					printf("memory init!\n");
 
 		 }
+
+		 game_state *State = Memory->State;
 		 
 		 if(Input->WasPressed)
 		 {
@@ -202,16 +296,43 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 							 ShouldQuit = true;
 					}
 
+					if(Input->LeftClick.IsDown)
+					{
+							 printf("Left mouse \n");
+							 if(!Grabbed)
+							 {
+										for (u32 i = 0; i < 2; ++i)
+										{
+												 if(IsPointInsideRect(Input->MouseX, Input->MouseY, &State->Figure[i]->AreaQuad))
+												 {
+															GrabIndex = i;
+															Grabbed = true;
+															FigureEntityScaleBlock(State->Figure[i], BlockSize, 20);
+												 }		 
+										}
+							 }
+							 else
+							 {
+										if(GrabIndex != -1)
+										{
+												 FigureEntityScaleBlock(State->Figure[GrabIndex], BlockSize, -20);
+												 GrabIndex = -1;
+												 Grabbed = false;
+										}
+							 }
+					}
+
 					Input->WasPressed = false;
 		 }
 
-		 GameRenderBitmapToBuffer(Buffer, Memory->State->Figure[1]->Texture,
-															&Memory->State->Figure[1]->AreaQuad);
+		 if(Grabbed)
+		 {
+					FigureEntityMoveTo(State->Figure[GrabIndex], Input->MouseX, Input->MouseY);
+		 }
 
-		 GameRenderBitmapToBuffer(Buffer, Memory->State->Figure[2]->Texture,
-															&Memory->State->Figure[2]->AreaQuad);
+		 GameRenderBitmapToBuffer(Buffer, Memory->State->Figure[0]->Texture, &Memory->State->Figure[0]->AreaQuad);
+		 GameRenderBitmapToBuffer(Buffer, Memory->State->Figure[1]->Texture, &Memory->State->Figure[1]->AreaQuad);
 
-		 
 		 return(ShouldQuit);
 }
 

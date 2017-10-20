@@ -3,7 +3,7 @@
  * Filename: assert_game.h
  * Author: Sierra
  * Created: Пн окт 16 16:29:29 2017 (+0300)
- * Last-Updated: Пт окт 20 09:24:05 2017 (+0300)
+ * Last-Updated: Пт окт 20 15:07:14 2017 (+0300)
  *           By: Sierra
  */
 
@@ -49,9 +49,6 @@ struct asset_bitmap
 
 struct asset_header
 {
-		 asset_header *Next;
-		 asset_header *Prev;
-		 
 		 char AssetName[128];
 		 u32 AssetSize;
 		 asset_type AssetType;
