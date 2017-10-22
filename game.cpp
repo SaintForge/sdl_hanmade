@@ -3,7 +3,7 @@
 // Filename: game.cpp
 // Author: Sierra
 // Created: Вт окт 10 10:32:14 2017 (+0300)
-// Last-Updated: Пт окт 20 16:49:55 2017 (+0300)
+// Last-Updated: Вс окт 22 10:22:41 2017 (+0300)
 //           By: Sierra
 //
 
@@ -14,9 +14,12 @@
 static void
 DEBUGRenderQuad(game_offscreen_buffer *Buffer, game_rect *AreaQuad, SDL_Color color)
 {
-     SDL_SetRenderTarget(Buffer->Renderer, Buffer->Memory);
+     u8 r, g, b;
+     SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, 0);
+     
      SDL_SetRenderDrawColor(Buffer->Renderer, color.r, color.g, color.b, 255);
      SDL_RenderDrawRect(Buffer->Renderer, AreaQuad);
+     SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, 255);
 }
 
 static void
@@ -193,7 +196,7 @@ IsPointInsideRect(s32 X, s32 Y, game_rect *Quad)
 }
 
 static void
-FigureEntityMove(figure_entity *Entity, float XShift, float YShift)
+FigureEntityMove(figure_entity *Entity, s32 XShift, s32 YShift)
 {
      int XOffset = Entity->AreaQuad.x - Entity->Center.x;
      int YOffset = Entity->AreaQuad.y - Entity->Center.y;
@@ -222,36 +225,62 @@ FigureEntityMoveTo(figure_entity *Entity, s32 NewPointX, s32 NewPointY)
 static void
 FigureEntityScaleBlock(figure_entity *Entity, u32 BlockSize, s32 ScaleRatio)
 {
-     real32 OldWidth  = Entity->AreaQuad.w;
-     real32 OldHeight = Entity->AreaQuad.h;
+     if(!Entity) return;
 
-     u32 RowBlocks    = (Entity->AreaQuad.w) / (BlockSize);
-     u32 ColumnBlocks = (Entity->AreaQuad.h) / (BlockSize);
+     u32 RowBlock  = 0;
+     u32 ColBlock  = 0;
+     r32 OldWidth  = 0;
+     r32 OldHeight = 0;
+     r32 WRatio    = 0;
+     r32 HRatio    = 0;
+
+     OldWidth  = Entity->AreaQuad.w;
+     OldHeight = Entity->AreaQuad.h;
+
+     RowBlock = (Entity->AreaQuad.w) / (BlockSize);
+     ColBlock = (Entity->AreaQuad.h) / (BlockSize);
 
      BlockSize += ScaleRatio;
-     Entity->AreaQuad.w = RowBlocks * BlockSize;
-     Entity->AreaQuad.h = ColumnBlocks *BlockSize;
+     Entity->AreaQuad.w = RowBlock * BlockSize;
+     Entity->AreaQuad.h = ColBlock * BlockSize;
 
-     float WidthRatio  = (Entity->Center.x - Entity->AreaQuad.w) / OldWidth;
-     float HeightRatio = (Entity->Center.x - Entity->AreaQuad.h) / OldHeight;
+     WRatio = (Entity->Center.x - Entity->AreaQuad.x) / OldWidth;
+     HRatio = (Entity->Center.y - Entity->AreaQuad.y) / OldHeight;
 		 
-     float NewPointX = Round((WidthRatio * Entity->AreaQuad.w) + Entity->AreaQuad.x);
-     float NewPointY = Round((HeightRatio * Entity->AreaQuad.h) + Entity->AreaQuad.y);
-     Entity->Center.x = NewPointX;
-     Entity->Center.y = NewPointY;
+     Entity->Center.x = roundf((WRatio * Entity->AreaQuad.w) + Entity->AreaQuad.x);
+     Entity->Center.y = roundf((HRatio * Entity->AreaQuad.h) + Entity->AreaQuad.y);
+     for (u32 i = 0; i < 4; ++i)
+     {
+          WRatio = (Entity->Shell[i].x - Entity->AreaQuad.x) / OldWidth;
+          HRatio = (Entity->Shell[i].y - Entity->AreaQuad.y) / OldHeight;
+          Entity->Shell[i].x = roundf((WRatio * Entity->AreaQuad.w) + Entity->AreaQuad.x);
+          Entity->Shell[i].y = roundf((HRatio * Entity->AreaQuad.h) + Entity->AreaQuad.y);
+     }
+		 
+}
+
+static void
+FigureEntityRotateBy(figure_entity *Entity, float Angle)
+{
+     if((s32)Entity->Angle == 0)
+     {
+          Entity->Angle = 0;
+     }
 
      for (u32 i = 0; i < 4; ++i)
      {
-          WidthRatio  = (Entity->Shell[i].x - Entity->AreaQuad.w) / OldWidth;
-          HeightRatio = (Entity->Shell[i].y - Entity->AreaQuad.h) / OldHeight;
+          float Radians = Angle * (M_PI/180.0f);
+          float Cos = cos(Radians);
+          float Sin = sin(Radians);
 
-          NewPointX = Round((WidthRatio * Entity->AreaQuad.w) + Entity->AreaQuad.w);
-          NewPointX = Round((HeightRatio * Entity->AreaQuad.h) + Entity->AreaQuad.h);
+          float X = Entity->Center.x + (Entity->Shell[i].x - Entity->Center.x) * Cos
+               - (Entity->Shell[i].y - Entity->Center.y) * Sin;
+          float Y = Entity->Center.y + (Entity->Shell[i].x - Entity->Center.x) * Sin
+               + (Entity->Shell[i].y - Entity->Center.y) * Cos;
 
-          Entity->Shell[i].x = NewPointX;
-          Entity->Shell[i].y = NewPointY;
+          Entity->Shell[i].x = roundf(X);
+          Entity->Shell[i].y = roundf(Y);
      }
-		 
 }
 
 static bool
@@ -262,6 +291,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 
      static bool Grabbed = false;
      static s32 GrabIndex = 0;
+
+     static s32 OffsetX = 0;
+     static s32 OffsetY = 0;
 		 
      if(!Memory->IsInitialized)
      {
@@ -274,6 +306,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 					
           State->Figure[1] =
                CreateNewFigureEntity(Buffer, Memory, "o_d.png", 100, 100, O_figure, classic, BlockSize);
+
+          // Memory->Music = GetMusic(Memory, "amb_ending_water.ogg");
+          // Mix_PlayMusic(Memory->Music, -1);
 
           Memory->IsInitialized = true;
           printf("memory init!\n");
@@ -297,7 +332,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 
           if(Input->LeftClick.IsDown)
           {
-               printf("Left mouse \n");
                if(!Grabbed)
                {
                     for (u32 i = 0; i < 2; ++i)
@@ -306,7 +340,15 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                          {
                               GrabIndex = i;
                               Grabbed = true;
+                              
                               FigureEntityScaleBlock(State->Figure[i], BlockSize, 20);
+                              FigureEntityMove(State->Figure[i], -10, -10);
+                              
+                              OffsetX = Input->MouseX - State->Figure[i]->Center.x;
+                              OffsetY = Input->MouseY - State->Figure[i]->Center.y;
+                              FigureEntityMove(State->Figure[i], OffsetX, OffsetY);
+                              SDL_ShowCursor(SDL_DISABLE);
+                              break;
                          }		 
                     }
                }
@@ -314,11 +356,17 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                {
                     if(GrabIndex != -1)
                     {
-                         FigureEntityScaleBlock(State->Figure[GrabIndex], BlockSize, -20);
-                         GrabIndex = -1;
+                         FigureEntityScaleBlock(State->Figure[GrabIndex], BlockSize+10, -10);
+                         FigureEntityMove(State->Figure[GrabIndex], 10, 10);
                          Grabbed = false;
+                         SDL_ShowCursor(SDL_ENABLE);
                     }
                }
+          }
+          if(Input->RightClick.IsDown)
+          {
+               printf("Right click \n");
+               
           }
 
           Input->WasPressed = false;
@@ -326,11 +374,33 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 
      if(Grabbed)
      {
-          FigureEntityMoveTo(State->Figure[GrabIndex], Input->MouseX, Input->MouseY);
+          FigureEntityMoveTo(State->Figure[GrabIndex], Input->MouseX - OffsetX, Input->MouseY - OffsetY);
      }
+
+     DEBUGRenderQuad(Buffer, &State->Figure[0]->AreaQuad, {255, 0, 0});
+
+     game_rect Rect = {};
+     Rect.x = State->Figure[0]->Center.x - 2;
+     Rect.y = State->Figure[0]->Center.y - 2;
+     Rect.w = 4;
+     Rect.h = 4;
 
      GameRenderBitmapToBuffer(Buffer, Memory->State->Figure[0]->Texture, &Memory->State->Figure[0]->AreaQuad);
      GameRenderBitmapToBuffer(Buffer, Memory->State->Figure[1]->Texture, &Memory->State->Figure[1]->AreaQuad);
+
+     DEBUGRenderQuad(Buffer, &Rect, {255, 0, 0});
+
+     for (u32 i = 0; i < 4; ++i)
+     {
+          game_rect ShellRect = {};
+          ShellRect.x = State->Figure[0]->Shell[i].x - 2;
+          ShellRect.y = State->Figure[0]->Shell[i].y - 2;
+          ShellRect.w = 4;
+          ShellRect.h = 4;
+          
+          DEBUGRenderQuad(Buffer, &ShellRect, {255, 0, 0});
+     }
+
 
      return(ShouldQuit);
 }

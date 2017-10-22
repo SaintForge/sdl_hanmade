@@ -3,7 +3,7 @@
  * Filename: game.h
  * Author: Sierra
  * Created: Пн окт  9 14:15:31 2017 (+0300)
- * Last-Updated: Пт окт 20 16:50:04 2017 (+0300)
+ * Last-Updated: Сб окт 21 12:54:01 2017 (+0300)
  *           By: Sierra
  */
 
@@ -13,8 +13,8 @@ void LogErrorLine(const char* Message, int Line)
 {
      fprintf(stderr, "Assert fail in %s: %d\n",Message, Line);
 }
-
-#define Round(x) ((x)>=0?(float)((x)+0.5):(float)((x)-0.5))
+/* #define round(x) ((x)>=0?(float)((x)+0.5):(float)((x)-0.5)) */
+#define round(x) ((x)>=0?(float)((x)+0.5f):(float)((x)-0.5f))
 #define Assert(Expression) if(!(Expression)) { LogErrorLine( __FILE__, __LINE__); *(int *)0 = 0;  }
 
 enum figure_entity_form
@@ -90,6 +90,8 @@ struct game_memory
 {
      bool IsInitialized;
      game_state *State;
+
+     game_music *Music;
 
      void *Assets;
      u32 AssetsSpace;

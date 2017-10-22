@@ -3,7 +3,7 @@
 // Filename: linux_platform.cpp
 // Author: Sierra
 // Created: Пн окт  9 12:00:49 2017 (+0300)
-// Last-Updated: Пт окт 20 16:50:27 2017 (+0300)
+// Last-Updated: Сб окт 21 18:18:08 2017 (+0300)
 //           By: Sierra
 //
 
@@ -13,8 +13,10 @@
 #include <SDL2/SDL_mixer.h>
 
 #include <stdint.h>
+#include <math.h>
 #include <string>
 #include <vector>
+
 
 typedef SDL_Rect    game_rect;
 typedef SDL_Point   game_point;
@@ -33,8 +35,8 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
-typedef float real32;
-typedef double real64;
+typedef float r32;
+typedef double r64;
 
 #include "linux_game.h"
 
@@ -151,7 +153,7 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
                SDL_Keycode KeyCode = Event->key.keysym.sym;
                u8 Button = Event->button.button;
 							 
-               bool IsDown = (Event->key.state == SDL_PRESSED) ||	(Event->button.state == SDL_PRESSED);
+               bool IsDown = (Event->key.state == SDL_PRESSED) || (Event->button.state == SDL_PRESSED);
                bool WasDown = false;
 
                if ((Event->key.state == SDL_RELEASED) || (Event->button.state == SDL_RELEASED))
@@ -258,9 +260,9 @@ int main(int argc, char **argv)
                window_dimension Dimension = SDLGetWindowDimension(Window);
 							 
                sdl_offscreen_buffer BackBuffer = {};
-               SDLCreateBufferTexture(&BackBuffer, Renderer, Dimension.Width, Dimension.Height);
-               SDLChangeBufferColor(&BackBuffer, 0, 0, 0, 255);
-               SDLUpdateWindow(Window, Renderer, &BackBuffer);
+               // SDLCreateBufferTexture(&BackBuffer, Renderer, Dimension.Width, Dimension.Height);
+               // SDLChangeBufferColor(&BackBuffer, 0, 0, 0, 255);
+               // SDLUpdateWindow(Window, Renderer, &BackBuffer);
 
 #if ASSET_BUILD
                // NOTE: This is for packaging data to the disk
