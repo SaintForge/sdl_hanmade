@@ -211,8 +211,11 @@ SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
      char FullName[128];
      strcpy(FullName, SpritePath);
      strcat(FullName, FileName);
+
+     printf("FullName - %s\n", FullName);
 		 
      SDL_Surface *Surface = IMG_Load(FullName);
+     printf("SDL_Error - %s\n", SDL_GetError());
      Assert(Surface);
 
      asset_bitmap_header BitmapHeader;

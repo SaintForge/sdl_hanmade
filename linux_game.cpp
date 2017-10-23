@@ -17,7 +17,6 @@
 #include <string>
 #include <vector>
 
-
 typedef SDL_Rect    game_rect;
 typedef SDL_Point   game_point;
 typedef SDL_Texture game_texture;

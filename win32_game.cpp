@@ -12,9 +12,10 @@
 #include <SDL2\SDL_ttf.h>
 #include <SDL2\SDL_mixer.h>
 
-#include <stdio.h>
 #include <stdint.h>
-#include <string.h>
+#include <math.h>
+#include <string>
+#include <vector>
 
 typedef SDL_Rect    game_rect;
 typedef SDL_Point   game_point;
@@ -32,6 +33,9 @@ typedef uint8_t   u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
+
+typedef float r32;
+typedef double r64;
 
 #include "win32_game.h"
 
@@ -112,26 +116,46 @@ SDLProcessKeyPress(game_button_state *NewState, bool IsDown, bool WasDown)
      NewState->WasDown = WasDown;
 }
 
+static void
+SDLProcessMousePress(game_button_state *NewState, bool IsDown, bool WasDown)
+{
+     NewState->IsDown  = IsDown;
+     NewState->WasDown = WasDown;
+}
+
 bool HandleEvent(SDL_Event *Event, game_input *Input)
 {
      bool ShouldQuit = false;
 
      switch(Event->type)
      {
+          case SDL_MOUSEMOTION:
+          {
+               Input->MouseX = Event->motion.x;
+               Input->MouseY = Event->motion.y;
+
+               Input->MouseRelX = Event->motion.xrel;
+               Input->MouseRelY = Event->motion.yrel;
+          } break;
+
           case SDL_QUIT:
           {
                printf("SDL_QUIT\n");
                ShouldQuit = true;
           } break;
-
+					
+          case SDL_MOUSEBUTTONDOWN:
+          case SDL_MOUSEBUTTONUP:
           case SDL_KEYDOWN:
           case SDL_KEYUP:
           {
                SDL_Keycode KeyCode = Event->key.keysym.sym;
-               bool IsDown = (Event->key.state == SDL_PRESSED);
+               u8 Button = Event->button.button;
+							 
+               bool IsDown = (Event->key.state == SDL_PRESSED) || (Event->button.state == SDL_PRESSED);
                bool WasDown = false;
 
-               if (Event->key.state == SDL_RELEASED)
+               if ((Event->key.state == SDL_RELEASED) || (Event->button.state == SDL_RELEASED))
                {
                     WasDown = true;
                }
@@ -143,7 +167,15 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
                if(Event->key.repeat == 0)
                {
                     Input->WasPressed = true;
-										
+
+                    if(Button == SDL_BUTTON_LEFT)
+                    {
+                         SDLProcessMousePress(&Input->LeftClick, IsDown, WasDown);
+                    }
+                    if(Button == SDL_BUTTON_RIGHT)
+                    {
+                         SDLProcessMousePress(&Input->RightClick, IsDown, WasDown);
+                    }
                     if(KeyCode == SDLK_w)
                     {
                          SDLProcessKeyPress(&Input->Up, IsDown, WasDown);
@@ -168,16 +200,17 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
             
           } break;
      }
+		 
 
      return (ShouldQuit);
 }
 
+
 static void
 SDLUpdateWindow(SDL_Window* Window, SDL_Renderer *Renderer, sdl_offscreen_buffer *Buffer)
 {
-     SDL_SetRenderTarget(Renderer, NULL);
-     SDL_RenderCopy(Renderer, Buffer->Texture, 0, 0);
      SDL_RenderPresent(Renderer);
+     SDL_RenderClear(Renderer);
 }
 
 static void
@@ -200,37 +233,6 @@ SDLReloadFontTexture(TTF_Font *&Font, SDL_Texture *&Texture, SDL_Rect *Quad,
      SDL_FreeSurface(Surface);
 }
 
-static void
-SDLAudioCallback(void *UserData, Uint8 *AudioData, int Length)
-{
-     memset(AudioData, 0, Length);
-}
-
-static void
-SDLInitAudio(s32 SamplesPerSecond, s32 BufferSize)
-{
-     SDL_AudioSpec AudioSettings = {0};
-
-     AudioSettings.freq = SamplesPerSecond;
-     AudioSettings.format = AUDIO_S16LSB;
-     AudioSettings.channels = 2;
-     AudioSettings.samples = BufferSize;
-     AudioSettings.callback = &SDLAudioCallback;
-
-     SDL_OpenAudio(&AudioSettings, 0);
-
-     printf("Initialised an Audio device at frequency %d Hz, %d Channels\n",
-            AudioSettings.freq, AudioSettings.channels);
-
-     if (AudioSettings.format != AUDIO_S16LSB)
-     {
-          printf("Oops! We didn't get AUDIO_S16LSB as our sample format!\n");
-          SDL_CloseAudio();
-     }
-
-     SDL_PauseAudio(0);
-}
-
 #undef main
 int main(int argc, char **argv)
 {
@@ -238,17 +240,14 @@ int main(int argc, char **argv)
 		 
      SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
      Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096);
-     IMG_Init(IMG_INIT_PNG);
+     // IMG_Init(IMG_INIT_PNG);
      TTF_Init();
-     // Mix_OpenAudio( 44100, AUDIO_S16LSB, 2, 2048 );
-
-     // SDLInitAudio(44100, 2048);
 
      SDL_DisplayMode Display = {};
      SDL_GetDesktopDisplayMode(0, &Display);
 
      SDL_Window *Window = SDL_CreateWindow("This is window", SDL_WINDOWPOS_CENTERED,
-                                           SDL_WINDOWPOS_CENTERED, Display.w, Display.h,
+                                           SDL_WINDOWPOS_CENTERED, 640, 480,
                                            SDL_WINDOW_ALLOW_HIGHDPI);
 
      if(Window)
@@ -263,9 +262,9 @@ int main(int argc, char **argv)
                window_dimension Dimension = SDLGetWindowDimension(Window);
 
                sdl_offscreen_buffer BackBuffer = {};
-               SDLCreateBufferTexture(&BackBuffer, Renderer, Dimension.Width, Dimension.Height);
-               SDLChangeBufferColor(&BackBuffer, 0, 0, 0, 255);
-               SDLUpdateWindow(Window, Renderer, &BackBuffer);
+               // SDLCreateBufferTexture(&BackBuffer, Renderer, Dimension.Width, Dimension.Height);
+               // SDLChangeBufferColor(&BackBuffer, 0, 0, 0, 255);
+               // SDLUpdateWindow(Window, Renderer, &BackBuffer);
 
 #if ASSET_BUILD
                // NOTE: This is for packaging data to the disk
@@ -273,27 +272,13 @@ int main(int argc, char **argv)
 #endif
                game_memory Memory = {};
 
-               u64 TotalByteAmount = SDLSizeOfBinaryFile("package.bin");
-               printf("should read %llu bytes\n", TotalByteAmount);
-
-               thread_data ThreadData = {};
-               ThreadData.Renderer      = Renderer;
-               ThreadData.Memory        = &Memory;
-               ThreadData.ByteAmount    = 0;
-               ThreadData.IsInitialized = false;
-							 
+               u64 TotalAssetSize = SDLSizeOfBinaryFile("package.bin");
                SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread",
-                                                          (void*)&ThreadData);
-							 
-               game_rect LoadingBarQuad = {};
-               SDL_Texture *LoadingBarTexture =	SDLUploadTexture(Renderer, &LoadingBarQuad, "..\\data\\sprites\\button.png");
-							 
-               LoadingBarQuad.h = 10;
-               LoadingBarQuad.w = 0;
-               LoadingBarQuad.x = 0;
-               LoadingBarQuad.y = (Dimension.Height / 2) + (LoadingBarQuad.h / 2);
-							 
+                                                          (void*)&Memory);
+
                game_input Input = {};
+
+               bool MemoryReady = false;
 
                while(IsRunning)
                {
@@ -312,7 +297,7 @@ int main(int argc, char **argv)
                     Buffer.Width    = BackBuffer.Width;
                     Buffer.Height   = BackBuffer.Height;
 
-                    if(ThreadData.IsInitialized)
+                    if(MemoryReady)
                     {
                          if(GameUpdateAndRender(&Memory, &Input, &Buffer))
                          {
@@ -320,11 +305,16 @@ int main(int argc, char **argv)
                          }
                     }
 
-                    LoadingBarQuad.w = (ThreadData.ByteAmount * Dimension.Width) / TotalByteAmount;
-										
                     // draw loading screen
-                    GameRenderBitmapToBuffer(&Buffer, LoadingBarTexture, &LoadingBarQuad);
                     SDLUpdateWindow(Window, Renderer, &BackBuffer);
+
+                    if(!MemoryReady)
+                    {
+                         if((Memory.AssetsSpace) == TotalAssetSize)
+                         {
+                              MemoryReady = true;
+                         }
+                    }
                }
 
           }
