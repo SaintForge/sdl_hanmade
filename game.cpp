@@ -3,7 +3,7 @@
 // Filename: game.cpp
 // Author: Sierra
 // Created: Вт окт 10 10:32:14 2017 (+0300)
-// Last-Updated: Вс окт 22 10:22:41 2017 (+0300)
+// Last-Updated: Пн окт 23 17:37:36 2017 (+0300)
 //           By: Sierra
 //
 
@@ -25,7 +25,6 @@ DEBUGRenderQuad(game_offscreen_buffer *Buffer, game_rect *AreaQuad, SDL_Color co
 static void
 GameRenderBitmapToBuffer(game_offscreen_buffer *Buffer, game_texture *Texture, game_rect *Quad)
 {
-     // SDL_SetRenderTarget(Buffer->Renderer, Buffer->Memory);
      SDL_RenderCopy(Buffer->Renderer, Texture, 0, Quad);
 }
 
@@ -65,11 +64,11 @@ GameCopyImageToBuffer(game_bitmap* GameBitmap, u32 X, u32 Y,
 #endif
 
 static figure_entity*
-CreateNewFigureEntity(game_offscreen_buffer *Buffer,
-                      game_memory *Memory, char* AssetName, u32 X, u32 Y,
-                      figure_entity_form Form, figure_entity_type Type,	u32 BlockSize)
+CreateNewFigureEntity(u32 X, u32 Y, u32 BlockSize,
+                      figure_entity_form Form, figure_entity_type Type,
+                      game_memory *Memory, char* AssetName, game_offscreen_buffer *Buffer)
 {
-     figure_entity *Figure = (figure_entity *)malloc(sizeof(figure_entity));
+     figure_entity *Figure = (figure_entity*)malloc(sizeof(figure_entity));
      Assert(Figure);
 
      int Index           = 0;
@@ -90,6 +89,7 @@ CreateNewFigureEntity(game_offscreen_buffer *Buffer,
                matrix = { {1, 1, 1, 1}, {0, 0, 0, 0} };
                RowAmount = 4;
                ColumnAmount = 1;
+               printf("I_figure!\n");
           } break;
 	  
           case O_figure:
@@ -142,7 +142,6 @@ CreateNewFigureEntity(game_offscreen_buffer *Buffer,
      Figure->AreaQuad.y = Y;
      Figure->AreaQuad.w = RowAmount*BlockSize;
      Figure->AreaQuad.h = ColumnAmount*BlockSize;
-
      Figure->Center.x = Figure->AreaQuad.x + (Figure->AreaQuad.w / 2);
      Figure->Center.y = Figure->AreaQuad.y + (((float)Figure->AreaQuad.h) * CenterOffset);
      Figure->DefaultCenter = Figure->Center;
@@ -284,44 +283,134 @@ FigureEntityRotateBy(figure_entity *Entity, float Angle)
 }
 
 static bool
+FigureEntityRenderBitmap(game_offscreen_buffer *Buffer, figure_entity *Entity)
+{
+     game_point Center;
+     Center.x = Entity->Center.x - Entity->AreaQuad.x;
+     Center.y = Entity->Center.y - Entity->AreaQuad.y;
+
+     SDL_RenderCopyEx(Buffer->Renderer, Entity->Texture,
+                      0, &Entity->AreaQuad, Entity->Angle, &Center, SDL_FLIP_NONE);
+}
+
+// TODO: Should be std::vector
+static void
+OrderLowPriority(u32 *Order, u32 Size, u32 Index)
+{
+     if(Index < 0 || Index > Size - 1)
+     {
+          return;
+     }
+
+     if(Order[0] == Index)
+     {
+          return;
+     }
+
+     u32 StartIndex = 0;
+     for (u32 i = 0; i < Size; ++i)
+     {
+          if(Order[i] == Index)
+          {
+               StartIndex = i;
+               break;
+          }
+     }
+
+     for (u32 i = StartIndex; i > 0; i--)
+     {
+          Order[i] = Order[i - 1];
+     }
+
+     Order[0] = Index;
+
+}
+
+// TODO: Should be std::vector
+static void
+OrderHighPriority(vector<u32> &Order, u32 Index)
+{
+     u32 Value = 0;
+     u32 UpIndex = 0;
+
+     u32 Size = Order.size();
+     for (u32 i = 0; i < Size; ++i)
+     {
+          if(Order[i] == Index)
+          {
+               UpIndex = i;
+               Value = Order[i];
+          }
+     }
+
+     for (u32 i = UpIndex; i < Size - 1; ++i)
+     {
+          Order[i] = Order[i+1];
+     }
+
+     Order[Size-1] = Value;
+}
+
+static void
+PrintArray(vector<u32> &Array)
+{
+     for (u32 i = 0; i < Array.size(); ++i)
+     {
+          printf("%d ", Array[i]);
+     }
+
+     printf("\n");
+}
+
+static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
      bool ShouldQuit = false;
      u32 BlockSize = 40;
 
      static bool Grabbed = false;
+     static bool IsRotating = false;
      static s32 GrabIndex = 0;
+     static r32 RotationSum = 0;
+     static u32 Ticks = 0;
 
      static s32 OffsetX = 0;
      static s32 OffsetY = 0;
+
+     figure_group *Group = NULL;
 		 
      if(!Memory->IsInitialized)
      {
-          Memory->State = (game_state*)malloc(sizeof(game_state));
-          Assert(Memory->State);
+          Group = &Memory->State.Group;
+          
+          figure_entity *Figure = NULL;
+          Figure = CreateNewFigureEntity(0, 0, BlockSize, I_figure, classic, Memory, "i_d.png", Buffer);
+          Group->Figure.push_back(Figure);
+          Figure = CreateNewFigureEntity(0, 0, BlockSize, O_figure, classic, Memory, "o_d.png", Buffer);
+          Group->Figure.push_back(Figure);
+          Figure = CreateNewFigureEntity(0, 0, BlockSize, L_figure, classic, Memory, "l_d.png", Buffer);
+          Group->Figure.push_back(Figure);
 
-          game_state *State = Memory->State;
-          State->Figure[0] =
-               CreateNewFigureEntity(Buffer, Memory, "i_s.png", 0, 0, I_figure, classic, BlockSize);
-					
-          State->Figure[1] =
-               CreateNewFigureEntity(Buffer, Memory, "o_d.png", 100, 100, O_figure, classic, BlockSize);
-
-          // Memory->Music = GetMusic(Memory, "amb_ending_water.ogg");
-          // Mix_PlayMusic(Memory->Music, -1);
+          Group->Order.push_back(0);
+          Group->Order.push_back(1);
+          Group->Order.push_back(2);
+          
+          Memory->Music = GetMusic(Memory, "amb_ending_water.ogg");
+          Mix_PlayMusic(Memory->Music, -1);
 
           Memory->IsInitialized = true;
           printf("memory init!\n");
-
      }
 
-     game_state *State = Memory->State;
-		 
+     Group = &Memory->State.Group;
+     
      if(Input->WasPressed)
      {
           if(Input->Up.IsDown)
           {
                printf("Up is down!\n");
+               DestroyFigureEntity(Group->Figure[0]);
+               Group->Figure.erase(Group->Figure.begin());
           }
 					
           if(Input->Escape.IsDown)
@@ -334,19 +423,21 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           {
                if(!Grabbed)
                {
-                    for (u32 i = 0; i < 2; ++i)
+                    for (u32 i = 0; i < 3; ++i)
                     {
-                         if(IsPointInsideRect(Input->MouseX, Input->MouseY, &State->Figure[i]->AreaQuad))
+                         if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Group->Figure[i]->AreaQuad))
                          {
                               GrabIndex = i;
                               Grabbed = true;
                               
-                              FigureEntityScaleBlock(State->Figure[i], BlockSize, 20);
-                              FigureEntityMove(State->Figure[i], -10, -10);
+                              FigureEntityScaleBlock(Group->Figure[i], BlockSize, 20);
+                              FigureEntityMove(Group->Figure[i], -10, -10);
+                              OrderHighPriority(Group->Order, i);
+                              PrintArray(Group->Order);
                               
-                              OffsetX = Input->MouseX - State->Figure[i]->Center.x;
-                              OffsetY = Input->MouseY - State->Figure[i]->Center.y;
-                              FigureEntityMove(State->Figure[i], OffsetX, OffsetY);
+                              OffsetX = Input->MouseX - Group->Figure[i]->Center.x;
+                              OffsetY = Input->MouseY - Group->Figure[i]->Center.y;
+                              FigureEntityMove(Group->Figure[i], OffsetX, OffsetY);
                               SDL_ShowCursor(SDL_DISABLE);
                               break;
                          }		 
@@ -356,8 +447,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                {
                     if(GrabIndex != -1)
                     {
-                         FigureEntityScaleBlock(State->Figure[GrabIndex], BlockSize+10, -10);
-                         FigureEntityMove(State->Figure[GrabIndex], 10, 10);
+                         FigureEntityScaleBlock(Group->Figure[GrabIndex], BlockSize+10, -10);
+                         FigureEntityMove(Group->Figure[GrabIndex], 10, 10);
                          Grabbed = false;
                          SDL_ShowCursor(SDL_ENABLE);
                     }
@@ -366,35 +457,66 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           if(Input->RightClick.IsDown)
           {
                printf("Right click \n");
+               if(Grabbed)
+               {
+                    FigureEntityRotateBy(Group->Figure[GrabIndex], 90);
+                    IsRotating = true;
+                    Ticks = SDL_GetTicks();
+               }
                
           }
 
           Input->WasPressed = false;
      }
 
-     if(Grabbed)
+     r32 TimeDX = (SDL_GetTicks() - Ticks) / 1000.0f;
+
+     if(IsRotating)
      {
-          FigureEntityMoveTo(State->Figure[GrabIndex], Input->MouseX - OffsetX, Input->MouseY - OffsetY);
+          r32 RotationVel = 630.0f;
+          r32 AngleDt = TimeDX * RotationVel;
+
+          if(RotationSum < 90.0f && !(RotationSum + AngleDt >= 90.0f))
+          {
+               Group->Figure[GrabIndex]->Angle += AngleDt;
+               RotationSum += AngleDt;
+               Ticks = SDL_GetTicks();
+          }
+          else
+          {
+               Group->Figure[GrabIndex]->Angle += 90.0f - RotationSum;
+               RotationSum = 0;
+               IsRotating = false;
+          }
+
      }
 
-     DEBUGRenderQuad(Buffer, &State->Figure[0]->AreaQuad, {255, 0, 0});
+     if(Grabbed)
+     {
+          FigureEntityMoveTo(Group->Figure[GrabIndex], Input->MouseX - OffsetX, Input->MouseY - OffsetY);
+     }
+
+     DEBUGRenderQuad(Buffer, &Group->Figure[0]->AreaQuad, {255, 0, 0});
 
      game_rect Rect = {};
-     Rect.x = State->Figure[0]->Center.x - 2;
-     Rect.y = State->Figure[0]->Center.y - 2;
+     Rect.x = Group->Figure[1]->Center.x - 2;
+     Rect.y = Group->Figure[1]->Center.y - 2;
      Rect.w = 4;
      Rect.h = 4;
+     
+     for (u32 i = 0; i < 3; ++i)
+     {
+          FigureEntityRenderBitmap(Buffer, Group->Figure[Group->Order[i]]);
+     }
 
-     GameRenderBitmapToBuffer(Buffer, Memory->State->Figure[0]->Texture, &Memory->State->Figure[0]->AreaQuad);
-     GameRenderBitmapToBuffer(Buffer, Memory->State->Figure[1]->Texture, &Memory->State->Figure[1]->AreaQuad);
-
+     
      DEBUGRenderQuad(Buffer, &Rect, {255, 0, 0});
 
      for (u32 i = 0; i < 4; ++i)
      {
           game_rect ShellRect = {};
-          ShellRect.x = State->Figure[0]->Shell[i].x - 2;
-          ShellRect.y = State->Figure[0]->Shell[i].y - 2;
+          ShellRect.x = Group->Figure[1]->Shell[i].x - 2;
+          ShellRect.y = Group->Figure[1]->Shell[i].y - 2;
           ShellRect.w = 4;
           ShellRect.h = 4;
           

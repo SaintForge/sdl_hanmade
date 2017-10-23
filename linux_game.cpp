@@ -3,7 +3,7 @@
 // Filename: linux_platform.cpp
 // Author: Sierra
 // Created: Пн окт  9 12:00:49 2017 (+0300)
-// Last-Updated: Сб окт 21 18:18:08 2017 (+0300)
+// Last-Updated: Пн окт 23 16:48:38 2017 (+0300)
 //           By: Sierra
 //
 
@@ -16,6 +16,8 @@
 #include <math.h>
 #include <string>
 #include <vector>
+
+using namespace std;
 
 typedef SDL_Rect    game_rect;
 typedef SDL_Point   game_point;

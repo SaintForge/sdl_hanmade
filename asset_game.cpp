@@ -3,7 +3,7 @@
  * Filename: asset_game.h
  * Author: Sierra
  * Created: Пн окт 16 10:08:17 2017 (+0300)
- * Last-Updated: Пт окт 20 16:50:12 2017 (+0300)
+ * Last-Updated: Пн окт 23 17:32:35 2017 (+0300)
  *           By: Sierra
  */
 
@@ -404,7 +404,7 @@ GetTexture(game_memory *Memory, char* FileName, SDL_Renderer *&Renderer)
           printf("Name: %s\n", FileName);
           asset_bitmap *Bitmap = &AssetHeader->Bitmap;
           asset_bitmap_header *Header = &Bitmap->Header;
-										
+
           Bitmap->Data = (void*)AssetHeader;
           Bitmap->Data = ((u8*)Bitmap->Data) + sizeof(asset_header);
           game_surface *Surface =
@@ -427,6 +427,7 @@ SDLAssetLoadBinaryFile(void *Data)
 {
      game_memory *Memory = ((game_memory*) Data);
      SDLReadEntireFile("package.bin", Memory);
+     
      return(1);
 }
 
@@ -443,9 +444,13 @@ SDLAssetBuildBinaryFile()
      SDLWriteBitmapToFile(BinaryFile, "o_d.png");
      SDLWriteBitmapToFile(BinaryFile, "o_m.png");
      SDLWriteBitmapToFile(BinaryFile, "o_s.png");
+
+     SDLWriteBitmapToFile(BinaryFile, "l_d.png");
+     SDLWriteBitmapToFile(BinaryFile, "l_m.png");
+     SDLWriteBitmapToFile(BinaryFile, "l_s.png");
 		 
-     // SDLWriteSoundToFile(BinaryFile, "focus.wav");
-     // SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
+     SDLWriteSoundToFile(BinaryFile, "focus.wav");
+     SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
 
      SDL_RWclose(BinaryFile);
 
