@@ -240,7 +240,7 @@ int main(int argc, char **argv)
 		 
      SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
      Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096);
-     // IMG_Init(IMG_INIT_PNG);
+     IMG_Init(IMG_INIT_PNG);
      TTF_Init();
 
      SDL_DisplayMode Display = {};

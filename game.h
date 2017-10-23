@@ -13,8 +13,7 @@ void LogErrorLine(const char* Message, int Line)
 {
      fprintf(stderr, "Assert fail in %s: %d\n",Message, Line);
 }
-/* #define round(x) ((x)>=0?(float)((x)+0.5):(float)((x)-0.5)) */
-#define round(x) ((x)>=0?(float)((x)+0.5f):(float)((x)-0.5f))
+
 #define Assert(Expression) if(!(Expression)) { LogErrorLine( __FILE__, __LINE__); *(int *)0 = 0;  }
 
 enum figure_entity_form

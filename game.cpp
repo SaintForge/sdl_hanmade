@@ -302,7 +302,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 
           game_state *State = Memory->State;
           State->Figure[0] =
-               CreateNewFigureEntity(Buffer, Memory, "i_d.png", 0, 0, I_figure, classic, BlockSize);
+               CreateNewFigureEntity(Buffer, Memory, "i_s.png", 0, 0, I_figure, classic, BlockSize);
 					
           State->Figure[1] =
                CreateNewFigureEntity(Buffer, Memory, "o_d.png", 100, 100, O_figure, classic, BlockSize);

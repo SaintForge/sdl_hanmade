@@ -212,10 +212,7 @@ SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
      strcpy(FullName, SpritePath);
      strcat(FullName, FileName);
 
-     printf("FullName - %s\n", FullName);
-		 
      SDL_Surface *Surface = IMG_Load(FullName);
-     printf("SDL_Error - %s\n", SDL_GetError());
      Assert(Surface);
 
      asset_bitmap_header BitmapHeader;
@@ -240,8 +237,10 @@ SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
      AssetHeader.Bitmap.Header = BitmapHeader;
      printf("AssetSize = %u\n", AssetHeader.AssetSize);
 
-     SDL_RWwrite(BinaryFile, &AssetHeader, sizeof(asset_header), 1);
-     SDL_RWwrite(BinaryFile, Surface->pixels, AssetHeader.AssetSize, 1);
+     printf("objs for asset_header: %d\n",
+            SDL_RWwrite(BinaryFile, &AssetHeader, sizeof(asset_header), 1));
+     printf("objs for data %d\n",
+            SDL_RWwrite(BinaryFile, Surface->pixels, AssetHeader.AssetSize, 1));
 
      SDL_FreeSurface(Surface);
 }
@@ -252,9 +251,6 @@ SDLWriteSoundToFile(SDL_RWops *&BinaryFile, const char *FileName)
      char FullName[128];
      strcpy(FullName, SoundPath);
      strcat(FullName, FileName);
-		 
-     printf("FileName - %s\n", FileName);
-     printf("FullName - %s\n", FullName);
 		 
      SDL_RWops *SoundFile = SDL_RWFromFile(FullName, "rb");
      Assert(SoundFile);
@@ -325,19 +321,23 @@ IsAsset(asset_header* AssetHeader, asset_type AssetType, char* AssetName)
 }
 
 static asset_header*
-GetAssetHeader(game_memory *Memory, asset_type AssetType, char* AssetName)
+GetAssetHeader(game_memory *&Memory, asset_type AssetType, char* AssetName)
 {
+     printf("get asset header call\n");
      asset_header *AssetHeader = (asset_header*)Memory->Assets;
      u32 TotalByteSize = 0;
 		 
      while(TotalByteSize < Memory->AssetsSpace)
      {
+          printf("step of %d\n", TotalByteSize);
           if(IsAsset(AssetHeader, AssetType, AssetName))
           {
                return AssetHeader;
           }
           else
           {
+               printf("AssetHeader->AssetSize = %d\n", AssetHeader->AssetSize);
+               printf("sizeof(asset_header) = %d\n", sizeof(asset_header));
                TotalByteSize += (sizeof(asset_header) + AssetHeader->AssetSize);
                AssetHeader = ((asset_header*)(((u8*)AssetHeader) +
                                               sizeof(asset_header) + AssetHeader->AssetSize));
@@ -394,11 +394,14 @@ GetSound(game_memory *Memory, char* FileName)
 static game_texture*
 GetTexture(game_memory *Memory, char* FileName, SDL_Renderer *&Renderer)
 {
+     printf("GetTexture call!\n");
      game_texture *Texture = NULL;
 		 
      asset_header *AssetHeader = GetAssetHeader(Memory, AssetType_Bitmap, FileName);
      if(AssetHeader)
      {
+          printf("Got asset header!\n");
+          printf("Name: %s\n", FileName);
           asset_bitmap *Bitmap = &AssetHeader->Bitmap;
           asset_bitmap_header *Header = &Bitmap->Header;
 										
@@ -410,6 +413,7 @@ GetTexture(game_memory *Memory, char* FileName, SDL_Renderer *&Renderer)
                                         Header->BitsPerPixel, Header->Pitch,
                                         Header->Rmask, Header->Gmask,
                                         Header->Bmask, Header->Amask);
+          Assert(Surface);
 										
           Texture = SDL_CreateTextureFromSurface(Renderer, Surface);
           Assert(Texture);
@@ -440,8 +444,8 @@ SDLAssetBuildBinaryFile()
      SDLWriteBitmapToFile(BinaryFile, "o_m.png");
      SDLWriteBitmapToFile(BinaryFile, "o_s.png");
 		 
-     SDLWriteSoundToFile(BinaryFile, "focus.wav");
-     SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
+     // SDLWriteSoundToFile(BinaryFile, "focus.wav");
+     // SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
 
      SDL_RWclose(BinaryFile);
 
