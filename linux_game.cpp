@@ -3,7 +3,7 @@
 // Filename: linux_platform.cpp
 // Author: Sierra
 // Created: Пн окт  9 12:00:49 2017 (+0300)
-// Last-Updated: Пн окт 23 16:48:38 2017 (+0300)
+// Last-Updated: Вт окт 24 15:06:20 2017 (+0300)
 //           By: Sierra
 //
 
@@ -261,18 +261,12 @@ int main(int argc, char **argv)
                window_dimension Dimension = SDLGetWindowDimension(Window);
 							 
                sdl_offscreen_buffer BackBuffer = {};
-               // SDLCreateBufferTexture(&BackBuffer, Renderer, Dimension.Width, Dimension.Height);
-               // SDLChangeBufferColor(&BackBuffer, 0, 0, 0, 255);
-               // SDLUpdateWindow(Window, Renderer, &BackBuffer);
-
 #if ASSET_BUILD
                // NOTE: This is for packaging data to the disk
                SDLAssetBuildBinaryFile();
                printf("builded!\n");
 #endif
                game_memory Memory = {};
-               Memory.Assets = 0;
-               Memory.AssetSize = 0;
 
                u64 TotalAssetSize = SDLSizeOfBinaryFile("package.bin");
                SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread",
@@ -298,24 +292,19 @@ int main(int argc, char **argv)
                     Buffer.Width    = BackBuffer.Width;
                     Buffer.Height   = BackBuffer.Height;
 
-                    if(MemoryReady)
+                    if(Memory.AssetsInitialized)
                     {
                          if(GameUpdateAndRender(&Memory, &Input, &Buffer))
                          {
                               IsRunning = false;
+                              
+                              Mix_FreeMusic(Memory.Music);
+                              free(Memory.Assets);
                          }
                     }
 
                     // draw loading screen
                     SDLUpdateWindow(Window, Renderer, &BackBuffer);
-
-                    if(!MemoryReady)
-                    {
-                         if((Memory.AssetsSpace) == TotalAssetSize)
-                         {
-                              MemoryReady = true;
-                         }
-                    }
                }
           }
           else

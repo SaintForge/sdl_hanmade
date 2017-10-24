@@ -3,7 +3,7 @@
  * Filename: game.h
  * Author: Sierra
  * Created: Пн окт  9 14:15:31 2017 (+0300)
- * Last-Updated: Пн окт 23 17:34:18 2017 (+0300)
+ * Last-Updated: Вт окт 24 10:34:26 2017 (+0300)
  *           By: Sierra
  */
 
@@ -94,7 +94,6 @@ struct figure_group
      s32 OffsetX;
      s32 OffsetY;
      s32 GrabIndex;
-     u32 TimeTicks;
      u32 BlockSize;
      r32 RotationSum;
 };

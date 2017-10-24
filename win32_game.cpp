@@ -3,7 +3,7 @@
 // Filename: win32_game.cpp
 // Author: 
 // Created: Ср окт 18 20:51:21 2017 (+0400)
-// Last-Updated: Пт окт 20 16:50:52 2017 (+0300)
+// Last-Updated: Вт окт 24 09:09:37 2017 (+0300)
 //           By: Sierra
 //
 
@@ -276,7 +276,6 @@ int main(int argc, char **argv)
                printf("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n");
 #endif
                game_memory Memory = {};
-               u32 Ticks = SDL_GetTicks();
                
                u64 TotalAssetSize = SDLSizeOfBinaryFile("package1.bin");
                SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread",
@@ -306,10 +305,10 @@ int main(int argc, char **argv)
                          if(GameUpdateAndRender(&Memory, &Input, &Buffer))
                          {
                               IsRunning = false;
+                              
                               Mix_FreeMusic(Memory.Music);
                               free(Memory.Assets);
                          }
-                         Ticks = SDL_GetTicks();
                     }
 
                     // draw loading screen
