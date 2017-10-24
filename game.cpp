@@ -3,7 +3,7 @@
 // Filename: game.cpp
 // Author: Sierra
 // Created: Вт окт 10 10:32:14 2017 (+0300)
-// Last-Updated: Вт окт 24 17:07:54 2017 (+0300)
+// Last-Updated: Вт окт 24 17:33:21 2017 (+0300)
 //           By: Sierra
 //
 
@@ -293,29 +293,21 @@ FigureEntityScaleBlock(figure_entity *Entity, u32 BlockSize, s32 ScaleRatio)
 static void
 ChangeFigureScale(figure_entity *Entity, r32 ScaleFactor)
 {
-     printf("ChangeFigureScale\n");
-          
      game_rect *Rectangle = &Entity->AreaQuad;
-     printf("old metrics\n");
-     printf("Rectangle->w = %d\n", Rectangle->w);
-     printf("Rectangle->h = %d\n", Rectangle->h);
-     printf("Rectangle->x = %d\n", Rectangle->x);
-     printf("Rectangle->y = %d\n", Rectangle->y);
-
-     Rectangle->w = Rectangle->w * ScaleFactor;
-     Rectangle->h = Rectangle->h * ScaleFactor;
-
-     game_point Center = {};
-     Center.x = Entity->Center.x * ScaleFactor;
-     Center.y = Entity->Center.y * ScaleFactor;
-
-     FigureEntityMoveTo(Entity, Center.x, Center.y);
+     game_point OldCenter;
+     game_point NewCenter;
      
-     printf("new metrics\n");
-     printf("Rectangle->w = %d\n", Rectangle->w);
-     printf("Rectangle->h = %d\n", Rectangle->h);
-     printf("Rectangle->x = %d\n", Rectangle->x);
-     printf("Rectangle->y = %d\n", Rectangle->y);
+     OldCenter.x = Entity->AreaQuad.x + (Entity->AreaQuad.w / 2);
+     OldCenter.y = Entity->AreaQuad.y + (Entity->AreaQuad.h / 2);
+  
+     Rectangle->w = roundf(Rectangle->w * ScaleFactor);
+     Rectangle->h = roundf(Rectangle->h * ScaleFactor);
+
+     NewCenter.x = Entity->AreaQuad.x + (Entity->AreaQuad.w / 2);
+     NewCenter.y = Entity->AreaQuad.y + (Entity->AreaQuad.h / 2);
+
+     Rectangle->x += (OldCenter.x - NewCenter.x);
+     Rectangle->y += (OldCenter.y - NewCenter.y);
 }
 
 static void
@@ -454,16 +446,13 @@ FigureGroupUpdateEvent(game_input *Input, figure_group *Group)
                          {
                               Group->GrabIndex = i;
                               Group->IsGrabbed = true;
-                         
-                              ChangeFigureScale(Group->Figure[i], 2.0f);
+                              // printf("90 / 60 = %f\n", 60.0/90.0);
+                              
+                              ChangeFigureScale(Group->Figure[i], 1.5f);
                               OrderHighPriority(Group->Order, i);
-                         
+                              
                               Group->OffsetX = MouseX - Group->Figure[i]->Center.x;
                               Group->OffsetY = MouseY - Group->Figure[i]->Center.y;
-
-                              // not sure about this one
-                              // FigureEntityMove(Group->Figure[i], Group->OffsetX, Group->OffsetY);
-                         
                               SDL_ShowCursor(SDL_DISABLE);
                               break;   
                          } 
@@ -473,7 +462,8 @@ FigureGroupUpdateEvent(game_input *Input, figure_group *Group)
                {
                     if(Group->GrabIndex != -1)
                     {
-                         ChangeFigureScale(Group->Figure[Group->GrabIndex], 0.5f);
+                         ChangeFigureScale(Group->Figure[Group->GrabIndex], 0.667f);
+                         
                          Group->IsGrabbed = false;
                          Group->GrabIndex = -1;
                          SDL_ShowCursor(SDL_ENABLE);
@@ -537,7 +527,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           Group->Figure.push_back(Figure);
           Figure = CreateNewFigureEntity(300, 300, BlockSize, O_figure, classic, Memory, "o_d.png", Buffer);
           Group->Figure.push_back(Figure);
-          Figure = CreateNewFigureEntity(100, 100, BlockSize, L_figure, classic, Memory, "l_d.png", Buffer);
+          Figure = CreateNewFigureEntity(0, 0, BlockSize, L_figure, classic, Memory, "l_d.png", Buffer);
           Group->Figure.push_back(Figure);
 
           Group->Order.push_back(0);
