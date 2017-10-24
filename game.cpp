@@ -3,7 +3,7 @@
 // Filename: game.cpp
 // Author: Sierra
 // Created: Вт окт 10 10:32:14 2017 (+0300)
-// Last-Updated: Вт окт 24 17:33:21 2017 (+0300)
+// Last-Updated: Вт окт 24 17:46:23 2017 (+0300)
 //           By: Sierra
 //
 
@@ -297,6 +297,14 @@ ChangeFigureScale(figure_entity *Entity, r32 ScaleFactor)
      game_point OldCenter;
      game_point NewCenter;
      
+     r32 OldWidth = 0;
+     r32 OldHeight = 0;
+     r32 WRatio = 0.0f;
+     r32 HRatio = 0.0f;
+
+     OldWidth  = Entity->AreaQuad.w;
+     OldHeight = Entity->AreaQuad.h;
+     
      OldCenter.x = Entity->AreaQuad.x + (Entity->AreaQuad.w / 2);
      OldCenter.y = Entity->AreaQuad.y + (Entity->AreaQuad.h / 2);
   
@@ -305,6 +313,14 @@ ChangeFigureScale(figure_entity *Entity, r32 ScaleFactor)
 
      NewCenter.x = Entity->AreaQuad.x + (Entity->AreaQuad.w / 2);
      NewCenter.y = Entity->AreaQuad.y + (Entity->AreaQuad.h / 2);
+     
+     for (u32 i = 0; i < 4; ++i)
+     {
+          WRatio = (Entity->Shell[i].x - Rectangle->x) / OldWidth;
+          HRatio = (Entity->Shell[i].y - Rectangle->y) / OldHeight;
+          Entity->Shell[i].x = roundf((WRatio * Rectangle->w) + Rectangle->x);
+          Entity->Shell[i].y = roundf((HRatio * Rectangle->h) + Rectangle->y);
+     }
 
      Rectangle->x += (OldCenter.x - NewCenter.x);
      Rectangle->y += (OldCenter.y - NewCenter.y);
