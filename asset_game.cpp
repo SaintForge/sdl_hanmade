@@ -196,6 +196,7 @@ SDLReadEntireFile(char* FileName, game_memory *&Memory)
 {
      SDL_RWops *BinaryFile = SDL_RWFromFile(FileName, "rb");
      Memory->AssetsSpace = SDLSizeOfSDL_RWops(BinaryFile);
+     printf("filesize = %llu\n", Memory->AssetsSpace);
 
      Memory->Assets = malloc(Memory->AssetsSpace);
      Assert(Memory->Assets);
@@ -295,17 +296,18 @@ SDLWriteMusicToFile(SDL_RWops *&BinaryFile, const char *FileName)
      void *Memory = malloc(AssetHeader.AssetSize);
      Assert(Memory);
 
-     SDL_RWread(MusicFile, Memory, AssetHeader.AssetSize, 1);
+     printf("obj read for music - %d\n", SDL_RWread(MusicFile, Memory, AssetHeader.AssetSize, 1));
 		 
-     SDL_RWwrite(BinaryFile, &AssetHeader, sizeof(asset_header), 1);
-     SDL_RWwrite(BinaryFile, Memory, AssetHeader.AssetSize, 1);
+     printf("obj wrote for music - %d\n", SDL_RWwrite(BinaryFile, &AssetHeader, sizeof(asset_header), 1));
+     printf("obj wrote for music - %d\n", SDL_RWwrite(BinaryFile, Memory, AssetHeader.AssetSize, 1));
+     printf("AssetHeader->AssetSize = %d\n", AssetHeader.AssetSize);
 
      free(Memory);
      SDL_RWclose(MusicFile);
 }
 
 static bool
-IsAsset(asset_header* AssetHeader, asset_type AssetType, char* AssetName)
+IsAsset(asset_header*& AssetHeader, asset_type AssetType, char* AssetName)
 {
      bool Result = false;
 
@@ -324,12 +326,15 @@ static asset_header*
 GetAssetHeader(game_memory *&Memory, asset_type AssetType, char* AssetName)
 {
      printf("get asset header call\n");
-     asset_header *AssetHeader = (asset_header*)Memory->Assets;
+     u8 *mem = (u8*)Memory->Assets;
+     asset_header *AssetHeader = (asset_header*)mem;
      u32 TotalByteSize = 0;
 		 
      while(TotalByteSize < Memory->AssetsSpace)
      {
-          printf("step of %d\n", TotalByteSize);
+          printf("step of %d bytes\n", TotalByteSize);
+          printf("AssetHeader->AssetName - %s\n",AssetHeader->AssetName);
+          printf("AssetHeader->AssetType - %d\n",AssetHeader->AssetType);
           if(IsAsset(AssetHeader, AssetType, AssetName))
           {
                return AssetHeader;
@@ -337,7 +342,6 @@ GetAssetHeader(game_memory *&Memory, asset_type AssetType, char* AssetName)
           else
           {
                printf("AssetHeader->AssetSize = %d\n", AssetHeader->AssetSize);
-               printf("sizeof(asset_header) = %d\n", sizeof(asset_header));
                TotalByteSize += (sizeof(asset_header) + AssetHeader->AssetSize);
                AssetHeader = ((asset_header*)(((u8*)AssetHeader) +
                                               sizeof(asset_header) + AssetHeader->AssetSize));
@@ -392,7 +396,7 @@ GetSound(game_memory *Memory, char* FileName)
 }
 
 static game_texture*
-GetTexture(game_memory *Memory, char* FileName, SDL_Renderer *&Renderer)
+GetTexture(game_memory *&Memory, char* FileName, SDL_Renderer *&Renderer)
 {
      printf("GetTexture call!\n");
      game_texture *Texture = NULL;
@@ -425,9 +429,10 @@ GetTexture(game_memory *Memory, char* FileName, SDL_Renderer *&Renderer)
 static int
 SDLAssetLoadBinaryFile(void *Data)
 {
-     game_memory *Memory = ((game_memory*) Data);
+     game_memory *Memory = ((game_memory*)Data);
      SDLReadEntireFile("package.bin", Memory);
-     
+
+     Memory->AssetInitialized = true;
      return(1);
 }
 
@@ -452,6 +457,7 @@ SDLAssetBuildBinaryFile()
      SDLWriteSoundToFile(BinaryFile, "focus.wav");
      SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
 
+     printf("finished writing!\n");
      SDL_RWclose(BinaryFile);
 
 }

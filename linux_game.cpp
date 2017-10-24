@@ -271,6 +271,8 @@ int main(int argc, char **argv)
                printf("builded!\n");
 #endif
                game_memory Memory = {};
+               Memory.Assets = 0;
+               Memory.AssetSize = 0;
 
                u64 TotalAssetSize = SDLSizeOfBinaryFile("package.bin");
                SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread",

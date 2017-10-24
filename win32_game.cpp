@@ -17,6 +17,8 @@
 #include <string>
 #include <vector>
 
+using namespace std;
+
 typedef SDL_Rect    game_rect;
 typedef SDL_Point   game_point;
 typedef SDL_Texture game_texture;
@@ -269,19 +271,21 @@ int main(int argc, char **argv)
 #if ASSET_BUILD
                // NOTE: This is for packaging data to the disk
                SDLAssetBuildBinaryFile();
+               printf("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n");
+               printf("BUILDED!!!\n");
+               printf("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n");
 #endif
                game_memory Memory = {};
-
+               
                u64 TotalAssetSize = SDLSizeOfBinaryFile("package.bin");
                SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread",
                                                           (void*)&Memory);
 
                game_input Input = {};
 
-               bool MemoryReady = false;
-
                while(IsRunning)
                {
+                    printf("looping\n");
                     SDL_Event Event;
                     while(SDL_PollEvent(&Event))
                     {
@@ -297,24 +301,18 @@ int main(int argc, char **argv)
                     Buffer.Width    = BackBuffer.Width;
                     Buffer.Height   = BackBuffer.Height;
 
-                    if(MemoryReady)
+                    if(Memory.AssetInitialized)
                     {
                          if(GameUpdateAndRender(&Memory, &Input, &Buffer))
                          {
                               IsRunning = false;
+                              Mix_FreeMusic(Memory.Music);
+                              free(Memory.Assets);
                          }
                     }
 
                     // draw loading screen
                     SDLUpdateWindow(Window, Renderer, &BackBuffer);
-
-                    if(!MemoryReady)
-                    {
-                         if((Memory.AssetsSpace) == TotalAssetSize)
-                         {
-                              MemoryReady = true;
-                         }
-                    }
                }
 
           }

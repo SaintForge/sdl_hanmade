@@ -111,7 +111,8 @@ struct game_memory
      game_music *Music;
 
      void *Assets;
-     u32 AssetsSpace;
+     u64 AssetsSpace;
+     bool AssetInitialized;
 };
 
 static bool GameUpdateAndRender(game_memory *Memory, game_input *Input,

@@ -49,7 +49,7 @@ struct asset_bitmap
 
 struct asset_header
 {
-     char AssetName[128];
+     char AssetName[32];
      u32 AssetSize;
      asset_type AssetType;
      union
@@ -59,7 +59,7 @@ struct asset_header
      };
 };
 
-static game_texture* GetTexture(game_memory *Memory, char* FileName, SDL_Renderer*& Renderer);
+static game_texture* GetTexture(game_memory *&Memory, char* FileName, SDL_Renderer*& Renderer);
 static game_sound* GetSound(game_memory *Memory, char* FileName);
 static game_music* GetMusic(game_memory *Memory, char* FileName);
 

@@ -89,7 +89,6 @@ CreateNewFigureEntity(u32 X, u32 Y, u32 BlockSize,
                matrix = { {1, 1, 1, 1}, {0, 0, 0, 0} };
                RowAmount = 4;
                ColumnAmount = 1;
-               printf("I_figure!\n");
           } break;
 	  
           case O_figure:
@@ -282,7 +281,7 @@ FigureEntityRotateBy(figure_entity *Entity, float Angle)
      }
 }
 
-static bool
+static void
 FigureEntityRenderBitmap(game_offscreen_buffer *Buffer, figure_entity *Entity)
 {
      game_point Center;
@@ -365,9 +364,10 @@ PrintArray(vector<u32> &Array)
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
+     printf("GameUpdateAndRender!\n");
      bool ShouldQuit = false;
      u32 BlockSize = 40;
-
+     
      static bool Grabbed = false;
      static bool IsRotating = false;
      static s32 GrabIndex = 0;
@@ -433,7 +433,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                               FigureEntityScaleBlock(Group->Figure[i], BlockSize, 20);
                               FigureEntityMove(Group->Figure[i], -10, -10);
                               OrderHighPriority(Group->Order, i);
-                              PrintArray(Group->Order);
                               
                               OffsetX = Input->MouseX - Group->Figure[i]->Center.x;
                               OffsetY = Input->MouseY - Group->Figure[i]->Center.y;
