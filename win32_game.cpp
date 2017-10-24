@@ -276,8 +276,9 @@ int main(int argc, char **argv)
                printf("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n");
 #endif
                game_memory Memory = {};
+               u32 Ticks = SDL_GetTicks();
                
-               u64 TotalAssetSize = SDLSizeOfBinaryFile("package.bin");
+               u64 TotalAssetSize = SDLSizeOfBinaryFile("package1.bin");
                SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread",
                                                           (void*)&Memory);
 
@@ -285,7 +286,6 @@ int main(int argc, char **argv)
 
                while(IsRunning)
                {
-                    printf("looping\n");
                     SDL_Event Event;
                     while(SDL_PollEvent(&Event))
                     {
@@ -301,7 +301,7 @@ int main(int argc, char **argv)
                     Buffer.Width    = BackBuffer.Width;
                     Buffer.Height   = BackBuffer.Height;
 
-                    if(Memory.AssetInitialized)
+                    if(Memory.AssetsInitialized)
                     {
                          if(GameUpdateAndRender(&Memory, &Input, &Buffer))
                          {
@@ -309,6 +309,7 @@ int main(int argc, char **argv)
                               Mix_FreeMusic(Memory.Music);
                               free(Memory.Assets);
                          }
+                         Ticks = SDL_GetTicks();
                     }
 
                     // draw loading screen

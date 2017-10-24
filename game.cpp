@@ -282,20 +282,10 @@ FigureEntityRotateBy(figure_entity *Entity, float Angle)
 }
 
 static void
-FigureEntityRenderBitmap(game_offscreen_buffer *Buffer, figure_entity *Entity)
+OrderLowPriority(vector<u32> &Order, u32 Index)
 {
-     game_point Center;
-     Center.x = Entity->Center.x - Entity->AreaQuad.x;
-     Center.y = Entity->Center.y - Entity->AreaQuad.y;
+     u32 Size = Order.size();
 
-     SDL_RenderCopyEx(Buffer->Renderer, Entity->Texture,
-                      0, &Entity->AreaQuad, Entity->Angle, &Center, SDL_FLIP_NONE);
-}
-
-// TODO: Should be std::vector
-static void
-OrderLowPriority(u32 *Order, u32 Size, u32 Index)
-{
      if(Index < 0 || Index > Size - 1)
      {
           return;
@@ -325,7 +315,6 @@ OrderLowPriority(u32 *Order, u32 Size, u32 Index)
 
 }
 
-// TODO: Should be std::vector
 static void
 OrderHighPriority(vector<u32> &Order, u32 Index)
 {
@@ -351,6 +340,65 @@ OrderHighPriority(vector<u32> &Order, u32 Index)
 }
 
 static void
+FigureEntityGroupUpdate(game_input *Input, figure_group *Group)
+{
+     u32 Size = Group->Figure.size();
+               
+     s32 MouseX = Input->MouseX;
+     s32 MouseY = Input->MouseY;
+     s32 Offset = Group->BlockSize >> 1;
+     
+     if(Input->LeftClick.IsDown)
+     {
+          if(!Group->IsGrabbed)
+          {
+               for (u32 i = 0;
+                    i < Size; ++i)
+               {
+                    if(IsPointInsideRect(MouseX, MouseY, &Group->Figure[i]->AreaQuad))
+                    {
+                         Group->GrabIndex = i;
+                         Group->IsGrabbed = true;
+
+                         FigureEntityScaleBlock(Group->Figure[i], Group->BlockSize, Offset);
+                         FigureEntityMove(Group->Figure[i], -Offset, -Offset);
+                         OrderHighPriority(Group->Order, i);
+                         
+                         Group->OffsetX = MouseX - Group->Figure[i]->Center.x;
+                         Group->OffsetY = MouseY - Group->Figure[i]->Center.y;
+                         FigureEntityMove(Group->Figure[i], Group->OffsetX, Group->OffsetY);
+                         SDL_ShowCursor(SDL_DISABLE);
+                    }
+               }
+          }
+          else
+          {
+               if(Group->GrabIndex != -1)
+               {
+                    FigureEntityScaleBlock(Group->Figure[Group->GrabIndex], Group->BlockSize+Offset, -Offset);
+                    FigureEntityMove(Group->Figure[Group->GrabIndex], Offset, Offset);
+                    Group->IsGrabbed = false;
+                    SDL_ShowCursor(SDL_ENABLE);
+               }
+          }
+     }
+}
+
+static void
+FigureEntityRenderBitmap(game_offscreen_buffer *Buffer, figure_entity *Entity)
+{
+     game_point Center;
+     Center.x = Entity->Center.x - Entity->AreaQuad.x;
+     Center.y = Entity->Center.y - Entity->AreaQuad.y;
+
+     SDL_RenderCopyEx(Buffer->Renderer, Entity->Texture,
+                      0, &Entity->AreaQuad, Entity->Angle, &Center, SDL_FLIP_NONE);
+}
+
+// TODO: Should be std::vector
+
+
+static void
 PrintArray(vector<u32> &Array)
 {
      for (u32 i = 0; i < Array.size(); ++i)
@@ -364,26 +412,27 @@ PrintArray(vector<u32> &Array)
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
-     printf("GameUpdateAndRender!\n");
      bool ShouldQuit = false;
      u32 BlockSize = 40;
-     
-     static bool Grabbed = false;
-     static bool IsRotating = false;
-     static s32 GrabIndex = 0;
-     static r32 RotationSum = 0;
      static u32 Ticks = 0;
-
-     static s32 OffsetX = 0;
-     static s32 OffsetY = 0;
-
+     
      figure_group *Group = NULL;
 		 
      if(!Memory->IsInitialized)
      {
           Group = &Memory->State.Group;
-          
+
+          Group->IsGrabbed  = false;
+          Group->IsRotating = false;
+
+          Group->OffsetX = 0;
+          Group->OffsetY = 0;
+          Group->GrabIndex = 0;
+          Group->TimeTicks = 0;
+          Group->RotationSum = 0;
+          Group->BlockSize = BlockSize;
           figure_entity *Figure = NULL;
+          
           Figure = CreateNewFigureEntity(0, 0, BlockSize, I_figure, classic, Memory, "i_d.png", Buffer);
           Group->Figure.push_back(Figure);
           Figure = CreateNewFigureEntity(0, 0, BlockSize, O_figure, classic, Memory, "o_d.png", Buffer);
@@ -421,22 +470,22 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 
           if(Input->LeftClick.IsDown)
           {
-               if(!Grabbed)
+               if(!Group->IsGrabbed)
                {
                     for (u32 i = 0; i < 3; ++i)
                     {
                          if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Group->Figure[i]->AreaQuad))
                          {
-                              GrabIndex = i;
-                              Grabbed = true;
+                              Group->GrabIndex = i;
+                              Group->IsGrabbed = true;
                               
                               FigureEntityScaleBlock(Group->Figure[i], BlockSize, 20);
-                              FigureEntityMove(Group->Figure[i], -10, -10);
+                              FigureEntityMove(Group->Figure[i], -20, -20);
                               OrderHighPriority(Group->Order, i);
                               
-                              OffsetX = Input->MouseX - Group->Figure[i]->Center.x;
-                              OffsetY = Input->MouseY - Group->Figure[i]->Center.y;
-                              FigureEntityMove(Group->Figure[i], OffsetX, OffsetY);
+                              Group->OffsetX = Input->MouseX - Group->Figure[i]->Center.x;
+                              Group->OffsetY = Input->MouseY - Group->Figure[i]->Center.y;
+                              FigureEntityMove(Group->Figure[i], Group->OffsetX, Group->OffsetY);
                               SDL_ShowCursor(SDL_DISABLE);
                               break;
                          }		 
@@ -444,11 +493,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                }
                else
                {
-                    if(GrabIndex != -1)
+                    if(Group->GrabIndex != -1)
                     {
-                         FigureEntityScaleBlock(Group->Figure[GrabIndex], BlockSize+10, -10);
-                         FigureEntityMove(Group->Figure[GrabIndex], 10, 10);
-                         Grabbed = false;
+                         FigureEntityScaleBlock(Group->Figure[Group->GrabIndex], BlockSize+20, -20);
+                         FigureEntityMove(Group->Figure[Group->GrabIndex], 20, 20);
+                         Group->IsGrabbed = false;
                          SDL_ShowCursor(SDL_ENABLE);
                     }
                }
@@ -456,10 +505,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           if(Input->RightClick.IsDown)
           {
                printf("Right click \n");
-               if(Grabbed)
+               if(Group->IsGrabbed)
                {
-                    FigureEntityRotateBy(Group->Figure[GrabIndex], 90);
-                    IsRotating = true;
+                    FigureEntityRotateBy(Group->Figure[Group->GrabIndex], 90);
+                    Group->IsRotating = true;
                     Ticks = SDL_GetTicks();
                }
                
@@ -470,29 +519,29 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 
      r32 TimeDX = (SDL_GetTicks() - Ticks) / 1000.0f;
 
-     if(IsRotating)
+     if(Group->IsRotating)
      {
           r32 RotationVel = 630.0f;
           r32 AngleDt = TimeDX * RotationVel;
 
-          if(RotationSum < 90.0f && !(RotationSum + AngleDt >= 90.0f))
+          if(Group->RotationSum < 90.0f && !(Group->RotationSum + AngleDt >= 90.0f))
           {
-               Group->Figure[GrabIndex]->Angle += AngleDt;
-               RotationSum += AngleDt;
+               Group->Figure[Group->GrabIndex]->Angle += AngleDt;
+               Group->RotationSum += AngleDt;
                Ticks = SDL_GetTicks();
           }
           else
           {
-               Group->Figure[GrabIndex]->Angle += 90.0f - RotationSum;
-               RotationSum = 0;
-               IsRotating = false;
+               Group->Figure[Group->GrabIndex]->Angle += 90.0f - Group->RotationSum;
+               Group->RotationSum = 0;
+               Group->IsRotating = false;
           }
 
      }
 
-     if(Grabbed)
+     if(Group->IsGrabbed)
      {
-          FigureEntityMoveTo(Group->Figure[GrabIndex], Input->MouseX - OffsetX, Input->MouseY - OffsetY);
+          FigureEntityMoveTo(Group->Figure[Group->GrabIndex], Input->MouseX - Group->OffsetX, Input->MouseY - Group->OffsetY);
      }
 
      DEBUGRenderQuad(Buffer, &Group->Figure[0]->AreaQuad, {255, 0, 0});

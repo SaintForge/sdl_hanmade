@@ -430,16 +430,16 @@ static int
 SDLAssetLoadBinaryFile(void *Data)
 {
      game_memory *Memory = ((game_memory*)Data);
-     SDLReadEntireFile("package.bin", Memory);
+     SDLReadEntireFile("package1.bin", Memory);
 
-     Memory->AssetInitialized = true;
+     Memory->AssetsInitialized = true;
      return(1);
 }
 
 static void
 SDLAssetBuildBinaryFile()
 {
-     SDL_RWops *BinaryFile = SDL_RWFromFile("package.bin", "wb");
+     SDL_RWops *BinaryFile = SDL_RWFromFile("package1.bin", "wb");
 		 
      SDLWriteBitmapToFile(BinaryFile, "grid_cell.png");
      SDLWriteBitmapToFile(BinaryFile, "i_d.png");
@@ -453,9 +453,11 @@ SDLAssetBuildBinaryFile()
      SDLWriteBitmapToFile(BinaryFile, "l_d.png");
      SDLWriteBitmapToFile(BinaryFile, "l_m.png");
      SDLWriteBitmapToFile(BinaryFile, "l_s.png");
-		 
+
      SDLWriteSoundToFile(BinaryFile, "focus.wav");
      SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
+
+
 
      printf("finished writing!\n");
      SDL_RWclose(BinaryFile);

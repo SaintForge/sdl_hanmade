@@ -95,6 +95,7 @@ struct figure_group
      s32 OffsetY;
      s32 GrabIndex;
      u32 TimeTicks;
+     u32 BlockSize;
      r32 RotationSum;
 };
 
@@ -109,10 +110,11 @@ struct game_memory
      game_state State;
 
      game_music *Music;
+     game_sound *Sound;
 
      void *Assets;
      u64 AssetsSpace;
-     bool AssetInitialized;
+     bool AssetsInitialized;
 };
 
 static bool GameUpdateAndRender(game_memory *Memory, game_input *Input,
