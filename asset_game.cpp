@@ -3,7 +3,7 @@
  * Filename: asset_game.h
  * Author: Sierra
  * Created: Пн окт 16 10:08:17 2017 (+0300)
- * Last-Updated: Пн окт 23 17:32:35 2017 (+0300)
+ * Last-Updated: Ср окт 25 12:48:36 2017 (+0300)
  *           By: Sierra
  */
 
@@ -196,7 +196,7 @@ SDLReadEntireFile(char* FileName, game_memory *&Memory)
 {
      SDL_RWops *BinaryFile = SDL_RWFromFile(FileName, "rb");
      Memory->AssetsSpace = SDLSizeOfSDL_RWops(BinaryFile);
-     printf("filesize = %llu\n", Memory->AssetsSpace);
+     // printf("filesize = %llu\n", Memory->AssetsSpace);
 
      Memory->Assets = malloc(Memory->AssetsSpace);
      Assert(Memory->Assets);
@@ -236,7 +236,7 @@ SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
 		 
      AssetHeader.Bitmap.Data = 0;
      AssetHeader.Bitmap.Header = BitmapHeader;
-     printf("AssetSize = %u\n", AssetHeader.AssetSize);
+     // printf("AssetSize = %u\n", AssetHeader.AssetSize);
 
      printf("objs for asset_header: %d\n",
             SDL_RWwrite(BinaryFile, &AssetHeader, sizeof(asset_header), 1));
@@ -332,9 +332,9 @@ GetAssetHeader(game_memory *&Memory, asset_type AssetType, char* AssetName)
 		 
      while(TotalByteSize < Memory->AssetsSpace)
      {
-          printf("step of %d bytes\n", TotalByteSize);
-          printf("AssetHeader->AssetName - %s\n",AssetHeader->AssetName);
-          printf("AssetHeader->AssetType - %d\n",AssetHeader->AssetType);
+          // printf("step of %d bytes\n", TotalByteSize);
+          // printf("AssetHeader->AssetName - %s\n",AssetHeader->AssetName);
+          // printf("AssetHeader->AssetType - %d\n",AssetHeader->AssetType);
           if(IsAsset(AssetHeader, AssetType, AssetName))
           {
                return AssetHeader;

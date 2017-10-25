@@ -3,7 +3,7 @@
  * Filename: game.h
  * Author: Sierra
  * Created: Пн окт  9 14:15:31 2017 (+0300)
- * Last-Updated: Вт окт 24 10:34:26 2017 (+0300)
+ * Last-Updated: Ср окт 25 16:23:31 2017 (+0300)
  *           By: Sierra
  */
 
@@ -33,10 +33,12 @@ struct game_button_state
 struct game_input
 {
      bool WasPressed;
+     bool MouseMotion;
      union
      {
           game_button_state Buttons[7];
           struct
+
           {
                game_button_state Up;
                game_button_state Down;
@@ -52,24 +54,27 @@ struct game_input
      s32 MouseRelX, MouseRelY;
 };
 
-enum figure_entity_form
+enum figure_form
 {
      O_figure, I_figure, L_figure, J_figure,
      Z_figure, S_figure, T_figure
 };
 
-enum figure_entity_type
+enum figure_type
 {
      classic, stone, mirror
 };
 
-struct figure_entity
+struct figure_unit
 {
+     figure_unit *Next;
+     
      bool IsIdle;
      bool IsStick;
      
-     float Angle;
-     float DefaultAnlge;
+     u32 Index;     
+     r32 Angle;
+     r32 DefaultAnlge;
      
      game_point Center;
      game_point DefaultCenter;
@@ -77,30 +82,47 @@ struct figure_entity
      game_point DefaultShell[4];
      game_rect AreaQuad;
      
-     figure_entity_form Form;
-     figure_entity_type Type;
+     figure_form Form;
+     figure_type Type;
      
      game_texture *Texture;
 };
 
-struct figure_group
+struct figure_entity
 {
-     vector<u32> Order;
-     vector<figure_entity*> Figure;
+     figure_unit *HeadFigure;
+     figure_unit *GrabbedFigure;
+     
+     u32 FigureAmount; 
 
      bool IsGrabbed;
      bool IsRotating;
 
      s32 OffsetX;
      s32 OffsetY;
-     s32 GrabIndex;
      u32 BlockSize;
      r32 RotationSum;
 };
 
+struct grid_entity
+{
+     u32 RowAmount;
+     u32 ColumnAmount;
+
+     bool BlockIsGrabbed;
+     bool BeginAnimationStart; // this is for tiny little animation at the beginning of a level
+     
+     game_rect GridArea;
+
+     game_texture *NormalSquareTexture;
+     game_texture *VerticalSquareTexture;
+     game_texture *HorizontlaSquareTexture;
+};
+
 struct game_state
 {
-     figure_group Group;
+     grid_entity   *GridEntity;
+     figure_entity FigureEntity;
 };
 
 struct game_memory

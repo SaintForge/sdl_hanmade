@@ -3,7 +3,7 @@
 // Filename: linux_platform.cpp
 // Author: Sierra
 // Created: Пн окт  9 12:00:49 2017 (+0300)
-// Last-Updated: Вт окт 24 15:06:20 2017 (+0300)
+// Last-Updated: Ср окт 25 16:40:14 2017 (+0300)
 //           By: Sierra
 //
 
@@ -16,6 +16,7 @@
 #include <math.h>
 #include <string>
 #include <vector>
+#include <iostream>
 
 using namespace std;
 
@@ -133,11 +134,12 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
      {
           case SDL_MOUSEMOTION:
           {
+               Input->MouseMotion = true;
                Input->MouseX = Event->motion.x;
                Input->MouseY = Event->motion.y;
 
-               Input->MouseRelX = Event->motion.xrel;
-               Input->MouseRelY = Event->motion.yrel;
+               Input->MouseRelX += Event->motion.xrel;
+               Input->MouseRelY += Event->motion.yrel;
           } break;
 
           case SDL_QUIT:
@@ -234,9 +236,22 @@ SDLReloadFontTexture(TTF_Font *&Font, SDL_Texture *&Texture, SDL_Rect *Quad,
      SDL_FreeSurface(Surface);
 }
 
+static void
+SDLFlushEvents(game_input *Input)
+{
+     if(Input->WasPressed) Input->WasPressed = false;
+     if(Input->MouseMotion)
+     {
+          Input->MouseMotion = false;
+          Input->MouseRelX = 0;
+          Input->MouseRelY = 0;
+     }
+}
+
 int main(int argc, char **argv)
 {
      SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+     SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 		 
      SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
      Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096);
@@ -247,7 +262,7 @@ int main(int argc, char **argv)
 		 
      SDL_Window *Window = SDL_CreateWindow("This is window",
                                            SDL_WINDOWPOS_CENTERED,
-                                           SDL_WINDOWPOS_CENTERED, 640, 480,
+                                           SDL_WINDOWPOS_CENTERED, 380, 700,
                                            SDL_WINDOW_ALLOW_HIGHDPI);
      if(Window)
      {
@@ -305,6 +320,7 @@ int main(int argc, char **argv)
 
                     // draw loading screen
                     SDLUpdateWindow(Window, Renderer, &BackBuffer);
+                    SDLFlushEvents(&Input);
                }
           }
           else
