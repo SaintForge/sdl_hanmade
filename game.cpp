@@ -40,6 +40,10 @@ DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_entity *Entity, SDL
           
           SDL_RenderDrawRect(Buffer->Renderer, &Rect);
      }
+
+     Rect.x = Entity->Center.x - (Rect.w / 2);
+     Rect.y = Entity->Center.y - (Rect.h / 2);
+     SDL_RenderDrawRect(Buffer->Renderer, &Rect);
      
      SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, 255);
 }
@@ -302,6 +306,9 @@ ChangeFigureScale(figure_entity *Entity, r32 ScaleFactor)
      r32 WRatio = 0.0f;
      r32 HRatio = 0.0f;
 
+     s32 OldX = Entity->AreaQuad.x;
+     s32 OldY = Entity->AreaQuad.y;
+
      OldWidth  = Entity->AreaQuad.w;
      OldHeight = Entity->AreaQuad.h;
      
@@ -314,16 +321,26 @@ ChangeFigureScale(figure_entity *Entity, r32 ScaleFactor)
      NewCenter.x = Entity->AreaQuad.x + (Entity->AreaQuad.w / 2);
      NewCenter.y = Entity->AreaQuad.y + (Entity->AreaQuad.h / 2);
      
-     for (u32 i = 0; i < 4; ++i)
-     {
-          WRatio = (Entity->Shell[i].x - Rectangle->x) / OldWidth;
-          HRatio = (Entity->Shell[i].y - Rectangle->y) / OldHeight;
-          Entity->Shell[i].x = roundf((WRatio * Rectangle->w) + Rectangle->x);
-          Entity->Shell[i].y = roundf((HRatio * Rectangle->h) + Rectangle->y);
-     }
-
      Rectangle->x += (OldCenter.x - NewCenter.x);
      Rectangle->y += (OldCenter.y - NewCenter.y);
+     
+     for (u32 i = 0; i < 4; ++i)
+     {
+          s32 OffsetX = roundf((Entity->Shell[i].x - OldX) * ScaleFactor);
+          s32 OffsetY = roundf((Entity->Shell[i].y - OldY) * ScaleFactor);
+          Entity->Shell[i].x = OldX + OffsetX;
+          Entity->Shell[i].y = OldY + OffsetY;
+          Entity->Shell[i].x += (OldCenter.x - NewCenter.x);
+          Entity->Shell[i].y += (OldCenter.y - NewCenter.y);
+     }
+
+     s32 OffsetX = roundf((Entity->Center.x - OldX) * ScaleFactor);
+     s32 OffsetY = roundf((Entity->Center.y - OldY) * ScaleFactor);     
+     
+     Entity->Center.x = OldX + OffsetX;
+     Entity->Center.y = OldY + OffsetY;
+     Entity->Center.x += (OldCenter.x - NewCenter.x);
+     Entity->Center.y += (OldCenter.y - NewCenter.y);
 }
 
 static void
@@ -550,8 +567,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           Group->Order.push_back(1);
           Group->Order.push_back(2);
           
-          Memory->Music = GetMusic(Memory, "amb_ending_water.ogg");
-          Mix_PlayMusic(Memory->Music, -1);
+          // Memory->Music = GetMusic(Memory, "amb_ending_water.ogg");
+          // Mix_PlayMusic(Memory->Music, -1);
 
           Memory->IsInitialized = true;
           printf("memory init!\n");
@@ -572,11 +589,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 
      FigureGroupUpdateAndRender(Buffer, Group, TimeElapsed);
 
-     for (u32 i = 0; i < Group->Figure.size(); ++i)
-     {
-          DEBUGRenderQuad(Buffer, &Group->Figure[i]->AreaQuad, {255, 0, 0});
-          DEBUGRenderFigureShell(Buffer, Group->Figure[i], {255, 0, 0});
-     }
+     // for (u32 i = 0; i < Group->Figure.size(); ++i)
+     // {
+     //      DEBUGRenderQuad(Buffer, &Group->Figure[i]->AreaQuad, {255, 0, 0});
+     //      DEBUGRenderFigureShell(Buffer, Group->Figure[i], {255, 0, 0});
+     // }
 
      TimeElapsed = SDL_GetTicks();
      

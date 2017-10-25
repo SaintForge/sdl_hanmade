@@ -239,6 +239,7 @@ SDLReloadFontTexture(TTF_Font *&Font, SDL_Texture *&Texture, SDL_Rect *Quad,
 int main(int argc, char **argv)
 {
      SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+     SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 		 
      SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
      Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096);
@@ -264,10 +265,6 @@ int main(int argc, char **argv)
                window_dimension Dimension = SDLGetWindowDimension(Window);
 
                sdl_offscreen_buffer BackBuffer = {};
-               // SDLCreateBufferTexture(&BackBuffer, Renderer, Dimension.Width, Dimension.Height);
-               // SDLChangeBufferColor(&BackBuffer, 0, 0, 0, 255);
-               // SDLUpdateWindow(Window, Renderer, &BackBuffer);
-
 #if ASSET_BUILD
                // NOTE: This is for packaging data to the disk
                SDLAssetBuildBinaryFile();
