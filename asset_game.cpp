@@ -3,7 +3,7 @@
  * Filename: asset_game.h
  * Author: Sierra
  * Created: Пн окт 16 10:08:17 2017 (+0300)
- * Last-Updated: Ср окт 25 12:48:36 2017 (+0300)
+ * Last-Updated: Ср окт 25 17:21:33 2017 (+0300)
  *           By: Sierra
  */
 
@@ -262,9 +262,6 @@ SDLWriteSoundToFile(SDL_RWops *&BinaryFile, const char *FileName)
      strcpy(AssetHeader.AssetName, FileName);
      AssetHeader.Audio.Header.IsMusic = false;
 
-
-     printf("AssetSize = %u\n", AssetHeader.AssetSize);
-		 
      void *Memory = malloc(AssetHeader.AssetSize);
      Assert(Memory);
 
@@ -325,23 +322,18 @@ IsAsset(asset_header*& AssetHeader, asset_type AssetType, char* AssetName)
 static asset_header*
 GetAssetHeader(game_memory *&Memory, asset_type AssetType, char* AssetName)
 {
-     printf("get asset header call\n");
      u8 *mem = (u8*)Memory->Assets;
      asset_header *AssetHeader = (asset_header*)mem;
      u32 TotalByteSize = 0;
 		 
      while(TotalByteSize < Memory->AssetsSpace)
      {
-          // printf("step of %d bytes\n", TotalByteSize);
-          // printf("AssetHeader->AssetName - %s\n",AssetHeader->AssetName);
-          // printf("AssetHeader->AssetType - %d\n",AssetHeader->AssetType);
           if(IsAsset(AssetHeader, AssetType, AssetName))
           {
                return AssetHeader;
           }
           else
           {
-               printf("AssetHeader->AssetSize = %d\n", AssetHeader->AssetSize);
                TotalByteSize += (sizeof(asset_header) + AssetHeader->AssetSize);
                AssetHeader = ((asset_header*)(((u8*)AssetHeader) +
                                               sizeof(asset_header) + AssetHeader->AssetSize));
@@ -398,14 +390,11 @@ GetSound(game_memory *Memory, char* FileName)
 static game_texture*
 GetTexture(game_memory *&Memory, char* FileName, SDL_Renderer *&Renderer)
 {
-     printf("GetTexture call!\n");
      game_texture *Texture = NULL;
 		 
      asset_header *AssetHeader = GetAssetHeader(Memory, AssetType_Bitmap, FileName);
      if(AssetHeader)
      {
-          printf("Got asset header!\n");
-          printf("Name: %s\n", FileName);
           asset_bitmap *Bitmap = &AssetHeader->Bitmap;
           asset_bitmap_header *Header = &Bitmap->Header;
 
@@ -442,6 +431,9 @@ SDLAssetBuildBinaryFile()
      SDL_RWops *BinaryFile = SDL_RWFromFile("package1.bin", "wb");
 		 
      SDLWriteBitmapToFile(BinaryFile, "grid_cell.png");
+     SDLWriteBitmapToFile(BinaryFile, "grid_cell_1.png");
+     SDLWriteBitmapToFile(BinaryFile, "grid_cell_2.png");
+     
      SDLWriteBitmapToFile(BinaryFile, "i_d.png");
      SDLWriteBitmapToFile(BinaryFile, "i_m.png");
      SDLWriteBitmapToFile(BinaryFile, "i_s.png");
@@ -457,9 +449,6 @@ SDLAssetBuildBinaryFile()
      SDLWriteSoundToFile(BinaryFile, "focus.wav");
      SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
 
-
-
-     printf("finished writing!\n");
      SDL_RWclose(BinaryFile);
 
 }

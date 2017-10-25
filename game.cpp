@@ -3,7 +3,7 @@
 // Filename: game.cpp
 // Author: Sierra
 // Created: Вт окт 10 10:32:14 2017 (+0300)
-// Last-Updated: Ср окт 25 16:41:18 2017 (+0300)
+// Last-Updated: Ср окт 25 17:33:42 2017 (+0300)
 //           By: Sierra
 //
 
@@ -179,9 +179,7 @@ FigureEntityResizeBy(figure_unit *Entity, r32 ScaleFactor)
      
      Rectangle->x += (OldCenter.x - NewCenter.x);
      Rectangle->y += (OldCenter.y - NewCenter.y);
-     printf("OldCenter.x - NewCenter.x = %d\n", OldCenter.x - NewCenter.x);
-     printf("OldCenter.y - NewCenter.y = %d\n", OldCenter.y - NewCenter.y);
-     
+
      OffsetX = roundf((Entity->Center.x - OldX) * ScaleFactor);
      OffsetY = roundf((Entity->Center.y - OldY) * ScaleFactor);
      Entity->Center.x = OldX + OffsetX;
@@ -224,8 +222,6 @@ FigureEntityRotateShellBy(figure_unit *Entity, float Angle)
           Entity->Shell[i].y = roundf(Y);
      }
 }
-
-
 
 static void
 CreateNewFigureEntity(char* AssetName, game_offscreen_buffer *Buffer,
@@ -405,6 +401,7 @@ static void
 FigureGroupUpdateAndRender(game_offscreen_buffer *Buffer, figure_entity *Group,
                            r32 TimeElapsed)
 {
+     Assert(Group);
      u32 Size = Group->FigureAmount;
 
      if(Group->IsRotating)
@@ -443,7 +440,6 @@ static void
 FigureGroupUpdateEvent(game_input *Input, figure_entity *Group)
 {
      u32 Size = Group->FigureAmount;
-               
      s32 MouseX = Input->MouseX;
      s32 MouseY = Input->MouseY;
      s32 Offset = Group->BlockSize >> 1;
@@ -513,40 +509,71 @@ PrintArray1D(vector<u32> &Array)
      printf("\n");
 }
 
+static void
+GridEntityUpdateAndRender(game_offscreen_buffer *Buffer, grid_entity *Entity)
+{
+     
+}
+
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
+     static u32 BlockSize   = 40;
      static r32 TimeElapsed = 0.0f;
      TimeElapsed = (SDL_GetTicks() - TimeElapsed) / 1000.0f;
      
      bool ShouldQuit = false;
-     u32 BlockSize = 40;
-     
-     figure_entity *Group = NULL;
-		 
+
+     grid_entity   *&GridEntity   = Memory->State.GridEntity;
+     figure_entity *&FigureEntity = Memory->State.FigureEntity;
+
      if(!Memory->IsInitialized)
      {
-          Group = &Memory->State.FigureEntity;
+          FigureEntity = (figure_entity *)malloc(sizeof(figure_entity));
+          Assert(FigureEntity);
 
-          Group->FigureAmount = 3;
-          Group->BlockSize = BlockSize;
-          Group->IsGrabbed  = false;
-          Group->IsRotating = false;
-          Group->OffsetX     = 0;
-          Group->OffsetY     = 0;
-          Group->RotationSum = 0;
+          FigureEntity->FigureAmount  = 3;
+          FigureEntity->BlockSize     = BlockSize;
+          FigureEntity->IsGrabbed     = false;
+          FigureEntity->IsRotating    = false;
+          FigureEntity->OffsetX       = 0;
+          FigureEntity->OffsetY       = 0;
+          FigureEntity->RotationSum   = 0;
+          FigureEntity->HeadFigure    = 0;
+          FigureEntity->GrabbedFigure = 0;
 
-          CreateNewFigureEntity("i_d.png", Buffer, Group->HeadFigure, 0, 0,   0,   BlockSize, I_figure, classic, Memory);
-          CreateNewFigureEntity("o_d.png", Buffer, Group->HeadFigure, 1, 100, 100, BlockSize, O_figure, classic, Memory);
-          CreateNewFigureEntity("l_d.png", Buffer, Group->HeadFigure, 2, 300, 300, BlockSize, L_figure, classic, Memory);
-          
+          CreateNewFigureEntity("i_d.png", Buffer, FigureEntity->HeadFigure, 0, 0,   0,   BlockSize, I_figure, classic, Memory);
+          CreateNewFigureEntity("o_d.png", Buffer, FigureEntity->HeadFigure, 1, 100, 100, BlockSize, O_figure, classic, Memory);
+          CreateNewFigureEntity("l_d.png", Buffer, FigureEntity->HeadFigure, 2, 200, 200, BlockSize, L_figure, classic, Memory);
+
+          GridEntity  = (grid_entity *) malloc(sizeof(grid_entity));
+          Assert(GridEntity);
+
+          GridEntity->RowAmount = 2;
+          GridEntity->RowAmount = 2;
+          GridEntity->BlockIsGrabbed = false;
+          GridEntity->BeginAnimationStart = true;
+          GridEntity->GridArea.w = GridEntity->RowAmount * BlockSize;
+          GridEntity->GridArea.h = GridEntity->ColumnAmount * BlockSize;
+          GridEntity->GridArea.x = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
+          GridEntity->GridArea.y = (Buffer->Height / 2) - (GridEntity->GridArea.h / 2);
+
+          GridEntity->UnitField = (u8**)malloc(GridEntity->RowAmount * sizeof(u8*));
+          Assert(GridEntity->UnitField);
+          for (u32 i = 0; i < GridEntity->RowAmount; ++i) {
+               GridEntity->UnitField[i] = (u8*)malloc(sizeof(u8) * GridEntity->ColumnAmount);
+               Assert(GridEntity->UnitField[i]);
+          }
+
+          GridEntity->NormalSquareTexture     = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
+          GridEntity->VerticalSquareTexture   = GetTexture(Memory, "grid_cell1.png", Buffer->Renderer);
+          GridEntity->HorizontlaSquareTexture = GetTexture(Memory, "grid_cell2.png", Buffer->Renderer);
+
           Memory->IsInitialized = true;
           printf("memory init!\n");
      }
 
-     Group = &Memory->State.FigureEntity;
-
-     FigureGroupUpdateEvent(Input, Group);
+     FigureGroupUpdateEvent(Input, FigureEntity);
      
      if(Input->WasPressed)
      {
@@ -556,10 +583,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           }
      }
 
-     FigureGroupUpdateAndRender(Buffer, Group, TimeElapsed);
+     GridEntityUpdateAndRender(Buffer, GridEntity);
+     FigureGroupUpdateAndRender(Buffer, FigureEntity, TimeElapsed);
 
      TimeElapsed = SDL_GetTicks();
-     
      return(ShouldQuit);
 }
-

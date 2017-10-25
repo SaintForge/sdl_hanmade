@@ -3,7 +3,7 @@
  * Filename: game.h
  * Author: Sierra
  * Created: Пн окт  9 14:15:31 2017 (+0300)
- * Last-Updated: Ср окт 25 16:23:31 2017 (+0300)
+ * Last-Updated: Ср окт 25 17:33:39 2017 (+0300)
  *           By: Sierra
  */
 
@@ -106,6 +106,7 @@ struct figure_entity
 
 struct grid_entity
 {
+     u8 **UnitField;
      u32 RowAmount;
      u32 ColumnAmount;
 
@@ -113,7 +114,6 @@ struct grid_entity
      bool BeginAnimationStart; // this is for tiny little animation at the beginning of a level
      
      game_rect GridArea;
-
      game_texture *NormalSquareTexture;
      game_texture *VerticalSquareTexture;
      game_texture *HorizontlaSquareTexture;
@@ -122,7 +122,7 @@ struct grid_entity
 struct game_state
 {
      grid_entity   *GridEntity;
-     figure_entity FigureEntity;
+     figure_entity *FigureEntity;
 };
 
 struct game_memory
