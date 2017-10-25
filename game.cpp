@@ -493,7 +493,7 @@ FigureGroupUpdateEvent(game_input *Input, figure_group *Group)
                }
                else
                {
-                    if(Group->GrabIndex != -1)
+                    if(Group->GrabIndex != -1 && !Group->IsRotating)
                     {
                          ChangeFigureScale(Group->Figure[Group->GrabIndex], 0.667f);
                          
@@ -589,11 +589,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 
      FigureGroupUpdateAndRender(Buffer, Group, TimeElapsed);
 
-     // for (u32 i = 0; i < Group->Figure.size(); ++i)
-     // {
-     //      DEBUGRenderQuad(Buffer, &Group->Figure[i]->AreaQuad, {255, 0, 0});
-     //      DEBUGRenderFigureShell(Buffer, Group->Figure[i], {255, 0, 0});
-     // }
+     for (u32 i = 0; i < Group->Figure.size(); ++i)
+     {
+          DEBUGRenderQuad(Buffer, &Group->Figure[i]->AreaQuad, {255, 0, 0});
+          DEBUGRenderFigureShell(Buffer, Group->Figure[i], {255, 0, 0});
+     }
 
      TimeElapsed = SDL_GetTicks();
      
