@@ -406,7 +406,6 @@ FigureGroupUpdateAndRender(game_offscreen_buffer *Buffer, figure_entity *Group,
 
      if(Group->IsRotating)
      {
-          printf("it is rotatin\n");
           r32 RotationVel = 630.0f;
           r32 AngleDt = TimeElapsed * RotationVel;
 
@@ -512,7 +511,22 @@ PrintArray1D(vector<u32> &Array)
 static void
 GridEntityUpdateAndRender(game_offscreen_buffer *Buffer, grid_entity *Entity)
 {
-     
+     game_rect Area;
+     Area.w = Entity->BlockSize;
+     Area.h = Entity->BlockSize;
+
+     for (u32 i = 0; i < Entity->RowAmount; ++i)
+     {
+          Area.y = Entity->GridArea.y + (i * Entity->BlockSize);
+          for (u32 j = 0; j < Entity->ColumnAmount; ++j)
+          {
+               Area.x = Entity->GridArea.x + (j * Entity->BlockSize);
+               if(Entity->UnitField[i][j] == 0)
+               {
+                    GameRenderBitmapToBuffer(Buffer, Entity->NormalSquareTexture, &Area);
+               }
+          }
+     }
 }
 
 static bool
@@ -549,8 +563,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           GridEntity  = (grid_entity *) malloc(sizeof(grid_entity));
           Assert(GridEntity);
 
-          GridEntity->RowAmount = 2;
-          GridEntity->RowAmount = 2;
+          GridEntity->RowAmount    = 5;
+          GridEntity->ColumnAmount = 5;
+          GridEntity->BlockSize    = BlockSize;
           GridEntity->BlockIsGrabbed = false;
           GridEntity->BeginAnimationStart = true;
           GridEntity->GridArea.w = GridEntity->RowAmount * BlockSize;
@@ -560,9 +575,14 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 
           GridEntity->UnitField = (u8**)malloc(GridEntity->RowAmount * sizeof(u8*));
           Assert(GridEntity->UnitField);
-          for (u32 i = 0; i < GridEntity->RowAmount; ++i) {
+          for (u32 i = 0; i < GridEntity->RowAmount; ++i)
+          {
                GridEntity->UnitField[i] = (u8*)malloc(sizeof(u8) * GridEntity->ColumnAmount);
                Assert(GridEntity->UnitField[i]);
+               for (u32 j = 0; j < GridEntity->ColumnAmount; ++j)
+               {
+                    GridEntity->UnitField[i][j] = 0;
+               }
           }
 
           GridEntity->NormalSquareTexture     = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);

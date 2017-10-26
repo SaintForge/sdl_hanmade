@@ -16,7 +16,6 @@
 #include <math.h>
 #include <string>
 #include <vector>
-#include <iostream>
 
 using namespace std;
 
@@ -287,8 +286,6 @@ int main(int argc, char **argv)
                SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread",
                                                           (void*)&Memory);
                game_input Input = {};
-
-               bool MemoryReady = false;
 
                while(IsRunning)
                {

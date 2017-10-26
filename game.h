@@ -109,6 +109,7 @@ struct grid_entity
      u8 **UnitField;
      u32 RowAmount;
      u32 ColumnAmount;
+     u32 BlockSize;
 
      bool BlockIsGrabbed;
      bool BeginAnimationStart; // this is for tiny little animation at the beginning of a level

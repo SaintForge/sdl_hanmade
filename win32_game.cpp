@@ -133,11 +133,12 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
      {
           case SDL_MOUSEMOTION:
           {
+               Input->MouseMotion = true;
                Input->MouseX = Event->motion.x;
                Input->MouseY = Event->motion.y;
 
-               Input->MouseRelX = Event->motion.xrel;
-               Input->MouseRelY = Event->motion.yrel;
+               Input->MouseRelX += Event->motion.xrel;
+               Input->MouseRelY += Event->motion.yrel;
           } break;
 
           case SDL_QUIT:
@@ -235,6 +236,18 @@ SDLReloadFontTexture(TTF_Font *&Font, SDL_Texture *&Texture, SDL_Rect *Quad,
      SDL_FreeSurface(Surface);
 }
 
+static void
+SDLFlushEvents(game_input *Input)
+{
+     if(Input->WasPressed) Input->WasPressed = false;
+     if(Input->MouseMotion)
+     {
+          Input->MouseMotion = false;
+          Input->MouseRelX = 0;
+          Input->MouseRelY = 0;
+     }
+}
+
 #undef main
 int main(int argc, char **argv)
 {
@@ -250,7 +263,7 @@ int main(int argc, char **argv)
      SDL_GetDesktopDisplayMode(0, &Display);
 
      SDL_Window *Window = SDL_CreateWindow("This is window", SDL_WINDOWPOS_CENTERED,
-                                           SDL_WINDOWPOS_CENTERED, 640, 480,
+                                           SDL_WINDOWPOS_CENTERED, 380, 700,
                                            SDL_WINDOW_ALLOW_HIGHDPI);
 
      if(Window)
@@ -265,6 +278,7 @@ int main(int argc, char **argv)
                window_dimension Dimension = SDLGetWindowDimension(Window);
 
                sdl_offscreen_buffer BackBuffer = {};
+               SDL_GetWindowSize(Window, &BackBuffer.Width, &BackBuffer.Height);
 #if ASSET_BUILD
                // NOTE: This is for packaging data to the disk
                SDLAssetBuildBinaryFile();
@@ -273,11 +287,11 @@ int main(int argc, char **argv)
                printf("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n");
 #endif
                game_memory Memory = {};
-               
+
+
                u64 TotalAssetSize = SDLSizeOfBinaryFile("package1.bin");
                SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread",
                                                           (void*)&Memory);
-
                game_input Input = {};
 
                while(IsRunning)
@@ -310,6 +324,7 @@ int main(int argc, char **argv)
 
                     // draw loading screen
                     SDLUpdateWindow(Window, Renderer, &BackBuffer);
+                    SDLFlushEvents(&Input);
                }
 
           }
