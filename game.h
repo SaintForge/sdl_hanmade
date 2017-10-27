@@ -93,13 +93,12 @@ struct figure_entity
      figure_unit *HeadFigure;
      figure_unit *GrabbedFigure;
      
-     u32 FigureAmount; 
+     u32 FigureAmount;
+     game_rect FigureArea;
 
      bool IsGrabbed;
      bool IsRotating;
 
-     s32 OffsetX;
-     s32 OffsetY;
      u32 BlockSize;
      r32 RotationSum;
 };

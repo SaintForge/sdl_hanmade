@@ -90,7 +90,7 @@ GameCopyImageToBuffer(game_bitmap* GameBitmap, u32 X, u32 Y,
 #endif
 
 static figure_unit*
-GetFigureEntityAt(figure_entity *Group, u32 Index)
+GetFigureUnitAt(figure_entity *Group, u32 Index)
 {
      u32 Size = Group->FigureAmount;
      
@@ -119,7 +119,7 @@ IsPointInsideRect(s32 X, s32 Y, game_rect *Quad)
 }
 
 static void
-FigureEntitySwapAtEnd(figure_unit *&Head, u32 FigureIndex)
+FigureUnitSwapAtEnd(figure_unit *&Head, u32 FigureIndex)
 {
      figure_unit *TargetNode  = NULL;
      figure_unit *PrevNode    = NULL;
@@ -157,7 +157,7 @@ FigureEntitySwapAtEnd(figure_unit *&Head, u32 FigureIndex)
 }
 
 static void
-FigureEntityResizeBy(figure_unit *Entity, r32 ScaleFactor)
+FigureUnitResizeBy(figure_unit *Entity, r32 ScaleFactor)
 {
      game_rect *Rectangle = &Entity->AreaQuad;
      game_point OldCenter = {};
@@ -200,7 +200,7 @@ FigureEntityResizeBy(figure_unit *Entity, r32 ScaleFactor)
 }
 
 static void
-FigureEntityRotateShellBy(figure_unit *Entity, float Angle)
+FigureUnitRotateShellBy(figure_unit *Entity, float Angle)
 {
      if((s32)Entity->Angle == 0)
      {
@@ -224,9 +224,9 @@ FigureEntityRotateShellBy(figure_unit *Entity, float Angle)
 }
 
 static void
-CreateNewFigureEntity(char* AssetName, game_offscreen_buffer *Buffer,
-                      figure_unit *&Entity, u32 EntityIndex, u32 X, u32 Y, u32 BlockSize,
-                      figure_form Form, figure_type Type, game_memory *Memory)
+CreateNewFigureUnit(char* AssetName, game_offscreen_buffer *Buffer,
+                    figure_unit *&Entity, u32 EntityIndex, u32 X, u32 Y, u32 BlockSize,
+                    figure_form Form, figure_type Type, game_memory *Memory)
 {
      figure_unit *Figure = NULL;
      Figure = (figure_unit*)malloc(sizeof(figure_unit));
@@ -349,7 +349,7 @@ CreateNewFigureEntity(char* AssetName, game_offscreen_buffer *Buffer,
      // }
 }
 static void
-FigureEntityMove(figure_unit *Entity, s32 XShift, s32 YShift)
+FigureUnitMove(figure_unit *Entity, s32 XShift, s32 YShift)
 {
      int XOffset = Entity->AreaQuad.x - Entity->Center.x;
      int YOffset = Entity->AreaQuad.y - Entity->Center.y;
@@ -368,7 +368,7 @@ FigureEntityMove(figure_unit *Entity, s32 XShift, s32 YShift)
 }
 
 static void
-FigureEntityMoveTo(figure_unit *Entity, s32 NewPointX, s32 NewPointY)
+FigureUnitMoveTo(figure_unit *Entity, s32 NewPointX, s32 NewPointY)
 {
      s32 XShift = NewPointX - Entity->Center.x;
      s32 YShift = NewPointY - Entity->Center.y;
@@ -387,7 +387,7 @@ DestroyFigureEntity(figure_unit *Entity)
 }
 
 static void
-FigureEntityRenderBitmap(game_offscreen_buffer *Buffer, figure_unit *Entity)
+FigureUnitRenderBitmap(game_offscreen_buffer *Buffer, figure_unit *Entity)
 {
      game_point Center;
      Center.x = Entity->Center.x - Entity->AreaQuad.x;
@@ -398,7 +398,7 @@ FigureEntityRenderBitmap(game_offscreen_buffer *Buffer, figure_unit *Entity)
 }
 
 static void
-FigureGroupUpdateAndRender(game_offscreen_buffer *Buffer, figure_entity *Group,
+FigureEntityUpdateAndRender(game_offscreen_buffer *Buffer, figure_entity *Group,
                            r32 TimeElapsed)
 {
      Assert(Group);
@@ -434,9 +434,8 @@ FigureGroupUpdateAndRender(game_offscreen_buffer *Buffer, figure_entity *Group,
      }
 }
 
-
 static void
-FigureGroupUpdateEvent(game_input *Input, figure_entity *Group)
+FigureEntityUpdateEvent(game_input *Input, figure_entity *Group)
 {
      u32 Size = Group->FigureAmount;
      s32 MouseX = Input->MouseX;
@@ -456,8 +455,6 @@ FigureGroupUpdateEvent(game_input *Input, figure_entity *Group)
                          {
                               Group->IsGrabbed = true;
                               Group->GrabbedFigure = Figure;
-                              Group->OffsetX = MouseX - Figure->Center.x;
-                              Group->OffsetY = MouseY - Figure->Center.y;
                               FigureEntityResizeBy(Group->GrabbedFigure, 1.5f);
                               FigureEntitySwapAtEnd(Group->HeadFigure, Figure->Index);
                               SDL_ShowCursor(SDL_DISABLE);
@@ -509,6 +506,21 @@ PrintArray1D(vector<u32> &Array)
 }
 
 static void
+FigureEntityAlignHorizontally(figure_entity* Entity)
+{
+     u32 RowSize1 = 0;
+     u32 RowSize2 = 0;
+     u32 FigureIntervalX = Entity->BlockSize / 4;
+     u32 FigureIntervalY = Entity->BlockSize / 6;
+
+     for (s32 i = 0; i < Entity->FigureAmount; ++i)
+     {
+          if(i % 2)
+     }
+
+}
+
+static void
 GridEntityUpdateAndRender(game_offscreen_buffer *Buffer, grid_entity *Entity)
 {
      game_rect Area;
@@ -550,11 +562,13 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           FigureEntity->BlockSize     = BlockSize;
           FigureEntity->IsGrabbed     = false;
           FigureEntity->IsRotating    = false;
-          FigureEntity->OffsetX       = 0;
-          FigureEntity->OffsetY       = 0;
           FigureEntity->RotationSum   = 0;
           FigureEntity->HeadFigure    = 0;
           FigureEntity->GrabbedFigure = 0;
+          FigureEntity->FigureArea.w  = Buffer->Width;
+          FigureEntity->FigureArea.h  = BlockSize * 8;
+          FigureEntity->FigureArea.y  = Buffer->Height - (FigureEntity->FigureArea.h);
+          FigureEntity->FigureArea.x  = 0;
 
           CreateNewFigureEntity("i_d.png", Buffer, FigureEntity->HeadFigure, 0, 0,   0,   BlockSize, I_figure, classic, Memory);
           CreateNewFigureEntity("o_d.png", Buffer, FigureEntity->HeadFigure, 1, 100, 100, BlockSize, O_figure, classic, Memory);
