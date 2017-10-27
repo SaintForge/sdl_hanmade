@@ -69,8 +69,8 @@ struct figure_unit
 {
      figure_unit *Next;
      
-     bool IsIdle;
      bool IsStick;
+     bool IsEnlarged;
      
      u32 Index;     
      r32 Angle;

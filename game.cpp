@@ -41,6 +41,7 @@ DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, SDL_C
           SDL_RenderDrawRect(Buffer->Renderer, &Rect);
      }
 
+     SDL_SetRenderDrawColor(Buffer->Renderer, 255, 255, 255, 255);
      Rect.x = Entity->Center.x - (Rect.w / 2);
      Rect.y = Entity->Center.y - (Rect.h / 2);
      SDL_RenderDrawRect(Buffer->Renderer, &Rect);
@@ -320,8 +321,8 @@ CreateNewFigureUnit(char* AssetName, game_offscreen_buffer *Buffer,
      }
 
      Figure->Index  = EntityIndex;
-     Figure->IsIdle = true;
-     Figure->IsIdle = false;
+     Figure->IsStick = false;
+     Figure->IsEnlarged = false;
      Figure->Angle  = 0.0f;
      Figure->DefaultAnlge = 0.0f;
      Figure->Form = Form;
@@ -372,9 +373,50 @@ FigureUnitMoveTo(figure_unit *Entity, s32 NewPointX, s32 NewPointY)
 {
      s32 XShift = NewPointX - Entity->Center.x;
      s32 YShift = NewPointY - Entity->Center.y;
-     FigureEntityMove(Entity, XShift, YShift);
+     FigureUnitMove(Entity, XShift, YShift);
 }
 
+static game_rect
+FigureUnitGetArea(figure_unit *Unit)
+{
+     s32 Offset = 0;
+     game_rect Area = {Unit->Shell[0].x, Unit->Shell[0].y, -500, -500};
+
+     for (u32 i = 0; i < 4; ++i)
+     {
+          if(Area.x >= Unit->Shell[i].x)
+          {
+               Area.x = Unit->Shell[i].x;
+          }
+          if(Area.y >= Unit->Shell[i].y)
+          {
+               Area.y = Unit->Shell[i].y;
+          }
+          if(Area.w <= Unit->Shell[i].x)
+          {
+               Area.w = Unit->Shell[i].x;
+          }
+          if(Area.h <= Unit->Shell[i].y)
+          {
+               Area.h = Unit->Shell[i].y;
+          }
+     }
+
+     Area.w -= Area.x;
+     Area.h -= Area.y;
+
+     if(Unit->IsEnlarged)
+     {
+          Area.w += Offset;
+          Area.h += Offset;
+          Area.x -= Offset/2;
+          Area.y -= Offset/2;
+     }
+
+
+
+     return(Area);
+}
 
 static void
 DestroyFigureEntity(figure_unit *Entity)
@@ -425,7 +467,7 @@ FigureEntityUpdateAndRender(game_offscreen_buffer *Buffer, figure_entity *Group,
      figure_unit *Figure = Group->HeadFigure;
      while(Figure != NULL)
      {
-          FigureEntityRenderBitmap(Buffer, Figure);
+          FigureUnitRenderBitmap(Buffer, Figure);
           
           DEBUGRenderQuad(Buffer, &Figure->AreaQuad, {255, 0, 0});
           DEBUGRenderFigureShell(Buffer, Figure, {255, 0, 0});
@@ -453,10 +495,11 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *Group)
                     {
                          if(IsPointInsideRect(MouseX, MouseY, &Figure->AreaQuad))
                          {
-                              Group->IsGrabbed = true;
+                              Group->IsGrabbed     = true;
                               Group->GrabbedFigure = Figure;
-                              FigureEntityResizeBy(Group->GrabbedFigure, 1.5f);
-                              FigureEntitySwapAtEnd(Group->HeadFigure, Figure->Index);
+                              Figure->IsEnlarged   = true;
+                              FigureUnitResizeBy(Group->GrabbedFigure, 1.5f);
+                              FigureUnitSwapAtEnd(Group->HeadFigure, Figure->Index);
                               SDL_ShowCursor(SDL_DISABLE);
                               break;   
                          }
@@ -470,7 +513,7 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *Group)
                     {
                          Group->IsGrabbed = false;
                          SDL_ShowCursor(SDL_ENABLE);
-                         FigureEntityResizeBy(Group->GrabbedFigure, 0.667f);
+                         FigureUnitResizeBy(Group->GrabbedFigure, 0.667f);
                     }
                }
           }
@@ -479,7 +522,7 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *Group)
                if(Group->IsGrabbed)
                {
                     Group->IsRotating = true;
-                    FigureEntityRotateShellBy(Group->GrabbedFigure, 90);
+                    FigureUnitRotateShellBy(Group->GrabbedFigure, 90);
                }
           } 
      }
@@ -489,7 +532,7 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *Group)
           {
                s32 x = Input->MouseRelX;
                s32 y = Input->MouseRelY;
-               FigureEntityMove(Group->GrabbedFigure, x, y);
+               FigureUnitMove(Group->GrabbedFigure, x, y);
           }           
      }
 }
@@ -513,10 +556,10 @@ FigureEntityAlignHorizontally(figure_entity* Entity)
      u32 FigureIntervalX = Entity->BlockSize / 4;
      u32 FigureIntervalY = Entity->BlockSize / 6;
 
-     for (s32 i = 0; i < Entity->FigureAmount; ++i)
-     {
-          if(i % 2)
-     }
+     // for (s32 i = 0; i < Entity->FigureAmount; ++i)
+     // {
+     //      if(i % 2)
+     // }
 
 }
 
@@ -570,9 +613,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           FigureEntity->FigureArea.y  = Buffer->Height - (FigureEntity->FigureArea.h);
           FigureEntity->FigureArea.x  = 0;
 
-          CreateNewFigureEntity("i_d.png", Buffer, FigureEntity->HeadFigure, 0, 0,   0,   BlockSize, I_figure, classic, Memory);
-          CreateNewFigureEntity("o_d.png", Buffer, FigureEntity->HeadFigure, 1, 100, 100, BlockSize, O_figure, classic, Memory);
-          CreateNewFigureEntity("l_d.png", Buffer, FigureEntity->HeadFigure, 2, 200, 200, BlockSize, L_figure, classic, Memory);
+          CreateNewFigureUnit("i_d.png", Buffer, FigureEntity->HeadFigure, 0, 0,   0,   BlockSize, I_figure, classic, Memory);
+          CreateNewFigureUnit("o_d.png", Buffer, FigureEntity->HeadFigure, 1, 100, 100, BlockSize, O_figure, classic, Memory);
+          CreateNewFigureUnit("l_d.png", Buffer, FigureEntity->HeadFigure, 2, 200, 200, BlockSize, L_figure, classic, Memory);
 
           GridEntity  = (grid_entity *) malloc(sizeof(grid_entity));
           Assert(GridEntity);
@@ -607,7 +650,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           printf("memory init!\n");
      }
 
-     FigureGroupUpdateEvent(Input, FigureEntity);
+     FigureEntityUpdateEvent(Input, FigureEntity);
      
      if(Input->WasPressed)
      {
@@ -618,7 +661,13 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
      }
 
      GridEntityUpdateAndRender(Buffer, GridEntity);
-     FigureGroupUpdateAndRender(Buffer, FigureEntity, TimeElapsed);
+     FigureEntityUpdateAndRender(Buffer, FigureEntity, TimeElapsed);
+
+     if(FigureEntity->GrabbedFigure)
+     {
+          game_rect AreaQuad = FigureUnitGetArea(FigureEntity->GrabbedFigure);
+          DEBUGRenderQuad(Buffer, &AreaQuad, {255, 255, 255});
+     }
 
      TimeElapsed = SDL_GetTicks();
      return(ShouldQuit);
