@@ -3,7 +3,7 @@
 // Filename: linux_platform.cpp
 // Author: Sierra
 // Created: Пн окт  9 12:00:49 2017 (+0300)
-// Last-Updated: Ср окт 25 16:40:14 2017 (+0300)
+// Last-Updated: Пт окт 27 09:47:02 2017 (+0300)
 //           By: Sierra
 //
 
@@ -275,6 +275,7 @@ int main(int argc, char **argv)
                window_dimension Dimension = SDLGetWindowDimension(Window);
 							 
                sdl_offscreen_buffer BackBuffer = {};
+               SDL_GetWindowSize(Window, &BackBuffer.Width, &BackBuffer.Height);
 #if ASSET_BUILD
                // NOTE: This is for packaging data to the disk
                SDLAssetBuildBinaryFile();

@@ -3,7 +3,7 @@
  * Filename: game.h
  * Author: Sierra
  * Created: Пн окт  9 14:15:31 2017 (+0300)
- * Last-Updated: Ср окт 25 17:33:39 2017 (+0300)
+ * Last-Updated: Пт окт 27 10:34:58 2017 (+0300)
  *           By: Sierra
  */
 

@@ -3,7 +3,7 @@
 // Filename: win32_game.cpp
 // Author: 
 // Created: Ср окт 18 20:51:21 2017 (+0400)
-// Last-Updated: Вт окт 24 09:09:37 2017 (+0300)
+// Last-Updated: Пт окт 27 09:46:39 2017 (+0300)
 //           By: Sierra
 //
 

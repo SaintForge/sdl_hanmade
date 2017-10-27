@@ -3,7 +3,7 @@
  * Filename: asset_game.h
  * Author: Sierra
  * Created: Пн окт 16 10:08:17 2017 (+0300)
- * Last-Updated: Ср окт 25 17:21:33 2017 (+0300)
+ * Last-Updated: Пт окт 27 10:15:58 2017 (+0300)
  *           By: Sierra
  */
 
@@ -445,6 +445,22 @@ SDLAssetBuildBinaryFile()
      SDLWriteBitmapToFile(BinaryFile, "l_d.png");
      SDLWriteBitmapToFile(BinaryFile, "l_m.png");
      SDLWriteBitmapToFile(BinaryFile, "l_s.png");
+
+     SDLWriteBitmapToFile(BinaryFile, "j_d.png");
+     SDLWriteBitmapToFile(BinaryFile, "j_m.png");
+     SDLWriteBitmapToFile(BinaryFile, "j_s.png");
+
+     SDLWriteBitmapToFile(BinaryFile, "s_d.png");
+     SDLWriteBitmapToFile(BinaryFile, "s_m.png");
+     SDLWriteBitmapToFile(BinaryFile, "s_s.png");
+
+     SDLWriteBitmapToFile(BinaryFile, "z_d.png");
+     SDLWriteBitmapToFile(BinaryFile, "z_m.png");
+     SDLWriteBitmapToFile(BinaryFile, "z_s.png");
+
+     SDLWriteBitmapToFile(BinaryFile, "t_d.png");
+     SDLWriteBitmapToFile(BinaryFile, "t_m.png");
+     SDLWriteBitmapToFile(BinaryFile, "t_s.png");
 
      SDLWriteSoundToFile(BinaryFile, "focus.wav");
      SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
