@@ -324,7 +324,7 @@ CreateNewFigureUnit(char* AssetName, game_offscreen_buffer *Buffer,
      Figure->IsStick = false;
      Figure->IsEnlarged = false;
      Figure->Angle  = 0.0f;
-     Figure->DefaultAnlge = 0.0f;
+     Figure->DefaultAngle = 0.0f;
      Figure->Form = Form;
      Figure->Type = Type;
      Figure->Texture = GetTexture(Memory, AssetName, Buffer->Renderer);
@@ -349,6 +349,68 @@ CreateNewFigureUnit(char* AssetName, game_offscreen_buffer *Buffer,
      //      Entity = Figure;
      // }
 }
+
+static game_rect
+FigureUnitGetArea(figure_unit *Unit)
+{
+     game_rect Area = {Unit->Shell[0].x, Unit->Shell[0].y, -500, -500};
+     u32 OffsetX = 0;
+     u32 OffsetY = 0;
+     bool ZeroArea = false;
+
+     for (u32 i = 0; i < 4; ++i)
+     {
+          if(Area.x >= Unit->Shell[i].x)
+          {
+               Area.x = Unit->Shell[i].x;
+          }
+          if(Area.y >= Unit->Shell[i].y)
+          {
+               Area.y = Unit->Shell[i].y;
+          }
+          if(Area.w <= Unit->Shell[i].x)
+          {
+               Area.w = Unit->Shell[i].x;
+          }
+          if(Area.h <= Unit->Shell[i].y)
+          {
+               Area.h = Unit->Shell[i].y;
+          }
+     }
+
+     Area.w -= Area.x;
+     Area.h -= Area.y;
+     
+     if(Area.w == 0 || Area.h == 0)
+     {
+          ZeroArea = true;
+     }
+
+     if(Area.w >= Unit->AreaQuad.h)
+     {
+          Area.h = Unit->AreaQuad.h;
+          Area.w = Unit->AreaQuad.w;
+          OffsetX = (Area.y + Area.h) - (Area.y + Area.h / 2);
+     }
+     else
+     {
+          Area.h = Unit->AreaQuad.w;
+          Area.w = Unit->AreaQuad.h;
+          OffsetX = (Area.x + Area.w) - (Area.x + Area.w / 2);
+     }
+
+     if(!ZeroArea)
+     {
+          OffsetX /= 2;
+     }
+
+     Area.x -= OffsetX;
+     Area.y -= OffsetX;
+
+     return(Area);
+}
+
+
 static void
 FigureUnitMove(figure_unit *Entity, s32 XShift, s32 YShift)
 {
@@ -450,27 +512,27 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *Group)
           {
                if(!Group->IsGrabbed)
                {
+                    figure_unit *GrabbedFigure = NULL;
                     figure_unit *Figure = Group->HeadFigure;
                     for (u32 i = 0; i < Size; ++i)
                     {
                          if(IsPointInsideRect(MouseX, MouseY, &Figure->AreaQuad))
                          {
-                              // printf("Before resize: \n");
-                              // printf("Figure->AreaQuad.w = %d\n", Figure->AreaQuad.w);
-                              // printf("Figure->AreaQuad.h = %d\n", Figure->AreaQuad.h);
-                              Group->IsGrabbed     = true;
-                              Group->GrabbedFigure = Figure;
-                              Figure->IsEnlarged   = true;
-                              FigureUnitResizeBy(Group->GrabbedFigure, 1.5f);
-                              FigureUnitSwapAtEnd(Group->HeadFigure, Figure->Index);
-                              // printf("After resize: \n");
-                              // printf("Figure->AreaQuad.w = %d\n", Figure->AreaQuad.w);
-                              // printf("Figure->AreaQuad.h = %d\n", Figure->AreaQuad.h);
-                              SDL_ShowCursor(SDL_DISABLE);
-                              break;   
+                              GrabbedFigure = Figure;
                          }
                          
                          Figure = Figure->Next;
+                    }
+
+                    if(GrabbedFigure)
+                    {
+                         Group->IsGrabbed     = true;
+                         Group->GrabbedFigure = GrabbedFigure;
+                         Group->GrabbedFigure->IsEnlarged = true;
+                         
+                         FigureUnitResizeBy(Group->GrabbedFigure, 1.5f);
+                         FigureUnitSwapAtEnd(Group->HeadFigure, Group->GrabbedFigure->Index);
+                         SDL_ShowCursor(SDL_DISABLE);
                     }
                }
                else
@@ -515,72 +577,108 @@ PrintArray1D(vector<u32> &Array)
 }
 
 static void
-FigureEntityAlignHorizontally(figure_entity* Entity)
+FigureUnitSetDefaultArea(figure_unit *Unit, s32 X, s32 Y)
 {
+     game_rect AreaQuad = FigureUnitGetArea(Unit);
+
+     s32 ShiftX = X - AreaQuad.x;
+     s32 ShiftY = Y - AreaQuad.y;
+     FigureUnitMove(Unit, ShiftX, ShiftY);
+
+     for (u32 i = 0; i < 4; ++i)
+     {
+          Unit->DefaultShell[i] = Unit->Shell[i];
+     }
+
+     Unit->DefaultCenter = Unit->Center;
+     Unit->DefaultAngle  = Unit->Angle;
+}
+
+static void
+FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
+{
+     u32 Size = Entity->FigureAmount;
      u32 RowSize1 = 0;
      u32 RowSize2 = 0;
      u32 FigureIntervalX = Entity->BlockSize / 4;
      u32 FigureIntervalY = Entity->BlockSize / 6;
+     u32 FigureWidth     = 0;
+     u32 FigureHeight    = 0;
+     
+     game_rect AreaQuad    = {};
+     game_rect DefaultZone = Entity->FigureArea;
+
+     figure_unit *Unit = Entity->HeadFigure;
+     for (u32 i = 0; i < Size; ++i)
+     {
+          FigureWidth  = Unit->AreaQuad.w;
+          FigureHeight = Unit->AreaQuad.h;
+
+          if(FigureWidth > FigureHeight)
+          {
+               FigureUnitRotateShellBy(Unit, 90.0);
+               Unit->Angle += 90;
+          }
+          
+          AreaQuad = FigureUnitGetArea(Unit);
+          i % 2 == 0
+               ? RowSize1 += AreaQuad.w + FigureIntervalX
+               : RowSize2 += AreaQuad.h + FigureIntervalY;
+
+          Unit = Unit->Next;
+     }
+
+     u32 PitchY          = 0;
+     s32 NewPositionX    = 0;
+     s32 NewPositionY    = 0;
+     u32 CurrentRowSize1 = 0;
+     u32 CurrentRowSize2 = 0;
+     u32 FigureBoxHeight = 0;
+
+     Unit = Entity->HeadFigure;
+     for (u32 i = 0; i < Size; ++i)
+     {
+          PitchY = i % 2;
+          AreaQuad = FigureUnitGetArea(Unit);
+
+          FigureBoxHeight = BlockSize * 4;
+          NewPositionY = DefaultZone.y + (FigureBoxHeight * PitchY);
+          NewPositionY += (FigureBoxHeight / 2 ) - (AreaQuad.h / 2);
+          NewPositionY += FigureIntervalY * PitchY;
+
+          if(i % 2 == 0)
+          {
+               NewPositionX = (DefaultZone.x + (DefaultZone.w / 2) - RowSize1 / 2);
+               NewPositionX += CurrentRowSize1;
+
+               CurrentRowSize1 += AreaQuad.w + FigureIntervalX;
+          }
+          else
+          {
+               NewPositionX = (DefaultZone.x + (DefaultZone.w / 2)) - (RowSize2 / 2);
+               NewPositionX += CurrentRowSize2;
+
+               CurrentRowSize2 += AreaQuad.w + FigureIntervalX;
+          }
+
+          FigureUnitSetDefaultArea(Unit, NewPositionX, NewPositionY);
+
+          Unit = Unit->Next;
+     }
 }
 
-static game_rect
-FigureUnitGetArea(figure_unit *Unit)
+static void
+FigureEntityAlignAnglesVertically(figure_entity *Entity)
 {
-     game_rect Area = {Unit->Shell[0].x, Unit->Shell[0].y, -500, -500};
-     u32 OffsetX = 0;
-     u32 OffsetY = 0;
-     bool ZeroArea = false;
-
-     for (u32 i = 0; i < 4; ++i)
-     {
-          if(Area.x >= Unit->Shell[i].x)
-          {
-               Area.x = Unit->Shell[i].x;
-          }
-          if(Area.y >= Unit->Shell[i].y)
-          {
-               Area.y = Unit->Shell[i].y;
-          }
-          if(Area.w <= Unit->Shell[i].x)
-          {
-               Area.w = Unit->Shell[i].x;
-          }
-          if(Area.h <= Unit->Shell[i].y)
-          {
-               Area.h = Unit->Shell[i].y;
-          }
-     }
-
-     Area.w -= Area.x;
-     Area.h -= Area.y;
+     u32 Size = Entity->FigureAmount;
+     u32 FigureWidth  = 0;
+     u32 FigureHeight = 0;
      
-     if(Area.w == 0 || Area.h == 0)
+     figure_unit *Unit = Entity->HeadFigure;
+     for (u32 i = 0; i < Size; ++i)
      {
-          ZeroArea = true;
      }
-
-     if(Area.w >= Unit->AreaQuad.h)
-     {
-          Area.h = Unit->AreaQuad.h;
-          Area.w = Unit->AreaQuad.w;
-          OffsetX = (Area.y + Area.h) - (Area.y + Area.h / 2);
-     }
-     else
-     {
-          Area.h = Unit->AreaQuad.w;
-          Area.w = Unit->AreaQuad.h;
-          OffsetX = (Area.x + Area.w) - (Area.x + Area.w / 2);
-     }
-
-     if(!ZeroArea)
-     {
-          OffsetX /= 2;
-     }
-
-     Area.x -= OffsetX;
-     Area.y -= OffsetX;
-
-     return(Area);
+          
 }
 
 static void
@@ -641,6 +739,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 5, 200, 200, BlockSize, Z_figure, classic, Memory);
           CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 6, 0,   0,   BlockSize, T_figure, classic, Memory);
 
+
+          FigureEntityAlignHorizontally(FigureEntity, BlockSize);
+
           GridEntity  = (grid_entity *) malloc(sizeof(grid_entity));
           Assert(GridEntity);
 
@@ -669,7 +770,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           GridEntity->NormalSquareTexture     = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
           GridEntity->VerticalSquareTexture   = GetTexture(Memory, "grid_cell1.png", Buffer->Renderer);
           GridEntity->HorizontlaSquareTexture = GetTexture(Memory, "grid_cell2.png", Buffer->Renderer);
-
+          
           Memory->IsInitialized = true;
           printf("memory init!\n");
      }
