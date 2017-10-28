@@ -329,25 +329,8 @@ CreateNewFigureUnit(char* AssetName, game_offscreen_buffer *Buffer,
      Figure->Type = Type;
      Figure->Texture = GetTexture(Memory, AssetName, Buffer->Renderer);
 
-     // NOTE: insert at the beginning
      Figure->Next = Entity;
      Entity = Figure;
-
-     // NOTE: insert at the end
-     // figure_unit *TmpFigure = Entity;
-     // if(TmpFigure != NULL)
-     // {
-     //      while(TmpFigure->Next != NULL)
-     //      {
-     //           TmpFigure = TmpFigure->Next;
-     //      }
-
-     //      TmpFigure->Next = Figure;
-     // }
-     // else
-     // {
-     //      Entity = Figure;
-     // }
 }
 
 static game_rect
@@ -516,7 +499,8 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *Group)
                     figure_unit *Figure = Group->HeadFigure;
                     for (u32 i = 0; i < Size; ++i)
                     {
-                         if(IsPointInsideRect(MouseX, MouseY, &Figure->AreaQuad))
+                         game_rect AreaQuad = FigureUnitGetArea(Figure);
+                         if(IsPointInsideRect(MouseX, MouseY, &AreaQuad))
                          {
                               GrabbedFigure = Figure;
                          }
@@ -668,20 +652,6 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
 }
 
 static void
-FigureEntityAlignAnglesVertically(figure_entity *Entity)
-{
-     u32 Size = Entity->FigureAmount;
-     u32 FigureWidth  = 0;
-     u32 FigureHeight = 0;
-     
-     figure_unit *Unit = Entity->HeadFigure;
-     for (u32 i = 0; i < Size; ++i)
-     {
-     }
-          
-}
-
-static void
 GridEntityUpdateAndRender(game_offscreen_buffer *Buffer, grid_entity *Entity)
 {
      game_rect Area;
@@ -739,7 +709,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 5, 200, 200, BlockSize, Z_figure, classic, Memory);
           CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 6, 0,   0,   BlockSize, T_figure, classic, Memory);
 
-
           FigureEntityAlignHorizontally(FigureEntity, BlockSize);
 
           GridEntity  = (grid_entity *) malloc(sizeof(grid_entity));
@@ -753,7 +722,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           GridEntity->GridArea.w = GridEntity->RowAmount * BlockSize;
           GridEntity->GridArea.h = GridEntity->ColumnAmount * BlockSize;
           GridEntity->GridArea.x = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
-          GridEntity->GridArea.y = (Buffer->Height / 2) - (GridEntity->GridArea.h / 2);
+          GridEntity->GridArea.y = (Buffer->Height - FigureEntity->FigureArea.h)/2 - (GridEntity->GridArea.h / 2);
 
           GridEntity->UnitField = (u8**)malloc(GridEntity->RowAmount * sizeof(u8*));
           Assert(GridEntity->UnitField);
