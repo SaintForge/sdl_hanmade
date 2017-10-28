@@ -466,6 +466,5 @@ SDLAssetBuildBinaryFile()
      SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
 
      SDL_RWclose(BinaryFile);
-
 }
 

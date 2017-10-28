@@ -112,11 +112,25 @@ IsPointInsideRect(s32 X, s32 Y, game_rect *Quad)
 {
      if(!Quad) return false;
 
-     if(X < Quad->x)                return false;
-     else if(Y < Quad->y)           return false;
-     else if(X > Quad->x + Quad->w) return false;
-     else if(Y > Quad->y + Quad->h) return false;
-     else                           return true;
+     if(X < Quad->x)                  return false;
+     else if(X > (Quad->x + Quad->w)) return false;
+     else if(Y < Quad->y)             return false;
+     else if(Y > (Quad->y + Quad->h)) return false;
+     else                             return true;
+}
+
+inline static bool
+IsFigureUnitInsideRect(figure_unit *Unit, game_rect *AreaQuad)
+{
+     for (u32 i = 0; i < 4; ++i)
+     {
+          if(IsPointInsideRect(Unit->Shell[i].x, Unit->Shell[i].y, AreaQuad))
+          {
+               return true;
+          }
+     }
+
+     return false;
 }
 
 static void
@@ -421,8 +435,6 @@ FigureUnitMoveTo(figure_unit *Entity, s32 NewPointX, s32 NewPointY)
      FigureUnitMove(Entity, XShift, YShift);
 }
 
-
-
 static void
 DestroyFigureEntity(figure_unit *Entity)
 {
@@ -480,14 +492,62 @@ FigureEntityUpdateAndRender(game_offscreen_buffer *Buffer, figure_entity *Group,
           Figure = Figure->Next;
      }
 }
+static void
+FigureUnitSetToDefaultArea(figure_unit* Unit, r32 BlockRatio)
+{
+     s32 ShiftX = 0;
+     s32 ShiftY = 0;
+
+     if(Unit->IsEnlarged)
+     {
+          printf("it was enlarged!\n");
+          r32 AngleDt      = 0;
+          r32 Angle        = Unit->Angle;
+          r32 DefaultAngle = Unit->DefaultAngle;
+
+          if(Unit->Angle != Unit->DefaultAngle)
+          {
+               AngleDt = DefaultAngle - Angle;
+               FigureUnitRotateShellBy(Unit, AngleDt);
+               Unit->Angle = DefaultAngle;
+          }
+
+          FigureUnitResizeBy(Unit, BlockRatio);
+          
+          ShiftX = Unit->DefaultCenter.x - Unit->Center.x;
+          ShiftY = Unit->DefaultCenter.y - Unit->Center.y;
+          FigureUnitMove(Unit, ShiftX, ShiftY);
+
+          Unit->IsEnlarged = false;
+     }
+}
 
 static void
-FigureEntityUpdateEvent(game_input *Input, figure_entity *Group)
+FigureUnitDefineDefaultArea(figure_unit *Unit, s32 X, s32 Y)
 {
-     u32 Size = Group->FigureAmount;
-     s32 MouseX = Input->MouseX;
-     s32 MouseY = Input->MouseY;
-     s32 Offset = Group->BlockSize >> 1;
+     game_rect AreaQuad = FigureUnitGetArea(Unit);
+
+     s32 ShiftX = X - AreaQuad.x;
+     s32 ShiftY = Y - AreaQuad.y;
+     FigureUnitMove(Unit, ShiftX, ShiftY);
+
+     for (u32 i = 0; i < 4; ++i)
+     {
+          Unit->DefaultShell[i] = Unit->Shell[i];
+     }
+
+     Unit->DefaultCenter = Unit->Center;
+     Unit->DefaultAngle  = Unit->Angle;
+}
+
+static void
+FigureEntityUpdateEvent(game_input *Input, figure_entity *Group,
+                        r32 ActiveBlockSize, r32 DefaultBlockSize)
+{
+     u32 Size       = Group->FigureAmount;
+     s32 MouseX     = Input->MouseX;
+     s32 MouseY     = Input->MouseY;
+     r32 BlockRatio = 0;
 
      if(Input->WasPressed)
      {
@@ -510,12 +570,18 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *Group)
 
                     if(GrabbedFigure)
                     {
-                         Group->IsGrabbed     = true;
-                         Group->GrabbedFigure = GrabbedFigure;
-                         Group->GrabbedFigure->IsEnlarged = true;
+                         Group->IsGrabbed = true;
                          
-                         FigureUnitResizeBy(Group->GrabbedFigure, 1.5f);
-                         FigureUnitSwapAtEnd(Group->HeadFigure, Group->GrabbedFigure->Index);
+                         if(!GrabbedFigure->IsEnlarged)
+                         {
+                              BlockRatio = ActiveBlockSize / DefaultBlockSize;
+                              printf("BlockRatio = %f\n", BlockRatio);
+                              GrabbedFigure->IsEnlarged = true;
+                              FigureUnitResizeBy(GrabbedFigure, BlockRatio);
+                         }
+
+                         FigureUnitSwapAtEnd(Group->HeadFigure, GrabbedFigure->Index);
+                         Group->GrabbedFigure = GrabbedFigure;
                          SDL_ShowCursor(SDL_DISABLE);
                     }
                }
@@ -523,9 +589,14 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *Group)
                {
                     if(!Group->IsRotating)
                     {
-                         Group->IsGrabbed = false;
+                         if(IsFigureUnitInsideRect(Group->GrabbedFigure, &Group->FigureArea))
+                         {
+                              BlockRatio = DefaultBlockSize / ActiveBlockSize;
+                              FigureUnitSetToDefaultArea(Group->GrabbedFigure, BlockRatio);
+                         }
+
                          SDL_ShowCursor(SDL_ENABLE);
-                         FigureUnitResizeBy(Group->GrabbedFigure, 0.667f);
+                         Group->IsGrabbed = false;
                     }
                }
           }
@@ -560,23 +631,7 @@ PrintArray1D(vector<u32> &Array)
      printf("\n");
 }
 
-static void
-FigureUnitSetDefaultArea(figure_unit *Unit, s32 X, s32 Y)
-{
-     game_rect AreaQuad = FigureUnitGetArea(Unit);
 
-     s32 ShiftX = X - AreaQuad.x;
-     s32 ShiftY = Y - AreaQuad.y;
-     FigureUnitMove(Unit, ShiftX, ShiftY);
-
-     for (u32 i = 0; i < 4; ++i)
-     {
-          Unit->DefaultShell[i] = Unit->Shell[i];
-     }
-
-     Unit->DefaultCenter = Unit->Center;
-     Unit->DefaultAngle  = Unit->Angle;
-}
 
 static void
 FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
@@ -584,8 +639,8 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
      u32 Size = Entity->FigureAmount;
      u32 RowSize1 = 0;
      u32 RowSize2 = 0;
-     u32 FigureIntervalX = Entity->BlockSize / 4;
-     u32 FigureIntervalY = Entity->BlockSize / 6;
+     u32 FigureIntervalX = BlockSize / 4;
+     u32 FigureIntervalY = BlockSize / 6;
      u32 FigureWidth     = 0;
      u32 FigureHeight    = 0;
      
@@ -645,7 +700,7 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
                CurrentRowSize2 += AreaQuad.w + FigureIntervalX;
           }
 
-          FigureUnitSetDefaultArea(Unit, NewPositionX, NewPositionY);
+          FigureUnitDefineDefaultArea(Unit, NewPositionX, NewPositionY);
 
           Unit = Unit->Next;
      }
@@ -675,7 +730,6 @@ GridEntityUpdateAndRender(game_offscreen_buffer *Buffer, grid_entity *Entity)
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
-     static u32 BlockSize   = 40;
      static r32 TimeElapsed = 0.0f;
      TimeElapsed = (SDL_GetTicks() - TimeElapsed) / 1000.0f;
      
@@ -686,41 +740,46 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 
      if(!Memory->IsInitialized)
      {
+          // TODO(max): Find a way to calculate this
+          Memory->State.ActiveBlockSize   = 40;
+          Memory->State.DefaultBlockSize  = 24;
+          u32 DefaultBlock = Memory->State.DefaultBlockSize;
+          u32 ActiveBlock  = Memory->State.ActiveBlockSize;
+
           FigureEntity = (figure_entity *)malloc(sizeof(figure_entity));
           Assert(FigureEntity);
 
           FigureEntity->FigureAmount  = 7;
-          FigureEntity->BlockSize     = BlockSize;
           FigureEntity->IsGrabbed     = false;
           FigureEntity->IsRotating    = false;
           FigureEntity->RotationSum   = 0;
           FigureEntity->HeadFigure    = 0;
           FigureEntity->GrabbedFigure = 0;
           FigureEntity->FigureArea.w  = Buffer->Width;
-          FigureEntity->FigureArea.h  = BlockSize * 8;
+          FigureEntity->FigureArea.h  = DefaultBlock * 8;
           FigureEntity->FigureArea.y  = Buffer->Height - (FigureEntity->FigureArea.h);
           FigureEntity->FigureArea.x  = 0;
 
-          CreateNewFigureUnit("i_d.png", Buffer, FigureEntity->HeadFigure, 0, 0,   0,   BlockSize, I_figure, classic, Memory);
-          CreateNewFigureUnit("o_d.png", Buffer, FigureEntity->HeadFigure, 1, 100, 100, BlockSize, O_figure, classic, Memory);
-          CreateNewFigureUnit("l_d.png", Buffer, FigureEntity->HeadFigure, 2, 200, 200, BlockSize, L_figure, classic, Memory);
-          CreateNewFigureUnit("j_d.png", Buffer, FigureEntity->HeadFigure, 3, 0,   0,   BlockSize, J_figure, classic, Memory);
-          CreateNewFigureUnit("s_d.png", Buffer, FigureEntity->HeadFigure, 4, 100, 100, BlockSize, S_figure, classic, Memory);
-          CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 5, 200, 200, BlockSize, Z_figure, classic, Memory);
-          CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 6, 0,   0,   BlockSize, T_figure, classic, Memory);
+          CreateNewFigureUnit("i_d.png", Buffer, FigureEntity->HeadFigure, 0, 0,   0,   DefaultBlock, I_figure, classic, Memory);
+          CreateNewFigureUnit("o_d.png", Buffer, FigureEntity->HeadFigure, 1, 100, 100, DefaultBlock, O_figure, classic, Memory);
+          CreateNewFigureUnit("l_d.png", Buffer, FigureEntity->HeadFigure, 2, 200, 200, DefaultBlock, L_figure, classic, Memory);
+          CreateNewFigureUnit("j_d.png", Buffer, FigureEntity->HeadFigure, 3, 0,   0,   DefaultBlock, J_figure, classic, Memory);
+          CreateNewFigureUnit("s_d.png", Buffer, FigureEntity->HeadFigure, 4, 100, 100, DefaultBlock, S_figure, classic, Memory);
+          CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 5, 200, 200, DefaultBlock, Z_figure, classic, Memory);
+          CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 6, 0,   0,   DefaultBlock, T_figure, classic, Memory);
 
-          FigureEntityAlignHorizontally(FigureEntity, BlockSize);
+          FigureEntityAlignHorizontally(FigureEntity, DefaultBlock);
 
           GridEntity  = (grid_entity *) malloc(sizeof(grid_entity));
           Assert(GridEntity);
 
           GridEntity->RowAmount    = 5;
           GridEntity->ColumnAmount = 5;
-          GridEntity->BlockSize    = BlockSize;
+          GridEntity->BlockSize    = ActiveBlock;
           GridEntity->BlockIsGrabbed = false;
           GridEntity->BeginAnimationStart = true;
-          GridEntity->GridArea.w = GridEntity->RowAmount * BlockSize;
-          GridEntity->GridArea.h = GridEntity->ColumnAmount * BlockSize;
+          GridEntity->GridArea.w = GridEntity->RowAmount * ActiveBlock;
+          GridEntity->GridArea.h = GridEntity->ColumnAmount * ActiveBlock;
           GridEntity->GridArea.x = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
           GridEntity->GridArea.y = (Buffer->Height - FigureEntity->FigureArea.h)/2 - (GridEntity->GridArea.h / 2);
 
@@ -744,7 +803,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           printf("memory init!\n");
      }
 
-     FigureEntityUpdateEvent(Input, FigureEntity);
+     FigureEntityUpdateEvent(Input, FigureEntity, Memory->State.ActiveBlockSize, Memory->State.DefaultBlockSize);
      
      if(Input->WasPressed)
      {

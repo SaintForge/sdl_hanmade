@@ -99,7 +99,7 @@ struct figure_entity
      bool IsGrabbed;
      bool IsRotating;
 
-     u32 BlockSize;
+     /* u32 BlockSize; */
      r32 RotationSum;
 };
 
@@ -123,6 +123,9 @@ struct game_state
 {
      grid_entity   *GridEntity;
      figure_entity *FigureEntity;
+
+     u32 DefaultBlockSize;
+     u32 ActiveBlockSize;
 };
 
 struct game_memory
