@@ -125,7 +125,6 @@ struct game_state
      figure_entity *FigureEntity;
 
      u32 DefaultBlockSize;
-     u32 ActiveBlockSize;
 };
 
 struct game_memory
