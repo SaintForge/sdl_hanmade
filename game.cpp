@@ -49,6 +49,23 @@ DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, SDL_C
      SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, 255);
 }
 
+static u32
+GameResizeBlocks(game_offscreen_buffer *Buffer, u32 DefaultSize, u32 RowAmount, u32 ColumnAmount)
+{
+     u32 Width  = Buffer->Width;
+     u32 Height = Buffer->Height;
+     u32 BlockAmount     = 0;
+     u32 ActiveBlockSize = 0;
+
+     BlockAmount = RowAmount >= ColumnAmount ? RowAmount : ColumnAmount;
+     ActiveBlockSize = (Width / (BlockAmount+1)) - ((Width / (BlockAmount+1)) % 10);
+
+     ActiveBlockSize = ActiveBlockSize >= DefaultSize ? DefaultSize : ActiveBlockSize;
+     printf("ActiveBlockSize = %d\n",ActiveBlockSize);
+
+     return(ActiveBlockSize);
+}
+
 static void
 GameRenderBitmapToBuffer(game_offscreen_buffer *Buffer, game_texture *&Texture, game_rect *Quad)
 {
@@ -631,8 +648,6 @@ PrintArray1D(vector<u32> &Array)
      printf("\n");
 }
 
-
-
 static void
 FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
 {
@@ -741,8 +756,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
      if(!Memory->IsInitialized)
      {
           // TODO(max): Find a way to calculate this
-          Memory->State.ActiveBlockSize   = 40;
-          Memory->State.DefaultBlockSize  = 24;
+          Memory->State.ActiveBlockSize   = 60;
+          Memory->State.DefaultBlockSize  = 30;
+          u32 DefaultSize  = (Buffer->Width / 6) - ((Buffer->Width / 6) % 10);
+          printf("DefaultSize = %d\n", DefaultSize);
           u32 DefaultBlock = Memory->State.DefaultBlockSize;
           u32 ActiveBlock  = Memory->State.ActiveBlockSize;
 
@@ -773,13 +790,14 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           GridEntity  = (grid_entity *) malloc(sizeof(grid_entity));
           Assert(GridEntity);
 
-          GridEntity->RowAmount    = 5;
-          GridEntity->ColumnAmount = 5;
+          GridEntity->RowAmount    = 2;
+          GridEntity->ColumnAmount = 2;
+          ActiveBlock = GameResizeBlocks(Buffer, DefaultSize, GridEntity->RowAmount, GridEntity->ColumnAmount);
           GridEntity->BlockSize    = ActiveBlock;
           GridEntity->BlockIsGrabbed = false;
           GridEntity->BeginAnimationStart = true;
-          GridEntity->GridArea.w = GridEntity->RowAmount * ActiveBlock;
-          GridEntity->GridArea.h = GridEntity->ColumnAmount * ActiveBlock;
+          GridEntity->GridArea.w = GridEntity->ColumnAmount * ActiveBlock;
+          GridEntity->GridArea.h = GridEntity->RowAmount * ActiveBlock;
           GridEntity->GridArea.x = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
           GridEntity->GridArea.y = (Buffer->Height - FigureEntity->FigureArea.h)/2 - (GridEntity->GridArea.h / 2);
 
