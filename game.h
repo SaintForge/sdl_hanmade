@@ -70,7 +70,8 @@ struct figure_unit
      figure_unit *Next;
      
      bool IsStick;
-     bool IsEnlarged;
+     bool IsEnlarged; // not sure if we need it
+     bool IsIdle;
      
      u32 Index;     
      r32 Angle;
@@ -99,7 +100,6 @@ struct figure_entity
      bool IsGrabbed;
      bool IsRotating;
 
-     /* u32 BlockSize; */
      r32 RotationSum;
 };
 
@@ -124,7 +124,8 @@ struct game_state
      grid_entity   *GridEntity;
      figure_entity *FigureEntity;
 
-     /* u32 DefaultBlockSize; */
+     u32 ActiveBlockSize;
+     u32 InActiveBlockSize;
 };
 
 struct game_memory

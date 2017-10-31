@@ -50,10 +50,13 @@ DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, SDL_C
 }
 
 static u32
-GameResizeActiveBlock(u32 AvailableWidth, u32 AvailableHeight, u32 RowAmount, u32 ColumnAmount)
+GameResizeActiveBlock(game_offscreen_buffer *Buffer, u32 InActiveBlockSize, u32 RowAmount, u32 ColumnAmount)
 {
      u32 BlockAmount = 0;
      u32 BlockSize   = 0;
+     
+     u32 AvailableWidth    = Buffer->Width;
+     u32 AvailableHeight   = Buffer->Height - (InActiveBlockSize * 9);
      u32 MinimalDistance   = AvailableWidth > AvailableHeight ? AvailableHeight : AvailableWidth;
      u32 DefaultSize       = (MinimalDistance / 6) - ((MinimalDistance / 6) % 10);
      
@@ -172,6 +175,7 @@ IsFigureUnitInsideRect(figure_unit *Unit, game_rect *AreaQuad)
 
      return false;
 }
+
 
 static void
 FigureUnitSwapAtEnd(figure_unit *&Head, u32 FigureIndex)
@@ -374,10 +378,11 @@ CreateNewFigureUnit(char* AssetName, game_offscreen_buffer *Buffer,
           }
      }
 
-     Figure->Index  = EntityIndex;
-     Figure->IsStick = false;
-     Figure->IsEnlarged = false;
-     Figure->Angle  = 0.0f;
+     Figure->Index        = EntityIndex;
+     Figure->IsIdle       = true;
+     Figure->IsStick      = false;
+     Figure->IsEnlarged   = false;
+     Figure->Angle        = 0.0f;
      Figure->DefaultAngle = 0.0f;
      Figure->Form = Form;
      Figure->Type = Type;
@@ -496,42 +501,7 @@ FigureUnitRenderBitmap(game_offscreen_buffer *Buffer, figure_unit *Entity)
                       0, &Entity->AreaQuad, Entity->Angle, &Center, SDL_FLIP_NONE);
 }
 
-static void
-FigureEntityUpdateAndRender(game_offscreen_buffer *Buffer, figure_entity *Group,
-                            r32 TimeElapsed)
-{
-     Assert(Group);
-     u32 Size = Group->FigureAmount;
 
-     if(Group->IsRotating)
-     {
-          r32 RotationVel = 630.0f;
-          r32 AngleDt = TimeElapsed * RotationVel;
-
-          if(Group->RotationSum < 90.0f && !(Group->RotationSum + AngleDt >= 90.0f))
-          {
-               Group->GrabbedFigure->Angle += AngleDt;
-               Group->RotationSum += AngleDt;
-          }
-          else
-          {
-               Group->GrabbedFigure->Angle += 90.0f - Group->RotationSum;
-               Group->RotationSum = 0;
-               Group->IsRotating = false;
-          }
-     }
-
-     figure_unit *Figure = Group->HeadFigure;
-     while(Figure != NULL)
-     {
-          FigureUnitRenderBitmap(Buffer, Figure);
-          
-          DEBUGRenderQuad(Buffer, &Figure->AreaQuad, {255, 0, 0});
-          DEBUGRenderFigureShell(Buffer, Figure, {255, 0, 0});
-          
-          Figure = Figure->Next;
-     }
-}
 static void
 FigureUnitSetToDefaultArea(figure_unit* Unit, r32 BlockRatio)
 {
@@ -617,7 +587,9 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *Group,
                               BlockRatio = ActiveBlockSize / DefaultBlockSize;
                               printf("BlockRatio = %f\n", BlockRatio);
                               GrabbedFigure->IsEnlarged = true;
+                              GrabbedFigure->IsIdle = false;
                               FigureUnitResizeBy(GrabbedFigure, BlockRatio);
+                              printf("isIdle = false");
                          }
 
                          FigureUnitSwapAtEnd(Group->HeadFigure, GrabbedFigure->Index);
@@ -633,10 +605,12 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *Group,
                          {
                               BlockRatio = DefaultBlockSize / ActiveBlockSize;
                               FigureUnitSetToDefaultArea(Group->GrabbedFigure, BlockRatio);
+                              Group->GrabbedFigure->IsIdle = true;
                          }
 
                          SDL_ShowCursor(SDL_ENABLE);
                          Group->IsGrabbed = false;
+                         Group->GrabbedFigure = NULL;
                     }
                }
           }
@@ -747,54 +721,196 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
 }
 
 static void
-GridEntityUpdateAndRender(game_offscreen_buffer *Buffer, grid_entity *Entity)
+GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeElapsed)
 {
-     game_rect Area;
-     Area.w = Entity->BlockSize;
-     Area.h = Entity->BlockSize;
+     figure_unit   *FigureUnit    = 0;
+     grid_entity   *&GridEntity   = State->GridEntity;
+     figure_entity *&FigureEntity = State->FigureEntity;
 
-     for (u32 i = 0; i < Entity->RowAmount; ++i)
+     game_rect AreaQuad = {};
+     u32 RowAmount    = GridEntity->RowAmount;
+     u32 ColumnAmount = GridEntity->ColumnAmount;
+     u32 FigureAmount = FigureEntity->FigureAmount;
+     u32 ActiveIndex  = FigureEntity->GrabbedFigure ? FigureEntity->GrabbedFigure->Index : -1;
+     
+     u32 ActiveBlockSize   = State->ActiveBlockSize;
+     u32 InActiveBlockSize = State->InActiveBlockSize;
+
+     FigureUnit = FigureEntity->HeadFigure;
+     for (u32 Index = 0; Index < FigureAmount; ++Index)
      {
-          Area.y = Entity->GridArea.y + (i * Entity->BlockSize);
-          for (u32 j = 0; j < Entity->ColumnAmount; ++j)
+          bool IsIdle     = FigureUnit->IsIdle;
+          bool IsSticked  = FigureUnit->IsStick;
+          bool IsAttached = FigureUnit->Index == ActiveIndex;
+          printf("Index %d is Attached\n", ActiveIndex);
+
+          if(IsIdle)
           {
-               Area.x = Entity->GridArea.x + (j * Entity->BlockSize);
-               if(Entity->UnitField[i][j] == 0)
+               FigureUnit = FigureUnit->Next;
+               continue;
+          }
+          
+          if(IsSticked && IsAttached)
+          {
+               // Unstick from the grid
+          }
+          else if(!IsSticked && !IsAttached)
+          {
+               if(!FigureEntity->IsRotating)
                {
-                    GameRenderBitmapToBuffer(Buffer, Entity->NormalSquareTexture, &Area);
+                    // Check if we can stick it!
+                    u32 Count   = 0;
+                    r32 OffsetX = 0;
+                    r32 OffsetY = 0;
+                    u32 RowIndex[4] = {0};
+                    u32 ColIndex[4] = {0};
+                    game_rect Rect = {0, 0, (s32)ActiveBlockSize, (s32)ActiveBlockSize};
+
+                    for (u32 i = 0 ; i < RowAmount && Count != 4; ++i)
+                    {
+                         for (u32 j = 0; j < ColumnAmount && Count != 4; ++j)
+                         {
+                              Rect.x = GridEntity->GridArea.x + (j*ActiveBlockSize);
+                              Rect.y = GridEntity->GridArea.y + (i*ActiveBlockSize);
+
+                              for (u32 l = 0; l < 4; ++l)
+                              {
+                                   if(IsPointInsideRect(FigureUnit->Shell[l].x,
+                                                        FigureUnit->Shell[l].y,
+                                                        &Rect))
+                                   {
+                                        if(Count == 0)
+                                        {
+                                             OffsetX = Rect.x + (Rect.w / 2) - FigureUnit->Shell[l].x;
+                                             OffsetY = Rect.y + (Rect.h / 2) - FigureUnit->Shell[l].y;
+                                        }
+                                        
+                                        RowIndex[l] = i;
+                                        ColIndex[l] = j;
+                                        Count = Count + 1;
+                                        break;
+                                   }    
+                              }
+                         }
+                    }
+
+                    if(Count == 4)
+                    {
+                         bool IsFree = true;
+                         bool IsFull = true;
+                         
+                         for (u32 i = 0; i < 4; ++i)
+                         {
+                              if(GridEntity->UnitField[RowIndex[i]][ColIndex[i]] > 0)
+                              {
+                                   IsFree = false;
+                              }
+                         }
+
+                         if(IsFree)
+                         {
+                              FigureUnit->IsStick = true;
+                              // FigureUnit->IsIdle  = false;
+
+                              FigureUnitMove(FigureUnit, OffsetX, OffsetY);
+
+                              for (u32 i = 0; i < RowAmount; ++i)
+                              {
+                                   for (u32 j = 0; j < ColumnAmount; ++j)
+                                   {
+                                        if(GridEntity->UnitField[i][j] == 0)
+                                        {
+                                             IsFull = true;
+                                        }
+                                   }
+                              }
+
+                              if(IsFull == true)
+                              {
+                                   
+                              }
+                         }
+                    }
+
+               }
+          }
+
+          FigureUnit = FigureUnit->Next;
+     }
+
+
+     
+     AreaQuad.w = GridEntity->BlockSize;
+     AreaQuad.h = GridEntity->BlockSize;
+
+     for (u32 i = 0; i < RowAmount; ++i)
+     {
+          AreaQuad.y = GridEntity->GridArea.y + (i * GridEntity->BlockSize);
+          for (u32 j = 0; j < ColumnAmount; ++j)
+          {
+               AreaQuad.x = GridEntity->GridArea.x + (j * GridEntity->BlockSize);
+               if(GridEntity->UnitField[i][j] == 0)
+               {
+                    GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture, &AreaQuad);
                }
           }
      }
+     
+     if(FigureEntity->IsRotating)
+     {
+          // TODO(max): Maybe put these values in game_state ???
+          r32 RotationVel = 630.0f;
+          r32 AngleDt = TimeElapsed * RotationVel;
+
+          if(FigureEntity->RotationSum < 90.0f && !(FigureEntity->RotationSum + AngleDt >= 90.0f))
+          {
+               FigureEntity->GrabbedFigure->Angle += AngleDt;
+               FigureEntity->RotationSum += AngleDt;
+          }
+          else
+          {
+               FigureEntity->GrabbedFigure->Angle += 90.0f - FigureEntity->RotationSum;
+               FigureEntity->RotationSum = 0;
+               FigureEntity->IsRotating = false;
+          }
+     }
+
+     FigureUnit = FigureEntity->HeadFigure;
+     while(FigureUnit != NULL)
+     {
+          FigureUnitRenderBitmap(Buffer, FigureUnit);
+          
+          DEBUGRenderQuad(Buffer, &FigureUnit->AreaQuad, {255, 0, 0});
+          DEBUGRenderFigureShell(Buffer, FigureUnit, {255, 0, 0});
+          
+          FigureUnit = FigureUnit->Next;
+     }
+
 }
 
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
      static r32 TimeElapsed = 0.0f;
-     static u32 ActiveBlockSize   = 0;
-     static u32 InActiveBlockSize = 0;
      TimeElapsed = (SDL_GetTicks() - TimeElapsed) / 1000.0f;
      
      bool ShouldQuit = false;
 
+     game_state    *GameState     = &Memory->State;
      grid_entity   *&GridEntity   = Memory->State.GridEntity;
      figure_entity *&FigureEntity = Memory->State.FigureEntity;
+     u32 ActiveBlockSize   = Memory->State.ActiveBlockSize;
+     u32 InActiveBlockSize = Memory->State.InActiveBlockSize;
 
      if(!Memory->IsInitialized)
      {
-          // TODO(max): Find a way to calculate this
-          // Memory->State.DefaultBlockSize  = (Buffer->Width / 6) - ((Buffer->Width / 6) % 10);
-          // printf("DefaultSize = %d\n", Memory->State.DefaultBlockSize);
-
           u32 RowAmount    = 5;
           u32 ColumnAmount = 5;
           u32 FigureAmount = 10;
 
           // TODO(max): Make InActiveBlockSize calculation smarter!!!
           InActiveBlockSize = GameResizeInActiveBLock(Buffer, FigureAmount);
-          ActiveBlockSize   = GameResizeActiveBlock(Buffer->Width,
-                                                    Buffer->Height - (InActiveBlockSize * 9),
-                                                    RowAmount, ColumnAmount);
+          ActiveBlockSize   = GameResizeActiveBlock(Buffer, InActiveBlockSize, RowAmount, ColumnAmount);
           
           // Figure initialization
           FigureEntity = (figure_entity *)malloc(sizeof(figure_entity));
@@ -814,7 +930,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           // Grid initialization
           GridEntity  = (grid_entity *) malloc(sizeof(grid_entity));
           Assert(GridEntity);
-
+          
           GridEntity->RowAmount    = RowAmount;
           GridEntity->ColumnAmount = ColumnAmount;
           GridEntity->BlockSize    = ActiveBlockSize;
@@ -851,21 +967,12 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           CreateNewFigureUnit("s_d.png", Buffer, FigureEntity->HeadFigure, 7, 100, 100, InActiveBlockSize, S_figure, classic, Memory);
           CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 8, 200, 200, InActiveBlockSize, Z_figure, classic, Memory);
           CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 9, 0,   0,   InActiveBlockSize, T_figure, classic, Memory);
-          // CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 10, 200, 200, InActiveBlockSize, Z_figure, classic, Memory);
-          // CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 11, 0,   0,   InActiveBlockSize, T_figure, classic, Memory);
-          // CreateNewFigureUnit("j_d.png", Buffer, FigureEntity->HeadFigure, 12, 0,   0,   InActiveBlockSize, J_figure, classic, Memory);
-          // CreateNewFigureUnit("s_d.png", Buffer, FigureEntity->HeadFigure, 13, 100, 100, InActiveBlockSize, S_figure, classic, Memory);
-          // CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 14, 200, 200, InActiveBlockSize, Z_figure, classic, Memory);
-          // CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 15, 0,   0,   InActiveBlockSize, T_figure, classic, Memory);
-          // CreateNewFigureUnit("s_d.png", Buffer, FigureEntity->HeadFigure, 16, 100, 100, InActiveBlockSize, S_figure, classic, Memory);
-          // CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 17, 200, 200, InActiveBlockSize, Z_figure, classic, Memory);
-          // CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 18, 0,   0,   InActiveBlockSize, T_figure, classic, Memory);
-          // CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 19, 200, 200, InActiveBlockSize, Z_figure, classic, Memory);
-          // CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 20, 0,   0,   InActiveBlockSize, T_figure, classic, Memory);
 
           FigureEntityAlignHorizontally(FigureEntity, InActiveBlockSize);
           
           Memory->IsInitialized = true;
+          Memory->State.ActiveBlockSize = ActiveBlockSize;
+          Memory->State.InActiveBlockSize = InActiveBlockSize;
           printf("memory init!\n");
      }
 
@@ -879,8 +986,13 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           }
      }
 
-     GridEntityUpdateAndRender(Buffer, GridEntity);
-     FigureEntityUpdateAndRender(Buffer, FigureEntity, TimeElapsed);
+     GameUpdateGameState(Buffer, GameState, TimeElapsed);
+
+     if(FigureEntity->GrabbedFigure)
+     {
+          printf("IsSticked = %d\n", FigureEntity->GrabbedFigure->IsStick);
+          printf("IsIdle = %d\n", FigureEntity->GrabbedFigure->IsIdle);
+     }
 
      if(FigureEntity->GrabbedFigure)
      {
