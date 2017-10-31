@@ -124,7 +124,7 @@ struct game_state
      grid_entity   *GridEntity;
      figure_entity *FigureEntity;
 
-     u32 DefaultBlockSize;
+     /* u32 DefaultBlockSize; */
 };
 
 struct game_memory

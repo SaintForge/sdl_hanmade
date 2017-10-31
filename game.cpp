@@ -50,20 +50,43 @@ DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, SDL_C
 }
 
 static u32
-GameResizeBlocks(game_offscreen_buffer *Buffer, u32 DefaultSize, u32 RowAmount, u32 ColumnAmount)
+GameResizeActiveBlock(u32 AvailableWidth, u32 AvailableHeight, u32 RowAmount, u32 ColumnAmount)
 {
-     u32 Width  = Buffer->Width;
-     u32 Height = Buffer->Height;
-     u32 BlockAmount     = 0;
-     u32 ActiveBlockSize = 0;
-
+     u32 BlockAmount = 0;
+     u32 BlockSize   = 0;
+     u32 MinimalDistance   = AvailableWidth > AvailableHeight ? AvailableHeight : AvailableWidth;
+     u32 DefaultSize       = (MinimalDistance / 6) - ((MinimalDistance / 6) % 10);
+     
      BlockAmount = RowAmount >= ColumnAmount ? RowAmount : ColumnAmount;
-     ActiveBlockSize = (Width / (BlockAmount+1)) - ((Width / (BlockAmount+1)) % 10);
+     BlockSize = (MinimalDistance / (BlockAmount+1)) - ((MinimalDistance / (BlockAmount+1)) % 10);
+     BlockSize = BlockSize >= DefaultSize ? DefaultSize : BlockSize;
+     printf("ActiveBlockSize = %d\n",BlockSize);
 
-     ActiveBlockSize = ActiveBlockSize >= DefaultSize ? DefaultSize : ActiveBlockSize;
-     printf("ActiveBlockSize = %d\n",ActiveBlockSize);
+     return(BlockSize);
+}
 
-     return(ActiveBlockSize);
+static u32
+GameResizeInActiveBLock(game_offscreen_buffer *Buffer, u32 FigureAmount)
+{
+     u32 Width       = Buffer->Width;
+     u32 Height      = Buffer->Height;
+     u32 BlockSize   = 0;
+     u32 BlockInRow  = 0;
+     u32 MinDistance = 0;
+     u32 DefaultSize = 0;
+               
+     MinDistance = Width > Height ? Height : Width;
+     DefaultSize = (MinDistance / 10) - ((MinDistance / 10) % 10);
+
+     BlockInRow = (FigureAmount / 2) + 0.5;
+     BlockInRow = BlockInRow * 2;
+     printf("BlockInRow = %d\n", BlockInRow);
+     
+     BlockSize = (MinDistance / BlockInRow);
+     BlockSize = BlockSize - ((MinDistance / BlockInRow) % 10);
+     BlockSize = BlockSize < DefaultSize ? BlockSize : DefaultSize;
+
+     return(BlockSize);
 }
 
 static void
@@ -677,7 +700,7 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
           AreaQuad = FigureUnitGetArea(Unit);
           i % 2 == 0
                ? RowSize1 += AreaQuad.w + FigureIntervalX
-               : RowSize2 += AreaQuad.h + FigureIntervalY;
+               : RowSize2 += AreaQuad.w + FigureIntervalX;
 
           Unit = Unit->Next;
      }
@@ -716,6 +739,8 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
           }
 
           FigureUnitDefineDefaultArea(Unit, NewPositionX, NewPositionY);
+          printf("Unit.x = %d\n", Unit->AreaQuad.x);
+          printf("Unit.y = %d\n", Unit->AreaQuad.y);
 
           Unit = Unit->Next;
      }
@@ -758,36 +783,40 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
      if(!Memory->IsInitialized)
      {
           // TODO(max): Find a way to calculate this
+          // Memory->State.DefaultBlockSize  = (Buffer->Width / 6) - ((Buffer->Width / 6) % 10);
+          // printf("DefaultSize = %d\n", Memory->State.DefaultBlockSize);
 
-          Memory->State.DefaultBlockSize  = (Buffer->Width / 6) - ((Buffer->Width / 6) % 10);
-          printf("DefaultSize = %d\n", Memory->State.DefaultBlockSize);
-          
-          // Grid initialization
-          GridEntity  = (grid_entity *) malloc(sizeof(grid_entity));
-          Assert(GridEntity);
-
-          GridEntity->RowAmount    = 10;
-          GridEntity->ColumnAmount = 10;
+          u32 RowAmount    = 5;
+          u32 ColumnAmount = 5;
+          u32 FigureAmount = 10;
 
           // TODO(max): Make InActiveBlockSize calculation smarter!!!
-          ActiveBlockSize   = GameResizeBlocks(Buffer, Memory->State.DefaultBlockSize, GridEntity->RowAmount, GridEntity->ColumnAmount);
-          InActiveBlockSize = ActiveBlockSize / 2;
-
+          InActiveBlockSize = GameResizeInActiveBLock(Buffer, FigureAmount);
+          ActiveBlockSize   = GameResizeActiveBlock(Buffer->Width,
+                                                    Buffer->Height - (InActiveBlockSize * 9),
+                                                    RowAmount, ColumnAmount);
+          
           // Figure initialization
           FigureEntity = (figure_entity *)malloc(sizeof(figure_entity));
           Assert(FigureEntity);
 
-          FigureEntity->FigureAmount  = 7;
+          FigureEntity->FigureAmount  = FigureAmount;
           FigureEntity->IsGrabbed     = false;
           FigureEntity->IsRotating    = false;
           FigureEntity->RotationSum   = 0;
           FigureEntity->HeadFigure    = 0;
           FigureEntity->GrabbedFigure = 0;
           FigureEntity->FigureArea.w  = Buffer->Width;
-          FigureEntity->FigureArea.h  = InActiveBlockSize * 8;
+          FigureEntity->FigureArea.h  = InActiveBlockSize * 9;
           FigureEntity->FigureArea.y  = Buffer->Height - (FigureEntity->FigureArea.h);
           FigureEntity->FigureArea.x  = 0;
-          
+
+          // Grid initialization
+          GridEntity  = (grid_entity *) malloc(sizeof(grid_entity));
+          Assert(GridEntity);
+
+          GridEntity->RowAmount    = RowAmount;
+          GridEntity->ColumnAmount = ColumnAmount;
           GridEntity->BlockSize    = ActiveBlockSize;
           GridEntity->BlockIsGrabbed = false;
           GridEntity->BeginAnimationStart = true;
@@ -813,12 +842,26 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           GridEntity->HorizontlaSquareTexture = GetTexture(Memory, "grid_cell2.png", Buffer->Renderer);
 
           CreateNewFigureUnit("i_d.png", Buffer, FigureEntity->HeadFigure, 0, 0,   0,   InActiveBlockSize, I_figure, classic, Memory);
-          CreateNewFigureUnit("o_d.png", Buffer, FigureEntity->HeadFigure, 1, 100, 100, InActiveBlockSize, O_figure, classic, Memory);
+          CreateNewFigureUnit("i_d.png", Buffer, FigureEntity->HeadFigure, 1, 100, 100, InActiveBlockSize, I_figure, classic, Memory);
           CreateNewFigureUnit("l_d.png", Buffer, FigureEntity->HeadFigure, 2, 200, 200, InActiveBlockSize, L_figure, classic, Memory);
           CreateNewFigureUnit("j_d.png", Buffer, FigureEntity->HeadFigure, 3, 0,   0,   InActiveBlockSize, J_figure, classic, Memory);
           CreateNewFigureUnit("s_d.png", Buffer, FigureEntity->HeadFigure, 4, 100, 100, InActiveBlockSize, S_figure, classic, Memory);
           CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 5, 200, 200, InActiveBlockSize, Z_figure, classic, Memory);
           CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 6, 0,   0,   InActiveBlockSize, T_figure, classic, Memory);
+          CreateNewFigureUnit("s_d.png", Buffer, FigureEntity->HeadFigure, 7, 100, 100, InActiveBlockSize, S_figure, classic, Memory);
+          CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 8, 200, 200, InActiveBlockSize, Z_figure, classic, Memory);
+          CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 9, 0,   0,   InActiveBlockSize, T_figure, classic, Memory);
+          // CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 10, 200, 200, InActiveBlockSize, Z_figure, classic, Memory);
+          // CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 11, 0,   0,   InActiveBlockSize, T_figure, classic, Memory);
+          // CreateNewFigureUnit("j_d.png", Buffer, FigureEntity->HeadFigure, 12, 0,   0,   InActiveBlockSize, J_figure, classic, Memory);
+          // CreateNewFigureUnit("s_d.png", Buffer, FigureEntity->HeadFigure, 13, 100, 100, InActiveBlockSize, S_figure, classic, Memory);
+          // CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 14, 200, 200, InActiveBlockSize, Z_figure, classic, Memory);
+          // CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 15, 0,   0,   InActiveBlockSize, T_figure, classic, Memory);
+          // CreateNewFigureUnit("s_d.png", Buffer, FigureEntity->HeadFigure, 16, 100, 100, InActiveBlockSize, S_figure, classic, Memory);
+          // CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 17, 200, 200, InActiveBlockSize, Z_figure, classic, Memory);
+          // CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 18, 0,   0,   InActiveBlockSize, T_figure, classic, Memory);
+          // CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 19, 200, 200, InActiveBlockSize, Z_figure, classic, Memory);
+          // CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 20, 0,   0,   InActiveBlockSize, T_figure, classic, Memory);
 
           FigureEntityAlignHorizontally(FigureEntity, InActiveBlockSize);
           
