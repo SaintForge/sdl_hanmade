@@ -81,7 +81,7 @@ GameResizeInActiveBLock(game_offscreen_buffer *Buffer, u32 FigureAmount)
      MinDistance = Width > Height ? Height : Width;
      DefaultSize = (MinDistance / 10) - ((MinDistance / 10) % 10);
 
-     BlockInRow = (FigureAmount / 2) + 0.5;
+     BlockInRow = (FigureAmount / 2.0) + 0.5;
      BlockInRow = BlockInRow * 2;
      printf("BlockInRow = %d\n", BlockInRow);
      
@@ -180,38 +180,40 @@ IsFigureUnitInsideRect(figure_unit *Unit, game_rect *AreaQuad)
 static void
 FigureUnitSwapAtEnd(figure_unit *&Head, u32 FigureIndex)
 {
+     if(Head->Next == NULL) return;
+          
      figure_unit *TargetNode  = NULL;
      figure_unit *PrevNode    = NULL;
      figure_unit *CurrentNode = Head;
 
-     u32 Index = 0;
-     
      while(CurrentNode)
      {
-          Index = CurrentNode->Index;
-
-          if(Index == FigureIndex)
+          if(CurrentNode->Index == FigureIndex)
           {
-               TargetNode = CurrentNode;
-
                if(PrevNode)
                {
                     if(CurrentNode->Next)
+                    {
                          PrevNode->Next = CurrentNode->Next;
+                    }
                     else
+                    {
                          PrevNode->Next = CurrentNode;
+                    }
                }
                else
                {
                     Head = CurrentNode->Next;
                }
+
+               TargetNode = CurrentNode;
           }
 
-          PrevNode = CurrentNode;
+          PrevNode    = CurrentNode;
           CurrentNode = CurrentNode->Next;
      }
      
-     PrevNode->Next = TargetNode;
+     PrevNode->Next   = TargetNode;
      TargetNode->Next = NULL;
 }
 
@@ -618,8 +620,11 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *Group,
           {
                if(Group->IsGrabbed)
                {
-                    Group->IsRotating = true;
-                    FigureUnitRotateShellBy(Group->GrabbedFigure, 90);
+                    if(!Group->IsRotating)
+                    {
+                         Group->IsRotating = true;
+                         FigureUnitRotateShellBy(Group->GrabbedFigure, 90);
+                    }
                }
           } 
      }
@@ -635,14 +640,26 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *Group,
 }
 
 static void
-PrintArray1D(vector<u32> &Array)
+PrintArray1D(u32 *Array, u32 Size)
 {
-     for (u32 i = 0; i < Array.size(); ++i)
+     for (u32 i = 0; i < Size; ++i)
      {
           printf("%d ", Array[i]);
      }
 
      printf("\n");
+}
+
+static void
+PrintArray2D(u8 **Array, u32 RowAmount, u32 ColumnAmount)
+{
+     for (u32 i = 0; i < RowAmount; ++i) {
+          for (u32 j = 0; j < ColumnAmount; ++j) {
+               printf("%d ", Array[i][j]);
+          }
+          printf("\n");
+     }
+
 }
 
 static void
@@ -739,20 +756,42 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
      FigureUnit = FigureEntity->HeadFigure;
      for (u32 Index = 0; Index < FigureAmount; ++Index)
      {
+          u32 FigureIndex = FigureUnit->Index;
           bool IsIdle     = FigureUnit->IsIdle;
           bool IsSticked  = FigureUnit->IsStick;
           bool IsAttached = FigureUnit->Index == ActiveIndex;
-          printf("Index %d is Attached\n", ActiveIndex);
+          // printf("Index %d is Attached\n", ActiveIndex);
 
           if(IsIdle)
           {
                FigureUnit = FigureUnit->Next;
+               // printf("continue!\n");
                continue;
           }
           
           if(IsSticked && IsAttached)
           {
                // Unstick from the grid
+               u32 StickAmount = GridEntity->StickUnitsAmount;
+               u32 RowIndex = 0;
+               u32 ColIndex = 0;
+               for (u32 i = 0; i < StickAmount; ++i)
+               {
+                    if(GridEntity->StickUnits[i].Index == FigureIndex)
+                    {
+                         GridEntity->StickUnits[i].Index = -1;
+                         for (u32 j = 0; j < 4; ++j)
+                         {
+                              RowIndex = GridEntity->StickUnits[i].Row[j];
+                              ColIndex = GridEntity->StickUnits[i].Col[j];
+                              GridEntity->UnitField[RowIndex][ColIndex] = 0;
+                         }
+
+                         break;
+                    }
+               }
+
+               FigureUnit->IsStick = false;
           }
           else if(!IsSticked && !IsAttached)
           {
@@ -814,6 +853,23 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
 
                               FigureUnitMove(FigureUnit, OffsetX, OffsetY);
 
+                              u32 StickSize = GridEntity->StickUnitsAmount;
+                              for (u32 i = 0; i < StickSize; ++i)
+                              {
+                                   if(GridEntity->StickUnits[i].Index == -1)
+                                   {
+                                        GridEntity->StickUnits[i].Index = FigureIndex;
+                                        for (u32 j = 0; j < 4; ++j)
+                                        {
+                                             GridEntity->StickUnits[i].Row[j] = RowIndex[j];
+                                             GridEntity->StickUnits[i].Col[j] = ColIndex[j];
+                                             GridEntity->UnitField[RowIndex[j]][ColIndex[j]] = 1;
+                                        }
+
+                                        break;
+                                   }
+                              }
+
                               for (u32 i = 0; i < RowAmount; ++i)
                               {
                                    for (u32 j = 0; j < ColumnAmount; ++j)
@@ -831,10 +887,8 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
                               }
                          }
                     }
-
                }
           }
-
           FigureUnit = FigureUnit->Next;
      }
 
@@ -880,9 +934,9 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
      {
           FigureUnitRenderBitmap(Buffer, FigureUnit);
           
-          DEBUGRenderQuad(Buffer, &FigureUnit->AreaQuad, {255, 0, 0});
-          DEBUGRenderFigureShell(Buffer, FigureUnit, {255, 0, 0});
-          
+          // DEBUGRenderQuad(Buffer, &FigureUnit->AreaQuad, {255, 0, 0});
+          // DEBUGRenderFigureShell(Buffer, FigureUnit, {255, 0, 0});
+
           FigureUnit = FigureUnit->Next;
      }
 
@@ -904,8 +958,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 
      if(!Memory->IsInitialized)
      {
-          u32 RowAmount    = 5;
-          u32 ColumnAmount = 5;
+          u32 RowAmount    = 10;
+          u32 ColumnAmount = 10;
           u32 FigureAmount = 10;
 
           // TODO(max): Make InActiveBlockSize calculation smarter!!!
@@ -953,6 +1007,14 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                }
           }
 
+          GridEntity->StickUnitsAmount = FigureAmount;
+          GridEntity->StickUnits = (sticked_unit*)calloc(sizeof(sticked_unit), FigureAmount);
+          Assert(GridEntity->StickUnits);
+          for (u32 i = 0; i < FigureAmount; ++i)
+          {
+               GridEntity->StickUnits[i].Index = -1;
+          }
+
           GridEntity->NormalSquareTexture     = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
           GridEntity->VerticalSquareTexture   = GetTexture(Memory, "grid_cell1.png", Buffer->Renderer);
           GridEntity->HorizontlaSquareTexture = GetTexture(Memory, "grid_cell2.png", Buffer->Renderer);
@@ -986,18 +1048,19 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           }
      }
 
+     // PrintArray2D(GridEntity->UnitField, GridEntity->RowAmount, GridEntity->ColumnAmount);
      GameUpdateGameState(Buffer, GameState, TimeElapsed);
 
      if(FigureEntity->GrabbedFigure)
      {
-          printf("IsSticked = %d\n", FigureEntity->GrabbedFigure->IsStick);
-          printf("IsIdle = %d\n", FigureEntity->GrabbedFigure->IsIdle);
+          // printf("IsSticked = %d\n", FigureEntity->GrabbedFigure->IsStick);
+          // printf("IsIdle = %d\n", FigureEntity->GrabbedFigure->IsIdle);
      }
 
      if(FigureEntity->GrabbedFigure)
      {
-          game_rect AreaQuad = FigureUnitGetArea(FigureEntity->GrabbedFigure);
-          DEBUGRenderQuad(Buffer, &AreaQuad, {255, 255, 255});
+          // game_rect AreaQuad = FigureUnitGetArea(FigureEntity->GrabbedFigure);
+          // DEBUGRenderQuad(Buffer, &AreaQuad, {255, 255, 255});
      }
 
      TimeElapsed = SDL_GetTicks();

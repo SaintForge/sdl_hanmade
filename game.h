@@ -103,12 +103,23 @@ struct figure_entity
      r32 RotationSum;
 };
 
+struct sticked_unit
+{
+     u32 Index;
+     u32 Row[4];
+     u32 Col[4];
+};
+
 struct grid_entity
 {
      u8 **UnitField;
+     
      u32 RowAmount;
      u32 ColumnAmount;
      u32 BlockSize;
+
+     u32 StickUnitsAmount;
+     sticked_unit *StickUnits;
 
      bool BlockIsGrabbed;
      bool BeginAnimationStart; // this is for tiny little animation at the beginning of a level

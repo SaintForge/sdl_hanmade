@@ -262,8 +262,10 @@ int main(int argc, char **argv)
      SDL_DisplayMode Display = {};
      SDL_GetDesktopDisplayMode(0, &Display);
 
-     SDL_Window *Window = SDL_CreateWindow("This is window", SDL_WINDOWPOS_CENTERED,
-                                           SDL_WINDOWPOS_CENTERED, 380, 700,
+     SDL_Window *Window = SDL_CreateWindow("This is window",
+                                           (Display.w / 4) - 190,
+                                           SDL_WINDOWPOS_CENTERED,
+                                           380, 700,
                                            SDL_WINDOW_ALLOW_HIGHDPI);
 
      if(Window)
