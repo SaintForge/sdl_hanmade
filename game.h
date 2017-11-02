@@ -76,6 +76,7 @@ struct figure_unit
      u32 Index;     
      r32 Angle;
      r32 DefaultAngle;
+     SDL_RendererFlip Flip;
      
      game_point Center;
      game_point DefaultCenter;

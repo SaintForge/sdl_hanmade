@@ -260,29 +260,6 @@ FigureUnitResizeBy(figure_unit *Entity, r32 ScaleFactor)
 
 }
 
-static void
-FigureUnitRotateShellBy(figure_unit *Entity, float Angle)
-{
-     if((s32)Entity->Angle == 0)
-     {
-          Entity->Angle = 0;
-     }
-
-     for (u32 i = 0; i < 4; ++i)
-     {
-          float Radians = Angle * (M_PI/180.0f);
-          float Cos = cos(Radians);
-          float Sin = sin(Radians);
-
-          float X = Entity->Center.x + (Entity->Shell[i].x - Entity->Center.x) * Cos
-               - (Entity->Shell[i].y - Entity->Center.y) * Sin;
-          float Y = Entity->Center.y + (Entity->Shell[i].x - Entity->Center.x) * Sin
-               + (Entity->Shell[i].y - Entity->Center.y) * Cos;
-
-          Entity->Shell[i].x = roundf(X);
-          Entity->Shell[i].y = roundf(Y);
-     }
-}
 
 static void
 CreateNewFigureUnit(char* AssetName, game_offscreen_buffer *Buffer,
@@ -388,6 +365,7 @@ CreateNewFigureUnit(char* AssetName, game_offscreen_buffer *Buffer,
      Figure->DefaultAngle = 0.0f;
      Figure->Form = Form;
      Figure->Type = Type;
+     Figure->Flip = SDL_FLIP_NONE;
      Figure->Texture = GetTexture(Memory, AssetName, Buffer->Renderer);
 
      Figure->Next = Entity;
@@ -454,6 +432,72 @@ FigureUnitGetArea(figure_unit *Unit)
      return(Area);
 }
 
+static void
+FigureUnitRotateShellBy(figure_unit *Entity, float Angle)
+{
+     if((s32)Entity->Angle == 0)
+     {
+          Entity->Angle = 0;
+     }
+
+     for (u32 i = 0; i < 4; ++i)
+     {
+          float Radians = Angle * (M_PI/180.0f);
+          float Cos = cos(Radians);
+          float Sin = sin(Radians);
+
+          float X = Entity->Center.x + (Entity->Shell[i].x - Entity->Center.x) * Cos
+               - (Entity->Shell[i].y - Entity->Center.y) * Sin;
+          float Y = Entity->Center.y + (Entity->Shell[i].x - Entity->Center.x) * Sin
+               + (Entity->Shell[i].y - Entity->Center.y) * Cos;
+
+          Entity->Shell[i].x = roundf(X);
+          Entity->Shell[i].y = roundf(Y);
+     }
+}
+
+static void
+FigureUnitFlipHorizontally(figure_unit *Unit)
+{
+     u32 NewX = 0;
+     u32 NewY = 0;
+     u32 NewCenterX = 0;
+     u32 NewCenterY = 0;
+     game_rect AreaQuad = FigureUnitGetArea(Unit);
+
+     if(Unit->Flip != SDL_FLIP_HORIZONTAL)
+     {
+          Unit->Flip = SDL_FLIP_HORIZONTAL;
+     }
+     else
+     {
+          Unit->Flip = SDL_FLIP_NONE;
+     }
+
+     if(AreaQuad.w > AreaQuad.h)
+     {
+          for (u32 i = 0; i < 4; ++i)
+          {
+               NewX = (AreaQuad.x + AreaQuad.w) - (Unit->Shell[i].x - AreaQuad.x);
+               Unit->Shell[i].x = NewX;
+          }
+
+          NewCenterX = (AreaQuad.x + AreaQuad.w) - (Unit->Center.x - AreaQuad.x);
+          Unit->Center.x = NewCenterX;
+     }
+     else
+     {
+          for (u32 i = 0; i < 4; ++i)
+          {
+               NewY = (AreaQuad.y + AreaQuad.h) - (Unit->Shell[i].y - AreaQuad.y);
+               Unit->Shell[i].y = NewY;
+          }
+
+          NewCenterY = (AreaQuad.y + AreaQuad.h) - (Unit->Center.y - AreaQuad.y);
+          Unit->Center.y = NewCenterY;
+     }
+}
+
 
 static void
 FigureUnitMove(figure_unit *Entity, s32 XShift, s32 YShift)
@@ -500,7 +544,7 @@ FigureUnitRenderBitmap(game_offscreen_buffer *Buffer, figure_unit *Entity)
      Center.y = Entity->Center.y - Entity->AreaQuad.y;
 
      SDL_RenderCopyEx(Buffer->Renderer, Entity->Texture,
-                      0, &Entity->AreaQuad, Entity->Angle, &Center, SDL_FLIP_NONE);
+                      0, &Entity->AreaQuad, Entity->Angle, &Center, Entity->Flip);
 }
 
 
@@ -587,11 +631,9 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *Group,
                          if(!GrabbedFigure->IsEnlarged)
                          {
                               BlockRatio = ActiveBlockSize / DefaultBlockSize;
-                              printf("BlockRatio = %f\n", BlockRatio);
-                              GrabbedFigure->IsEnlarged = true;
                               GrabbedFigure->IsIdle = false;
+                              GrabbedFigure->IsEnlarged = true;
                               FigureUnitResizeBy(GrabbedFigure, BlockRatio);
-                              printf("isIdle = false");
                          }
 
                          FigureUnitSwapAtEnd(Group->HeadFigure, GrabbedFigure->Index);
@@ -622,8 +664,23 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *Group,
                {
                     if(!Group->IsRotating)
                     {
-                         Group->IsRotating = true;
-                         FigureUnitRotateShellBy(Group->GrabbedFigure, 90);
+                         switch(Group->GrabbedFigure->Type)
+                         {
+                              case classic:
+                              {
+                                   Group->IsRotating = true;
+                                   FigureUnitRotateShellBy(Group->GrabbedFigure, 90);
+                              } break;
+                              case mirror:
+                              {
+                                   FigureUnitFlipHorizontally(Group->GrabbedFigure);
+                              } break;
+
+                              case stone:
+                              {
+                                   
+                              } break;
+                         }
                     }
                }
           } 
@@ -760,12 +817,10 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
           bool IsIdle     = FigureUnit->IsIdle;
           bool IsSticked  = FigureUnit->IsStick;
           bool IsAttached = FigureUnit->Index == ActiveIndex;
-          // printf("Index %d is Attached\n", ActiveIndex);
 
           if(IsIdle)
           {
                FigureUnit = FigureUnit->Next;
-               // printf("continue!\n");
                continue;
           }
           
@@ -934,8 +989,8 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
      {
           FigureUnitRenderBitmap(Buffer, FigureUnit);
           
-          // DEBUGRenderQuad(Buffer, &FigureUnit->AreaQuad, {255, 0, 0});
-          // DEBUGRenderFigureShell(Buffer, FigureUnit, {255, 0, 0});
+          DEBUGRenderQuad(Buffer, &FigureUnit->AreaQuad, {255, 0, 0});
+          DEBUGRenderFigureShell(Buffer, FigureUnit, {255, 0, 0});
 
           FigureUnit = FigureUnit->Next;
      }
@@ -958,9 +1013,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 
      if(!Memory->IsInitialized)
      {
-          u32 RowAmount    = 10;
-          u32 ColumnAmount = 10;
-          u32 FigureAmount = 10;
+          u32 RowAmount    = 4;
+          u32 ColumnAmount = 4;
+          u32 FigureAmount = 4;
 
           // TODO(max): Make InActiveBlockSize calculation smarter!!!
           InActiveBlockSize = GameResizeInActiveBLock(Buffer, FigureAmount);
@@ -1020,15 +1075,15 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           GridEntity->HorizontlaSquareTexture = GetTexture(Memory, "grid_cell2.png", Buffer->Renderer);
 
           CreateNewFigureUnit("i_d.png", Buffer, FigureEntity->HeadFigure, 0, 0,   0,   InActiveBlockSize, I_figure, classic, Memory);
-          CreateNewFigureUnit("i_d.png", Buffer, FigureEntity->HeadFigure, 1, 100, 100, InActiveBlockSize, I_figure, classic, Memory);
-          CreateNewFigureUnit("l_d.png", Buffer, FigureEntity->HeadFigure, 2, 200, 200, InActiveBlockSize, L_figure, classic, Memory);
-          CreateNewFigureUnit("j_d.png", Buffer, FigureEntity->HeadFigure, 3, 0,   0,   InActiveBlockSize, J_figure, classic, Memory);
-          CreateNewFigureUnit("s_d.png", Buffer, FigureEntity->HeadFigure, 4, 100, 100, InActiveBlockSize, S_figure, classic, Memory);
-          CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 5, 200, 200, InActiveBlockSize, Z_figure, classic, Memory);
-          CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 6, 0,   0,   InActiveBlockSize, T_figure, classic, Memory);
-          CreateNewFigureUnit("s_d.png", Buffer, FigureEntity->HeadFigure, 7, 100, 100, InActiveBlockSize, S_figure, classic, Memory);
-          CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 8, 200, 200, InActiveBlockSize, Z_figure, classic, Memory);
-          CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 9, 0,   0,   InActiveBlockSize, T_figure, classic, Memory);
+          CreateNewFigureUnit("i_m.png", Buffer, FigureEntity->HeadFigure, 1, 100, 100, InActiveBlockSize, I_figure, classic, Memory);
+          CreateNewFigureUnit("l_m.png", Buffer, FigureEntity->HeadFigure, 2, 200, 200, InActiveBlockSize, L_figure, mirror, Memory);
+          CreateNewFigureUnit("j_s.png", Buffer, FigureEntity->HeadFigure, 3, 0,   0,   InActiveBlockSize, J_figure, stone, Memory);
+          // CreateNewFigureUnit("s_d.png", Buffer, FigureEntity->HeadFigure, 4, 100, 100, InActiveBlockSize, S_figure, classic, Memory);
+          // CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 5, 200, 200, InActiveBlockSize, Z_figure, classic, Memory);
+          // CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 6, 0,   0,   InActiveBlockSize, T_figure, classic, Memory);
+          // CreateNewFigureUnit("s_d.png", Buffer, FigureEntity->HeadFigure, 7, 100, 100, InActiveBlockSize, S_figure, classic, Memory);
+          // CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 8, 200, 200, InActiveBlockSize, Z_figure, classic, Memory);
+          // CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 9, 0,   0,   InActiveBlockSize, T_figure, classic, Memory);
 
           FigureEntityAlignHorizontally(FigureEntity, InActiveBlockSize);
           
@@ -1059,8 +1114,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 
      if(FigureEntity->GrabbedFigure)
      {
-          // game_rect AreaQuad = FigureUnitGetArea(FigureEntity->GrabbedFigure);
-          // DEBUGRenderQuad(Buffer, &AreaQuad, {255, 255, 255});
+          game_rect AreaQuad = FigureUnitGetArea(FigureEntity->GrabbedFigure);
+          DEBUGRenderQuad(Buffer, &AreaQuad, {255, 255, 255});
      }
 
      TimeElapsed = SDL_GetTicks();
