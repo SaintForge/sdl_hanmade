@@ -155,9 +155,9 @@ IsPointInsideRect(s32 X, s32 Y, game_rect *Quad)
 {
      if(!Quad) return false;
 
-     if(X < Quad->x)                  return false;
+     if(X <= Quad->x)                 return false;
+     else if(Y <= Quad->y)            return false;
      else if(X > (Quad->x + Quad->w)) return false;
-     else if(Y < Quad->y)             return false;
      else if(Y > (Quad->y + Quad->h)) return false;
      else                             return true;
 }
@@ -859,7 +859,7 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
           }
           else if(!IsSticked && !IsAttached)
           {
-               if(!FigureEntity->IsRotating)
+               if(!FigureEntity->IsRotating && !FigureEntity->IsFlipping)
                {
                     // Check if we can stick it!
                     u32 Count   = 0;
@@ -995,20 +995,26 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
 
      if(FigureEntity->IsFlipping)
      {
-          if(FigureEntity->FadeInSum > 0)
+          if(FigureEntity->FadeInSum > 10)
           {
-               FigureEntity->FadeInSum -= 5;
+               FigureEntity->FadeInSum -= 10;
                FigureEntity->Alpha = FigureEntity->FadeInSum;
                
-               if(FigureEntity->Alpha == 0)
+               if(FigureEntity->Alpha <= 10)
                {
                     FigureUnitFlipHorizontally(FigureEntity->GrabbedFigure);
                }
           }
-          else if(FigureEntity->FadeOutSum < 255)
+          else if(FigureEntity->FadeOutSum < 245)
           {
-               FigureEntity->FadeOutSum += 5;
+               FigureEntity->FadeOutSum += 10;
                FigureEntity->Alpha = FigureEntity->FadeOutSum;
+
+               if(FigureEntity->Alpha >= 245)
+               {
+                    FigureEntity->Alpha = 255;
+                    FigureEntity->FadeOutSum = 255;
+               }
           }
 
           if(FigureEntity->FadeOutSum == 255)
@@ -1079,7 +1085,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           GridEntity->RowAmount    = RowAmount;
           GridEntity->ColumnAmount = ColumnAmount;
           GridEntity->BlockSize    = ActiveBlockSize;
-          GridEntity->BlockIsGrabbed = false;
+          GridEntity->BlockIsGrabbed      = false;
           GridEntity->BeginAnimationStart = true;
           GridEntity->GridArea.w = GridEntity->ColumnAmount * ActiveBlockSize;
           GridEntity->GridArea.h = GridEntity->RowAmount * ActiveBlockSize;
@@ -1099,6 +1105,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           }
 
           GridEntity->StickUnitsAmount = FigureAmount;
+          
           GridEntity->StickUnits = (sticked_unit*)calloc(sizeof(sticked_unit), FigureAmount);
           Assert(GridEntity->StickUnits);
           for (u32 i = 0; i < FigureAmount; ++i)
