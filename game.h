@@ -72,7 +72,8 @@ struct figure_unit
      bool IsStick;
      bool IsEnlarged; // not sure if we need it
      bool IsIdle;
-     
+
+
      u32 Index;     
      r32 Angle;
      r32 DefaultAngle;
@@ -100,7 +101,11 @@ struct figure_entity
 
      bool IsGrabbed;
      bool IsRotating;
+     bool IsFlipping;
 
+     u8 Alpha;
+     u8 FadeInSum;
+     u8 FadeOutSum;
      r32 RotationSum;
 };
 

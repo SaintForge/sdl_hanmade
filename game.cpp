@@ -643,7 +643,7 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *Group,
                }
                else
                {
-                    if(!Group->IsRotating)
+                    if(!Group->IsRotating && !Group->IsFlipping)
                     {
                          if(IsFigureUnitInsideRect(Group->GrabbedFigure, &Group->FigureArea))
                          {
@@ -662,26 +662,35 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *Group,
           {
                if(Group->IsGrabbed)
                {
-                    if(!Group->IsRotating)
+                    switch(Group->GrabbedFigure->Type)
                     {
-                         switch(Group->GrabbedFigure->Type)
+                         case classic:
                          {
-                              case classic:
+                              if (!Group->IsRotating)
                               {
                                    Group->IsRotating = true;
                                    FigureUnitRotateShellBy(Group->GrabbedFigure, 90);
-                              } break;
-                              case mirror:
+                              }
+                         } break;
+                         case mirror:
+                         {
+                              if (!Group->IsFlipping)
                               {
-                                   FigureUnitFlipHorizontally(Group->GrabbedFigure);
-                              } break;
 
-                              case stone:
-                              {
+                                   SDL_SetTextureBlendMode(Group->GrabbedFigure->Texture, SDL_BLENDMODE_BLEND);
                                    
-                              } break;
+                                   Group->IsFlipping = true;
+                                   Group->Alpha      = 255;
+                                   Group->FadeInSum  = 255;
+                                   Group->FadeOutSum = 0;
+                              }
+                         } break;
+
+                         case stone:
+                         {
+                                   
+                         } break;
                          }
-                    }
                }
           } 
      }
@@ -982,6 +991,33 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
                FigureEntity->RotationSum = 0;
                FigureEntity->IsRotating = false;
           }
+     }
+
+     if(FigureEntity->IsFlipping)
+     {
+          if(FigureEntity->FadeInSum > 0)
+          {
+               FigureEntity->FadeInSum -= 5;
+               FigureEntity->Alpha = FigureEntity->FadeInSum;
+               
+               if(FigureEntity->Alpha == 0)
+               {
+                    FigureUnitFlipHorizontally(FigureEntity->GrabbedFigure);
+               }
+          }
+          else if(FigureEntity->FadeOutSum < 255)
+          {
+               FigureEntity->FadeOutSum += 5;
+               FigureEntity->Alpha = FigureEntity->FadeOutSum;
+          }
+
+          if(FigureEntity->FadeOutSum == 255)
+          {
+               FigureEntity->IsFlipping = false;
+          }
+          
+          SDL_SetTextureAlphaMod(FigureEntity->GrabbedFigure->Texture,
+                                 FigureEntity->Alpha);
      }
 
      FigureUnit = FigureEntity->HeadFigure;
