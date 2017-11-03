@@ -176,7 +176,6 @@ IsFigureUnitInsideRect(figure_unit *Unit, game_rect *AreaQuad)
      return false;
 }
 
-
 static void
 FigureUnitSwapAtEnd(figure_unit *&Head, u32 FigureIndex)
 {
@@ -796,8 +795,6 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
           }
 
           FigureUnitDefineDefaultArea(Unit, NewPositionX, NewPositionY);
-          printf("Unit.x = %d\n", Unit->AreaQuad.x);
-          printf("Unit.y = %d\n", Unit->AreaQuad.y);
 
           Unit = Unit->Next;
      }
