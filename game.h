@@ -104,8 +104,8 @@ struct figure_entity
      bool IsFlipping;
 
      u8 Alpha;
-     u8 FadeInSum;
-     u8 FadeOutSum;
+      r32 FadeInSum;
+     r32 FadeOutSum;
      r32 RotationSum;
 };
 
@@ -143,6 +143,9 @@ struct game_state
 
      u32 ActiveBlockSize;
      u32 InActiveBlockSize;
+    
+    r32 AlphaPerSec;
+    r32 RotationVel;
 };
 
 struct game_memory
