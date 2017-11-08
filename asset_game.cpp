@@ -14,11 +14,9 @@ SDLSizeOfSDL_RWops(SDL_RWops *&BinaryFile)
 {
      u32 DefaultOffset = SDL_RWtell(BinaryFile);
      SDL_RWseek(BinaryFile, 0, RW_SEEK_END);
-		 
-     u32 ByteSize = SDL_RWtell(BinaryFile);
+    u32 ByteSize = SDL_RWtell(BinaryFile);
      SDL_RWseek(BinaryFile, DefaultOffset, RW_SEEK_SET);
-
-     return (ByteSize);
+return(ByteSize);
 }
 
 static u64
@@ -26,8 +24,7 @@ SDLSizeOfBinaryFile(char *FileName)
 {
      SDL_RWops *File = SDL_RWFromFile(FileName, "rb");
      u64 ByteSize = SDLSizeOfSDL_RWops(File);
-
-     return (ByteSize);
+return(ByteSize);
 }
 
 #if 0

@@ -294,114 +294,142 @@ FigureUnitResizeBy(figure_unit *Entity, r32 ScaleFactor)
 
 
 static void
-CreateNewFigureUnit(char* AssetName, game_offscreen_buffer *Buffer,
-                    figure_unit *&Entity, u32 EntityIndex, u32 X, u32 Y, u32 BlockSize,
-                    figure_form Form, figure_type Type, game_memory *Memory)
+CreateFigureUnit(figure_unit* Figure, char* AssetName, 
+                 figure_form Form,figure_type Type,
+                 game_memory *Memory, game_offscreen_buffer *Buffer)
 {
-     figure_unit *Figure = NULL;
-     Figure = (figure_unit*)malloc(sizeof(figure_unit));
-     Figure->Next = NULL;
-
-     int Index           = 0;
+    if (!Figure) return;
+    
+    //Figure->Index        = EntityIndex;
+    Figure->IsIdle       = true;
+    Figure->IsStick      = false;
+    Figure->IsEnlarged   = false;
+    Figure->Angle        = 0.0f;
+    Figure->DefaultAngle = 0.0f;
+    Figure->Form = Form;
+    Figure->Type = Type;
+    Figure->Flip = SDL_FLIP_NONE;
+    Figure->Texture = GetTexture(Memory, AssetName, Buffer->Renderer);
+    
+    
      int RowAmount       = 0;
      int ColumnAmount    = 0;
+    u32 BlockSize       = Memory->State.InActiveBlockSize;
      float CenterOffset  = 0.5f;
      vector<vector<int>> matrix(2);
      for (int i = 0; i < 2; i++)
      {
           matrix[i].resize(4);
      }
-
+     
      switch(Form)
      {
           case I_figure:
           {
-               matrix = { {1, 1, 1, 1}, {0, 0, 0, 0} };
-               RowAmount = 4;
+               matrix = 
+              { 
+                   {1, 1, 1, 1},
+                   {0, 0, 0, 0} 
+               };
+               RowAmount    = 4;
                ColumnAmount = 1;
           } break;
 	  
           case O_figure:
           {
-               matrix = { { 1, 1 }, { 1, 1 } };
-               RowAmount = 2;
+               matrix = 
+              { 
+                  { 1, 1 },
+                  { 1, 1 } 
+              };
+               RowAmount    = 2;
                ColumnAmount = 2;
           }break;
 	  
           case Z_figure:
           {
-               matrix = { {1, 1, 0}, {0, 1, 1} };
-               RowAmount = 3;
+               matrix =
+              {
+                  {1, 1, 0}, 
+                  {0, 1, 1} 
+              };
+               RowAmount    = 3;
                ColumnAmount = 2;
           }break;
 	  
           case S_figure:
           {
-               matrix = { {0, 1, 1}, {1, 1, 0} };
-               RowAmount = 3;
+               matrix =
+              { 
+                  {0, 1, 1}, 
+                  {1, 1, 0} 
+              };
+               RowAmount    = 3;
                ColumnAmount = 2;
           }break;
 	  
           case T_figure:
           {
-               matrix = { {0, 1, 0}, {1, 1, 1} };
+               matrix = { 
+                   {0, 1, 0},
+                   {1, 1, 1}
+               };
                CenterOffset = 0.75f;
-               RowAmount = 3;
+               RowAmount    = 3;
                ColumnAmount = 2;
           }break;
 	  
           case L_figure:
           {
-               matrix = { {0, 0, 1},{1, 1, 1} };
+               matrix = 
+              { 
+                  {0, 0, 1},
+                  {1, 1, 1}
+              };
                CenterOffset = 0.75f;
-               RowAmount = 3;
+               RowAmount    = 3;
                ColumnAmount = 2;
           }break;
 	  
           case J_figure:
           {
-               matrix = { {1, 0, 0}, {1, 1, 1} };
+               matrix = 
+              {
+                  {1, 0, 0},
+                  {1, 1, 1} 
+              };
                CenterOffset = 0.75f;
-               RowAmount = 3;
+               RowAmount    = 3;
                ColumnAmount = 2;
           }break;
      }
 
-     Figure->AreaQuad.x = X;
-     Figure->AreaQuad.y = Y;
+     Figure->AreaQuad.x = 0;
+     Figure->AreaQuad.y = 0;
      Figure->AreaQuad.w = RowAmount*BlockSize;
      Figure->AreaQuad.h = ColumnAmount*BlockSize;
      Figure->Center.x = Figure->AreaQuad.x + (Figure->AreaQuad.w / 2);
      Figure->Center.y = Figure->AreaQuad.y + (((float)Figure->AreaQuad.h) * CenterOffset);
      Figure->DefaultCenter = Figure->Center;
      
-     for (u32 i = 0; i < 2; i++)
+     int Index     = 0;
+     u32 HalfBlock = BlockSize >> 1;
+     
+     for (u32 i = 0; i < 2; i++) 
      {
-          for (u32 j = 0; j < 4; j++)
-          {
-               if(matrix[i][j] == 1)
-               {
-                    Figure->Shell[Index].x = Figure->AreaQuad.x + (j * BlockSize) + (BlockSize / 2);
-                    Figure->Shell[Index].y = Figure->AreaQuad.y + (i * BlockSize) + (BlockSize / 2);
+          for (u32 j = 0; j < 4; j++) 
+         {
+               if(matrix[i][j] == 1) 
+             {
+                    Figure->Shell[Index].x      = Figure->AreaQuad.x + (j * BlockSize) + HalfBlock;
+                    Figure->Shell[Index].y      = Figure->AreaQuad.y + (i * BlockSize) + HalfBlock;
                     Figure->DefaultShell[Index] = Figure->Shell[Index];
                     Index++;
                }
           }
      }
 
-     Figure->Index        = EntityIndex;
-     Figure->IsIdle       = true;
-     Figure->IsStick      = false;
-     Figure->IsEnlarged   = false;
-     Figure->Angle        = 0.0f;
-     Figure->DefaultAngle = 0.0f;
-     Figure->Form = Form;
-     Figure->Type = Type;
-     Figure->Flip = SDL_FLIP_NONE;
-     Figure->Texture = GetTexture(Memory, AssetName, Buffer->Renderer);
-
-     Figure->Next = Entity;
-     Entity = Figure;
+     
 }
 
 static game_rect
@@ -787,25 +815,22 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
      game_rect AreaQuad    = {};
      game_rect DefaultZone = Entity->FigureArea;
 
-     figure_unit *Unit = Entity->HeadFigure;
      for (u32 i = 0; i < Size; ++i)
      {
-          FigureWidth  = Unit->AreaQuad.w;
-          FigureHeight = Unit->AreaQuad.h;
+          FigureWidth  = Entity->FigureUnit[i].AreaQuad.w;
+          FigureHeight = Entity->FigureUnit[i].AreaQuad.h;
 
           if(FigureWidth > FigureHeight)
           {
-               FigureUnitRotateShellBy(Unit, 90.0);
-               Unit->Angle += 90;
+               FigureUnitRotateShellBy(&Entity->FigureUnit[i], 90.0);
+               Entity->FigureUnit->Angle += 90;
           }
           
-          AreaQuad = FigureUnitGetArea(Unit);
+          AreaQuad = FigureUnitGetArea(&Entity->FigureUnit[i]);
           i % 2 == 0
                ? RowSize1 += AreaQuad.w + FigureIntervalX
                : RowSize2 += AreaQuad.w + FigureIntervalX;
-
-          Unit = Unit->Next;
-     }
+}
 
      u32 PitchY          = 0;
      s32 NewPositionX    = 0;
@@ -814,11 +839,10 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
      u32 CurrentRowSize2 = 0;
      u32 FigureBoxHeight = 0;
 
-     Unit = Entity->HeadFigure;
      for (u32 i = 0; i < Size; ++i)
      {
           PitchY = i % 2;
-          AreaQuad = FigureUnitGetArea(Unit);
+          AreaQuad = FigureUnitGetArea(&Entity->FigureUnit[i]);
 
           FigureBoxHeight = BlockSize * 4;
           NewPositionY = DefaultZone.y + (FigureBoxHeight * PitchY);
@@ -840,10 +864,8 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
                CurrentRowSize2 += AreaQuad.w + FigureIntervalX;
           }
 
-          FigureUnitDefineDefaultArea(Unit, NewPositionX, NewPositionY);
-
-          Unit = Unit->Next;
-     }
+          FigureUnitDefineDefaultArea(&Entity->FigureUnit[i], NewPositionX, NewPositionY);
+}
 }
 
 static void
@@ -1116,20 +1138,34 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
          GameState->RotationVel = 600.0f;
           
           // Figure initialization
-          FigureEntity = (figure_entity *)malloc(sizeof(figure_entity));
-          Assert(FigureEntity);
-
-          FigureEntity->FigureAmount  = FigureAmount;
-          FigureEntity->IsGrabbed     = false;
-          FigureEntity->IsRotating    = false;
-          FigureEntity->RotationSum   = 0;
-          FigureEntity->HeadFigure    = 0;
-          FigureEntity->GrabbedFigure = 0;
-          FigureEntity->FigureArea.w  = Buffer->Width;
-          FigureEntity->FigureArea.h  = InActiveBlockSize * 9;
-          FigureEntity->FigureArea.y  = Buffer->Height - (FigureEntity->FigureArea.h);
-          FigureEntity->FigureArea.x  = 0;
-
+          FigureEntity = (figure_entity*)malloc(sizeof(figure_entity));
+         Assert(FigureEntity);
+         
+         FigureEntity->FigureAmount  = FigureAmount;
+         FigureEntity->IsGrabbed     = false;
+         FigureEntity->IsRotating    = false;
+         FigureEntity->RotationSum   = 0;
+         FigureEntity->HeadFigure    = 0;
+         FigureEntity->GrabbedFigure = 0;
+         FigureEntity->FigureArea.w  = Buffer->Width;
+         FigureEntity->FigureArea.h  = InActiveBlockSize * 9;
+         FigureEntity->FigureArea.y  = Buffer->Height - (FigureEntity->FigureArea.h);
+         FigureEntity->FigureArea.x  = 0;
+         
+         FigureEntity->FigureUnit = (figure_unit*)malloc(sizeof(figure_unit)*FigureAmount);
+         Assert(FigureEntity->FigureUnit);
+         CreateFigureUnit(&FigureEntity->FigureUnit[0], "z_m.png", Z_figure, mirror, Memory, Buffer);
+         CreateFigureUnit(&FigureEntity->FigureUnit[1], "s_m.png", S_figure, mirror, Memory, Buffer);
+         CreateFigureUnit(&FigureEntity->FigureUnit[2], "l_m.png", L_figure, mirror, Memory, Buffer);
+         CreateFigureUnit(&FigureEntity->FigureUnit[3], "j_m.png", J_figure, mirror, Memory, Buffer);
+         
+         FigureEntity->FigureOrder = (u32*)malloc(sizeof(u32) * FigureAmount);
+         Assert(FigureEntity->FigureOrder);
+         
+         for(u32 i = 0; i < FigureAmount; ++i) FigureEntity->FigureOrder[i] = i;
+         
+         FigureEntityAlignHorizontally(FigureEntity, InActiveBlockSize);
+         
           // Grid initialization
           GridEntity  = (grid_entity *) malloc(sizeof(grid_entity));
           Assert(GridEntity);
@@ -1169,18 +1205,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           GridEntity->VerticalSquareTexture   = GetTexture(Memory, "grid_cell1.png", Buffer->Renderer);
           GridEntity->HorizontlaSquareTexture = GetTexture(Memory, "grid_cell2.png", Buffer->Renderer);
 
-          CreateNewFigureUnit("z_m.png", Buffer, FigureEntity->HeadFigure, 0, 0,   0,   InActiveBlockSize, Z_figure, mirror, Memory);
-          CreateNewFigureUnit("s_m.png", Buffer, FigureEntity->HeadFigure, 1, 100, 100, InActiveBlockSize, S_figure, mirror, Memory);
-          CreateNewFigureUnit("l_m.png", Buffer, FigureEntity->HeadFigure, 2, 200, 200, InActiveBlockSize, L_figure, mirror, Memory);
-          CreateNewFigureUnit("j_m.png", Buffer, FigureEntity->HeadFigure, 3, 0,   0,   InActiveBlockSize, J_figure, mirror, Memory);
-          // CreateNewFigureUnit("s_d.png", Buffer, FigureEntity->HeadFigure, 4, 100, 100, InActiveBlockSize, S_figure, classic, Memory);
-          // CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 5, 200, 200, InActiveBlockSize, Z_figure, classic, Memory);
-          // CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 6, 0,   0,   InActiveBlockSize, T_figure, classic, Memory);
-          // CreateNewFigureUnit("s_d.png", Buffer, FigureEntity->HeadFigure, 7, 100, 100, InActiveBlockSize, S_figure, classic, Memory);
-          // CreateNewFigureUnit("z_d.png", Buffer, FigureEntity->HeadFigure, 8, 200, 200, InActiveBlockSize, Z_figure, classic, Memory);
-          // CreateNewFigureUnit("t_d.png", Buffer, FigureEntity->HeadFigure, 9, 0,   0,   InActiveBlockSize, T_figure, classic, Memory);
-
-          FigureEntityAlignHorizontally(FigureEntity, InActiveBlockSize);
           
           Memory->IsInitialized = true;
           Memory->State.ActiveBlockSize = ActiveBlockSize;

@@ -93,10 +93,15 @@ struct figure_unit
 
 struct figure_entity
 {
-     figure_unit *HeadFigure;
+    //u32 FigureAmountReserved;
+    u32 FigureActive;
+    u32 FigureAmount;
+    u32 *FigureOrder;
+    figure_unit *FigureUnit;
+    
+    figure_unit *HeadFigure;
      figure_unit *GrabbedFigure;
      
-     u32 FigureAmount;
      game_rect FigureArea;
 
      bool IsGrabbed;
