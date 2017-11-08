@@ -871,30 +871,29 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
 static void
 GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeElapsed)
 {
-     figure_unit   *FigureUnit    = 0;
      grid_entity   *&GridEntity   = State->GridEntity;
      figure_entity *&FigureEntity = State->FigureEntity;
+    
 
      game_rect AreaQuad = {};
      u32 RowAmount    = GridEntity->RowAmount;
      u32 ColumnAmount = GridEntity->ColumnAmount;
      u32 FigureAmount = FigureEntity->FigureAmount;
-     u32 ActiveIndex  = FigureEntity->GrabbedFigure ? FigureEntity->GrabbedFigure->Index : -1;
+     u32 ActiveIndex  = FigureEntity->FigureActive;
      
      u32 ActiveBlockSize   = State->ActiveBlockSize;
      u32 InActiveBlockSize = State->InActiveBlockSize;
-
-     FigureUnit = FigureEntity->HeadFigure;
-     for (u32 Index = 0; Index < FigureAmount; ++Index)
+     figure_unit *FigureUnit = FigureEntity->FigureUnit;
+     
+for (u32 Index = 0; Index < FigureAmount; ++Index)
      {
-          u32 FigureIndex = FigureUnit->Index;
+          u32 FigureIndex = FigureEntity->FigureOrder[Index];
           bool IsIdle     = FigureUnit->IsIdle;
           bool IsSticked  = FigureUnit->IsStick;
-          bool IsAttached = FigureUnit->Index == ActiveIndex;
+          bool IsAttached = FigureIndex == ActiveIndex;
 
           if(IsIdle)
           {
-               FigureUnit = FigureUnit->Next;
                continue;
           }
           
@@ -920,7 +919,7 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
                     }
                }
 
-               FigureUnit->IsStick = false;
+               FigureUnit[FigureIndex].IsStick = false;
           }
           else if(!IsSticked && !IsAttached)
           {
@@ -977,10 +976,9 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
 
                          if(IsFree)
                          {
-                              FigureUnit->IsStick = true;
-                              // FigureUnit->IsIdle  = false;
-
-                              FigureUnitMove(FigureUnit, OffsetX, OffsetY);
+                              FigureUnit[FigureIndex].IsStick = true;
+                              
+                              FigureUnitMove(&FigureUnit[FigureIndex], OffsetX, OffsetY);
 
                               u32 StickSize = GridEntity->StickUnitsAmount;
                               for (u32 i = 0; i < StickSize; ++i)
@@ -1010,8 +1008,8 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
                                    }
                               }
                               
-                              FigureUnitSwapAtBeginning(FigureEntity->HeadFigure, FigureUnit->Index);
-                              DEBUGPrintEntityOrder(FigureEntity);
+                              //FigureUnitSwapAtBeginning(FigureEntity->HeadFigure, FigureUnit->Index);
+                              //DEBUGPrintEntityOrder(FigureEntity);
                               
                               if(IsFull == true)
                               {
@@ -1021,11 +1019,8 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
                     }
                }
           }
-          FigureUnit = FigureUnit->Next;
-     }
+          }
 
-
-     
      AreaQuad.w = GridEntity->BlockSize;
      AreaQuad.h = GridEntity->BlockSize;
 
@@ -1049,12 +1044,12 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
 
           if(FigureEntity->RotationSum < 90.0f && !(FigureEntity->RotationSum + AngleDt >= 90.0f))
           {
-               FigureEntity->GrabbedFigure->Angle += AngleDt;
+               FigureEntity->FigureUnit[ActiveIndex].Angle += AngleDt;
                FigureEntity->RotationSum += AngleDt;
           }
           else
           {
-               FigureEntity->GrabbedFigure->Angle += 90.0f - FigureEntity->RotationSum;
+               FigureEntity->FigureUnit[ActiveIndex].Angle += 90.0f - FigureEntity->RotationSum;
                FigureEntity->RotationSum = 0;
                FigureEntity->IsRotating = false;
           }
@@ -1073,7 +1068,7 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
                    FigureEntity->FadeInSum = 0;
                    printf("fade in complete!\n");
                    
-                    FigureUnitFlipHorizontally(FigureEntity->GrabbedFigure);
+                    FigureUnitFlipHorizontally(&FigureUnit[ActiveIndex]);
                }
           }
           else if(FigureEntity->FadeOutSum < 255)
@@ -1094,20 +1089,17 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
                FigureEntity->IsFlipping = false;
           }
           
-          SDL_SetTextureAlphaMod(FigureEntity->GrabbedFigure->Texture,
+          SDL_SetTextureAlphaMod(FigureUnit[ActiveIndex].Texture,
                                  FigureEntity->Alpha);
      }
 
-     FigureUnit = FigureEntity->HeadFigure;
-     while(FigureUnit != NULL)
+     for(u32 i = 0; i < FigureAmount; ++i)
      {
-          FigureUnitRenderBitmap(Buffer, FigureUnit);
+          FigureUnitRenderBitmap(Buffer, &FigureUnit[i]);
           
-          DEBUGRenderQuad(Buffer, &FigureUnit->AreaQuad, {255, 0, 0});
-          DEBUGRenderFigureShell(Buffer, FigureUnit, {255, 0, 0});
-
-          FigureUnit = FigureUnit->Next;
-     }
+          DEBUGRenderQuad(Buffer, &FigureUnit[i].AreaQuad, {255, 0, 0});
+          DEBUGRenderFigureShell(Buffer, &FigureUnit[i], {255, 0, 0});
+}
 
 }
 
