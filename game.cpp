@@ -381,7 +381,8 @@ CreateFigureUnit(figure_unit* Figure, char* AssetName,
 	  
           case T_figure:
           {
-               matrix = { 
+               matrix = 
+              { 
                    {0, 1, 0},
                    {1, 1, 1}
                };
@@ -830,7 +831,7 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
           if(FigureWidth > FigureHeight)
           {
                FigureUnitRotateShellBy(&Entity->FigureUnit[i], 90.0);
-               Entity->FigureUnit->Angle += 90;
+               Entity->FigureUnit[i].Angle += 90.0;
           }
           
           AreaQuad = FigureUnitGetArea(&Entity->FigureUnit[i]);

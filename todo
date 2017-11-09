@@ -1,4 +1,8 @@
 + 1. Change order of the figure when it sticks to the grid 
 + 2. Change the way in which we decide to pick a particular figure so that it
 	checks the shell rectangles not just the whole area of the figure
+
+
+
 3. Maybe we should change our list container just to array 
+	3.1 get order of figure to work!!!
