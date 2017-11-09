@@ -67,12 +67,9 @@ enum figure_type
 
 struct figure_unit
 {
-     figure_unit *Next;
-     
      bool IsStick;
      bool IsEnlarged; // not sure if we need it
      bool IsIdle;
-
 
      u32 Index;     
      r32 Angle;
@@ -99,10 +96,7 @@ struct figure_entity
     u32 *FigureOrder;
     figure_unit *FigureUnit;
     
-    figure_unit *HeadFigure;
-     figure_unit *GrabbedFigure;
-     
-     game_rect FigureArea;
+    game_rect FigureArea;
 
      bool IsGrabbed;
      bool IsRotating;

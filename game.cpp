@@ -49,6 +49,7 @@ DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, SDL_C
      SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, 255);
 }
 
+#if 0
 static void
 DEBUGPrintEntityOrder(figure_entity *FigureEntity)
 {
@@ -60,6 +61,8 @@ DEBUGPrintEntityOrder(figure_entity *FigureEntity)
     }
     printf("\n");
 }
+
+#endif
 
 static u32
 GameResizeActiveBlock(game_offscreen_buffer *Buffer, u32 InActiveBlockSize, u32 RowAmount, u32 ColumnAmount)
@@ -145,6 +148,7 @@ GameCopyImageToBuffer(game_bitmap* GameBitmap, u32 X, u32 Y,
 }
 #endif
 
+#if 0
 static figure_unit*
 GetFigureUnitAt(figure_entity *Group, u32 Index)
 {
@@ -161,6 +165,8 @@ GetFigureUnitAt(figure_entity *Group, u32 Index)
           Figure = Figure->Next;
      }
 }
+
+#endif
 
 inline static bool
 IsPointInsideRect(s32 X, s32 Y, game_rect *Quad)
@@ -188,6 +194,7 @@ IsFigureUnitInsideRect(figure_unit *Unit, game_rect *AreaQuad)
      return false;
 }
 
+#if 0
 static void
 FigureUnitSwapAtEnd(figure_unit *&Head, u32 FigureIndex)
 {
@@ -228,6 +235,8 @@ FigureUnitSwapAtEnd(figure_unit *&Head, u32 FigureIndex)
      TargetNode->Next = NULL;
 }
 
+
+
 static void
 FigureUnitSwapAtBeginning(figure_unit *&FigureHead, u32 Index)
 {
@@ -248,6 +257,8 @@ FigureUnitSwapAtBeginning(figure_unit *&FigureHead, u32 Index)
         CurrentNode->Next = FigureHead;
         FigureHead = CurrentNode;
         }
+        
+#endif
 
 static void
 FigureUnitResizeBy(figure_unit *Entity, r32 ScaleFactor)
@@ -657,105 +668,101 @@ FigureUnitDefineDefaultArea(figure_unit *Unit, s32 X, s32 Y)
 }
 
 static void
-FigureEntityUpdateEvent(game_input *Input, figure_entity *Group,
+FigureEntityUpdateEvent(game_input *Input, figure_entity *FigureEntity,
                         r32 ActiveBlockSize, r32 DefaultBlockSize)
 {
-     u32 Size       = Group->FigureAmount;
-     s32 MouseX     = Input->MouseX;
-     s32 MouseY     = Input->MouseY;
-     r32 BlockRatio = 0;
-
-     if(Input->WasPressed)
+     u32 Size        = FigureEntity->FigureAmount;
+     s32 MouseX      = Input->MouseX;
+     s32 MouseY      = Input->MouseY;
+    r32 BlockRatio  = 0;
+    u32 ActiveIndex = 0;
+    
+    figure_unit *FigureUnit = FigureEntity->FigureUnit;
+    
+    if(Input->WasPressed)
      {
           if(Input->LeftClick.IsDown)
           {
-               if(!Group->IsGrabbed)
+               if(!FigureEntity->IsGrabbed)
                {
-                    figure_unit *GrabbedFigure = NULL;
-                    figure_unit *Figure = Group->HeadFigure;
                     for (u32 i = 0; i < Size; ++i)
                     {
-                         game_rect AreaQuad = FigureUnitGetArea(Figure);
+                        ActiveIndex = FigureEntity->FigureOrder[i];
+                         game_rect AreaQuad = FigureUnitGetArea(&FigureUnit[ActiveIndex]);
                          if(IsPointInsideRect(MouseX, MouseY, &AreaQuad))
                          {
                              game_rect ShellQuad = {0};
-                             ShellQuad.w = Figure->IsEnlarged ? ActiveBlockSize : DefaultBlockSize;
-                             ShellQuad.h = Figure->IsEnlarged ? ActiveBlockSize : DefaultBlockSize;
+                             ShellQuad.w = FigureUnit[ActiveIndex].IsEnlarged ? ActiveBlockSize : DefaultBlockSize;
+                             ShellQuad.h = FigureUnit[ActiveIndex].IsEnlarged ? ActiveBlockSize : DefaultBlockSize;
                              for(u32 i = 0; i < 4; ++i)
                              {
-                                 ShellQuad.x = Figure->Shell[i].x - (ShellQuad.w / 2);
-                                 ShellQuad.y = Figure->Shell[i].y - (ShellQuad.h / 2);
+                                 ShellQuad.x = FigureUnit[ActiveIndex].Shell[i].x - (ShellQuad.w / 2);
+                                 ShellQuad.y = FigureUnit[ActiveIndex].Shell[i].y - (ShellQuad.h / 2);
                                  if(IsPointInsideRect(MouseX, MouseY, &ShellQuad))
                                  {
-                                     GrabbedFigure = Figure;
+                                     FigureEntity->IsGrabbed = true;
+                                     
+                                     if(!FigureUnit[ActiveIndex].IsEnlarged)
+                                     {
+                                         BlockRatio = ActiveBlockSize / DefaultBlockSize;
+                                         FigureUnit[ActiveIndex].IsIdle = false;
+                                         FigureUnit[ActiveIndex].IsEnlarged = true;
+                                         FigureUnitResizeBy(&FigureUnit[ActiveIndex], BlockRatio);
+                                     }
+                                     
+                                     //FigureUnitSwapAtEnd(Group->HeadFigure, GrabbedFigure->Index);
+                                     //Group->GrabbedFigure = GrabbedFigure;
+                                     SDL_ShowCursor(SDL_DISABLE);
+                                     //DEBUGPrintEntityOrder(Group);
+                                     
                                      break;
                                  }
                              }
                              }
-                         
-                         Figure = Figure->Next;
-                    }
-
-                    if(GrabbedFigure)
-                    {
-                         Group->IsGrabbed = true;
-                         
-                         if(!GrabbedFigure->IsEnlarged)
-                         {
-                              BlockRatio = ActiveBlockSize / DefaultBlockSize;
-                              GrabbedFigure->IsIdle = false;
-                              GrabbedFigure->IsEnlarged = true;
-                              FigureUnitResizeBy(GrabbedFigure, BlockRatio);
                          }
-
-                         FigureUnitSwapAtEnd(Group->HeadFigure, GrabbedFigure->Index);
-                         Group->GrabbedFigure = GrabbedFigure;
-                         SDL_ShowCursor(SDL_DISABLE);
-                         DEBUGPrintEntityOrder(Group);
-                         }
-               }
+}
                else
                {
-                    if(!Group->IsRotating && !Group->IsFlipping)
+                    if(!FigureEntity->IsRotating && !FigureEntity->IsFlipping)
                     {
-                         if(IsFigureUnitInsideRect(Group->GrabbedFigure, &Group->FigureArea))
+                         if(IsFigureUnitInsideRect(&FigureUnit[ActiveIndex], &FigureEntity->FigureArea))
                          {
                               BlockRatio = DefaultBlockSize / ActiveBlockSize;
-                              FigureUnitSetToDefaultArea(Group->GrabbedFigure, BlockRatio);
-                              Group->GrabbedFigure->IsIdle = true;
+                             FigureUnitSetToDefaultArea(&FigureUnit[ActiveIndex], BlockRatio);
+                              FigureUnit[ActiveIndex].IsIdle = true;
                          }
 
                          SDL_ShowCursor(SDL_ENABLE);
-                         Group->IsGrabbed = false;
-                         Group->GrabbedFigure = NULL;
-                    }
+                         FigureEntity->IsGrabbed = false;
+                         }
                }
           }
           if(Input->RightClick.IsDown)
           {
-               if(Group->IsGrabbed)
+               if(FigureEntity->IsGrabbed)
                {
-                    switch(Group->GrabbedFigure->Type)
+                   figure_type Type = FigureUnit[ActiveIndex].Type;
+                    switch(Type)
                     {
                          case classic:
                          {
-                              if (!Group->IsRotating)
+                              if (!FigureEntity->IsRotating)
                               {
-                                   Group->IsRotating = true;
-                                   FigureUnitRotateShellBy(Group->GrabbedFigure, 90);
+                                   FigureEntity->IsRotating = true;
+                                   FigureUnitRotateShellBy(&FigureUnit[ActiveIndex], 90);
                               }
                          } break;
                          case mirror:
                          {
-                              if (!Group->IsFlipping)
+                              if (!FigureEntity->IsFlipping)
                               {
 
-                                   SDL_SetTextureBlendMode(Group->GrabbedFigure->Texture, SDL_BLENDMODE_BLEND);
+                                   SDL_SetTextureBlendMode(FigureUnit[ActiveIndex].Texture, SDL_BLENDMODE_BLEND);
                                    
-                                   Group->IsFlipping = true;
-                                   Group->Alpha      = 255;
-                                   Group->FadeInSum  = 255;
-                                   Group->FadeOutSum = 0;
+                                   FigureEntity->IsFlipping = true;
+                                   FigureEntity->Alpha      = 255;
+                                   FigureEntity->FadeInSum  = 255;
+                                   FigureEntity->FadeOutSum = 0;
                               }
                          } break;
 
@@ -769,11 +776,11 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *Group,
      }
      if(Input->MouseMotion)
      {
-          if(Group->IsGrabbed)
+          if(FigureEntity->IsGrabbed)
           {
                s32 x = Input->MouseRelX;
                s32 y = Input->MouseRelY;
-               FigureUnitMove(Group->GrabbedFigure, x, y);
+               FigureUnitMove(&FigureUnit[ActiveIndex], x, y);
           }           
      }
 }
@@ -1095,10 +1102,11 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
 
      for(u32 i = 0; i < FigureAmount; ++i)
      {
-          FigureUnitRenderBitmap(Buffer, &FigureUnit[i]);
+         u32 ActiveIndex = FigureEntity->FigureOrder[i];
+          FigureUnitRenderBitmap(Buffer, &FigureUnit[ActiveIndex]);
           
-          DEBUGRenderQuad(Buffer, &FigureUnit[i].AreaQuad, {255, 0, 0});
-          DEBUGRenderFigureShell(Buffer, &FigureUnit[i], {255, 0, 0});
+          DEBUGRenderQuad(Buffer, &FigureUnit[ActiveIndex].AreaQuad, {255, 0, 0});
+          DEBUGRenderFigureShell(Buffer, &FigureUnit[ActiveIndex], {255, 0, 0});
 }
 
 }
@@ -1126,6 +1134,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           // TODO(max): Make InActiveBlockSize calculation smarter!!!
           InActiveBlockSize = GameResizeInActiveBLock(Buffer, FigureAmount);
           ActiveBlockSize   = GameResizeActiveBlock(Buffer, InActiveBlockSize, RowAmount, ColumnAmount);
+         Memory->State.ActiveBlockSize   = ActiveBlockSize;
+         Memory->State.InActiveBlockSize = InActiveBlockSize;
          GameState->AlphaPerSec = 700.0f;
          GameState->RotationVel = 600.0f;
           
@@ -1137,8 +1147,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
          FigureEntity->IsGrabbed     = false;
          FigureEntity->IsRotating    = false;
          FigureEntity->RotationSum   = 0;
-         FigureEntity->HeadFigure    = 0;
-         FigureEntity->GrabbedFigure = 0;
+         FigureEntity->FigureActive  = 0;
          FigureEntity->FigureArea.w  = Buffer->Width;
          FigureEntity->FigureArea.h  = InActiveBlockSize * 9;
          FigureEntity->FigureArea.y  = Buffer->Height - (FigureEntity->FigureArea.h);
@@ -1199,8 +1208,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 
           
           Memory->IsInitialized = true;
-          Memory->State.ActiveBlockSize = ActiveBlockSize;
-          Memory->State.InActiveBlockSize = InActiveBlockSize;
+          
           printf("memory init!\n");
      }
 
@@ -1217,18 +1225,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
      // PrintArray2D(GridEntity->UnitField, GridEntity->RowAmount, GridEntity->ColumnAmount);
      GameUpdateGameState(Buffer, GameState, TimeElapsed);
 
-     if(FigureEntity->GrabbedFigure)
-     {
-          // printf("IsSticked = %d\n", FigureEntity->GrabbedFigure->IsStick);
-          // printf("IsIdle = %d\n", FigureEntity->GrabbedFigure->IsIdle);
-     }
-
-     if(FigureEntity->GrabbedFigure)
-     {
-          game_rect AreaQuad = FigureUnitGetArea(FigureEntity->GrabbedFigure);
-          DEBUGRenderQuad(Buffer, &AreaQuad, {255, 255, 255});
-     }
-
+     
      TimeElapsed = SDL_GetTicks();
      return(ShouldQuit);
 }
