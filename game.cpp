@@ -23,7 +23,7 @@ DEBUGRenderQuad(game_offscreen_buffer *Buffer, game_rect *AreaQuad, SDL_Color co
 }
 
 static void
-DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, SDL_Color color)
+DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, u32 BlockSize, SDL_Color color)
 {
      u8 r, g, b;
      SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, 0);
@@ -33,18 +33,18 @@ DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, SDL_C
 
      for (u32 i = 0; i < 4; ++i)
      {
-          Rect.w = 4;
-          Rect.h = 4;
+          Rect.w = BlockSize;
+          Rect.h = BlockSize;
           Rect.x = Entity->Shell[i].x - (Rect.w / 2);
           Rect.y = Entity->Shell[i].y - (Rect.h / 2);
           
-          SDL_RenderDrawRect(Buffer->Renderer, &Rect);
+          SDL_RenderFillRect(Buffer->Renderer, &Rect);
      }
 
-     SDL_SetRenderDrawColor(Buffer->Renderer, 255, 255, 255, 255);
+     //SDL_SetRenderDrawColor(Buffer->Renderer, 255, 255, 255, 255);
      Rect.x = Entity->Center.x - (Rect.w / 2);
      Rect.y = Entity->Center.y - (Rect.h / 2);
-     SDL_RenderDrawRect(Buffer->Renderer, &Rect);
+     //SDL_RenderDrawRect(Buffer->Renderer, &Rect);
      
      SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, 255);
 }
@@ -950,7 +950,7 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
      figure_unit *FigureUnit = FigureEntity->FigureUnit;
      
      //
-     // Grid Updating
+     // Grid Update
      //
 for (u32 Index = 0; Index < FigureAmount; ++Index)
      {
@@ -1045,8 +1045,6 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
                          {
                               FigureUnit[FigureIndex].IsStick = true;
                               
-                              //FigureUnitMove(&FigureUnit[FigureIndex], OffsetX, OffsetY);
-
                              u32 StickSize = GridEntity->StickUnitsAmount;
                              game_point FigureCenter = FigureUnit[FigureIndex].Center;
                               for (u32 i = 0; i < StickSize; ++i)
@@ -1062,14 +1060,11 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
                                         {
                                              GridEntity->StickUnits[i].Row[j] = RowIndex[j];
                                              GridEntity->StickUnits[i].Col[j] = ColIndex[j];
-                                             //GridEntity->UnitField[RowIndex[j]][ColIndex[j]] = 1;
-                                        }
+                                             }
                                         
                                         break;
                                    }
                               }
-                              
-                              
                               
                               
                               FigureEntityLowPriority(FigureEntity, FigureIndex);
@@ -1229,11 +1224,13 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
 
      for(u32 i = 0; i < FigureAmount; ++i)
      {
-         u32 ActiveIndex = FigureEntity->FigureOrder[i];
-          FigureUnitRenderBitmap(Buffer, &FigureUnit[ActiveIndex]);
+         u32 Index = FigureEntity->FigureOrder[i];
+         u32 BlockSize = FigureUnit[Index].IsEnlarged ? ActiveBlockSize : InActiveBlockSize;
+         DEBUGRenderFigureShell(Buffer, &FigureUnit[Index], BlockSize, {255, 255, 0});
+          FigureUnitRenderBitmap(Buffer, &FigureUnit[Index]);
           
-          DEBUGRenderQuad(Buffer, &FigureUnit[ActiveIndex].AreaQuad, {255, 0, 0});
-          DEBUGRenderFigureShell(Buffer, &FigureUnit[ActiveIndex], {255, 0, 0});
+          //DEBUGRenderQuad(Buffer, &FigureUnit[Index].AreaQuad, {255, 0, 0});
+          
 }
 
 }
@@ -1355,6 +1352,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
      }
 
       //PrintArray2D(GridEntity->UnitField, GridEntity->RowAmount, GridEntity->ColumnAmount);
+     
      GameUpdateGameState(Buffer, GameState, TimeElapsed);
 
      
