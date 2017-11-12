@@ -101,8 +101,8 @@ struct figure_entity
      bool IsGrabbed;
      bool IsRotating;
      bool IsFlipping;
-
-     u8 Alpha;
+    
+    u8 Alpha;
       r32 FadeInSum;
      r32 FadeOutSum;
      r32 RotationSum;
@@ -110,10 +110,13 @@ struct figure_entity
 
 struct sticked_unit
 {
-     u32 Index;
+     s32 Index;
      u32 Row[4];
      u32 Col[4];
-};
+    
+    bool IsSticked;
+    game_point Center;
+    };
 
 struct grid_entity
 {
@@ -145,7 +148,8 @@ struct game_state
     
     r32 AlphaPerSec;
     r32 RotationVel;
-};
+    r32 SpeedPerSec;
+    };
 
 struct game_memory
 {
