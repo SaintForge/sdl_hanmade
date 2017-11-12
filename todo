@@ -1,8 +1,16 @@
-+ 1. Change order of the figure when it sticks to the grid 
-+ 2. Change the way in which we decide to pick a particular figure so that it
-	checks the shell rectangles not just the whole area of the figure
++	1. Change order of the figure when it sticks to the grid 
 
++	2. Change the way in which we decide to pick a particular figure so that it
+		checks the shell rectangles not just the whole area of the figure
 
++	3. Maybe we should change our list container just to array 
+	 +	3.1 Get order of figure to work!!!
 
-3. Maybe we should change our list container just to array 
-	3.1 get order of figure to work!!!
+-	4. Highlight the default figure area whenever the grabbed figure is inside it
+		or outside the screen
+	 -	4.1 Make figure animation when it stick to the default area
+
+-	5. Implement moving blocks on the grid
+-	-	5.1 Create horizontal block
+	 -	5.2 Create vertical block
+	 -	5.3 Make it move
