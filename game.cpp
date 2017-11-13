@@ -49,6 +49,30 @@ DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, u32 B
      SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, 255);
 }
 
+static void 
+FigureEntityHighlightFigureArea(figure_entity *FigureEntity, 
+                                game_offscreen_buffer *Buffer,
+                                SDL_Color Color, u32 Thickness)
+{
+    game_rect AreaQuad = FigureEntity->FigureArea;
+    
+    u8 r, g, b;
+    SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, 0);
+    SDL_SetRenderDrawColor(Buffer->Renderer, Color.r, Color.g, Color.b, FigureEntity->AreaAlpha);
+    
+    for(u32 i = 0; i < Thickness; i ++)
+    {
+        SDL_RenderDrawRect(Buffer->Renderer, &AreaQuad);
+        
+        AreaQuad.x += 1;
+        AreaQuad.y += 1;
+        AreaQuad.w -= 2;
+        AreaQuad.h -= 2;
+        }
+    
+    SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, 255);
+    }
+
 #if 0
 static void
 DEBUGPrintEntityOrder(figure_entity *FigureEntity)
@@ -782,8 +806,8 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *FigureEntity,
                {
                     if(!FigureEntity->IsRotating && !FigureEntity->IsFlipping)
                     {
-                         if(IsFigureUnitInsideRect(&FigureUnit[ActiveIndex], &FigureEntity->FigureArea))
-                         {
+                        if(IsFigureUnitInsideRect(&FigureUnit[ActiveIndex], &FigureEntity->FigureArea))
+                           {
                               BlockRatio = DefaultBlockSize / ActiveBlockSize;
                              FigureUnitSetToDefaultArea(&FigureUnit[ActiveIndex], BlockRatio);
                               FigureUnit[ActiveIndex].IsIdle = true;
@@ -818,7 +842,7 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *FigureEntity,
                                    SDL_SetTextureBlendMode(FigureUnit[ActiveIndex].Texture, SDL_BLENDMODE_BLEND);
                                    
                                    FigureEntity->IsFlipping = true;
-                                   FigureEntity->Alpha      = 255;
+                                   FigureEntity->FigureAlpha= 255;
                                    FigureEntity->FadeInSum  = 255;
                                    FigureEntity->FadeOutSum = 0;
                               }
@@ -839,6 +863,7 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *FigureEntity,
               s32 x = Input->MouseRelX;
                s32 y = Input->MouseRelY;
                FigureUnitMove(&FigureUnit[ActiveIndex], x, y);
+              
           }           
      }
 }
@@ -943,11 +968,13 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
      u32 RowAmount    = GridEntity->RowAmount;
      u32 ColumnAmount = GridEntity->ColumnAmount;
      u32 FigureAmount = FigureEntity->FigureAmount;
-     u32 ActiveIndex  = FigureEntity->FigureActive;
+     s32 ActiveIndex  = FigureEntity->FigureActive;
      
      u32 ActiveBlockSize   = State->ActiveBlockSize;
      u32 InActiveBlockSize = State->InActiveBlockSize;
      figure_unit *FigureUnit = FigureEntity->FigureUnit;
+     
+     bool ToggleHighlight = false;
      
      //
      // Grid Update
@@ -1158,9 +1185,63 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
      //
      // Figure Update
      //
+     
      //
-     // Rotation Animation
+     // Figure Area Highlight
      //
+     
+     bool ShouldHighlight = false;
+     
+     if(ActiveIndex >= 0)
+     {
+         game_rect ScreenArea = {0};
+         ScreenArea.w = Buffer->Width;
+         ScreenArea.h = Buffer->Height;
+         
+         ShouldHighlight = IsFigureUnitInsideRect(&FigureUnit[ActiveIndex], &FigureEntity->FigureArea)
+             || !(IsPointInsideRect(FigureUnit[ActiveIndex].Center.x, 
+                                                                                                                              FigureUnit[ActiveIndex].Center.y,
+                                                                                                                             &ScreenArea));
+         }
+     
+     if(ShouldHighlight)
+     {
+         if(FigureEntity->AreaAlpha < 255)
+         {
+             FigureEntity->AreaAlpha += TimeElapsed * State->AlphaPerSec;
+             FigureEntity->AreaAlpha = roundf(FigureEntity->AreaAlpha);
+             
+             if(FigureEntity->AreaAlpha >= 255)
+             {
+                 FigureEntity->AreaAlpha = 255;
+             }
+         }
+     }
+     else
+     {
+         if(FigureEntity->AreaAlpha > 0)
+         {
+             FigureEntity->AreaAlpha -= TimeElapsed * State->AlphaPerSec;
+             FigureEntity->AreaAlpha = roundf(FigureEntity->AreaAlpha);
+             
+             if(FigureEntity->AreaAlpha <= 0)
+             {
+                 FigureEntity->AreaAlpha = 0;
+             }
+         }
+     }
+     
+     if(FigureEntity->AreaAlpha != 0) ToggleHighlight = true;
+     
+     if(ToggleHighlight) 
+     {
+         FigureEntityHighlightFigureArea(FigureEntity, 
+                                         Buffer, {255, 255, 255}, InActiveBlockSize / 6);
+     }
+         
+                                                         //
+                                                         // Rotation Animation
+                                                         //
      
      if(FigureEntity->IsRotating)
      {
@@ -1189,11 +1270,11 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
           if(FigureEntity->FadeInSum > 0)
           {
                FigureEntity->FadeInSum -= TimeElapsed * State->AlphaPerSec;
-              FigureEntity->Alpha = roundf(FigureEntity->FadeInSum);
+              FigureEntity->FigureAlpha = roundf(FigureEntity->FadeInSum);
                
                if(FigureEntity->FadeInSum <= 0)
                {
-                   FigureEntity->Alpha = 0;
+                   FigureEntity->FigureAlpha = 0;
                    FigureEntity->FadeInSum = 0;
                    printf("fade in complete!\n");
                    
@@ -1203,11 +1284,11 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
           else if(FigureEntity->FadeOutSum < 255)
           {
                FigureEntity->FadeOutSum += TimeElapsed * State->AlphaPerSec;
-              FigureEntity->Alpha = roundf(FigureEntity->FadeOutSum);
+              FigureEntity->FigureAlpha = roundf(FigureEntity->FadeOutSum);
 
                if(FigureEntity->FadeOutSum >= 255)
                {
-                    FigureEntity->Alpha = 255;
+                    FigureEntity->FigureAlpha = 255;
                     FigureEntity->FadeOutSum = 255;
                    printf("fade out complete!\n");
                }
@@ -1219,14 +1300,14 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
           }
           
           SDL_SetTextureAlphaMod(FigureUnit[ActiveIndex].Texture,
-                                 FigureEntity->Alpha);
+                                 FigureEntity->FigureAlpha);
      }
 
      for(u32 i = 0; i < FigureAmount; ++i)
      {
          u32 Index = FigureEntity->FigureOrder[i];
-         u32 BlockSize = FigureUnit[Index].IsEnlarged ? ActiveBlockSize : InActiveBlockSize;
-         DEBUGRenderFigureShell(Buffer, &FigureUnit[Index], BlockSize, {255, 255, 0});
+         //u32 BlockSize = FigureUnit[Index].IsEnlarged ? ActiveBlockSize : InActiveBlockSize;
+         //DEBUGRenderFigureShell(Buffer, &FigureUnit[Index], BlockSize, {255, 255, 0});
           FigureUnitRenderBitmap(Buffer, &FigureUnit[Index]);
           
           //DEBUGRenderQuad(Buffer, &FigureUnit[Index].AreaQuad, {255, 0, 0});
@@ -1275,6 +1356,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
          FigureEntity->IsGrabbed     = false;
          FigureEntity->IsRotating    = false;
          FigureEntity->RotationSum   = 0;
+         FigureEntity->AreaAlpha     = 0;
          FigureEntity->FigureActive  = -1;
          FigureEntity->FigureArea.w  = Buffer->Width;
          FigureEntity->FigureArea.h  = InActiveBlockSize * 9;

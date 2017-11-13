@@ -91,18 +91,20 @@ struct figure_unit
 struct figure_entity
 {
     //u32 FigureAmountReserved;
-    u32 FigureActive;
+    s32 FigureActive;
     u32 FigureAmount;
     u32 *FigureOrder;
     figure_unit *FigureUnit;
     
     game_rect FigureArea;
 
-     bool IsGrabbed;
+    bool IsGrabbed;
      bool IsRotating;
      bool IsFlipping;
     
-    u8 Alpha;
+     s32 AreaAlpha;
+     s32 FigureAlpha;
+    
       r32 FadeInSum;
      r32 FadeOutSum;
      r32 RotationSum;
