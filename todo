@@ -6,7 +6,7 @@
 +	3. Maybe we should change our list container just to array 
 	 +	3.1 Get order of figure to work!!!
 
--	4. Highlight the default figure area whenever the grabbed figure is inside it
++	4. Highlight the default figure area whenever the grabbed figure is inside it
 		or outside the screen
 	 -	4.1 Make figure animation when it stick to the default area
 

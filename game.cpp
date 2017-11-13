@@ -722,9 +722,9 @@ FigureUnitSetToDefaultArea(figure_unit* Unit, r32 BlockRatio)
 
           FigureUnitResizeBy(Unit, BlockRatio);
           
-          ShiftX = Unit->DefaultCenter.x - Unit->Center.x;
-          ShiftY = Unit->DefaultCenter.y - Unit->Center.y;
-          FigureUnitMove(Unit, ShiftX, ShiftY);
+          //ShiftX = Unit->DefaultCenter.x - Unit->Center.x;
+          //ShiftY = Unit->DefaultCenter.y - Unit->Center.y;
+          //FigureUnitMove(Unit, ShiftX, ShiftY);
 
           Unit->IsEnlarged = false;
      }
@@ -808,9 +808,38 @@ FigureEntityUpdateEvent(game_input *Input, figure_entity *FigureEntity,
                     {
                         if(IsFigureUnitInsideRect(&FigureUnit[ActiveIndex], &FigureEntity->FigureArea))
                            {
+                               FigureUnit[ActiveIndex].IsIdle = true;
                               BlockRatio = DefaultBlockSize / ActiveBlockSize;
-                             FigureUnitSetToDefaultArea(&FigureUnit[ActiveIndex], BlockRatio);
-                              FigureUnit[ActiveIndex].IsIdle = true;
+                               FigureUnitSetToDefaultArea(&FigureUnit[ActiveIndex], BlockRatio);
+                               
+                              FigureEntity->IsReturning = true;
+                               FigureEntity->ReturnIndex = ActiveIndex;
+                               
+                               game_point Center = FigureUnit[ActiveIndex].Center;
+                               game_point DefaultCenter = FigureUnit[ActiveIndex].DefaultCenter;
+                               
+                               r32 OffsetX, OffsetY;
+                               OffsetX = DefaultCenter.x - Center.x;
+                               OffsetY = DefaultCenter.y - Center.y;
+                               
+                               r32 Magnitude = sqrt(OffsetX*OffsetX + OffsetY*OffsetY);
+                               r32 MaxValue  = Magnitude - ActiveBlockSize;
+                               if(Magnitude > (MaxValue))
+                               {
+                                   if(Magnitude != 0) 
+                                   {
+                                       OffsetX /= Magnitude;
+                                       OffsetY /= Magnitude;
+                                   }
+                                   
+                                   OffsetX *= MaxValue;
+                                   OffsetY *= MaxValue;
+                                   
+                                   OffsetX = roundf(OffsetX);
+                                   OffsetY = roundf(OffsetY);
+                                   FigureUnitMove(&FigureUnit[ActiveIndex], OffsetX, OffsetY);
+                                   }
+                               
                          }
 
                          SDL_ShowCursor(SDL_ENABLE);
@@ -963,16 +992,17 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
 {
      grid_entity   *&GridEntity   = State->GridEntity;
      figure_entity *&FigureEntity = State->FigureEntity;
+    figure_unit *FigureUnit = FigureEntity->FigureUnit;
+    
+    r32 ActiveBlockSize   = State->ActiveBlockSize;
+    r32 InActiveBlockSize = State->InActiveBlockSize;
     
      game_rect AreaQuad = {};
+     r32 MaxVel       = ActiveBlockSize / 6;
      u32 RowAmount    = GridEntity->RowAmount;
      u32 ColumnAmount = GridEntity->ColumnAmount;
      u32 FigureAmount = FigureEntity->FigureAmount;
      s32 ActiveIndex  = FigureEntity->FigureActive;
-     
-     u32 ActiveBlockSize   = State->ActiveBlockSize;
-     u32 InActiveBlockSize = State->InActiveBlockSize;
-     figure_unit *FigureUnit = FigureEntity->FigureUnit;
      
      bool ToggleHighlight = false;
      
@@ -1119,6 +1149,8 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
           }
           }
           
+          
+          
           for(u32 i = 0; i < GridEntity->StickUnitsAmount; ++i)
           {
               s32 Index = GridEntity->StickUnits[i].Index;
@@ -1127,7 +1159,7 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
                   game_point *FigureCenter = &FigureUnit[Index].Center;
                   game_point *TargetCenter = &GridEntity->StickUnits[i].Center;
                   
-                  r32 MaxVel = ActiveBlockSize / 6;
+                  
                   
                   r32 VelocityX, VelocityY;
                   VelocityX = TargetCenter->x - FigureCenter->x;
@@ -1238,7 +1270,44 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
          FigureEntityHighlightFigureArea(FigureEntity, 
                                          Buffer, {255, 255, 255}, InActiveBlockSize / 6);
      }
+     
+     //
+     // Figure returning to the idle zone
+     //
          
+     if(FigureEntity->IsReturning)
+     {
+         u32 ReturnIndex = FigureEntity->ReturnIndex;
+         
+         game_point *FigureCenter = &FigureUnit[ReturnIndex].Center;
+         game_point *TargetCenter = &FigureUnit[ReturnIndex].DefaultCenter;
+         
+         r32 VelocityX, VelocityY;
+         VelocityX = TargetCenter->x - FigureCenter->x;
+         VelocityY = TargetCenter->y - FigureCenter->y;
+         
+         r32 Distance = sqrt(VelocityX*VelocityX + VelocityY*VelocityY);
+         if(Distance > MaxVel)
+         {
+             VelocityX = VelocityX / Distance;
+             VelocityY = VelocityY / Distance;
+             
+             VelocityX = VelocityX * MaxVel;
+             VelocityY = VelocityY * MaxVel;
+         }
+         
+         VelocityX = roundf(VelocityX);
+         VelocityY = roundf(VelocityY);
+         
+         FigureUnitMove(&FigureUnit[ReturnIndex], VelocityX, VelocityY);
+         
+         if((FigureCenter->x == TargetCenter->x) && (FigureCenter->y == TargetCenter->y))
+         {
+              FigureEntity->IsReturning = false;
+             FigureEntity->ReturnIndex = -1;
+         }
+     }
+     
                                                          //
                                                          // Rotation Animation
                                                          //
@@ -1311,8 +1380,7 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
           FigureUnitRenderBitmap(Buffer, &FigureUnit[Index]);
           
           //DEBUGRenderQuad(Buffer, &FigureUnit[Index].AreaQuad, {255, 0, 0});
-          
-}
+          }
 
 }
 
@@ -1355,8 +1423,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
          FigureEntity->FigureAmount  = FigureAmount;
          FigureEntity->IsGrabbed     = false;
          FigureEntity->IsRotating    = false;
+         FigureEntity->IsReturning   = false;
          FigureEntity->RotationSum   = 0;
          FigureEntity->AreaAlpha     = 0;
+         FigureEntity->ReturnIndex   = 0;
          FigureEntity->FigureActive  = -1;
          FigureEntity->FigureArea.w  = Buffer->Width;
          FigureEntity->FigureArea.h  = InActiveBlockSize * 9;

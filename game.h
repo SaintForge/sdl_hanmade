@@ -91,6 +91,7 @@ struct figure_unit
 struct figure_entity
 {
     //u32 FigureAmountReserved;
+    u32 ReturnIndex;
     s32 FigureActive;
     u32 FigureAmount;
     u32 *FigureOrder;
@@ -101,6 +102,7 @@ struct figure_entity
     bool IsGrabbed;
      bool IsRotating;
      bool IsFlipping;
+    bool IsReturning;
     
      s32 AreaAlpha;
      s32 FigureAlpha;
