@@ -999,15 +999,43 @@ GridEntityInitMovingBlock(grid_entity *GridEntity, u32 Index,
     GridEntity->MovingBlocks[Index].AreaQuad.x = GridEntity->GridArea.x + (ColNumber * ActiveBlockSize);
     GridEntity->MovingBlocks[Index].AreaQuad.y = GridEntity->GridArea.y + (RowNumber * ActiveBlockSize);
     
+    printf("AreaQuad.w = %d\n", GridEntity->MovingBlocks[Index].AreaQuad.w);
+    printf("AreaQuad.h = %d\n", GridEntity->MovingBlocks[Index].AreaQuad.h);
+    printf("AreaQuad.x = %d\n", GridEntity->MovingBlocks[Index].AreaQuad.x);
+    printf("AreaQuad.y = %d\n", GridEntity->MovingBlocks[Index].AreaQuad.y);
+    
 GridEntity->MovingBlocks[Index].IsVertical = IsVertical;
     GridEntity->MovingBlocks[Index].RowNumber  = RowNumber;
     GridEntity->MovingBlocks[Index].ColNumber  = ColNumber;
     
+    GridEntity->UnitField[RowNumber] = 2;
+    GridEntity->UnitField[ColNumber] = 2;
+    
     GridEntity->MovingBlocks[Index].Texture = IsVertical
-        ? GetTexture(Memory, "grid_cell_2.png", Buffer->Renderer)
-        : GetTexture(Memory, "grid_cell_1.png", Buffer->Renderer);
+        ? GetTexture(Memory, "o_s.png", Buffer->Renderer)
+        : GetTexture(Memory, "o_m.png", Buffer->Renderer);
     
+    Assert(GridEntity->MovingBlocks[Index].Texture);
     
+    }
+    
+    static void
+    GridEntityMoveBlockHorizontally(grid_entity *GridEntity, moving_block *MovingBlock)
+    {
+        s32 NewColIndex = 0;
+        
+        NewColIndex = MovingBlock->MoveSwitch
+            ? NewColIndex += 1
+            : NewColIndex -= 1;
+        
+        if(NewColIndex < 0 || NewColIndex >= GridEntity->ColumnAmount) return;
+        
+    }
+    
+    static void
+        GridEntityMoveBlockVertically(grid_entity *GridEntity, moving_block *MovingBlock)
+    {
+        
     }
     
 static void
@@ -1030,7 +1058,7 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
      bool ToggleHighlight = false;
      
      //
-     // Grid Update
+     // GridEntity Update and Rendering
      //
 for (u32 Index = 0; Index < FigureAmount; ++Index)
      {
@@ -1173,7 +1201,6 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
           }
           
           
-          
           for(u32 i = 0; i < GridEntity->StickUnitsAmount; ++i)
           {
               s32 Index = GridEntity->StickUnits[i].Index;
@@ -1181,8 +1208,6 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
               {
                   game_point *FigureCenter = &FigureUnit[Index].Center;
                   game_point *TargetCenter = &GridEntity->StickUnits[i].Center;
-                  
-                  
                   
                   r32 VelocityX, VelocityY;
                   VelocityX = TargetCenter->x - FigureCenter->x;
@@ -1220,7 +1245,6 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
               }
           }
           
-          
      AreaQuad.w = GridEntity->BlockSize;
      AreaQuad.h = GridEntity->BlockSize;
 
@@ -1238,7 +1262,16 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
      }
      
      //
-     // Figure Update
+     // MovingBlocks Update and Rendering
+     //
+     
+     for(u32 i = 0; i < GridEntity->MovingBlocksAmount; ++i)
+     {
+         GameRenderBitmapToBuffer(Buffer, GridEntity->MovingBlocks[i].Texture, &GridEntity->MovingBlocks[i].AreaQuad);
+     }
+         
+     //
+     // FigureEntity Update and Rendering
      //
      
      //
@@ -1440,7 +1473,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
          GameState->AlphaPerSec = 700.0f;
          GameState->RotationVel = 600.0f;
           
+         //
           // Figure initialization
+         //
           FigureEntity = (figure_entity*)malloc(sizeof(figure_entity));
          Assert(FigureEntity);
          
@@ -1487,7 +1522,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           GridEntity->GridArea.x = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
           GridEntity->GridArea.y = (Buffer->Height - FigureEntity->FigureArea.h)/2 - (GridEntity->GridArea.h / 2);
 
-         
          //
          // UnitField initialization
          //
@@ -1524,7 +1558,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           GridEntityInitMovingBlock(GridEntity, 0, 2, 2, false, ActiveBlockSize, Memory, Buffer);
           GridEntityInitMovingBlock(GridEntity, 1, 3, 3, true, ActiveBlockSize, Memory, Buffer);
           
-
+          
+          //
+          // GridEntity texture initialization
+          //
           GridEntity->NormalSquareTexture     = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
           GridEntity->VerticalSquareTexture   = GetTexture(Memory, "grid_cell1.png", Buffer->Renderer);
           GridEntity->HorizontlaSquareTexture = GetTexture(Memory, "grid_cell2.png", Buffer->Renderer);

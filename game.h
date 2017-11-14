@@ -132,6 +132,7 @@ struct sticked_unit
         u32 ColNumber;
         
         bool IsVertical;
+        bool MoveSwitch;
         };
 
 struct grid_entity
