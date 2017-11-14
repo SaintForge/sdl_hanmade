@@ -811,7 +811,6 @@ FigureUnitSetToDefaultArea(figure_unit* Unit, r32 BlockRatio)
 
      if(Unit->IsEnlarged)
      {
-          printf("it was enlarged!\n");
           r32 AngleDt      = 0;
           r32 Angle        = Unit->Angle;
           r32 DefaultAngle = Unit->DefaultAngle;
@@ -872,7 +871,6 @@ GridEntityInitMovingBlock(grid_entity *GridEntity, u32 Index,
     GridEntity->MovingBlocks[Index].Texture = IsVertical
         ? GetTexture(Memory, "o_s.png", Buffer->Renderer)
         : GetTexture(Memory, "o_m.png", Buffer->Renderer);
-    
     
 }
 
@@ -1745,7 +1743,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           
           GridEntityInitMovingBlock(GridEntity, 0, 2, 2, false, ActiveBlockSize, Memory, Buffer);
           GridEntityInitMovingBlock(GridEntity, 1, 3, 3, true, ActiveBlockSize, Memory, Buffer);
-          
           
           //
           // GridEntity texture initialization
