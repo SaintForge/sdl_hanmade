@@ -24,10 +24,11 @@
 
 
 ---Data serialization---
--	1. Distinct assets into groups into sprites, sound and music
+-	1. Distinct assets into groups of sprites, sound and music
 -	2. Make small level editor
 -	3. Implement level data load/save from file
 
 ---Main Menu---
 -	1. Implement level navigation
 -	2. Implement main menu
+-	3. Implement level creation/deletion from level navigator
