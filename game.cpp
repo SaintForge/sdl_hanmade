@@ -747,23 +747,103 @@ FigureUnitDefineDefaultArea(figure_unit *Unit, s32 X, s32 Y)
      Unit->DefaultAngle  = Unit->Angle;
 }
 
+
 static void
-FigureEntityUpdateEvent(game_input *Input, figure_entity *FigureEntity,
+GridEntityInitMovingBlock(grid_entity *GridEntity, u32 Index,
+                          u32 RowNumber, u32 ColNumber, 
+                          bool IsVertical, u32 ActiveBlockSize,
+                          game_memory *Memory, game_offscreen_buffer *Buffer)
+{
+    if(Index < 0 || Index >= GridEntity->MovingBlocksAmount) return;
+    if(GridEntity->UnitField[RowNumber][ColNumber] != 0) return;
+    
+    GridEntity->MovingBlocks[Index].AreaQuad.w = ActiveBlockSize;
+    GridEntity->MovingBlocks[Index].AreaQuad.h = ActiveBlockSize;
+    GridEntity->MovingBlocks[Index].AreaQuad.x = GridEntity->GridArea.x + (ColNumber * ActiveBlockSize);
+    GridEntity->MovingBlocks[Index].AreaQuad.y = GridEntity->GridArea.y + (RowNumber * ActiveBlockSize);
+    
+    printf("AreaQuad.w = %d\n", GridEntity->MovingBlocks[Index].AreaQuad.w);
+    printf("AreaQuad.h = %d\n", GridEntity->MovingBlocks[Index].AreaQuad.h);
+    printf("AreaQuad.x = %d\n", GridEntity->MovingBlocks[Index].AreaQuad.x);
+    printf("AreaQuad.y = %d\n", GridEntity->MovingBlocks[Index].AreaQuad.y);
+    
+    GridEntity->MovingBlocks[Index].IsVertical = IsVertical;
+    GridEntity->MovingBlocks[Index].RowNumber  = RowNumber;
+    GridEntity->MovingBlocks[Index].ColNumber  = ColNumber;
+    
+    GridEntity->UnitField[RowNumber][ColNumber] = 2;
+    
+    GridEntity->MovingBlocks[Index].Texture = IsVertical
+        ? GetTexture(Memory, "o_s.png", Buffer->Renderer)
+        : GetTexture(Memory, "o_m.png", Buffer->Renderer);
+    
+}
+
+static void
+GridEntityMoveBlockHorizontally(grid_entity *GridEntity, moving_block *MovingBlock)
+{
+    printf("moving_block horizontallly\n");
+    s32 NewColNumber = 0;
+    u32 RowNumber = MovingBlock->RowNumber;
+    u32 ColNumber = MovingBlock->ColNumber;
+    u32 ActiveBlockSize = MovingBlock->AreaQuad.w;
+    
+    NewColNumber = MovingBlock->MoveSwitch
+        ? NewColNumber = ColNumber + 1
+        : NewColNumber = ColNumber - 1;
+    
+    if(NewColNumber < 0 || NewColNumber >= GridEntity->ColumnAmount) return;
+    if(GridEntity->UnitField[NewColNumber][RowNumber] != 0) return;
+    
+    GridEntity->UnitField[RowNumber][ColNumber]    = 0;
+    GridEntity->UnitField[RowNumber][NewColNumber] = 2;
+    
+    MovingBlock->ColNumber = NewColNumber;
+    
+    MovingBlock->AreaQuad.x = GridEntity->GridArea.x + (MovingBlock->ColNumber * ActiveBlockSize);
+    MovingBlock->AreaQuad.y = GridEntity->GridArea.y + (MovingBlock->RowNumber * ActiveBlockSize);
+    
+    MovingBlock->MoveSwitch = MovingBlock->MoveSwitch == false ? true : false;
+}
+
+static void
+GameUpdateEvent(game_input *Input, game_state *GameState,
                         r32 ActiveBlockSize, r32 DefaultBlockSize)
 {
-     u32 Size        = FigureEntity->FigureAmount;
-     s32 MouseX      = Input->MouseX;
-     s32 MouseY      = Input->MouseY;
+     grid_entity   *&GridEntity   = GameState->GridEntity;
+        figure_entity *&FigureEntity = GameState->FigureEntity;
+    figure_unit   *FigureUnit    = FigureEntity->FigureUnit;
+    
+    u32 Size        = FigureEntity->FigureAmount;
+    s32 MouseX      = Input->MouseX;
+    s32 MouseY      = Input->MouseY;
     r32 BlockRatio  = 0;
     u32 ActiveIndex = FigureEntity->FigureActive;
-    
-    figure_unit *FigureUnit = FigureEntity->FigureUnit;
     
     if(Input->WasPressed)
      {
           if(Input->LeftClick.IsDown)
           {
-               if(!FigureEntity->IsGrabbed)
+              printf("Hello \n");
+              if(GridEntity->MovingBlocks)
+              {
+                  if(IsPointInsideRect(MouseX, MouseY, &GridEntity->GridArea))
+                  {
+                      printf("inside gridarea\n");
+                      for(u32 i = 0; i < GridEntity->MovingBlocksAmount; i++)
+                      {
+                          if(IsPointInsideRect(MouseX, MouseY, &GridEntity->MovingBlocks[i].AreaQuad))
+                          {
+                              printf("inside moving block\n");
+                              GridEntityMoveBlockHorizontally(GridEntity, &GridEntity->MovingBlocks[i]);
+                              return;
+                          }
+                      }
+                  }
+              
+              }
+              
+              if(!FigureEntity->IsGrabbed)
                {
                     for (u32 i = 0; i < Size; ++i)
                     {
@@ -986,51 +1066,6 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
 }
 }
 
-static void
-GridEntityInitMovingBlock(grid_entity *GridEntity, u32 Index,
-                          u32 RowNumber, u32 ColNumber, 
-                          bool IsVertical, u32 ActiveBlockSize,
-                          game_memory *Memory, game_offscreen_buffer *Buffer)
-{
-    if(Index < 0 || Index >= GridEntity->MovingBlocksAmount) return;
-    
-    GridEntity->MovingBlocks[Index].AreaQuad.w = ActiveBlockSize;
-    GridEntity->MovingBlocks[Index].AreaQuad.h = ActiveBlockSize;
-    GridEntity->MovingBlocks[Index].AreaQuad.x = GridEntity->GridArea.x + (ColNumber * ActiveBlockSize);
-    GridEntity->MovingBlocks[Index].AreaQuad.y = GridEntity->GridArea.y + (RowNumber * ActiveBlockSize);
-    
-    printf("AreaQuad.w = %d\n", GridEntity->MovingBlocks[Index].AreaQuad.w);
-    printf("AreaQuad.h = %d\n", GridEntity->MovingBlocks[Index].AreaQuad.h);
-    printf("AreaQuad.x = %d\n", GridEntity->MovingBlocks[Index].AreaQuad.x);
-    printf("AreaQuad.y = %d\n", GridEntity->MovingBlocks[Index].AreaQuad.y);
-    
-GridEntity->MovingBlocks[Index].IsVertical = IsVertical;
-    GridEntity->MovingBlocks[Index].RowNumber  = RowNumber;
-    GridEntity->MovingBlocks[Index].ColNumber  = ColNumber;
-    
-    GridEntity->UnitField[RowNumber] = 2;
-    GridEntity->UnitField[ColNumber] = 2;
-    
-    GridEntity->MovingBlocks[Index].Texture = IsVertical
-        ? GetTexture(Memory, "o_s.png", Buffer->Renderer)
-        : GetTexture(Memory, "o_m.png", Buffer->Renderer);
-    
-    Assert(GridEntity->MovingBlocks[Index].Texture);
-    
-    }
-    
-    static void
-    GridEntityMoveBlockHorizontally(grid_entity *GridEntity, moving_block *MovingBlock)
-    {
-        s32 NewColIndex = 0;
-        
-        NewColIndex = MovingBlock->MoveSwitch
-            ? NewColIndex += 1
-            : NewColIndex -= 1;
-        
-        if(NewColIndex < 0 || NewColIndex >= GridEntity->ColumnAmount) return;
-        
-    }
     
     static void
         GridEntityMoveBlockVertically(grid_entity *GridEntity, moving_block *MovingBlock)
@@ -1572,7 +1607,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           printf("memory init!\n");
      }
 
-     FigureEntityUpdateEvent(Input, FigureEntity, ActiveBlockSize, InActiveBlockSize);
+     GameUpdateEvent(Input, GameState, ActiveBlockSize, InActiveBlockSize);
      
      if(Input->WasPressed)
      {
