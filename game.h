@@ -131,6 +131,7 @@ struct sticked_unit
         u32 RowNumber;
         u32 ColNumber;
         
+        bool IsMoving;
         bool IsVertical;
         bool MoveSwitch;
         };
