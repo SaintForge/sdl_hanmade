@@ -7,6 +7,111 @@
 //           By: Sierra
 //
 
+enum figure_form
+{
+    O_figure, I_figure, L_figure, J_figure,
+    Z_figure, S_figure, T_figure
+};
+
+enum figure_type
+{
+    classic, stone, mirror
+};
+
+struct figure_unit
+{
+    bool IsStick;
+    bool IsEnlarged; // not sure if we need it
+    bool IsIdle;
+    
+    u32 Index;     
+    r32 Angle;
+    r32 DefaultAngle;
+    SDL_RendererFlip Flip;
+    
+    game_point Center;
+    game_point DefaultCenter;
+    game_point Shell[4];
+    game_point DefaultShell[4];
+    game_rect AreaQuad;
+    
+    figure_form Form;
+    figure_type Type;
+    
+    game_texture *Texture;
+};
+
+
+struct figure_entity
+{
+    //u32 FigureAmountReserved;
+    u32 ReturnIndex;
+    s32 FigureActive;
+    u32 FigureAmount;
+    u32 *FigureOrder;
+    figure_unit *FigureUnit;
+    
+    game_rect FigureArea;
+    
+    bool IsGrabbed;
+    bool IsRotating;
+    bool IsFlipping;
+    bool IsReturning;
+    
+    s32 AreaAlpha;
+    s32 FigureAlpha;
+    
+    r32 FadeInSum;
+    r32 FadeOutSum;
+    r32 RotationSum;
+};
+
+struct sticked_unit
+{
+    s32 Index;
+    u32 Row[4];
+    u32 Col[4];
+    
+    bool IsSticked;
+    game_point Center;
+};
+
+struct moving_block
+{
+    game_rect AreaQuad;
+    game_texture *Texture;
+    
+    u32 RowNumber;
+    u32 ColNumber;
+    
+    bool IsMoving;
+    bool IsVertical;
+    bool MoveSwitch;
+};
+
+
+struct grid_entity
+{
+    u8 **UnitField;
+    moving_block *MovingBlocks;
+    
+    u32 RowAmount;
+    u32 ColumnAmount;
+    u32 BlockSize;
+    u32 MovingBlocksAmount;
+    
+    u32 StickUnitsAmount;
+    sticked_unit *StickUnits;
+    
+    bool BlockIsGrabbed;
+    bool BeginAnimationStart; // this is for tiny little animation at the beginning of a level
+    
+    game_rect GridArea;
+    game_texture *NormalSquareTexture;
+    game_texture *VerticalSquareTexture;
+    game_texture *HorizontlaSquareTexture;
+};
+
 
 #include "game.h"
 #include "asset_game.h"
@@ -121,7 +226,6 @@ GameResizeInActiveBLock(game_offscreen_buffer *Buffer, u32 FigureAmount)
 
      BlockInRow = (FigureAmount / 2.0) + 0.5;
      BlockInRow = BlockInRow * 2;
-     printf("BlockInRow = %d\n", BlockInRow);
      
      BlockSize = (MinDistance / BlockInRow);
      BlockSize = BlockSize - ((MinDistance / BlockInRow) % 10);
@@ -167,7 +271,7 @@ GameCopyImageToBuffer(game_bitmap* GameBitmap, u32 X, u32 Y,
           RowBuffer += Buffer->Pitch;
           RowTarget += GameBitmap->Width * BytesPerPixel;
      }
-     printf("GameCopyImageToBuffer\n");
+     
 }
 #endif
 
@@ -721,10 +825,6 @@ FigureUnitSetToDefaultArea(figure_unit* Unit, r32 BlockRatio)
 
           FigureUnitResizeBy(Unit, BlockRatio);
           
-          //ShiftX = Unit->DefaultCenter.x - Unit->Center.x;
-          //ShiftY = Unit->DefaultCenter.y - Unit->Center.y;
-          //FigureUnitMove(Unit, ShiftX, ShiftY);
-
           Unit->IsEnlarged = false;
      }
 }
@@ -796,9 +896,6 @@ GridEntityMoveBlockHorizontally(grid_entity *GridEntity, moving_block *MovingBlo
     
     MovingBlock->ColNumber = NewColNumber;
     
-    //MovingBlock->AreaQuad.x = GridEntity->GridArea.x + (MovingBlock->ColNumber * ActiveBlockSize);
-    //MovingBlock->AreaQuad.y = GridEntity->GridArea.y + (MovingBlock->RowNumber * ActiveBlockSize);
-    
     MovingBlock->MoveSwitch = MovingBlock->MoveSwitch == false ? true : false;
     MovingBlock->IsMoving = true;
     }
@@ -822,9 +919,6 @@ GridEntityMoveBlockHorizontally(grid_entity *GridEntity, moving_block *MovingBlo
         GridEntity->UnitField[NewRowNumber][ColNumber] = 2;
         
         MovingBlock->RowNumber = NewRowNumber;
-        
-        //MovingBlock->AreaQuad.x = GridEntity->GridArea.x + (MovingBlock->ColNumber * ActiveBlockSize);
-        //MovingBlock->AreaQuad.y = GridEntity->GridArea.y + (MovingBlock->RowNumber * ActiveBlockSize);
         
         MovingBlock->MoveSwitch = MovingBlock->MoveSwitch == false ? true : false;
         MovingBlock->IsMoving = true;
@@ -1660,7 +1754,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           GridEntity->VerticalSquareTexture   = GetTexture(Memory, "grid_cell1.png", Buffer->Renderer);
           GridEntity->HorizontlaSquareTexture = GetTexture(Memory, "grid_cell2.png", Buffer->Renderer);
 
-          
           Memory->IsInitialized = true;
           
           printf("memory init!\n");
