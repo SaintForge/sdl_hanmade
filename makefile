@@ -1,5 +1,5 @@
-OBJS = linux_game.cpp
-OBJ_NAME = build/linux_main
+OBJS = win32_game.cpp
+OBJ_NAME = build/win32_game.exe
 
 all: $(OBJS)
-	g++ -D ASSET_BUILD -std=c++11 $(OBJS) -w -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -o $(OBJ_NAME)
+	g++ $(OBJS) -D ASSET_BUILD -std=c++11 -w -I"D:\WorkSpace\Libs\SDL2_gcc\SDL2\include" -L"D:\WorkSpace\Libs\SDL2_gcc\SDL2\lib" -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -o $(OBJ_NAME)
