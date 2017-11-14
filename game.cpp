@@ -383,7 +383,6 @@ FigureUnitResizeBy(figure_unit *Entity, r32 ScaleFactor)
 
 }
 
-
 static void
 CreateFigureUnit(figure_unit* Figure, char* AssetName, 
                  figure_form Form,figure_type Type,
@@ -988,6 +987,30 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
 }
 
 static void
+GridEntityInitMovingBlock(grid_entity *GridEntity, u32 Index,
+                          u32 RowNumber, u32 ColNumber, 
+                          bool IsVertical, u32 ActiveBlockSize,
+                          game_memory *Memory, game_offscreen_buffer *Buffer)
+{
+    if(Index < 0 || Index >= GridEntity->MovingBlocksAmount) return;
+    
+    GridEntity->MovingBlocks[Index].AreaQuad.w = ActiveBlockSize;
+    GridEntity->MovingBlocks[Index].AreaQuad.h = ActiveBlockSize;
+    GridEntity->MovingBlocks[Index].AreaQuad.x = GridEntity->GridArea.x + (ColNumber * ActiveBlockSize);
+    GridEntity->MovingBlocks[Index].AreaQuad.y = GridEntity->GridArea.y + (RowNumber * ActiveBlockSize);
+    
+GridEntity->MovingBlocks[Index].IsVertical = IsVertical;
+    GridEntity->MovingBlocks[Index].RowNumber  = RowNumber;
+    GridEntity->MovingBlocks[Index].ColNumber  = ColNumber;
+    
+    GridEntity->MovingBlocks[Index].Texture = IsVertical
+        ? GetTexture(Memory, "grid_cell_2.png", Buffer->Renderer)
+        : GetTexture(Memory, "grid_cell_1.png", Buffer->Renderer);
+    
+    
+    }
+    
+static void
 GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeElapsed)
 {
      grid_entity   *&GridEntity   = State->GridEntity;
@@ -1400,9 +1423,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 
      if(!Memory->IsInitialized)
      {
-          u32 RowAmount    = 5;
-          u32 ColumnAmount = 5;
-          u32 FigureAmount = 4;
+          u32 RowAmount          = 5;
+          u32 ColumnAmount       = 5;
+         u32 FigureAmount       = 4;
+         u32 MovingBlocksAmount = 2;
 
           // TODO(max): Make InActiveBlockSize calculation smarter!!!
           InActiveBlockSize = GameResizeInActiveBLock(Buffer, FigureAmount);
@@ -1451,9 +1475,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           GridEntity  = (grid_entity *) malloc(sizeof(grid_entity));
           Assert(GridEntity);
           
-          GridEntity->RowAmount    = RowAmount;
-          GridEntity->ColumnAmount = ColumnAmount;
-          GridEntity->BlockSize    = ActiveBlockSize;
+          GridEntity->RowAmount           = RowAmount;
+          GridEntity->ColumnAmount        = ColumnAmount;
+         GridEntity->StickUnitsAmount    = FigureAmount;
+         GridEntity->MovingBlocksAmount  = MovingBlocksAmount;
+          GridEntity->BlockSize           = ActiveBlockSize;
           GridEntity->BlockIsGrabbed      = false;
           GridEntity->BeginAnimationStart = true;
           GridEntity->GridArea.w = GridEntity->ColumnAmount * ActiveBlockSize;
@@ -1461,6 +1487,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           GridEntity->GridArea.x = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
           GridEntity->GridArea.y = (Buffer->Height - FigureEntity->FigureArea.h)/2 - (GridEntity->GridArea.h / 2);
 
+         
+         //
+         // UnitField initialization
+         //
           GridEntity->UnitField = (u8**)malloc(GridEntity->RowAmount * sizeof(u8*));
           Assert(GridEntity->UnitField);
           for (u32 i = 0; i < GridEntity->RowAmount; ++i)
@@ -1473,8 +1503,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                }
           }
 
-          GridEntity->StickUnitsAmount = FigureAmount;
-          
+          //
+          // StickUnits initialization
+          //
           GridEntity->StickUnits = (sticked_unit*)calloc(sizeof(sticked_unit), FigureAmount);
           Assert(GridEntity->StickUnits);
           for (u32 i = 0; i < FigureAmount; ++i)
@@ -1482,6 +1513,17 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                GridEntity->StickUnits[i].Index     = -1;
               GridEntity->StickUnits[i].IsSticked = false;
           }
+          
+          //
+          // MovingBlocks initialization
+          //
+          
+          GridEntity->MovingBlocks = (moving_block*)malloc(sizeof(moving_block) * MovingBlocksAmount);
+          Assert(GridEntity->MovingBlocks);
+          
+          GridEntityInitMovingBlock(GridEntity, 0, 2, 2, false, ActiveBlockSize, Memory, Buffer);
+          GridEntityInitMovingBlock(GridEntity, 1, 3, 3, true, ActiveBlockSize, Memory, Buffer);
+          
 
           GridEntity->NormalSquareTexture     = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
           GridEntity->VerticalSquareTexture   = GetTexture(Memory, "grid_cell1.png", Buffer->Renderer);

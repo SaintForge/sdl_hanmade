@@ -121,14 +121,28 @@ struct sticked_unit
     bool IsSticked;
     game_point Center;
     };
+    
+    
+    struct moving_block
+    {
+        game_rect AreaQuad;
+        game_texture *Texture;
+        
+        u32 RowNumber;
+        u32 ColNumber;
+        
+        bool IsVertical;
+        };
 
 struct grid_entity
 {
      u8 **UnitField;
-     
+    moving_block *MovingBlocks;
+    
      u32 RowAmount;
      u32 ColumnAmount;
-     u32 BlockSize;
+    u32 BlockSize;
+    u32 MovingBlocksAmount;
 
      u32 StickUnitsAmount;
      sticked_unit *StickUnits;

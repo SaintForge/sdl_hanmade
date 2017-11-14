@@ -209,6 +209,7 @@ SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
      char FullName[128];
      strcpy(FullName, SpritePath);
      strcat(FullName, FileName);
+    printf("FullName = %s\n", FullName);
 
      SDL_Surface *Surface = IMG_Load(FullName);
      Assert(Surface);
@@ -250,6 +251,7 @@ SDLWriteSoundToFile(SDL_RWops *&BinaryFile, const char *FileName)
      strcpy(FullName, SoundPath);
      strcat(FullName, FileName);
 		 
+    printf("FullName - %s\n",FullName);
      SDL_RWops *SoundFile = SDL_RWFromFile(FullName, "rb");
      Assert(SoundFile);
 
@@ -460,7 +462,7 @@ SDLAssetBuildBinaryFile()
      SDLWriteBitmapToFile(BinaryFile, "t_s.png");
 
      SDLWriteSoundToFile(BinaryFile, "focus.wav");
-     SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
+     //SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
 
      SDL_RWclose(BinaryFile);
 }
