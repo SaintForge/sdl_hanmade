@@ -832,9 +832,9 @@ static void
 FigureUnitDefineDefaultArea(figure_unit *Unit, s32 X, s32 Y)
 {
      game_rect AreaQuad = FigureUnitGetArea(Unit);
-
-     s32 ShiftX = X - AreaQuad.x;
+s32 ShiftX = X - AreaQuad.x;
      s32 ShiftY = Y - AreaQuad.y;
+    
      FigureUnitMove(Unit, ShiftX, ShiftY);
 
      for (u32 i = 0; i < 4; ++i)
@@ -846,6 +846,38 @@ FigureUnitDefineDefaultArea(figure_unit *Unit, s32 X, s32 Y)
      Unit->DefaultAngle  = Unit->Angle;
 }
 
+static void
+FigureUnitMoveToDefaultArea(figure_unit *FigureUnit, u32 ActiveBlockSize)
+{
+    game_point Center        = FigureUnit->Center;
+    game_point DefaultCenter = FigureUnit->DefaultCenter;
+    
+    r32 OffsetX   = 0.0f;
+    r32 OffsetY   = 0.0f;
+    r32 Magnitude = 0.0f;
+    r32 MaxSpeed  = 0.0f;
+    
+    OffsetX = DefaultCenter.x - Center.x;
+    OffsetY = DefaultCenter.y - Center.y;
+    
+    Magnitude = sqrt(OffsetX*OffsetX + OffsetY*OffsetY);
+    MaxSpeed = Magnitude - ActiveBlockSize;
+    if(Magnitude > (MaxSpeed))
+    {
+        if(Magnitude != 0) 
+        {
+            OffsetX /= Magnitude;
+            OffsetY /= Magnitude;
+        }
+        
+        OffsetX *= MaxSpeed;
+        OffsetY *= MaxSpeed;
+        
+        OffsetX = roundf(OffsetX);
+        OffsetY = roundf(OffsetY);
+        FigureUnitMove(FigureUnit, OffsetX, OffsetY);
+    }
+}
 
 static void
 GridEntityInitMovingBlock(grid_entity *GridEntity, u32 Index,
@@ -924,7 +956,8 @@ GridEntityMoveBlockHorizontally(grid_entity *GridEntity, moving_block *MovingBlo
 
 static void
 GameUpdateEvent(game_input *Input, game_state *GameState,
-                        r32 ActiveBlockSize, r32 DefaultBlockSize)
+                        r32 ActiveBlockSize, r32 DefaultBlockSize,
+                        u32 ScreenWidth, u32 ScreenHeight)
 {
      grid_entity   *&GridEntity   = GameState->GridEntity;
         figure_entity *&FigureEntity = GameState->FigureEntity;
@@ -1002,7 +1035,12 @@ GameUpdateEvent(game_input *Input, game_state *GameState,
                {
                     if(!FigureEntity->IsRotating && !FigureEntity->IsFlipping)
                     {
-                        if(IsFigureUnitInsideRect(&FigureUnit[ActiveIndex], &FigureEntity->FigureArea))
+                        game_rect ScreenArea = {0};
+                        ScreenArea.w = ScreenWidth;
+                        ScreenArea.h = ScreenHeight;
+                        
+                        if(IsFigureUnitInsideRect(&FigureUnit[ActiveIndex], &FigureEntity->FigureArea) || 
+                           (!IsPointInsideRect(FigureUnit[ActiveIndex].Center.x,FigureUnit[ActiveIndex].Center.y, &ScreenArea)))
                            {
                                FigureUnit[ActiveIndex].IsIdle = true;
                               BlockRatio = DefaultBlockSize / ActiveBlockSize;
@@ -1011,33 +1049,9 @@ GameUpdateEvent(game_input *Input, game_state *GameState,
                               FigureEntity->IsReturning = true;
                                FigureEntity->ReturnIndex = ActiveIndex;
                                
-                               game_point Center = FigureUnit[ActiveIndex].Center;
-                               game_point DefaultCenter = FigureUnit[ActiveIndex].DefaultCenter;
-                               
-                               r32 OffsetX, OffsetY;
-                               OffsetX = DefaultCenter.x - Center.x;
-                               OffsetY = DefaultCenter.y - Center.y;
-                               
-                               r32 Magnitude = sqrt(OffsetX*OffsetX + OffsetY*OffsetY);
-                               r32 MaxValue  = Magnitude - ActiveBlockSize;
-                               if(Magnitude > (MaxValue))
-                               {
-                                   if(Magnitude != 0) 
-                                   {
-                                       OffsetX /= Magnitude;
-                                       OffsetY /= Magnitude;
-                                   }
-                                   
-                                   OffsetX *= MaxValue;
-                                   OffsetY *= MaxValue;
-                                   
-                                   OffsetX = roundf(OffsetX);
-                                   OffsetY = roundf(OffsetY);
-                                   FigureUnitMove(&FigureUnit[ActiveIndex], OffsetX, OffsetY);
-                                   }
-                               
+                               FigureUnitMoveToDefaultArea(&FigureUnit[ActiveIndex], ActiveBlockSize);
                          }
-
+                         
                          SDL_ShowCursor(SDL_ENABLE);
                          FigureEntity->IsGrabbed = false;
                          FigureEntity->FigureActive = -1;
@@ -1756,7 +1770,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           printf("memory init!\n");
      }
 
-     GameUpdateEvent(Input, GameState, ActiveBlockSize, InActiveBlockSize);
+     GameUpdateEvent(Input, GameState, ActiveBlockSize, InActiveBlockSize, Buffer->Width, Buffer->Height);
      
      if(Input->WasPressed)
      {
@@ -1769,7 +1783,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
      //PrintArray2D(GridEntity->UnitField, GridEntity->RowAmount, GridEntity->ColumnAmount);
      
      GameUpdateGameState(Buffer, GameState, TimeElapsed);
-
+     if(ShouldQuit) printf("ShouldQuit\n");
      
      TimeElapsed = SDL_GetTicks();
      return(ShouldQuit);

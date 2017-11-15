@@ -20,7 +20,7 @@
 	 -    6.2 moving blocks appearance
 	 -	6.3 figure appearance
 
--	7. Fix boundaries check when figure gets outside the screen!
++	7. Fix boundaries check when figure gets outside the screen!
 
 
 ---Data serialization---

@@ -27,7 +27,6 @@ typedef SDL_Surface game_surface;
 typedef Mix_Chunk   game_sound;
 typedef Mix_Music   game_music;
 
-
 typedef int8_t   s8;
 typedef int16_t s16;
 typedef int32_t s32;
