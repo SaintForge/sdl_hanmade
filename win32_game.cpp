@@ -279,9 +279,11 @@ int main(int argc, char **argv)
           {
                bool IsRunning = true;
                window_dimension Dimension = SDLGetWindowDimension(Window);
-
+              
                sdl_offscreen_buffer BackBuffer = {};
-               SDL_GetWindowSize(Window, &BackBuffer.Width, &BackBuffer.Height);
+               BackBuffer.Width = Dimension.Width;
+               BackBuffer.Height = Dimension.Height;
+               
 #if ASSET_BUILD
                // NOTE: This is for packaging data to the disk
                SDLAssetBuildBinaryFile();
@@ -313,7 +315,7 @@ int main(int argc, char **argv)
                     Buffer.Memory   = BackBuffer.Texture;
                     Buffer.Width    = BackBuffer.Width;
                     Buffer.Height   = BackBuffer.Height;
-
+                    
                     if(Memory.AssetsInitialized)
                     {
                          if(GameUpdateAndRender(&Memory, &Input, &Buffer))

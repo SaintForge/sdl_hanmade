@@ -97,10 +97,9 @@ struct grid_entity
     
     u32 RowAmount;
     u32 ColumnAmount;
-    u32 BlockSize;
     u32 MovingBlocksAmount;
-    
     u32 StickUnitsAmount;
+    
     sticked_unit *StickUnits;
     
     bool BlockIsGrabbed;
@@ -882,11 +881,15 @@ FigureUnitMoveToDefaultArea(figure_unit *FigureUnit, u32 ActiveBlockSize)
 static void
 GridEntityInitMovingBlock(grid_entity *GridEntity, u32 Index,
                           u32 RowNumber, u32 ColNumber, 
-                          bool IsVertical, u32 ActiveBlockSize,
-                          game_memory *Memory, game_offscreen_buffer *Buffer)
+                          bool IsVertical, bool MoveSwitch, 
+                          u32 ActiveBlockSize, game_memory *Memory, 
+                          game_offscreen_buffer *Buffer)
 {
     if(Index < 0 || Index >= GridEntity->MovingBlocksAmount) return;
     if(GridEntity->UnitField[RowNumber][ColNumber] != 0) return;
+    
+    GridEntity->MovingBlocks[Index].RowNumber = RowNumber;
+    GridEntity->MovingBlocks[Index].RowNumber = ColNumber;
     
     GridEntity->MovingBlocks[Index].AreaQuad.w = ActiveBlockSize;
     GridEntity->MovingBlocks[Index].AreaQuad.h = ActiveBlockSize;
@@ -894,6 +897,7 @@ GridEntityInitMovingBlock(grid_entity *GridEntity, u32 Index,
     GridEntity->MovingBlocks[Index].AreaQuad.y = GridEntity->GridArea.y + (RowNumber * ActiveBlockSize);
     
     GridEntity->MovingBlocks[Index].IsMoving   = false;
+    GridEntity->MovingBlocks[Index].MoveSwitch = MoveSwitch;
     GridEntity->MovingBlocks[Index].IsVertical = IsVertical;
     GridEntity->MovingBlocks[Index].RowNumber  = RowNumber;
     GridEntity->MovingBlocks[Index].ColNumber  = ColNumber;
@@ -1405,15 +1409,15 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
               }
           }
           
-     AreaQuad.w = GridEntity->BlockSize;
-     AreaQuad.h = GridEntity->BlockSize;
+     AreaQuad.w = ActiveBlockSize;
+     AreaQuad.h = ActiveBlockSize;
 
      for (u32 i = 0; i < RowAmount; ++i)
      {
-          AreaQuad.y = GridEntity->GridArea.y + (i * GridEntity->BlockSize);
+          AreaQuad.y = GridEntity->GridArea.y + (i * ActiveBlockSize);
           for (u32 j = 0; j < ColumnAmount; ++j)
           {
-               AreaQuad.x = GridEntity->GridArea.x + (j * GridEntity->BlockSize);
+               AreaQuad.x = GridEntity->GridArea.x + (j * ActiveBlockSize);
               if(GridEntity->UnitField[i][j] == 0 || GridEntity->UnitField[i][j] == 2)
                {
                     GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture, &AreaQuad);
@@ -1680,13 +1684,20 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
          Assert(FigureEntity);
          
          FigureEntity->FigureAmount  = FigureAmount;
+         FigureEntity->ReturnIndex   = -1;
+         FigureEntity->FigureActive  = -1;
+         
          FigureEntity->IsGrabbed     = false;
          FigureEntity->IsRotating    = false;
          FigureEntity->IsReturning   = false;
+         FigureEntity->IsFlipping    = false;
+         
          FigureEntity->RotationSum   = 0;
          FigureEntity->AreaAlpha     = 0;
-         FigureEntity->ReturnIndex   = 0;
-         FigureEntity->FigureActive  = -1;
+         FigureEntity->FigureAlpha   = 0;
+         FigureEntity->FadeInSum     = 0;
+         FigureEntity->FadeOutSum    = 0;
+         
          FigureEntity->FigureArea.w  = Buffer->Width;
          FigureEntity->FigureArea.h  = InActiveBlockSize * 9;
          FigureEntity->FigureArea.y  = Buffer->Height - (FigureEntity->FigureArea.h);
@@ -1694,6 +1705,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
          
          FigureEntity->FigureUnit = (figure_unit*)malloc(sizeof(figure_unit)*FigureAmount);
          Assert(FigureEntity->FigureUnit);
+         
          CreateFigureUnit(&FigureEntity->FigureUnit[0], "z_m.png", Z_figure, mirror, Memory, Buffer);
          CreateFigureUnit(&FigureEntity->FigureUnit[1], "s_m.png", S_figure, mirror, Memory, Buffer);
          CreateFigureUnit(&FigureEntity->FigureUnit[2], "l_m.png", L_figure, mirror, Memory, Buffer);
@@ -1714,7 +1726,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           GridEntity->ColumnAmount        = ColumnAmount;
          GridEntity->StickUnitsAmount    = FigureAmount;
          GridEntity->MovingBlocksAmount  = MovingBlocksAmount;
-          GridEntity->BlockSize           = ActiveBlockSize;
           GridEntity->BlockIsGrabbed      = false;
           GridEntity->BeginAnimationStart = true;
           GridEntity->GridArea.w = GridEntity->ColumnAmount * ActiveBlockSize;
@@ -1755,8 +1766,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           GridEntity->MovingBlocks = (moving_block*)malloc(sizeof(moving_block) * MovingBlocksAmount);
           Assert(GridEntity->MovingBlocks);
           
-          GridEntityInitMovingBlock(GridEntity, 0, 2, 2, false, ActiveBlockSize, Memory, Buffer);
-          GridEntityInitMovingBlock(GridEntity, 1, 3, 3, true, ActiveBlockSize, Memory, Buffer);
+          GridEntityInitMovingBlock(GridEntity, 0, 2, 2, false, true, ActiveBlockSize, Memory, Buffer);
+          GridEntityInitMovingBlock(GridEntity, 1, 3, 3, true,  false, ActiveBlockSize, Memory, Buffer);
           
           //
           // GridEntity texture initialization
