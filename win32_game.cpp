@@ -322,7 +322,6 @@ int main(int argc, char **argv)
                          {
                               IsRunning = false;
                               
-                              Mix_FreeMusic(Memory.Music);
                               free(Memory.Assets);
                          }
                     }

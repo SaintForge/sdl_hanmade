@@ -64,7 +64,9 @@ struct game_state
     
     r32 AlphaPerSec;
     r32 RotationVel;
-    r32 SpeedPerSec;
+    
+    bool GameStarted;
+    bool GameFinished;
     };
 
 struct game_memory
@@ -72,11 +74,9 @@ struct game_memory
      bool IsInitialized;
      game_state State;
 
-     game_music *Music;
-     game_sound *Sound;
-
      void *Assets;
      u64 AssetsSpace;
+    
      bool AssetsInitialized;
 };
 

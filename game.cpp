@@ -1647,17 +1647,17 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
+    bool ShouldQuit       = false;
+    u32 ActiveBlockSize   = Memory->State.ActiveBlockSize;
+    u32 InActiveBlockSize = Memory->State.InActiveBlockSize;
+    
      static r32 TimeElapsed = 0.0f;
      TimeElapsed = (SDL_GetTicks() - TimeElapsed) / 1000.0f;
      
-     bool ShouldQuit = false;
-
      game_state    *GameState     = &Memory->State;
      grid_entity   *&GridEntity   = Memory->State.GridEntity;
      figure_entity *&FigureEntity = Memory->State.FigureEntity;
-     u32 ActiveBlockSize   = Memory->State.ActiveBlockSize;
-     u32 InActiveBlockSize = Memory->State.InActiveBlockSize;
-
+     
      if(!Memory->IsInitialized)
      {
           u32 RowAmount          = 5;
