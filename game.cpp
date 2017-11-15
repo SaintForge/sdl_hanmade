@@ -1218,33 +1218,10 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
      
      if(!State->LevelStarted)
      {
-         r32 FigureAlpha   = FigureEntity->FigureAlpha;
-     bool IsLevelReady = true;
+         bool IsLevelReady = true;
+         r32 ScaleSpeed = ActiveBlockSize / InActiveBlockSize;
          
-         if(FigureAlpha < 255)
-         {
-             FigureAlpha += (TimeElapsed) * (State->StartAlphaPerSec);
-             //printf("FigureAlpha = %f\n", FigureAlpha);
-             
-             if(FigureAlpha >= 255)
-             {
-                 FigureAlpha = 255;
-             }
-             else
-             {
-                 IsLevelReady = false;
-             }
-             
-             FigureEntity->FigureAlpha = FigureAlpha;
-         }
-         
-         for(u32 i = 0; i < FigureAmount; ++i)
-         {
-             SDL_SetTextureAlphaMod(FigureUnit[i].Texture, FigureAlpha);
-             FigureUnitRenderBitmap(Buffer, &FigureUnit[i]);
-         }
-         
-     for (u32 i = 0; i < RowAmount; ++i)
+         for (u32 i = 0; i < RowAmount; ++i)
      {
          StartY = GridEntity->GridArea.y + (ActiveBlockSize * i) + (ActiveBlockSize / 2);
          for (u32 j = 0; j < ColumnAmount; ++j)
@@ -1253,7 +1230,7 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
              
              if(GridEntity->UnitSize[i][j] < ActiveBlockSize)
              {
-                 GridEntity->UnitSize[i][j] += 1;
+                 GridEntity->UnitSize[i][j] += ScaleSpeed;
                  if(IsLevelReady) 
                  {
                      IsLevelReady = false;
@@ -1284,8 +1261,35 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
              {
                  GameRenderBitmapToBuffer(Buffer, GridEntity->VerticalSquareTexture, &AreaQuad);
              }
+             }
          }
-     }
+     
+     if(!IsLevelReady) return;
+     
+     r32 FigureAlpha = FigureEntity->FigureAlpha;
+     
+     if(FigureAlpha < 255)
+     {
+         FigureAlpha += (TimeElapsed) * (State->StartAlphaPerSec);
+          FigureAlpha = roundf(FigureAlpha);
+         
+         if(FigureAlpha >= 255)
+         {
+              FigureAlpha = 255;
+         }
+         else
+         {
+             IsLevelReady = false;
+         }
+         
+         FigureEntity->FigureAlpha = FigureAlpha;
+         }
+     
+     for(u32 i = 0; i < FigureAmount; ++i)
+     {
+         SDL_SetTextureAlphaMod(FigureUnit[i].Texture, FigureAlpha);
+         FigureUnitRenderBitmap(Buffer, &FigureUnit[i]);
+             }
      
      if(IsLevelReady)
      {
