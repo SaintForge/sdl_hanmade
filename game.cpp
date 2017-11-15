@@ -59,7 +59,7 @@ struct figure_entity
     bool IsReturning;
     
     s32 AreaAlpha;
-    s32 FigureAlpha;
+    r32 FigureAlpha;
     
     r32 FadeInSum;
     r32 FadeOutSum;
@@ -79,7 +79,7 @@ struct sticked_unit
 struct moving_block
 {
     game_rect AreaQuad;
-    game_texture *Texture;
+    //game_texture *Texture;
     
     u32 RowNumber;
     u32 ColNumber;
@@ -92,18 +92,15 @@ struct moving_block
 
 struct grid_entity
 {
-    u8 **UnitField;
-    moving_block *MovingBlocks;
-    
     u32 RowAmount;
     u32 ColumnAmount;
     u32 MovingBlocksAmount;
     u32 StickUnitsAmount;
     
+    s32 **UnitSize;
+    s32 **UnitField;
     sticked_unit *StickUnits;
-    
-    bool BlockIsGrabbed;
-    bool BeginAnimationStart; // this is for tiny little animation at the beginning of a level
+    moving_block *MovingBlocks;
     
     game_rect GridArea;
     game_texture *NormalSquareTexture;
@@ -503,7 +500,7 @@ CreateFigureUnit(figure_unit* Figure, char* AssetName,
     Figure->Type = Type;
     Figure->Flip = SDL_FLIP_NONE;
     Figure->Texture = GetTexture(Memory, AssetName, Buffer->Renderer);
-    
+    SDL_SetTextureBlendMode(Figure->Texture, SDL_BLENDMODE_BLEND);
     
      int RowAmount       = 0;
      int ColumnAmount    = 0;
@@ -882,8 +879,7 @@ static void
 GridEntityInitMovingBlock(grid_entity *GridEntity, u32 Index,
                           u32 RowNumber, u32 ColNumber, 
                           bool IsVertical, bool MoveSwitch, 
-                          u32 ActiveBlockSize, game_memory *Memory, 
-                          game_offscreen_buffer *Buffer)
+                          u32 ActiveBlockSize)
 {
     if(Index < 0 || Index >= GridEntity->MovingBlocksAmount) return;
     if(GridEntity->UnitField[RowNumber][ColNumber] != 0) return;
@@ -902,13 +898,8 @@ GridEntityInitMovingBlock(grid_entity *GridEntity, u32 Index,
     GridEntity->MovingBlocks[Index].RowNumber  = RowNumber;
     GridEntity->MovingBlocks[Index].ColNumber  = ColNumber;
     
-    GridEntity->UnitField[RowNumber][ColNumber] = 2;
-    
-    GridEntity->MovingBlocks[Index].Texture = IsVertical
-        ? GetTexture(Memory, "o_s.png", Buffer->Renderer)
-        : GetTexture(Memory, "o_m.png", Buffer->Renderer);
-    
-}
+    GridEntity->UnitField[RowNumber][ColNumber] = IsVertical ? 3 : 2;
+    }
 
 static void
 GridEntityMoveBlockHorizontally(grid_entity *GridEntity, moving_block *MovingBlock)
@@ -950,7 +941,7 @@ GridEntityMoveBlockHorizontally(grid_entity *GridEntity, moving_block *MovingBlo
         if(GridEntity->UnitField[NewRowNumber][ColNumber] != 0) return;
         
         GridEntity->UnitField[RowNumber][ColNumber]    = 0;
-        GridEntity->UnitField[NewRowNumber][ColNumber] = 2;
+        GridEntity->UnitField[NewRowNumber][ColNumber] = 3;
         
         MovingBlock->RowNumber = NewRowNumber;
         
@@ -959,7 +950,7 @@ GridEntityMoveBlockHorizontally(grid_entity *GridEntity, moving_block *MovingBlo
     }
 
 static void
-GameUpdateEvent(game_input *Input, game_state *GameState,
+GameUpdateEvent(game_input *Input, level_entity *GameState,
                         r32 ActiveBlockSize, r32 DefaultBlockSize,
                         u32 ScreenWidth, u32 ScreenHeight)
 {
@@ -1201,13 +1192,14 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
 }
 }
 
-    
 static void
-GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeElapsed)
+LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeElapsed)
 {
-     grid_entity   *&GridEntity   = State->GridEntity;
+    static r32 TotalElapsed = SDL_GetTicks();
+    
+    grid_entity   *&GridEntity   = State->GridEntity;
      figure_entity *&FigureEntity = State->FigureEntity;
-    figure_unit *FigureUnit = FigureEntity->FigureUnit;
+    figure_unit   *FigureUnit    = FigureEntity->FigureUnit;
     
     r32 ActiveBlockSize   = State->ActiveBlockSize;
     r32 InActiveBlockSize = State->InActiveBlockSize;
@@ -1220,6 +1212,90 @@ GameUpdateGameState(game_offscreen_buffer *Buffer, game_state *State, r32 TimeEl
      s32 ActiveIndex  = FigureEntity->FigureActive;
      
      bool ToggleHighlight = false;
+     
+     s32 StartX        = 0;
+     s32 StartY        = 0;
+     
+     if(!State->LevelStarted)
+     {
+         r32 FigureAlpha   = FigureEntity->FigureAlpha;
+     bool IsLevelReady = true;
+         
+         if(FigureAlpha < 255)
+         {
+             FigureAlpha += (TimeElapsed) * (State->StartAlphaPerSec);
+             //printf("FigureAlpha = %f\n", FigureAlpha);
+             
+             if(FigureAlpha >= 255)
+             {
+                 FigureAlpha = 255;
+             }
+             else
+             {
+                 IsLevelReady = false;
+             }
+             
+             FigureEntity->FigureAlpha = FigureAlpha;
+         }
+         
+         for(u32 i = 0; i < FigureAmount; ++i)
+         {
+             SDL_SetTextureAlphaMod(FigureUnit[i].Texture, FigureAlpha);
+             FigureUnitRenderBitmap(Buffer, &FigureUnit[i]);
+         }
+         
+     for (u32 i = 0; i < RowAmount; ++i)
+     {
+         StartY = GridEntity->GridArea.y + (ActiveBlockSize * i) + (ActiveBlockSize / 2);
+         for (u32 j = 0; j < ColumnAmount; ++j)
+         {
+             StartX = GridEntity->GridArea.x + (ActiveBlockSize * j) + (ActiveBlockSize / 2);
+             
+             if(GridEntity->UnitSize[i][j] < ActiveBlockSize)
+             {
+                 GridEntity->UnitSize[i][j] += 1;
+                 if(IsLevelReady) 
+                 {
+                     IsLevelReady = false;
+                 }
+             }
+             
+             if(GridEntity->UnitSize[i][j]  >= ActiveBlockSize)
+             {
+                 GridEntity->UnitSize[i][j] = ActiveBlockSize;
+             }
+             
+             AreaQuad.w = GridEntity->UnitSize[i][j];
+             AreaQuad.h = GridEntity->UnitSize[i][j];
+             AreaQuad.x = StartX - (GridEntity->UnitSize[i][j] / 2);
+             AreaQuad.y = StartY - (GridEntity->UnitSize[i][j] / 2);
+             
+             if(GridEntity->UnitField[i][j] == 0)
+             {
+                 GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture, &AreaQuad);
+             }
+             
+             if(GridEntity->UnitField[i][j] == 2)
+             {
+                 GameRenderBitmapToBuffer(Buffer, GridEntity->HorizontlaSquareTexture, &AreaQuad);
+             }
+             
+             if(GridEntity->UnitField[i][j] == 3)
+             {
+                 GameRenderBitmapToBuffer(Buffer, GridEntity->VerticalSquareTexture, &AreaQuad);
+             }
+         }
+     }
+     
+     if(IsLevelReady)
+     {
+         State->LevelStarted = IsLevelReady;
+         printf("Done!\n");
+         printf("TotalElapsed = %f sec\n", (SDL_GetTicks() - TotalElapsed) / 1000.0f);
+         }
+         
+     return;
+     }
      
      //
      // GridEntity Update and Rendering
@@ -1409,16 +1485,22 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
               }
           }
           
-     AreaQuad.w = ActiveBlockSize;
-     AreaQuad.h = ActiveBlockSize;
-
      for (u32 i = 0; i < RowAmount; ++i)
      {
-          AreaQuad.y = GridEntity->GridArea.y + (i * ActiveBlockSize);
+          //AreaQuad.y = GridEntity->GridArea.y + (ActiveBlockSize * i) + (ActiveBlockSize / 2);
+         StartY = GridEntity->GridArea.y + (ActiveBlockSize * i) + (ActiveBlockSize / 2);
           for (u32 j = 0; j < ColumnAmount; ++j)
           {
-               AreaQuad.x = GridEntity->GridArea.x + (j * ActiveBlockSize);
-              if(GridEntity->UnitField[i][j] == 0 || GridEntity->UnitField[i][j] == 2)
+              StartX = GridEntity->GridArea.x + (ActiveBlockSize * j) + (ActiveBlockSize / 2);
+              
+              AreaQuad.w = GridEntity->UnitSize[i][j];
+              AreaQuad.h = GridEntity->UnitSize[i][j];
+              AreaQuad.x = StartX - (GridEntity->UnitSize[i][j] / 2);
+              AreaQuad.y = StartY - (GridEntity->UnitSize[i][j] / 2);
+              
+              if(GridEntity->UnitField[i][j] == 0 || 
+                 GridEntity->UnitField[i][j] == 2 || 
+                 GridEntity->UnitField[i][j] == 3)
                {
                     GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture, &AreaQuad);
                }
@@ -1473,7 +1555,15 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
                  }
          }
          
-         GameRenderBitmapToBuffer(Buffer, GridEntity->MovingBlocks[i].Texture, &GridEntity->MovingBlocks[i].AreaQuad);
+         if(GridEntity->MovingBlocks[i].IsVertical)
+         {
+             Assert(GridEntity->VerticalSquareTexture);
+             GameRenderBitmapToBuffer(Buffer, GridEntity->VerticalSquareTexture,   &GridEntity->MovingBlocks[i].AreaQuad);
+         }
+         else
+         {
+             GameRenderBitmapToBuffer(Buffer, GridEntity->HorizontlaSquareTexture, &GridEntity->MovingBlocks[i].AreaQuad);
+         }
      }
          
      //
@@ -1502,7 +1592,7 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
      {
          if(FigureEntity->AreaAlpha < 255)
          {
-             FigureEntity->AreaAlpha += TimeElapsed * State->AlphaPerSec;
+             FigureEntity->AreaAlpha += TimeElapsed * State->FlippingAlphaPerSec;
              FigureEntity->AreaAlpha = roundf(FigureEntity->AreaAlpha);
              
              if(FigureEntity->AreaAlpha >= 255)
@@ -1515,7 +1605,7 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
      {
          if(FigureEntity->AreaAlpha > 0)
          {
-             FigureEntity->AreaAlpha -= TimeElapsed * State->AlphaPerSec;
+             FigureEntity->AreaAlpha -= TimeElapsed * State->FlippingAlphaPerSec;
              FigureEntity->AreaAlpha = roundf(FigureEntity->AreaAlpha);
              
              if(FigureEntity->AreaAlpha <= 0)
@@ -1576,7 +1666,7 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
      
      if(FigureEntity->IsRotating)
      {
-          // TODO(max): Maybe put these values in game_state ???
+          // TODO(max): Maybe put these values in level_entity ???
           r32 AngleDt = TimeElapsed * State->RotationVel;
 
           if(FigureEntity->RotationSum < 90.0f && !(FigureEntity->RotationSum + AngleDt >= 90.0f))
@@ -1600,7 +1690,7 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
      {
           if(FigureEntity->FadeInSum > 0)
           {
-               FigureEntity->FadeInSum -= TimeElapsed * State->AlphaPerSec;
+               FigureEntity->FadeInSum -= TimeElapsed * State->FlippingAlphaPerSec;
               FigureEntity->FigureAlpha = roundf(FigureEntity->FadeInSum);
                
                if(FigureEntity->FadeInSum <= 0)
@@ -1613,7 +1703,7 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
           }
           else if(FigureEntity->FadeOutSum < 255)
           {
-               FigureEntity->FadeOutSum += TimeElapsed * State->AlphaPerSec;
+               FigureEntity->FadeOutSum += TimeElapsed * State->FlippingAlphaPerSec;
               FigureEntity->FigureAlpha = roundf(FigureEntity->FadeOutSum);
 
                if(FigureEntity->FadeOutSum >= 255)
@@ -1647,14 +1737,13 @@ for (u32 Index = 0; Index < FigureAmount; ++Index)
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
+    static r32 TimeElapsed = SDL_GetTicks();
+    
     bool ShouldQuit       = false;
     u32 ActiveBlockSize   = Memory->State.ActiveBlockSize;
     u32 InActiveBlockSize = Memory->State.InActiveBlockSize;
     
-     static r32 TimeElapsed = 0.0f;
-     TimeElapsed = (SDL_GetTicks() - TimeElapsed) / 1000.0f;
-     
-     game_state    *GameState     = &Memory->State;
+     level_entity    *GameState     = &Memory->State;
      grid_entity   *&GridEntity   = Memory->State.GridEntity;
      figure_entity *&FigureEntity = Memory->State.FigureEntity;
      
@@ -1664,6 +1753,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           u32 ColumnAmount       = 5;
          u32 FigureAmount       = 4;
          u32 MovingBlocksAmount = 2;
+         
+         GameState->LevelStarted  = false;
+         GameState->LevelFinished = false;
 
           // TODO(max): Make InActiveBlockSize calculation smarter!!!
           InActiveBlockSize = GameResizeInActiveBLock(Buffer, FigureAmount);
@@ -1674,9 +1766,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
          
          Memory->State.ActiveBlockSize   = ActiveBlockSize;
          Memory->State.InActiveBlockSize = InActiveBlockSize;
-         GameState->AlphaPerSec = 700.0f;
-         GameState->RotationVel = 600.0f;
-          
+         
+         GameState->RotationVel         = 600.0f;
+         GameState->StartAlphaPerSec    = 255.0f;
+         GameState->FlippingAlphaPerSec = 700.0f;
+         
          //
           // Figure initialization
          //
@@ -1706,9 +1800,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
          FigureEntity->FigureUnit = (figure_unit*)malloc(sizeof(figure_unit)*FigureAmount);
          Assert(FigureEntity->FigureUnit);
          
-         CreateFigureUnit(&FigureEntity->FigureUnit[0], "z_m.png", Z_figure, mirror, Memory, Buffer);
-         CreateFigureUnit(&FigureEntity->FigureUnit[1], "s_m.png", S_figure, mirror, Memory, Buffer);
-         CreateFigureUnit(&FigureEntity->FigureUnit[2], "l_m.png", L_figure, mirror, Memory, Buffer);
+         CreateFigureUnit(&FigureEntity->FigureUnit[0], "z_d.png", Z_figure, classic, Memory, Buffer);
+         CreateFigureUnit(&FigureEntity->FigureUnit[1], "s_m.png", S_figure, mirror,  Memory, Buffer);
+         CreateFigureUnit(&FigureEntity->FigureUnit[2], "l_m.png", L_figure, mirror,  Memory, Buffer);
          CreateFigureUnit(&FigureEntity->FigureUnit[3], "j_s.png", J_figure, classic, Memory, Buffer);
          
          FigureEntity->FigureOrder = (u32*)malloc(sizeof(u32) * FigureAmount);
@@ -1726,8 +1820,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           GridEntity->ColumnAmount        = ColumnAmount;
          GridEntity->StickUnitsAmount    = FigureAmount;
          GridEntity->MovingBlocksAmount  = MovingBlocksAmount;
-          GridEntity->BlockIsGrabbed      = false;
-          GridEntity->BeginAnimationStart = true;
           GridEntity->GridArea.w = GridEntity->ColumnAmount * ActiveBlockSize;
           GridEntity->GridArea.h = GridEntity->RowAmount * ActiveBlockSize;
           GridEntity->GridArea.x = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
@@ -1736,16 +1828,28 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
          //
          // UnitField initialization
          //
-          GridEntity->UnitField = (u8**)malloc(GridEntity->RowAmount * sizeof(u8*));
+          GridEntity->UnitField = (s32**)malloc(GridEntity->RowAmount * sizeof(s32*));
           Assert(GridEntity->UnitField);
           for (u32 i = 0; i < GridEntity->RowAmount; ++i)
           {
-               GridEntity->UnitField[i] = (u8*)malloc(sizeof(u8) * GridEntity->ColumnAmount);
+               GridEntity->UnitField[i] = (s32*)malloc(sizeof(s32) * GridEntity->ColumnAmount);
                Assert(GridEntity->UnitField[i]);
                for (u32 j = 0; j < GridEntity->ColumnAmount; ++j)
                {
                     GridEntity->UnitField[i][j] = 0;
                }
+          }
+          
+          GridEntity->UnitSize = (s32**)malloc(GridEntity->RowAmount * sizeof(s32*));
+          Assert(GridEntity->UnitSize);
+          for(u32 i = 0; i < GridEntity->RowAmount; ++i)
+          {
+              GridEntity->UnitSize[i] = (s32*)malloc(sizeof(s32) * GridEntity->ColumnAmount);
+              Assert(GridEntity->UnitSize[i]);
+              for(u32 j = 0; j < GridEntity->ColumnAmount; ++j)
+              {
+                  GridEntity->UnitSize[i][j] = 0;
+              }
           }
 
           //
@@ -1766,21 +1870,22 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
           GridEntity->MovingBlocks = (moving_block*)malloc(sizeof(moving_block) * MovingBlocksAmount);
           Assert(GridEntity->MovingBlocks);
           
-          GridEntityInitMovingBlock(GridEntity, 0, 2, 2, false, true, ActiveBlockSize, Memory, Buffer);
-          GridEntityInitMovingBlock(GridEntity, 1, 3, 3, true,  false, ActiveBlockSize, Memory, Buffer);
+          GridEntityInitMovingBlock(GridEntity, 0, 2, 2, false, true, ActiveBlockSize);
+          GridEntityInitMovingBlock(GridEntity, 1, 3, 3, true,  false, ActiveBlockSize);
           
           //
           // GridEntity texture initialization
           //
           GridEntity->NormalSquareTexture     = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
-          GridEntity->VerticalSquareTexture   = GetTexture(Memory, "grid_cell1.png", Buffer->Renderer);
-          GridEntity->HorizontlaSquareTexture = GetTexture(Memory, "grid_cell2.png", Buffer->Renderer);
-
-          Memory->IsInitialized = true;
+          GridEntity->VerticalSquareTexture   = GetTexture(Memory, "o_s.png", Buffer->Renderer);
+          GridEntity->HorizontlaSquareTexture = GetTexture(Memory, "o_m.png", Buffer->Renderer);
           
+          Memory->IsInitialized = true;
           printf("memory init!\n");
      }
-
+     
+     TimeElapsed = (SDL_GetTicks() - TimeElapsed) / 1000.0f;
+     
      GameUpdateEvent(Input, GameState, ActiveBlockSize, InActiveBlockSize, Buffer->Width, Buffer->Height);
      
      if(Input->WasPressed)
@@ -1793,8 +1898,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 
      //PrintArray2D(GridEntity->UnitField, GridEntity->RowAmount, GridEntity->ColumnAmount);
      
-     GameUpdateGameState(Buffer, GameState, TimeElapsed);
-     if(ShouldQuit) printf("ShouldQuit\n");
+     LevelEntityUpdate(Buffer, GameState, TimeElapsed);
      
      TimeElapsed = SDL_GetTicks();
      return(ShouldQuit);

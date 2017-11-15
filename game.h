@@ -54,7 +54,7 @@ struct game_input
      s32 MouseRelX, MouseRelY;
 };
 
-struct game_state
+struct level_entity
 {
      grid_entity   *GridEntity;
      figure_entity *FigureEntity;
@@ -62,22 +62,27 @@ struct game_state
      u32 ActiveBlockSize;
      u32 InActiveBlockSize;
     
-    r32 AlphaPerSec;
     r32 RotationVel;
+    r32 StartAlphaPerSec;
+    r32 FlippingAlphaPerSec;
     
-    bool GameStarted;
-    bool GameFinished;
+    bool LevelStarted;
+    bool LevelFinished;
     };
 
 struct game_memory
 {
-     bool IsInitialized;
-     game_state State;
+     level_entity State;
 
      void *Assets;
      u64 AssetsSpace;
     
+    void *LevelMemory;
+    u64 LevelSpace;
+    
+    bool IsInitialized;
      bool AssetsInitialized;
+    bool LevelMemoryInitialized;
 };
 
 static bool GameUpdateAndRender(game_memory *Memory, game_input *Input,
