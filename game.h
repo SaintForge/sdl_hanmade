@@ -11,77 +11,80 @@
 
 void LogErrorLine(const char* Message, int Line)
 {
-     fprintf(stderr, "Assert fail in %s: %d\n",Message, Line);
+    fprintf(stderr, "Assert fail in %s: %d\n",Message, Line);
 }
 
 #define Assert(Expression) if(!(Expression)) { LogErrorLine( __FILE__, __LINE__); *(int *)0 = 0;  }
 
 struct game_offscreen_buffer
 {
-     int Width;
-     int Height;
-     SDL_Texture *Memory;
-     SDL_Renderer *Renderer;
+    int Width;
+    int Height;
+    SDL_Texture *Memory;
+    SDL_Renderer *Renderer;
 };
 
 struct game_button_state
 {
-     bool IsDown;
-     bool WasDown;
+    bool IsDown;
+    bool WasDown;
 };
 
 struct game_input
 {
-     bool WasPressed;
-     bool MouseMotion;
-     union
-     {
-          game_button_state Buttons[7];
-          struct
-
-          {
-               game_button_state Up;
-               game_button_state Down;
-               game_button_state Left;
-               game_button_state Right;
-               game_button_state LeftClick;
-               game_button_state RightClick;
-               game_button_state Escape;
-          };
-     };
-
-     s32 MouseX, MouseY;
-     s32 MouseRelX, MouseRelY;
+    bool WasPressed;
+    bool MouseMotion;
+    union
+    {
+        game_button_state Buttons[7];
+        struct
+        
+        {
+            game_button_state Up;
+            game_button_state Down;
+            game_button_state Left;
+            game_button_state Right;
+            game_button_state LeftClick;
+            game_button_state RightClick;
+            game_button_state Escape;
+        };
+    };
+    
+    s32 MouseX, MouseY;
+    s32 MouseRelX, MouseRelY;
 };
 
 struct level_entity
 {
-     grid_entity   *GridEntity;
-     figure_entity *FigureEntity;
-
-     u32 ActiveBlockSize;
-     u32 InActiveBlockSize;
+    grid_entity   *GridEntity;
+    figure_entity *FigureEntity;
+    
+    u32 ActiveBlockSize;
+    u32 InActiveBlockSize;
     
     r32 RotationVel;
     r32 StartAlphaPerSec;
     r32 FlippingAlphaPerSec;
     
+    r32 ScaleSpeed;
+    r32 ScaleAcceleration;
+    
     bool LevelStarted;
     bool LevelFinished;
-    };
+};
 
 struct game_memory
 {
-     level_entity State;
-
-     void *Assets;
-     u64 AssetsSpace;
+    level_entity State;
+    
+    void *Assets;
+    u64 AssetsSpace;
     
     void *LevelMemory;
     u64 LevelSpace;
     
     bool IsInitialized;
-     bool AssetsInitialized;
+    bool AssetsInitialized;
     bool LevelMemoryInitialized;
 };
 
