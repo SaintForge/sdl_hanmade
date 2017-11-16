@@ -1211,33 +1211,33 @@ Change1DUnitPerSec(r32 *Unit, r32 MaxValue, r32 ChangePerSec, r32 TimeElapsed)
     {
         
         if(UnitValue < MaxValue)
-    {
-        UnitValue += TimeElapsed * ChangePerSec;
-        UnitValue = roundf(UnitValue);
-        
-        if(UnitValue >= MaxValue) UnitValue = MaxValue;
-        
-        *Unit = roundf(UnitValue);
-        IsFinished = false;
+        {
+            UnitValue += TimeElapsed * ChangePerSec;
+            UnitValue = roundf(UnitValue);
+            
+            if(UnitValue >= MaxValue) UnitValue = MaxValue;
+            
+            *Unit = roundf(UnitValue);
+            IsFinished = false;
+        }
     }
-}
-else
-{
-    
-    if(UnitValue > MaxValue)
+    else
     {
-        UnitValue -= TimeElapsed * ChangePerSec;
-        UnitValue = roundf(UnitValue);
         
-        if(UnitValue <= MaxValue) UnitValue = MaxValue;
-        
-        *Unit = roundf(UnitValue);
-        IsFinished = false;
+        if(UnitValue > MaxValue)
+        {
+            UnitValue -= TimeElapsed * ChangePerSec;
+            UnitValue = roundf(UnitValue);
+            
+            if(UnitValue <= MaxValue) UnitValue = MaxValue;
+            
+            *Unit = roundf(UnitValue);
+            IsFinished = false;
+        }
     }
-}
     
     return(IsFinished);
-    }
+}
 
 static void
 LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeElapsed)
@@ -1284,12 +1284,12 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
                 if(Change1DUnitPerSec(UnitSize, ActiveBlockSize, State->GridScalePerSec, TimeElapsed))
                 {
                     if(ShouldBreak) ShouldBreak = false;
-                    }
-                    else
-                    {
-                        if(IsLevelReady) IsLevelReady = false;
-                    }
-                    
+                }
+                else
+                {
+                    if(IsLevelReady) IsLevelReady = false;
+                }
+                
                 StartY = GridEntity->GridArea.y + (ActiveBlockSize * RowIndex) + (ActiveBlockSize / 2);
                 StartX = GridEntity->GridArea.x + (ActiveBlockSize * ColIndex) + (ActiveBlockSize / 2);
                 
@@ -1298,17 +1298,17 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
                 AreaQuad.x = StartX - (*UnitSize / 2);
                 AreaQuad.y = StartY - (*UnitSize / 2);
                 
-                    if(*UnitField == 0)      GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture,     &AreaQuad);
+                if(*UnitField == 0)      GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture,     &AreaQuad);
                 else if(*UnitField == 2) GameRenderBitmapToBuffer(Buffer, GridEntity->HorizontlaSquareTexture, &AreaQuad);
                 else if(*UnitField == 3) GameRenderBitmapToBuffer(Buffer, GridEntity->VerticalSquareTexture,   &AreaQuad);
-                }
+            }
             
             if(ShouldBreak)
             {
                 break;
             }
         }
-         
+        
         if(!IsLevelReady) 
         {
             return;
@@ -1341,7 +1341,7 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
             }
             
             free(GridEntity->UnitSize);
-            }
+        }
         
         return;
     }
@@ -1633,12 +1633,12 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
         ShouldHighlight = IsFigureUnitInsideRect(&FigureUnit[ActiveIndex], &FigureEntity->FigureArea)
             || !(IsPointInsideRect(FigureUnit[ActiveIndex].Center.x,  FigureUnit[ActiveIndex].Center.y,
                                    &ScreenArea));
-        }
+    }
     
     if(ShouldHighlight)
     {
         Change1DUnitPerSec(&FigureEntity->AreaAlpha, 255, State->FlippingAlphaPerSec, TimeElapsed);
-        }
+    }
     else
     {
         Change1DUnitPerSec(&FigureEntity->AreaAlpha, 0, State->FlippingAlphaPerSec, TimeElapsed);
@@ -1724,22 +1724,22 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
     {
         if(FigureEntity->FadeInSum > 0)
         {
-        if(Change1DUnitPerSec(&FigureEntity->FigureAlpha, 0, State->FlippingAlphaPerSec, TimeElapsed))
-        {
-            FigureEntity->FigureAlpha = 0;
-            FigureEntity->FadeInSum   = 0;
-            FigureUnitFlipHorizontally(&FigureUnit[ActiveIndex]);
-        }
-    }
-    else if(FigureEntity->FadeOutSum < 255)
-    {
-        if(Change1DUnitPerSec(&FigureEntity->FigureAlpha, 255, State->FlippingAlphaPerSec, TimeElapsed))
-        {
-            FigureEntity->FigureAlpha = 255;
-            FigureEntity->FadeOutSum  = 255;
-            FigureEntity->IsFlipping  = false;
+            if(Change1DUnitPerSec(&FigureEntity->FigureAlpha, 0, State->FlippingAlphaPerSec, TimeElapsed))
+            {
+                FigureEntity->FigureAlpha = 0;
+                FigureEntity->FadeInSum   = 0;
+                FigureUnitFlipHorizontally(&FigureUnit[ActiveIndex]);
             }
-    }
+        }
+        else if(FigureEntity->FadeOutSum < 255)
+        {
+            if(Change1DUnitPerSec(&FigureEntity->FigureAlpha, 255, State->FlippingAlphaPerSec, TimeElapsed))
+            {
+                FigureEntity->FigureAlpha = 255;
+                FigureEntity->FadeOutSum  = 255;
+                FigureEntity->IsFlipping  = false;
+            }
+        }
         
         SDL_SetTextureAlphaMod(FigureUnit[ActiveIndex].Texture, FigureEntity->FigureAlpha);
     }
@@ -1765,7 +1765,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     u32 ActiveBlockSize   = Memory->State.ActiveBlockSize;
     u32 InActiveBlockSize = Memory->State.InActiveBlockSize;
     
-    level_entity    *GameState     = &Memory->State;
+    level_entity  *GameState     = &Memory->State;
     grid_entity   *&GridEntity   = Memory->State.GridEntity;
     figure_entity *&FigureEntity = Memory->State.FigureEntity;
     
@@ -1779,9 +1779,38 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GameState->LevelStarted  = false;
         GameState->LevelFinished = false;
         
+        u32 ActiveBlockWidth = Buffer->Width / (ColumnAmount + 1);
+        u32 ActiveBlockHeight = Buffer->Height / (RowAmount + 1);
+        
+        if(ActiveBlockWidth < ActiveBlockHeight)
+        {
+            ActiveBlockSize = ActiveBlockWidth - (ActiveBlockWidth % 10);
+        }
+        else
+        {
+            ActiveBlockSize = ActiveBlockHeight - (ActiveBlockHeight % 10);
+        }
+        
+        u32 GridAreaWidth  = ActiveBlockSize * ColumnAmount;
+        u32 GridAreaHeight = ActiveBlockSize * RowAmount;
+        
+        u32 FigureAreaHeight = ActiveBlockSize * 10;
+        u32 FigureAreaWidth  = Buffer->Width;
+        
+        if(FigureAreaHeight >= GridAreaHeight)
+        {
+            InActiveBlockSize = ActiveBlockSize / 2;
+            FigureAreaHeight = InActiveBlockSize * 10;
+        }
+        else
+        {
+            InActiveBlockSize = ActiveBlockSize;
+        }
+        
+        
         // TODO(max): Make InActiveBlockSize calculation smarter!!!
-        InActiveBlockSize = GameResizeInActiveBLock(Buffer, FigureAmount);
-        ActiveBlockSize   = GameResizeActiveBlock(Buffer, InActiveBlockSize, RowAmount, ColumnAmount);
+        //InActiveBlockSize = GameResizeInActiveBLock(Buffer, FigureAmount);
+        //ActiveBlockSize   = GameResizeActiveBlock(Buffer, InActiveBlockSize, RowAmount, ColumnAmount);
         
         printf("ActiveBlockSize = %d\n", ActiveBlockSize);
         printf("InActiveBlockSize = %d\n", InActiveBlockSize);
@@ -1818,7 +1847,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->FadeOutSum    = 0;
         
         FigureEntity->FigureArea.w  = Buffer->Width;
-        FigureEntity->FigureArea.h  = InActiveBlockSize * 9;
+        FigureEntity->FigureArea.h  = FigureAreaHeight;//InActiveBlockSize * 9;
         FigureEntity->FigureArea.y  = Buffer->Height - (FigureEntity->FigureArea.h);
         FigureEntity->FigureArea.x  = 0;
         
@@ -1845,8 +1874,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->ColumnAmount        = ColumnAmount;
         GridEntity->StickUnitsAmount    = FigureAmount;
         GridEntity->MovingBlocksAmount  = MovingBlocksAmount;
-        GridEntity->GridArea.w = GridEntity->ColumnAmount * ActiveBlockSize;
-        GridEntity->GridArea.h = GridEntity->RowAmount * ActiveBlockSize;
+        GridEntity->GridArea.w = GridAreaWidth;
+        GridEntity->GridArea.h = GridAreaHeight;
         GridEntity->GridArea.x = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
         GridEntity->GridArea.y = (Buffer->Height - FigureEntity->FigureArea.h)/2 - (GridEntity->GridArea.h / 2);
         
