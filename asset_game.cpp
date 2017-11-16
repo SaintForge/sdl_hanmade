@@ -209,8 +209,7 @@ SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
      char FullName[128];
      strcpy(FullName, SpritePath);
      strcat(FullName, FileName);
-    printf("FullName = %s\n", FullName);
-
+    
      SDL_Surface *Surface = IMG_Load(FullName);
      Assert(Surface);
 
@@ -236,10 +235,8 @@ SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
      AssetHeader.Bitmap.Header = BitmapHeader;
      // printf("AssetSize = %u\n", AssetHeader.AssetSize);
 
-     printf("objs for asset_header: %d\n",
-            SDL_RWwrite(BinaryFile, &AssetHeader, sizeof(asset_header), 1));
-     printf("objs for data %d\n",
-            SDL_RWwrite(BinaryFile, Surface->pixels, AssetHeader.AssetSize, 1));
+     SDL_RWwrite(BinaryFile, &AssetHeader, sizeof(asset_header), 1);
+     SDL_RWwrite(BinaryFile, Surface->pixels, AssetHeader.AssetSize, 1);
 
      SDL_FreeSurface(Surface);
 }
@@ -251,7 +248,6 @@ SDLWriteSoundToFile(SDL_RWops *&BinaryFile, const char *FileName)
      strcpy(FullName, SoundPath);
      strcat(FullName, FileName);
 		 
-    printf("FullName - %s\n",FullName);
      SDL_RWops *SoundFile = SDL_RWFromFile(FullName, "rb");
      Assert(SoundFile);
 
@@ -292,12 +288,11 @@ SDLWriteMusicToFile(SDL_RWops *&BinaryFile, const char *FileName)
      void *Memory = malloc(AssetHeader.AssetSize);
      Assert(Memory);
 
-     printf("obj read for music - %d\n", SDL_RWread(MusicFile, Memory, AssetHeader.AssetSize, 1));
+     SDL_RWread(MusicFile, Memory, AssetHeader.AssetSize, 1);
 		 
-     printf("obj wrote for music - %d\n", SDL_RWwrite(BinaryFile, &AssetHeader, sizeof(asset_header), 1));
-     printf("obj wrote for music - %d\n", SDL_RWwrite(BinaryFile, Memory, AssetHeader.AssetSize, 1));
-     printf("AssetHeader->AssetSize = %d\n", AssetHeader.AssetSize);
-
+     SDL_RWwrite(BinaryFile, &AssetHeader, sizeof(asset_header), 1);
+     SDL_RWwrite(BinaryFile, Memory, AssetHeader.AssetSize, 1);
+     
      free(Memory);
      SDL_RWclose(MusicFile);
 }

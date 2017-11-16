@@ -66,8 +66,8 @@ struct level_entity
     r32 StartAlphaPerSec;
     r32 FlippingAlphaPerSec;
     
-    r32 ScaleSpeed;
-    r32 ScaleAcceleration;
+    r32 GridScalePerSec;
+    //r32 ScaleAcceleration;
     
     bool LevelStarted;
     bool LevelFinished;

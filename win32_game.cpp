@@ -287,9 +287,9 @@ int main(int argc, char **argv)
 #if ASSET_BUILD
                // NOTE: This is for packaging data to the disk
                SDLAssetBuildBinaryFile();
-               printf("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n");
-               printf("BUILDED!!!\n");
-               printf("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n");
+               //printf("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n");
+               //printf("BUILDED!!!\n");
+               //printf("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n");
 #endif
                game_memory Memory = {};
 
