@@ -961,6 +961,8 @@ GameUpdateEvent(game_input *Input, level_entity *GameState,
                 r32 ActiveBlockSize, r32 DefaultBlockSize,
                 u32 ScreenWidth, u32 ScreenHeight)
 {
+    if(!GameState->LevelStarted) return;
+    
     grid_entity   *&GridEntity   = GameState->GridEntity;
     figure_entity *&FigureEntity = GameState->FigureEntity;
     figure_unit   *FigureUnit    = FigureEntity->FigureUnit;
@@ -1207,7 +1209,8 @@ Change1DUnitPerSec(r32 *Unit, r32 MaxValue, r32 ChangePerSec, r32 TimeElapsed)
     
     if(MaxValue > 0)
     {
-    if(UnitValue < MaxValue)
+        
+        if(UnitValue < MaxValue)
     {
         UnitValue += TimeElapsed * ChangePerSec;
         UnitValue = roundf(UnitValue);
@@ -1220,12 +1223,13 @@ Change1DUnitPerSec(r32 *Unit, r32 MaxValue, r32 ChangePerSec, r32 TimeElapsed)
 }
 else
 {
+    
     if(UnitValue > MaxValue)
     {
         UnitValue -= TimeElapsed * ChangePerSec;
         UnitValue = roundf(UnitValue);
         
-        if(UnitValue >= MaxValue) UnitValue = MaxValue;
+        if(UnitValue <= MaxValue) UnitValue = MaxValue;
         
         *Unit = roundf(UnitValue);
         IsFinished = false;
@@ -1627,30 +1631,24 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
         ScreenArea.h = Buffer->Height;
         
         ShouldHighlight = IsFigureUnitInsideRect(&FigureUnit[ActiveIndex], &FigureEntity->FigureArea)
-            || !(IsPointInsideRect(FigureUnit[ActiveIndex].Center.x, 
-                                   FigureUnit[ActiveIndex].Center.y,
+            || !(IsPointInsideRect(FigureUnit[ActiveIndex].Center.x,  FigureUnit[ActiveIndex].Center.y,
                                    &ScreenArea));
-    }
+        }
     
     if(ShouldHighlight)
     {
-        if(Change1DUnitPerSec(&FigureEntity->AreaAlpha, 255, State->FlippingAlphaPerSec, TimeElapsed))
-        {
-            //FigureEntity->AreaAlpha = 255;
+        Change1DUnitPerSec(&FigureEntity->AreaAlpha, 255, State->FlippingAlphaPerSec, TimeElapsed);
         }
-    }
     else
     {
-        if(Change1DUnitPerSec(&FigureEntity->AreaAlpha, 0, State->FlippingAlphaPerSec, TimeElapsed))
-        {
-            //FigureEntity->AreaAlpha = 0;
-        }
+        Change1DUnitPerSec(&FigureEntity->AreaAlpha, 0, State->FlippingAlphaPerSec, TimeElapsed);
+        
     }
     
     if(FigureEntity->AreaAlpha != 0) 
     {
         ToggleHighlight = true;
-        printf("FigureEntity->AreaAlpha = %f\n", FigureEntity->AreaAlpha);
+        
     }
     
     if(ToggleHighlight) 
@@ -1724,7 +1722,6 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
     
     if(FigureEntity->IsFlipping)
     {
-        printf("total elapsed = %f\n", SDL_GetTicks() / 1000.0f);
         if(FigureEntity->FadeInSum > 0)
         {
         if(Change1DUnitPerSec(&FigureEntity->FigureAlpha, 0, State->FlippingAlphaPerSec, TimeElapsed))
@@ -1741,10 +1738,7 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
             FigureEntity->FigureAlpha = 255;
             FigureEntity->FadeOutSum  = 255;
             FigureEntity->IsFlipping  = false;
-            
-            printf("Done!\n");
-            printf("total elapsed = %f\n", SDL_GetTicks() / 1000.0f);
-        }
+            }
     }
         
         SDL_SetTextureAlphaMod(FigureUnit[ActiveIndex].Texture, FigureEntity->FigureAlpha);
@@ -1778,7 +1772,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     if(!Memory->IsInitialized)
     {
         u32 RowAmount          = 5;
-        u32 ColumnAmount       = 5;
+        u32 ColumnAmount       = 10;
         u32 FigureAmount       = 4;
         u32 MovingBlocksAmount = 0;
         
@@ -1799,6 +1793,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GameState->StartAlphaPerSec    = 255.0f;
         GameState->FlippingAlphaPerSec = 500.0f;
         GameState->GridScalePerSec     = ((RowAmount * ColumnAmount)) * (ActiveBlockSize/2);
+        
         printf("GridScalePerSec = %f\n", GameState->GridScalePerSec);
         
         //
