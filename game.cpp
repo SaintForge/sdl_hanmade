@@ -1267,8 +1267,8 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
                     ShouldBreak = false;
                 }
                 
-                StartY = GridEntity->GridArea.y + (ActiveBlockSize * RowIndex) + (ActiveBlockSize / 2);
-                StartX = GridEntity->GridArea.x + (ActiveBlockSize * ColIndex) + (ActiveBlockSize / 2);
+                StartY = GridEntity->GridArea.y + (ActiveBlockSize * RowIndex);
+                StartX = GridEntity->GridArea.x + (ActiveBlockSize * ColIndex);
                 
                 AreaQuad.w = UnitSize;
                 AreaQuad.h = UnitSize;
