@@ -7,6 +7,12 @@
 //           By: Sierra
 //
 
+struct vector2
+{
+    r32 x;
+    r32 y;
+};
+
 inline static s32
 Max2(s32 a, s32 b)
 {
@@ -1004,7 +1010,7 @@ GameUpdateEvent(game_input *Input, level_entity *GameState,
         {
             if(!FigureEntity->IsGrabbed)
             {
-                for (u32 i = Size-1; i >= 0; --i)
+                for (s32 i = Size-1; i >= 0; --i)
                 {
                     ActiveIndex = FigureEntity->FigureOrder[i];
                     game_rect AreaQuad = FigureUnitGetArea(&FigureUnit[ActiveIndex]);
@@ -1013,10 +1019,10 @@ GameUpdateEvent(game_input *Input, level_entity *GameState,
                         game_rect ShellQuad = {0};
                         ShellQuad.w = FigureUnit[ActiveIndex].IsEnlarged ? ActiveBlockSize : DefaultBlockSize;
                         ShellQuad.h = FigureUnit[ActiveIndex].IsEnlarged ? ActiveBlockSize : DefaultBlockSize;
-                        for(u32 i = 0; i < 4; ++i)
+                        for(u32 j = 0; j < 4; ++j)
                         {
-                            ShellQuad.x = FigureUnit[ActiveIndex].Shell[i].x - (ShellQuad.w / 2);
-                            ShellQuad.y = FigureUnit[ActiveIndex].Shell[i].y - (ShellQuad.h / 2);
+                            ShellQuad.x = FigureUnit[ActiveIndex].Shell[j].x - (ShellQuad.w / 2);
+                            ShellQuad.y = FigureUnit[ActiveIndex].Shell[j].y - (ShellQuad.h / 2);
                             if(IsPointInsideRect(MouseX, MouseY, &ShellQuad))
                             {
                                 FigureEntity->IsGrabbed = true;
@@ -1037,8 +1043,8 @@ GameUpdateEvent(game_input *Input, level_entity *GameState,
                                 return;
                             }
                         }
-                    }
-                }
+                        }
+                        }
                 
                 if(IsPointInsideRect(MouseX, MouseY, &GridEntity->GridArea))
                 {
@@ -1240,6 +1246,31 @@ Change1DUnitPerSec(r32 *Unit, r32 MaxValue, r32 ChangePerSec, r32 TimeElapsed)
     }
     
     return(IsFinished);
+}
+
+inline static vector2
+Move2DPointPerSec(game_point *p1, game_point *p2, r32 MaxVelocity, r32 TimeElapsed)
+{
+    r32 Distance;
+    vector2 Velocity;
+    
+     Velocity.x= p2->x - p1->x;
+     Velocity.y= p2->y - p1->y;
+    
+    Distance = sqrt(Velocity.x * Velocity.x + Velocity.y * Velocity.y);
+    if(Distance > MaxVelocity)
+    {
+        Velocity.x = Velocity.x / Distance;
+        Velocity.y = Velocity.y / Distance;
+        
+        Velocity.x = Velocity.x * MaxVelocity;
+        Velocity.y = Velocity.y * MaxVelocity;
+    }
+    
+    Velocity.x = roundf(Velocity.x);
+    Velocity.y = roundf(Velocity.y);
+    
+    return(Velocity);
 }
 
 static void
@@ -1501,24 +1532,9 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
             game_point *FigureCenter = &FigureUnit[Index].Center;
             game_point *TargetCenter = &GridEntity->StickUnits[i].Center;
             
-            r32 VelocityX, VelocityY;
-            VelocityX = TargetCenter->x - FigureCenter->x;
-            VelocityY = TargetCenter->y - FigureCenter->y;
+            vector2 Velocity = Move2DPointPerSec(FigureCenter, TargetCenter, MaxVel, TimeElapsed);
             
-            r32 Distance = sqrt(VelocityX*VelocityX + VelocityY*VelocityY);
-            if(Distance > MaxVel)
-            {
-                VelocityX = VelocityX / Distance;  
-                VelocityY = VelocityY / Distance;
-                
-                VelocityX = VelocityX * MaxVel;
-                VelocityY = VelocityY * MaxVel;
-            }
-            
-            VelocityX = roundf(VelocityX);
-            VelocityY = roundf(VelocityY);
-            
-            FigureUnitMove(&FigureUnit[Index], VelocityX, VelocityY);
+            FigureUnitMove(&FigureUnit[Index], Velocity.x, Velocity.y);
             
             if((FigureCenter->x == TargetCenter->x) && (FigureCenter->y == TargetCenter->y))
             {
@@ -1566,49 +1582,37 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
     {
         if(GridEntity->MovingBlocks[i].IsMoving)
         {
-            game_point Center = {0};
-            game_point TargetCenter = {0};
             u32 RowNumber = GridEntity->MovingBlocks[i].RowNumber;
             u32 ColNumber = GridEntity->MovingBlocks[i].ColNumber;
             
-            Center.x = GridEntity->MovingBlocks[i].AreaQuad.x;
-            Center.y = GridEntity->MovingBlocks[i].AreaQuad.y;
+            game_point Center = { 
+                GridEntity->MovingBlocks[i].AreaQuad.x, 
+                GridEntity->MovingBlocks[i].AreaQuad.y 
+            };
             
-            TargetCenter.x = GridEntity->GridArea.x + (ColNumber * ActiveBlockSize);
-            TargetCenter.y = GridEntity->GridArea.y + (RowNumber * ActiveBlockSize);
+            game_point TargetCenter = { 
+                GridEntity->GridArea.x + (ColNumber * ActiveBlockSize), 
+                GridEntity->GridArea.y + (RowNumber * ActiveBlockSize)
+            };
             
-            r32 VelocityX, VelocityY;
-            VelocityX = TargetCenter.x - Center.x;
-            VelocityY = TargetCenter.y - Center.y;
+            vector2 Velocity = Move2DPointPerSec(&Center, &TargetCenter, MaxVel, TimeElapsed);
             
-            r32 Distance = sqrt(VelocityX * VelocityX + VelocityY * VelocityY);
-            if(Distance > MaxVel)
-            {
-                VelocityX = VelocityX / Distance;
-                VelocityY = VelocityY / Distance;
-                
-                VelocityX = VelocityX * MaxVel;
-                VelocityY = VelocityY * MaxVel;
-            }
-            
-            VelocityX = roundf(VelocityX);
-            VelocityY = roundf(VelocityY);
-            
-            GridEntity->MovingBlocks[i].AreaQuad.x += VelocityX;
-            GridEntity->MovingBlocks[i].AreaQuad.y += VelocityY;
+            GridEntity->MovingBlocks[i].AreaQuad.x += Velocity.x;
+            GridEntity->MovingBlocks[i].AreaQuad.y += Velocity.y;
             
             if((Center.x == TargetCenter.x) && (Center.y == TargetCenter.y))
             {
                 GridEntity->MovingBlocks[i].IsMoving = false;
-                GridEntity->MovingBlocks[i].AreaQuad.x = GridEntity->GridArea.x + (ColNumber * ActiveBlockSize);
-                GridEntity->MovingBlocks[i].AreaQuad.y = GridEntity->GridArea.y + (RowNumber * ActiveBlockSize);
+                GridEntity->MovingBlocks[i].AreaQuad.x
+                    = GridEntity->GridArea.x + (ColNumber * ActiveBlockSize);
+                GridEntity->MovingBlocks[i].AreaQuad.y
+                    = GridEntity->GridArea.y + (RowNumber * ActiveBlockSize);
                 GridEntity->UnitField[RowNumber][ColNumber] = 1;
             }
         }
         
         if(GridEntity->MovingBlocks[i].IsVertical)
         {
-            Assert(GridEntity->VerticalSquareTexture);
             GameRenderBitmapToBuffer(Buffer, GridEntity->VerticalSquareTexture,   &GridEntity->MovingBlocks[i].AreaQuad);
         }
         else
@@ -1633,32 +1637,16 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
         ScreenArea.w = Buffer->Width;
         ScreenArea.h = Buffer->Height;
         
-        ShouldHighlight = IsFigureUnitInsideRect(&FigureUnit[ActiveIndex], &FigureEntity->FigureArea)
-            || !(IsPointInsideRect(FigureUnit[ActiveIndex].Center.x,  FigureUnit[ActiveIndex].Center.y,
-                                   &ScreenArea));
-    }
-    
-    if(ShouldHighlight)
-    {
-        Change1DUnitPerSec(&FigureEntity->AreaAlpha, 255, State->FlippingAlphaPerSec, TimeElapsed);
-    }
-    else
-    {
-        Change1DUnitPerSec(&FigureEntity->AreaAlpha, 0, State->FlippingAlphaPerSec, TimeElapsed);
+        ShouldHighlight = IsFigureUnitInsideRect(&FigureUnit[ActiveIndex], &FigureEntity->FigureArea) || !(IsPointInsideRect(FigureUnit[ActiveIndex].Center.x,  FigureUnit[ActiveIndex].Center.y, &ScreenArea));
         
     }
     
-    if(FigureEntity->AreaAlpha != 0) 
-    {
-        ToggleHighlight = true;
-        
-    }
+    if(ShouldHighlight) Change1DUnitPerSec(&FigureEntity->AreaAlpha, 255, State->FlippingAlphaPerSec, TimeElapsed);
+    else                Change1DUnitPerSec(&FigureEntity->AreaAlpha, 0, State->FlippingAlphaPerSec, TimeElapsed);
     
-    if(ToggleHighlight) 
-    {
-        FigureEntityHighlightFigureArea(FigureEntity, 
-                                        Buffer, {255, 255, 255}, InActiveBlockSize / 6);
-    }
+    if(FigureEntity->AreaAlpha != 0) ToggleHighlight = true;
+    
+    if(ToggleHighlight) FigureEntityHighlightFigureArea(FigureEntity, Buffer, {255, 255, 255}, InActiveBlockSize / 6);
     
     //
     // Figure returning to the idle zone
@@ -1667,30 +1655,14 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
     if(FigureEntity->IsReturning)
     {
         u32 ReturnIndex = FigureEntity->ReturnIndex;
+        game_point *Center        = &FigureUnit[ReturnIndex].Center;
+        game_point *TargetCenter  = &FigureUnit[ReturnIndex].DefaultCenter;
         
-        game_point *FigureCenter = &FigureUnit[ReturnIndex].Center;
-        game_point *TargetCenter = &FigureUnit[ReturnIndex].DefaultCenter;
+        vector2 Velocity =  Move2DPointPerSec(Center,TargetCenter, MaxVel, TimeElapsed);
         
-        r32 VelocityX, VelocityY;
-        VelocityX = TargetCenter->x - FigureCenter->x;
-        VelocityY = TargetCenter->y - FigureCenter->y;
+        FigureUnitMove(&FigureUnit[ReturnIndex], Velocity.x, Velocity.y);
         
-        r32 Distance = sqrt(VelocityX*VelocityX + VelocityY*VelocityY);
-        if(Distance > MaxVel)
-        {
-            VelocityX = VelocityX / Distance;
-            VelocityY = VelocityY / Distance;
-            
-            VelocityX = VelocityX * MaxVel;
-            VelocityY = VelocityY * MaxVel;
-        }
-        
-        VelocityX = roundf(VelocityX);
-        VelocityY = roundf(VelocityY);
-        
-        FigureUnitMove(&FigureUnit[ReturnIndex], VelocityX, VelocityY);
-        
-        if((FigureCenter->x == TargetCenter->x) && (FigureCenter->y == TargetCenter->y))
+        if((Center->x == TargetCenter->x) && (Center->y == TargetCenter->y))
         {
             FigureEntity->IsReturning = false;
             FigureEntity->ReturnIndex = -1;
@@ -1774,10 +1746,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     if(!Memory->IsInitialized)
     {
-        u32 RowAmount          = 10;
-        u32 ColumnAmount       = 10;
+        u32 RowAmount          = 5;
+        u32 ColumnAmount       = 20;
         u32 FigureAmount       = 10;
-        u32 MovingBlocksAmount = 0;
+        u32 MovingBlocksAmount = 2;
         
         GameState->LevelStarted  = false;
         GameState->LevelFinished = false;
@@ -1789,7 +1761,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         u32 FigureAreaWidth  = Buffer->Width;
         
         u32 DefaultBlocksInRow = 12;
-        u32 DefaultBlocksInCol = 8;
+        u32 DefaultBlocksInCol = 9;
         
         u32 BlocksInRow = 0;
         
@@ -1798,8 +1770,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         u32 DefaultBlockSize   = DefaultBlockWidth < DefaultBlockHeight ? DefaultBlockWidth : DefaultBlockHeight;
         
         BlocksInRow = (FigureAmount / 2.0) + 0.5f;
-        BlocksInRow = BlocksInRow * 2;
-        printf("BlocksInRow = %d\n", BlocksInRow);
+        BlocksInRow = (BlocksInRow * 2) + 2;
         
         u32 ActualBlockSize = FigureAreaWidth / BlocksInRow;
         
@@ -1818,10 +1789,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         ActiveBlockSize = DefaultBlockSize;
         ActiveBlockSize = ActiveBlockSize - (ActiveBlockSize % 2);
-        printf("MinSize = %d\n", MinSize);
-        printf("BlockAmount = %d\n", BlockAmount);
         
-        GridAreaWidth = (ActiveBlockSize * ColumnAmount);
+        GridAreaWidth  = ActiveBlockSize * ColumnAmount;
         GridAreaHeight = ActiveBlockSize * RowAmount;
         
         // TODO(max): Make InActiveBlockSize calculation smarter!!!
@@ -1835,10 +1804,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Memory->State.InActiveBlockSize = InActiveBlockSize;
         
         GameState->RotationVel         = 600.0f;
-        GameState->StartAlphaPerSec    = 255.0f;
-        GameState->FlippingAlphaPerSec = 500.0f;
+        GameState->StartAlphaPerSec    = 500.0f;
+        GameState->FlippingAlphaPerSec = 1000.0f;
         GameState->GridScalePerSec     = ((RowAmount * ColumnAmount)) * (ActiveBlockSize/2);
-        
         printf("GridScalePerSec = %f\n", GameState->GridScalePerSec);
         
         //
@@ -1871,7 +1839,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Assert(FigureEntity->FigureUnit);
         
         CreateFigureUnit(&FigureEntity->FigureUnit[0], "z_d.png", Z_figure, classic, Memory, Buffer);
-        CreateFigureUnit(&FigureEntity->FigureUnit[1], "s_m.png", S_figure, mirror,  Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[1], "i_m.png", I_figure, mirror,  Memory, Buffer);
         CreateFigureUnit(&FigureEntity->FigureUnit[2], "l_m.png", L_figure, mirror,  Memory, Buffer);
         CreateFigureUnit(&FigureEntity->FigureUnit[3], "j_s.png", J_figure, classic, Memory, Buffer);
         CreateFigureUnit(&FigureEntity->FigureUnit[4], "z_d.png", Z_figure, classic, Memory, Buffer);

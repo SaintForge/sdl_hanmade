@@ -249,7 +249,7 @@ SDLFlushEvents(game_input *Input)
     }
 }
 
-#undef main
+#undef main //NOTE(Max): Because SDL_main doesn't work on some windows versions 
 int main(int argc, char **argv)
 {
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
