@@ -237,7 +237,7 @@ SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
 
      SDL_RWwrite(BinaryFile, &AssetHeader, sizeof(asset_header), 1);
      SDL_RWwrite(BinaryFile, Surface->pixels, AssetHeader.AssetSize, 1);
-
+     
      SDL_FreeSurface(Surface);
 }
 
@@ -275,8 +275,8 @@ SDLWriteMusicToFile(SDL_RWops *&BinaryFile, const char *FileName)
      char FullName[128];
      strcpy(FullName, SoundPath);
      strcat(FullName, FileName);
-		 
-     SDL_RWops *MusicFile = SDL_RWFromFile(FullName, "rb");
+    
+    SDL_RWops *MusicFile = SDL_RWFromFile(FullName, "rb");
      Assert(MusicFile);
 
      asset_header AssetHeader = {};
@@ -314,9 +314,9 @@ IsAsset(asset_header*& AssetHeader, asset_type AssetType, char* AssetName)
 }
 
 static asset_header*
-GetAssetHeader(game_memory *&Memory, asset_type AssetType, char* AssetName)
+GetAssetHeader(game_memory *&Memory, asset_type AssetType, char* AssetName, u32 Offset)
 {
-     u8 *mem = (u8*)Memory->Assets;
+     u8 *mem = (u8*)Memory->Assets + Offset;
      asset_header *AssetHeader = (asset_header*)mem;
      u32 TotalByteSize = 0;
 		 
@@ -329,8 +329,7 @@ GetAssetHeader(game_memory *&Memory, asset_type AssetType, char* AssetName)
           else
           {
                TotalByteSize += (sizeof(asset_header) + AssetHeader->AssetSize);
-               AssetHeader = ((asset_header*)(((u8*)AssetHeader) +
-                                              sizeof(asset_header) + AssetHeader->AssetSize));
+               AssetHeader = ((asset_header*)(((u8*)AssetHeader) + sizeof(asset_header) + AssetHeader->AssetSize));
           }
      }
 
@@ -341,8 +340,11 @@ static game_music*
 GetMusic(game_memory *Memory, char* FileName)
 {
      game_music *Music = NULL;
+    
+    binary_header *BinaryHeader = (binary_header*)Memory->Assets;
 
-     asset_header *AssetHeader = GetAssetHeader(Memory, AssetType_Music, FileName);
+     asset_header *AssetHeader = GetAssetHeader(Memory, AssetType_Music, FileName, 
+                                               sizeof(binary_header));
      if(AssetHeader)
      {
           asset_audio *Audio = &AssetHeader->Audio;
@@ -364,8 +366,11 @@ static game_sound*
 GetSound(game_memory *Memory, char* FileName)
 {
      game_sound *Sound = NULL;
+    
+    binary_header *BinaryHeader = (binary_header*)Memory->Assets;
 		 
-     asset_header *AssetHeader = GetAssetHeader(Memory, AssetType_Sound, FileName);
+     asset_header *AssetHeader = GetAssetHeader(Memory, AssetType_Sound, FileName, 
+                                               sizeof(binary_header));
      if(AssetHeader)
      {
           asset_audio *Audio = &AssetHeader->Audio;
@@ -385,8 +390,13 @@ static game_texture*
 GetTexture(game_memory *&Memory, char* FileName, SDL_Renderer *&Renderer)
 {
      game_texture *Texture = NULL;
-		 
-     asset_header *AssetHeader = GetAssetHeader(Memory, AssetType_Bitmap, FileName);
+    
+    binary_header *BinaryHeader = (binary_header*)Memory->Assets;
+    printf("BinaryHeader->BitmapSizeInBytes = %d\n", BinaryHeader->BitmapSizeInBytes);
+    printf("BinaryHeader->AudioSizeInBytes = %d\n",  BinaryHeader->AudioSizeInBytes);
+    
+     asset_header *AssetHeader = GetAssetHeader(Memory, AssetType_Bitmap, FileName, 
+                                               sizeof(binary_header) + BinaryHeader->BitmapSizeInBytes);
      if(AssetHeader)
      {
           asset_bitmap *Bitmap = &AssetHeader->Bitmap;
@@ -405,7 +415,7 @@ GetTexture(game_memory *&Memory, char* FileName, SDL_Renderer *&Renderer)
           Texture = SDL_CreateTextureFromSurface(Renderer, Surface);
           Assert(Texture);
      }
-
+     
      return(Texture);
 }
 
@@ -414,8 +424,9 @@ SDLAssetLoadBinaryFile(void *Data)
 {
      game_memory *Memory = ((game_memory*)Data);
      SDLReadEntireFile("package1.bin", Memory);
-
+    
      Memory->AssetsInitialized = true;
+    
      return(1);
 }
 
@@ -423,7 +434,15 @@ static void
 SDLAssetBuildBinaryFile()
 {
      SDL_RWops *BinaryFile = SDL_RWFromFile("package1.bin", "wb");
-		 
+    
+    //145140 + 38856 + 3352 + 40076
+    
+    binary_header BinaryHeader = {};
+    SDL_RWwrite(BinaryFile, &BinaryHeader, sizeof(binary_header), 1);
+    
+    /* Bitmap loading */
+    BinaryHeader.BitmapSizeInBytes = 0;
+    
      SDLWriteBitmapToFile(BinaryFile, "grid_cell.png");
      SDLWriteBitmapToFile(BinaryFile, "grid_cell_1.png");
      SDLWriteBitmapToFile(BinaryFile, "grid_cell_2.png");
@@ -455,10 +474,17 @@ SDLAssetBuildBinaryFile()
      SDLWriteBitmapToFile(BinaryFile, "t_d.png");
      SDLWriteBitmapToFile(BinaryFile, "t_m.png");
      SDLWriteBitmapToFile(BinaryFile, "t_s.png");
-
+    
+    /* Audio loading */
+    BinaryHeader.AudioSizeInBytes = SDL_RWtell(BinaryFile);
+    
      SDLWriteSoundToFile(BinaryFile, "focus.wav");
-     //SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
-
+     SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
+    
+    SDL_RWseek(BinaryFile, 0, RW_SEEK_SET);
+    
+    SDL_RWwrite(BinaryFile, &BinaryHeader, sizeof(binary_header), 1);
+    
      SDL_RWclose(BinaryFile);
 }
 

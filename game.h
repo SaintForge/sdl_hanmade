@@ -83,6 +83,8 @@ struct game_memory
     void *LevelMemory;
     u64 LevelSpace;
     
+    game_music *Music;
+    
     bool IsInitialized;
     bool AssetsInitialized;
     bool LevelMemoryInitialized;

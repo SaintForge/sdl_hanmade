@@ -318,6 +318,16 @@ int main(int argc, char **argv)
                 
                 if(Memory.AssetsInitialized)
                 {
+#if 0
+                    void *RawMem = (void*)Memory.Assets;
+                    
+                    binary_header *BinaryHeader = (binary_header*)RawMem;
+                    printf("BinaryHeader->BitmapSizeInBytes = %d\n", BinaryHeader->BitmapSizeInBytes);
+                    printf("BinaryHeader->AudioSizeInBytes = %d\n", BinaryHeader->AudioSizeInBytes);
+                    
+                    IsRunning = false;
+                    
+                    #endif
                     if(GameUpdateAndRender(&Memory, &Input, &Buffer))
                     {
                         IsRunning = false;

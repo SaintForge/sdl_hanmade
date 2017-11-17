@@ -1745,14 +1745,14 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     {
         u32 RowAmount          = 5;
         u32 ColumnAmount       = 20;
-        u32 FigureAmount       = 5;
+        u32 FigureAmount       = 20;
         u32 MovingBlocksAmount = 2;
         
         GameState->LevelStarted  = false;
         GameState->LevelFinished = false;
         
-        u32 FigureAreaWidth  = Buffer->Width;
-        u32 FigureAreaHeight = Buffer->Height * 0.4f;
+        u32 FigureAreaWidth    = Buffer->Width;
+        u32 FigureAreaHeight   = Buffer->Height * 0.4f;
         u32 DefaultBlocksInRow = 12;
         u32 DefaultBlocksInCol = 9;
         
@@ -1813,21 +1813,21 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         CreateFigureUnit(&FigureEntity->FigureUnit[2], "l_m.png", L_figure, mirror,  Memory, Buffer);
         CreateFigureUnit(&FigureEntity->FigureUnit[3], "j_s.png", J_figure, classic, Memory, Buffer);
         CreateFigureUnit(&FigureEntity->FigureUnit[4], "z_d.png", Z_figure, classic, Memory, Buffer);
-        //CreateFigureUnit(&FigureEntity->FigureUnit[5], "s_m.png", S_figure, mirror,  Memory, Buffer);
-        //CreateFigureUnit(&FigureEntity->FigureUnit[6], "l_m.png", L_figure, mirror,  Memory, Buffer);
-        //CreateFigureUnit(&FigureEntity->FigureUnit[7], "j_s.png", J_figure, classic, Memory, Buffer);
-        //CreateFigureUnit(&FigureEntity->FigureUnit[8], "l_m.png", L_figure, mirror,  Memory, Buffer);
-        //CreateFigureUnit(&FigureEntity->FigureUnit[9], "j_s.png", J_figure, classic, Memory, Buffer);
-        //CreateFigureUnit(&FigureEntity->FigureUnit[10], "z_d.png", Z_figure, classic, Memory, Buffer);
-        //CreateFigureUnit(&FigureEntity->FigureUnit[11], "s_m.png", S_figure, mirror,  Memory, Buffer);
-        //CreateFigureUnit(&FigureEntity->FigureUnit[12], "l_m.png", L_figure, mirror,  Memory, Buffer);
-        //CreateFigureUnit(&FigureEntity->FigureUnit[13], "j_s.png", J_figure, classic, Memory, Buffer);
-        //CreateFigureUnit(&FigureEntity->FigureUnit[14], "z_d.png", Z_figure, classic, Memory, Buffer);
-        //CreateFigureUnit(&FigureEntity->FigureUnit[15], "s_m.png", S_figure, mirror,  Memory, Buffer);
-        //CreateFigureUnit(&FigureEntity->FigureUnit[16], "l_m.png", L_figure, mirror,  Memory, Buffer);
-        //CreateFigureUnit(&FigureEntity->FigureUnit[17], "j_s.png", J_figure, classic, Memory, Buffer);
-        //CreateFigureUnit(&FigureEntity->FigureUnit[18], "l_m.png", L_figure, mirror,  Memory, Buffer);
-        //CreateFigureUnit(&FigureEntity->FigureUnit[19], "j_s.png", J_figure, classic, Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[5], "s_m.png", S_figure, mirror,  Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[6], "l_m.png", L_figure, mirror,  Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[7], "j_s.png", J_figure, classic, Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[8], "l_m.png", L_figure, mirror,  Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[9], "j_s.png", J_figure, classic, Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[10], "z_d.png", Z_figure, classic, Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[11], "s_m.png", S_figure, mirror,  Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[12], "l_m.png", L_figure, mirror,  Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[13], "j_s.png", J_figure, classic, Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[14], "z_d.png", Z_figure, classic, Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[15], "s_m.png", S_figure, mirror,  Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[16], "l_m.png", L_figure, mirror,  Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[17], "j_s.png", J_figure, classic, Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[18], "l_m.png", L_figure, mirror,  Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[19], "j_s.png", J_figure, classic, Memory, Buffer);
         
         FigureEntity->FigureOrder = (u32*)malloc(sizeof(u32) * FigureAmount);
         Assert(FigureEntity->FigureOrder);
@@ -1911,6 +1911,12 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->NormalSquareTexture     = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
         GridEntity->VerticalSquareTexture   = GetTexture(Memory, "o_s.png", Buffer->Renderer);
         GridEntity->HorizontlaSquareTexture = GetTexture(Memory, "o_m.png", Buffer->Renderer);
+        
+        
+        Memory->Music = GetMusic(Memory, "amb_ending_water.ogg");
+        Assert(Memory->Music);
+        //Mix_PlayChannel(-1, Memory->Music, 0);
+        Mix_PlayMusic(Memory->Music, 0);
         
         Memory->IsInitialized = true;
         printf("memory init!\n");

@@ -59,6 +59,12 @@ struct asset_header
      };
 };
 
+struct binary_header
+{
+    u32 BitmapSizeInBytes;
+    u32 AudioSizeInBytes;
+};
+
 static game_sound*   GetSound(game_memory *Memory, char* FileName);
 static game_music*   GetMusic(game_memory *Memory, char* FileName);
 static game_texture* GetTexture(game_memory *&Memory, char* FileName, SDL_Renderer*& Renderer);
