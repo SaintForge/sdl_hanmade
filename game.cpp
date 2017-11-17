@@ -249,8 +249,8 @@ GameResizeActiveBlock(u32 GridAreaWidth,
     u32 DefaultBlockHeight = GridAreaHeight / (RowAmount + 1);
     u32 DefaultBlockSize   = DefaultBlockWidth < DefaultBlockHeight ? DefaultBlockWidth : DefaultBlockHeight;
     
-     ResultBlockSize = DefaultBlockSize;
-     ResultBlockSize = ResultBlockSize - (ResultBlockSize % 2);
+    ResultBlockSize = DefaultBlockSize;
+    ResultBlockSize = ResultBlockSize - (ResultBlockSize % 2);
     
     return(ResultBlockSize);
 }
@@ -271,7 +271,7 @@ GameResizeInActiveBlock(u32 FigureAreaWidth,
     
     ResultBlockSize = ActualBlockSize < DefaultBlockSize ? ActualBlockSize : DefaultBlockSize;
     ResultBlockSize = ResultBlockSize - (ResultBlockSize % 2);
-
+    
     return(ResultBlockSize);
 }
 
@@ -388,7 +388,7 @@ FigureEntityHighOrderFigure(figure_entity *FigureEntity, u32 Index)
         FigureOrder[FigureAmount-1] = Index;
     }
     
-    }
+}
 
 static void 
 FigureEntityLowPriority(figure_entity *FigureEntity, u32 Index)
@@ -1040,8 +1040,8 @@ GameUpdateEvent(game_input *Input, level_entity *GameState,
                                 return;
                             }
                         }
-                        }
-                        }
+                    }
+                }
                 
                 if(IsPointInsideRect(MouseX, MouseY, &GridEntity->GridArea))
                 {
@@ -1251,8 +1251,8 @@ Move2DPointPerSec(game_point *p1, game_point *p2, r32 MaxVelocity, r32 TimeElaps
     r32 Distance;
     vector2 Velocity;
     
-     Velocity.x= p2->x - p1->x;
-     Velocity.y= p2->y - p1->y;
+    Velocity.x= p2->x - p1->x;
+    Velocity.y= p2->y - p1->y;
     
     Distance = sqrt(Velocity.x * Velocity.x + Velocity.y * Velocity.y);
     if(Distance > MaxVelocity)
@@ -1279,8 +1279,8 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
     figure_entity *&FigureEntity = State->FigureEntity;
     figure_unit   *FigureUnit    = FigureEntity->FigureUnit;
     
-    r32 ActiveBlockSize   = State->ActiveBlockSize;
-    r32 InActiveBlockSize = State->InActiveBlockSize;
+    u32 ActiveBlockSize   = State->ActiveBlockSize;
+    u32 InActiveBlockSize = State->InActiveBlockSize;
     
     game_rect AreaQuad = {};
     r32 MaxVel       = ActiveBlockSize / 6;
@@ -1579,18 +1579,17 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
     {
         if(GridEntity->MovingBlocks[i].IsMoving)
         {
-            u32 RowNumber = GridEntity->MovingBlocks[i].RowNumber;
-            u32 ColNumber = GridEntity->MovingBlocks[i].ColNumber;
+            s32 RowNumber = GridEntity->MovingBlocks[i].RowNumber;
+            s32 ColNumber = GridEntity->MovingBlocks[i].ColNumber;
             
             game_point Center = { 
                 GridEntity->MovingBlocks[i].AreaQuad.x, 
                 GridEntity->MovingBlocks[i].AreaQuad.y 
             };
             
-            game_point TargetCenter = { 
-                GridEntity->GridArea.x + (ColNumber * ActiveBlockSize), 
-                GridEntity->GridArea.y + (RowNumber * ActiveBlockSize)
-            };
+            game_point TargetCenter;
+            TargetCenter.x = GridEntity->GridArea.x + (ColNumber * ActiveBlockSize);
+            TargetCenter.y = GridEntity->GridArea.y + (RowNumber * ActiveBlockSize);
             
             vector2 Velocity = Move2DPointPerSec(&Center, &TargetCenter, MaxVel, TimeElapsed);
             
