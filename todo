@@ -1,3 +1,5 @@
+
+---General---
 +	1. Change order of the figure when it sticks to the grid 
 
 +	2. Change the way in which we decide to pick a particular figure so that it
@@ -21,7 +23,7 @@
 	 +	6.3 figure appearance
 
 +	7. Fix boundaries check when figure gets outside the screen!
--	8. Find or implement a math vector!
++	8. Find or implement a math vector!
 
 
 ---Data serialization---

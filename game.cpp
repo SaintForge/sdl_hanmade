@@ -238,44 +238,41 @@ DEBUGPrintEntityOrder(figure_entity *FigureEntity)
 #endif
 
 static u32
-GameResizeActiveBlock(game_offscreen_buffer *Buffer, u32 InActiveBlockSize, u32 RowAmount, u32 ColumnAmount)
+GameResizeActiveBlock(u32 GridAreaWidth, 
+                      u32 GridAreaHeight, 
+                      u32 RowAmount, 
+                      u32 ColumnAmount)
 {
-    u32 BlockAmount = 0;
-    u32 BlockSize   = 0;
+    u32 ResultBlockSize = 0;
     
-    u32 AvailableWidth    = Buffer->Width;
-    u32 AvailableHeight   = Buffer->Height - (InActiveBlockSize * 9);
-    u32 MinimalDistance   = AvailableWidth > AvailableHeight ? AvailableHeight : AvailableWidth;
-    u32 DefaultSize       = (MinimalDistance / 6) - ((MinimalDistance / 6) % 10);
+    u32 DefaultBlockWidth  = GridAreaWidth  / (ColumnAmount + 1);
+    u32 DefaultBlockHeight = GridAreaHeight / (RowAmount + 1);
+    u32 DefaultBlockSize   = DefaultBlockWidth < DefaultBlockHeight ? DefaultBlockWidth : DefaultBlockHeight;
     
-    BlockAmount = RowAmount >= ColumnAmount ? RowAmount : ColumnAmount;
-    BlockSize = (MinimalDistance / (BlockAmount+1)) - ((MinimalDistance / (BlockAmount+1)) % 10);
-    BlockSize = BlockSize >= DefaultSize ? DefaultSize : BlockSize;
+     ResultBlockSize = DefaultBlockSize;
+     ResultBlockSize = ResultBlockSize - (ResultBlockSize % 2);
     
-    return(BlockSize);
+    return(ResultBlockSize);
 }
 
 static u32
-GameResizeInActiveBLock(game_offscreen_buffer *Buffer, u32 FigureAmount)
+GameResizeInActiveBlock(u32 FigureAreaWidth, 
+                        u32 FigureAreaHeight, 
+                        u32 DefaultBlocksInRow,
+                        u32 DefaultBlocksInCol,
+                        u32 BlocksInRow)
 {
-    u32 Width       = Buffer->Width;
-    u32 Height      = Buffer->Height;
-    u32 BlockSize   = 0;
-    u32 BlockInRow  = 0;
-    u32 MinDistance = 0;
-    u32 DefaultSize = 0;
+    u32 ResultBlockSize  = 0;
     
-    MinDistance = Width > Height ? Height : Width;
-    DefaultSize = (MinDistance / 10) - ((MinDistance / 10) % 10);
+    u32 DefaultBlockWidth  = FigureAreaWidth / DefaultBlocksInRow;
+    u32 DefaultBlockHeight = FigureAreaHeight / DefaultBlocksInCol;
+    u32 DefaultBlockSize   = DefaultBlockWidth < DefaultBlockHeight ? DefaultBlockWidth : DefaultBlockHeight;
+    u32 ActualBlockSize    = FigureAreaWidth / BlocksInRow;
     
-    BlockInRow = (FigureAmount / 2.0) + 0.5;
-    BlockInRow = BlockInRow * 2;
-    
-    BlockSize = (MinDistance / BlockInRow);
-    BlockSize = BlockSize - ((MinDistance / BlockInRow) % 10);
-    BlockSize = BlockSize < DefaultSize ? BlockSize : DefaultSize;
-    
-    return(BlockSize);
+    ResultBlockSize = ActualBlockSize < DefaultBlockSize ? ActualBlockSize : DefaultBlockSize;
+    ResultBlockSize = ResultBlockSize - (ResultBlockSize % 2);
+
+    return(ResultBlockSize);
 }
 
 static void
@@ -1748,54 +1745,27 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     {
         u32 RowAmount          = 5;
         u32 ColumnAmount       = 20;
-        u32 FigureAmount       = 10;
+        u32 FigureAmount       = 5;
         u32 MovingBlocksAmount = 2;
         
         GameState->LevelStarted  = false;
         GameState->LevelFinished = false;
         
-        u32 MinSize = 0;
-        u32 BlockAmount = 0;
-        
-        u32 FigureAreaHeight = Buffer->Height * 0.4f;
         u32 FigureAreaWidth  = Buffer->Width;
-        
+        u32 FigureAreaHeight = Buffer->Height * 0.4f;
         u32 DefaultBlocksInRow = 12;
         u32 DefaultBlocksInCol = 9;
         
-        u32 BlocksInRow = 0;
+        u32 BlocksInRow = (FigureAmount / 2.0) + 0.5f;
+        BlocksInRow     = (BlocksInRow * 2) + 2;
         
-        u32 DefaultBlockHeight = FigureAreaHeight / DefaultBlocksInCol;
-        u32 DefaultBlockWidth  = FigureAreaWidth  / DefaultBlocksInRow;
-        u32 DefaultBlockSize   = DefaultBlockWidth < DefaultBlockHeight ? DefaultBlockWidth : DefaultBlockHeight;
-        
-        BlocksInRow = (FigureAmount / 2.0) + 0.5f;
-        BlocksInRow = (BlocksInRow * 2) + 2;
-        
-        u32 ActualBlockSize = FigureAreaWidth / BlocksInRow;
-        
-        InActiveBlockSize = ActualBlockSize < DefaultBlockSize ? ActualBlockSize : DefaultBlockSize;
-        InActiveBlockSize = InActiveBlockSize - (InActiveBlockSize % 2);
-        
-        FigureAreaHeight = InActiveBlockSize * DefaultBlocksInCol;
-        FigureAreaWidth  = InActiveBlockSize * BlocksInRow;
+        InActiveBlockSize = GameResizeInActiveBlock(FigureAreaWidth, FigureAreaHeight, DefaultBlocksInRow, DefaultBlocksInCol, BlocksInRow);
+        FigureAreaHeight  = InActiveBlockSize * DefaultBlocksInCol;
         
         u32 GridAreaWidth  = Buffer->Width;
         u32 GridAreaHeight = Buffer->Height - FigureAreaHeight;
         
-        DefaultBlockWidth  = GridAreaWidth  / (ColumnAmount + 1);
-        DefaultBlockHeight = GridAreaHeight / (RowAmount + 1);
-        DefaultBlockSize   = DefaultBlockWidth < DefaultBlockHeight ? DefaultBlockWidth : DefaultBlockHeight;
-        
-        ActiveBlockSize = DefaultBlockSize;
-        ActiveBlockSize = ActiveBlockSize - (ActiveBlockSize % 2);
-        
-        GridAreaWidth  = ActiveBlockSize * ColumnAmount;
-        GridAreaHeight = ActiveBlockSize * RowAmount;
-        
-        // TODO(max): Make InActiveBlockSize calculation smarter!!!
-        //InActiveBlockSize = GameResizeInActiveBLock(Buffer, FigureAmount);
-        //ActiveBlockSize   = GameResizeActiveBlock(Buffer, InActiveBlockSize, RowAmount, ColumnAmount);
+        ActiveBlockSize    = GameResizeActiveBlock(GridAreaWidth, GridAreaHeight, RowAmount, ColumnAmount);
         
         printf("ActiveBlockSize = %d\n", ActiveBlockSize);
         printf("InActiveBlockSize = %d\n", InActiveBlockSize);
@@ -1830,7 +1800,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->FadeInSum     = 0;
         FigureEntity->FadeOutSum    = 0;
         
-        FigureEntity->FigureArea.w  = Buffer->Width;
+        FigureEntity->FigureArea.w  = FigureAreaWidth;
         FigureEntity->FigureArea.h  = FigureAreaHeight;//InActiveBlockSize * 9;
         FigureEntity->FigureArea.y  = Buffer->Height - (FigureEntity->FigureArea.h);
         FigureEntity->FigureArea.x  = 0;
@@ -1843,11 +1813,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         CreateFigureUnit(&FigureEntity->FigureUnit[2], "l_m.png", L_figure, mirror,  Memory, Buffer);
         CreateFigureUnit(&FigureEntity->FigureUnit[3], "j_s.png", J_figure, classic, Memory, Buffer);
         CreateFigureUnit(&FigureEntity->FigureUnit[4], "z_d.png", Z_figure, classic, Memory, Buffer);
-        CreateFigureUnit(&FigureEntity->FigureUnit[5], "s_m.png", S_figure, mirror,  Memory, Buffer);
-        CreateFigureUnit(&FigureEntity->FigureUnit[6], "l_m.png", L_figure, mirror,  Memory, Buffer);
-        CreateFigureUnit(&FigureEntity->FigureUnit[7], "j_s.png", J_figure, classic, Memory, Buffer);
-        CreateFigureUnit(&FigureEntity->FigureUnit[8], "l_m.png", L_figure, mirror,  Memory, Buffer);
-        CreateFigureUnit(&FigureEntity->FigureUnit[9], "j_s.png", J_figure, classic, Memory, Buffer);
+        //CreateFigureUnit(&FigureEntity->FigureUnit[5], "s_m.png", S_figure, mirror,  Memory, Buffer);
+        //CreateFigureUnit(&FigureEntity->FigureUnit[6], "l_m.png", L_figure, mirror,  Memory, Buffer);
+        //CreateFigureUnit(&FigureEntity->FigureUnit[7], "j_s.png", J_figure, classic, Memory, Buffer);
+        //CreateFigureUnit(&FigureEntity->FigureUnit[8], "l_m.png", L_figure, mirror,  Memory, Buffer);
+        //CreateFigureUnit(&FigureEntity->FigureUnit[9], "j_s.png", J_figure, classic, Memory, Buffer);
         //CreateFigureUnit(&FigureEntity->FigureUnit[10], "z_d.png", Z_figure, classic, Memory, Buffer);
         //CreateFigureUnit(&FigureEntity->FigureUnit[11], "s_m.png", S_figure, mirror,  Memory, Buffer);
         //CreateFigureUnit(&FigureEntity->FigureUnit[12], "l_m.png", L_figure, mirror,  Memory, Buffer);
@@ -1874,8 +1844,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->ColumnAmount        = ColumnAmount;
         GridEntity->StickUnitsAmount    = FigureAmount;
         GridEntity->MovingBlocksAmount  = MovingBlocksAmount;
-        GridEntity->GridArea.w = GridAreaWidth;
-        GridEntity->GridArea.h = GridAreaHeight;
+        GridEntity->GridArea.w = ActiveBlockSize * ColumnAmount;
+        GridEntity->GridArea.h = ActiveBlockSize * RowAmount;
         GridEntity->GridArea.x = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
         GridEntity->GridArea.y = (Buffer->Height - FigureEntity->FigureArea.h)/2 - (GridEntity->GridArea.h / 2);
         
