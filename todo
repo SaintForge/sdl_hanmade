@@ -33,3 +33,7 @@
 -	1. Implement level navigation
 -	2. Implement main menu
 -	3. Implement level creation/deletion from level navigator
+
+BUGS:
+	+ 1. When I want to pick the figure that lies on top of the figure that is sticked
+	somehow I pick the one that is sticked instead of one that is on top of that

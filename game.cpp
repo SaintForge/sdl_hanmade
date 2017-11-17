@@ -25,6 +25,30 @@ Min3(s32 a, s32 b, s32 c)
     return fmin(fmin(a,b),c);
 }
 
+static void
+PrintArray1D(u32 *Array, u32 Size)
+{
+    for (u32 i = 0; i < Size; ++i)
+    {
+        printf("%d ", Array[i]);
+    }
+    
+    printf("\n");
+}
+
+static void
+PrintArray2D(u8 **Array, u32 RowAmount, u32 ColumnAmount)
+{
+    for (u32 i = 0; i < RowAmount; ++i) {
+        for (u32 j = 0; j < ColumnAmount; ++j) {
+            printf("%d ", Array[i][j]);
+        }
+        printf("\n");
+    }
+    
+}
+
+
 enum figure_form
 {
     O_figure, I_figure, L_figure, J_figure,
@@ -360,7 +384,8 @@ FigureEntityHighOrderFigure(figure_entity *FigureEntity, u32 Index)
         
         FigureOrder[FigureAmount-1] = Index;
     }
-}
+    
+    }
 
 static void 
 FigureEntityLowPriority(figure_entity *FigureEntity, u32 Index)
@@ -979,7 +1004,7 @@ GameUpdateEvent(game_input *Input, level_entity *GameState,
         {
             if(!FigureEntity->IsGrabbed)
             {
-                for (u32 i = 0; i < Size; ++i)
+                for (u32 i = Size-1; i >= 0; --i)
                 {
                     ActiveIndex = FigureEntity->FigureOrder[i];
                     game_rect AreaQuad = FigureUnitGetArea(&FigureUnit[ActiveIndex]);
@@ -1111,28 +1136,6 @@ GameUpdateEvent(game_input *Input, level_entity *GameState,
     }
 }
 
-static void
-PrintArray1D(u32 *Array, u32 Size)
-{
-    for (u32 i = 0; i < Size; ++i)
-    {
-        printf("%d ", Array[i]);
-    }
-    
-    printf("\n");
-}
-
-static void
-PrintArray2D(u8 **Array, u32 RowAmount, u32 ColumnAmount)
-{
-    for (u32 i = 0; i < RowAmount; ++i) {
-        for (u32 j = 0; j < ColumnAmount; ++j) {
-            printf("%d ", Array[i][j]);
-        }
-        printf("\n");
-    }
-    
-}
 
 static void
 FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
@@ -1771,51 +1774,50 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     if(!Memory->IsInitialized)
     {
-        u32 RowAmount          = 5;
+        u32 RowAmount          = 10;
         u32 ColumnAmount       = 10;
-        u32 FigureAmount       = 4;
+        u32 FigureAmount       = 10;
         u32 MovingBlocksAmount = 0;
         
         GameState->LevelStarted  = false;
         GameState->LevelFinished = false;
         
+        u32 MinSize = 0;
+        u32 BlockAmount = 0;
+        
         u32 FigureAreaHeight = Buffer->Height * 0.4f;
         u32 FigureAreaWidth  = Buffer->Width;
         
-        u32 BlockAmount = 0;
-        u32 MinSize = 0;
-        if(FigureAreaWidth < FigureAreaHeight)
-        {
-            MinSize     = FigureAreaWidth;
-            BlockAmount = 10; // should also look at the actual block amount in row aka figure amount
-        }
-        else
-        {
-            MinSize = FigureAreaHeight;
-            BlockAmount = 8;
-        }
+        u32 DefaultBlocksInRow = 12;
+        u32 DefaultBlocksInCol = 8;
         
-        InActiveBlockSize = (MinSize / BlockAmount);
-        InActiveBlockSize = InActiveBlockSize - (InActiveBlockSize % 10);
-        printf("MinSize = %d\n", MinSize);
-        printf("BlockAmount = %d\n", BlockAmount);
+        u32 BlocksInRow = 0;
+        
+        u32 DefaultBlockHeight = FigureAreaHeight / DefaultBlocksInCol;
+        u32 DefaultBlockWidth  = FigureAreaWidth  / DefaultBlocksInRow;
+        u32 DefaultBlockSize   = DefaultBlockWidth < DefaultBlockHeight ? DefaultBlockWidth : DefaultBlockHeight;
+        
+        BlocksInRow = (FigureAmount / 2.0) + 0.5f;
+        BlocksInRow = BlocksInRow * 2;
+        printf("BlocksInRow = %d\n", BlocksInRow);
+        
+        u32 ActualBlockSize = FigureAreaWidth / BlocksInRow;
+        
+        InActiveBlockSize = ActualBlockSize < DefaultBlockSize ? ActualBlockSize : DefaultBlockSize;
+        InActiveBlockSize = InActiveBlockSize - (InActiveBlockSize % 2);
+        
+        FigureAreaHeight = InActiveBlockSize * DefaultBlocksInCol;
+        FigureAreaWidth  = InActiveBlockSize * BlocksInRow;
         
         u32 GridAreaWidth  = Buffer->Width;
         u32 GridAreaHeight = Buffer->Height - FigureAreaHeight;
         
-        if(GridAreaWidth < GridAreaHeight)
-        {
-            MinSize = GridAreaWidth;
-            BlockAmount = ColumnAmount + 1;
-        }
-        else
-        {
-            MinSize = GridAreaHeight;
-            BlockAmount = RowAmount + 1;
-        }
+        DefaultBlockWidth  = GridAreaWidth  / (ColumnAmount + 1);
+        DefaultBlockHeight = GridAreaHeight / (RowAmount + 1);
+        DefaultBlockSize   = DefaultBlockWidth < DefaultBlockHeight ? DefaultBlockWidth : DefaultBlockHeight;
         
-        ActiveBlockSize = MinSize / BlockAmount;
-        ActiveBlockSize = ActiveBlockSize - (ActiveBlockSize % 10);
+        ActiveBlockSize = DefaultBlockSize;
+        ActiveBlockSize = ActiveBlockSize - (ActiveBlockSize % 2);
         printf("MinSize = %d\n", MinSize);
         printf("BlockAmount = %d\n", BlockAmount);
         
@@ -1872,6 +1874,22 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         CreateFigureUnit(&FigureEntity->FigureUnit[1], "s_m.png", S_figure, mirror,  Memory, Buffer);
         CreateFigureUnit(&FigureEntity->FigureUnit[2], "l_m.png", L_figure, mirror,  Memory, Buffer);
         CreateFigureUnit(&FigureEntity->FigureUnit[3], "j_s.png", J_figure, classic, Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[4], "z_d.png", Z_figure, classic, Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[5], "s_m.png", S_figure, mirror,  Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[6], "l_m.png", L_figure, mirror,  Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[7], "j_s.png", J_figure, classic, Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[8], "l_m.png", L_figure, mirror,  Memory, Buffer);
+        CreateFigureUnit(&FigureEntity->FigureUnit[9], "j_s.png", J_figure, classic, Memory, Buffer);
+        //CreateFigureUnit(&FigureEntity->FigureUnit[10], "z_d.png", Z_figure, classic, Memory, Buffer);
+        //CreateFigureUnit(&FigureEntity->FigureUnit[11], "s_m.png", S_figure, mirror,  Memory, Buffer);
+        //CreateFigureUnit(&FigureEntity->FigureUnit[12], "l_m.png", L_figure, mirror,  Memory, Buffer);
+        //CreateFigureUnit(&FigureEntity->FigureUnit[13], "j_s.png", J_figure, classic, Memory, Buffer);
+        //CreateFigureUnit(&FigureEntity->FigureUnit[14], "z_d.png", Z_figure, classic, Memory, Buffer);
+        //CreateFigureUnit(&FigureEntity->FigureUnit[15], "s_m.png", S_figure, mirror,  Memory, Buffer);
+        //CreateFigureUnit(&FigureEntity->FigureUnit[16], "l_m.png", L_figure, mirror,  Memory, Buffer);
+        //CreateFigureUnit(&FigureEntity->FigureUnit[17], "j_s.png", J_figure, classic, Memory, Buffer);
+        //CreateFigureUnit(&FigureEntity->FigureUnit[18], "l_m.png", L_figure, mirror,  Memory, Buffer);
+        //CreateFigureUnit(&FigureEntity->FigureUnit[19], "j_s.png", J_figure, classic, Memory, Buffer);
         
         FigureEntity->FigureOrder = (u32*)malloc(sizeof(u32) * FigureAmount);
         Assert(FigureEntity->FigureOrder);
