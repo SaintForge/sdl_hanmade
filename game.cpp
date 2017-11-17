@@ -1779,34 +1779,48 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GameState->LevelStarted  = false;
         GameState->LevelFinished = false;
         
-        u32 ActiveBlockWidth = Buffer->Width / (ColumnAmount + 1);
-        u32 ActiveBlockHeight = Buffer->Height / (RowAmount + 1);
-        
-        if(ActiveBlockWidth < ActiveBlockHeight)
-        {
-            ActiveBlockSize = ActiveBlockWidth - (ActiveBlockWidth % 10);
-        }
-        else
-        {
-            ActiveBlockSize = ActiveBlockHeight - (ActiveBlockHeight % 10);
-        }
-        
-        u32 GridAreaWidth  = ActiveBlockSize * ColumnAmount;
-        u32 GridAreaHeight = ActiveBlockSize * RowAmount;
-        
-        u32 FigureAreaHeight = ActiveBlockSize * 10;
+        u32 FigureAreaHeight = Buffer->Height * 0.4f;
         u32 FigureAreaWidth  = Buffer->Width;
         
-        if(FigureAreaHeight >= GridAreaHeight)
+        u32 BlockAmount = 0;
+        u32 MinSize = 0;
+        if(FigureAreaWidth < FigureAreaHeight)
         {
-            InActiveBlockSize = ActiveBlockSize / 2;
-            FigureAreaHeight = InActiveBlockSize * 10;
+            MinSize     = FigureAreaWidth;
+            BlockAmount = 10; // should also look at the actual block amount in row aka figure amount
         }
         else
         {
-            InActiveBlockSize = ActiveBlockSize;
+            MinSize = FigureAreaHeight;
+            BlockAmount = 8;
         }
         
+        InActiveBlockSize = (MinSize / BlockAmount);
+        InActiveBlockSize = InActiveBlockSize - (InActiveBlockSize % 10);
+        printf("MinSize = %d\n", MinSize);
+        printf("BlockAmount = %d\n", BlockAmount);
+        
+        u32 GridAreaWidth  = Buffer->Width;
+        u32 GridAreaHeight = Buffer->Height - FigureAreaHeight;
+        
+        if(GridAreaWidth < GridAreaHeight)
+        {
+            MinSize = GridAreaWidth;
+            BlockAmount = ColumnAmount + 1;
+        }
+        else
+        {
+            MinSize = GridAreaHeight;
+            BlockAmount = RowAmount + 1;
+        }
+        
+        ActiveBlockSize = MinSize / BlockAmount;
+        ActiveBlockSize = ActiveBlockSize - (ActiveBlockSize % 10);
+        printf("MinSize = %d\n", MinSize);
+        printf("BlockAmount = %d\n", BlockAmount);
+        
+        GridAreaWidth = (ActiveBlockSize * ColumnAmount);
+        GridAreaHeight = ActiveBlockSize * RowAmount;
         
         // TODO(max): Make InActiveBlockSize calculation smarter!!!
         //InActiveBlockSize = GameResizeInActiveBLock(Buffer, FigureAmount);
@@ -1878,6 +1892,14 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->GridArea.h = GridAreaHeight;
         GridEntity->GridArea.x = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
         GridEntity->GridArea.y = (Buffer->Height - FigureEntity->FigureArea.h)/2 - (GridEntity->GridArea.h / 2);
+        
+        printf("Buffer->Width = %d\n", Buffer->Width);
+        printf("Buffer->Height= %d\n", Buffer->Height);
+        
+        printf("GridEntity->GridArea.x = %d\n", GridEntity->GridArea.x);
+        printf("GridEntity->GridArea.y = %d\n", GridEntity->GridArea.y);
+        printf("GridEntity->GridArea.w = %d\n", GridEntity->GridArea.w);
+        printf("GridEntity->GridArea.h = %d\n", GridEntity->GridArea.h);
         
         //
         // UnitField initialization
