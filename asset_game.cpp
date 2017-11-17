@@ -344,7 +344,7 @@ GetMusic(game_memory *Memory, char* FileName)
     binary_header *BinaryHeader = (binary_header*)Memory->Assets;
 
      asset_header *AssetHeader = GetAssetHeader(Memory, AssetType_Music, FileName, 
-                                               sizeof(binary_header));
+                                                BinaryHeader->AudioSizeInBytes);
      if(AssetHeader)
      {
           asset_audio *Audio = &AssetHeader->Audio;
@@ -370,7 +370,7 @@ GetSound(game_memory *Memory, char* FileName)
     binary_header *BinaryHeader = (binary_header*)Memory->Assets;
 		 
      asset_header *AssetHeader = GetAssetHeader(Memory, AssetType_Sound, FileName, 
-                                               sizeof(binary_header));
+                                               sizeof(binary_header) + BinaryHeader->AudioSizeInBytes);
      if(AssetHeader)
      {
           asset_audio *Audio = &AssetHeader->Audio;
