@@ -156,19 +156,56 @@ struct grid_entity
     game_texture *HorizontlaSquareTexture;
 };
 
+struct level_entity
+{
+    grid_entity   *GridEntity;
+    figure_entity *FigureEntity;
+    
+    u32 ActiveBlockSize;
+    u32 InActiveBlockSize;
+    
+    r32 RotationVel;
+    r32 StartAlphaPerSec;
+    r32 FlippingAlphaPerSec;
+    
+    r32 GridScalePerSec;
+    //r32 ScaleAcceleration;
+    
+    bool LevelStarted;
+    bool LevelFinished;
+};
+
+struct level_editor
+{
+    game_rect GridButtonLayer;
+    game_rect GridTextureQuad[4];
+    game_texture *PlusTexture;
+    game_texture *MinusTexture;
+};
 
 #include "game.h"
 #include "asset_game.h"
 
 static void
-DEBUGRenderQuad(game_offscreen_buffer *Buffer, game_rect *AreaQuad, SDL_Color color)
+DEBUGRenderQuad(game_offscreen_buffer *Buffer, game_rect *AreaQuad, SDL_Color color, u8 Alpha)
 {
-    u8 r, g, b;
-    SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, 0);
+    u8 r, g, b, a;
+    SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, &a);
     
-    SDL_SetRenderDrawColor(Buffer->Renderer, color.r, color.g, color.b, 255);
+    SDL_SetRenderDrawColor(Buffer->Renderer, color.r, color.g, color.b, Alpha);
     SDL_RenderDrawRect(Buffer->Renderer, AreaQuad);
-    SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, 255);
+    SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
+}
+
+static void
+DEBUGRenderQuadFill(game_offscreen_buffer *Buffer, game_rect *AreaQuad, SDL_Color color, u8 Alpha)
+{
+    u8 r, g, b, a;
+    SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, &a);
+    
+    SDL_SetRenderDrawColor(Buffer->Renderer, color.r, color.g, color.b, Alpha);
+    SDL_RenderFillRect(Buffer->Renderer, AreaQuad);
+    SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
 }
 
 static void
@@ -550,7 +587,7 @@ CreateFigureUnit(figure_unit* Figure, char* AssetName,
     
     int RowAmount       = 0;
     int ColumnAmount    = 0;
-    u32 BlockSize       = Memory->State.InActiveBlockSize;
+    u32 BlockSize       = Memory->LevelEntity.InActiveBlockSize;
     float CenterOffset  = 0.5f;
     vector<vector<int>> matrix(2);
     for (int i = 0; i < 2; i++)
@@ -1727,21 +1764,158 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
     
 }
 
+static void
+LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_buffer *Buffer)
+{
+    Memory->LevelEditor = (level_editor*)malloc(sizeof(level_editor));
+    Assert(Memory->LevelEditor);
+    printf("malloc!\n");
+    
+    s32 PlusQuadWidth;
+    s32 PlusQuadHeight;
+    
+    s32 MinusQuadWidth;
+    s32 MinusQuadHeight;
+    
+    level_editor *&LevelEditor = Memory->LevelEditor;
+    LevelEditor->GridButtonLayer.w = LevelEntity->ActiveBlockSize * 4;
+    LevelEditor->GridButtonLayer.h = LevelEntity->ActiveBlockSize;
+    LevelEditor->GridButtonLayer.x = (Buffer->Width / 2) - (LevelEditor->GridButtonLayer.w / 2);
+    LevelEditor->GridButtonLayer.y = LevelEntity->FigureEntity->FigureArea.y - LevelEntity->ActiveBlockSize;
+    
+    game_font *Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", LevelEntity->ActiveBlockSize);
+    Assert(Font);
+    
+    game_surface *PlusSurface = TTF_RenderUTF8_Blended(Font, "+", {255, 255, 255});
+    LevelEditor->PlusTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, PlusSurface);
+    SDL_QueryTexture(LevelEditor->PlusTexture, 0, 0, &PlusQuadWidth, &PlusQuadHeight);
+    
+    Assert(PlusSurface);
+    Assert(LevelEditor->PlusTexture);
+    
+    game_surface *MinusSurface = TTF_RenderUTF8_Blended(Font, "-", {255, 255, 255});
+    LevelEditor->MinusTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, MinusSurface);
+    SDL_QueryTexture(LevelEditor->MinusTexture, 0, 0, &MinusQuadWidth, &MinusQuadHeight);
+    
+    LevelEditor->GridTextureQuad[0].w = PlusQuadWidth;
+    LevelEditor->GridTextureQuad[0].h = PlusQuadHeight;
+    LevelEditor->GridTextureQuad[1].w = MinusQuadWidth;
+    LevelEditor->GridTextureQuad[1].h = MinusQuadHeight;
+    
+    LevelEditor->GridTextureQuad[2].w = PlusQuadWidth;
+    LevelEditor->GridTextureQuad[2].h = PlusQuadHeight;
+    LevelEditor->GridTextureQuad[3].w = MinusQuadWidth;
+    LevelEditor->GridTextureQuad[3].h = MinusQuadHeight;
+    
+    game_rect UiQuad = {LevelEditor->GridButtonLayer.x, LevelEditor->GridButtonLayer.y, 
+        LevelEntity->ActiveBlockSize, LevelEntity->ActiveBlockSize};
+    
+    for(u32 i = 0; i < 4; i++)
+    {
+        LevelEditor->GridTextureQuad[i].x = (UiQuad.x + UiQuad.w / 2) - (LevelEditor->GridTextureQuad[i].w / 2);
+        LevelEditor->GridTextureQuad[i].y = (UiQuad.y + UiQuad.h / 2) - (LevelEditor->GridTextureQuad[i].h / 2);
+        UiQuad.x += UiQuad.w;
+    }
+    
+    SDL_FreeSurface(PlusSurface);
+    SDL_FreeSurface(MinusSurface);
+    TTF_CloseFont(Font);
+    }
+    
+    static void
+    GridEntityNewGrid(game_offscreen_buffer *Buffer, level_entity *LevelEntity, u32 NewRowAmount, u32 NewColumnAmount)
+    {
+        if(NewRowAmount < 0 || NewColumnAmount < 0) return;
+        
+        grid_entity *&GridEntity = LevelEntity->GridEntity;
+        
+        s32 **UnitField = (s32**)malloc(sizeof(s32*) * NewRowAmount);
+        Assert(UnitField);
+        for(u32 i = 0; i < NewRowAmount; ++i){
+            UnitField[i] = (s32*)malloc(sizeof(s32) * NewColumnAmount);
+            Assert(UnitField[i]);
+            for(u32 j = 0; j < NewColumnAmount; j ++){
+                UnitField[i][j] = GridEntity->UnitField[i][j];
+            }
+            }
+        
+            for(u32 i = 0; i < GridEntity->RowAmount; ++i){
+                free(GridEntity->UnitField[i]);
+                }
+                
+                free(GridEntity->UnitField);
+                
+                 GridEntity->UnitField    = UnitField;
+                GridEntity->RowAmount    = NewRowAmount;
+                GridEntity->ColumnAmount = NewColumnAmount;
+                GridEntity->GridArea.w   = LevelEntity->ActiveBlockSize * NewRowAmount;
+                GridEntity->GridArea.h   = LevelEntity->ActiveBlockSize * NewColumnAmount;
+                GridEntity->GridArea.x   = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
+                GridEntity->GridArea.y   = (Buffer->Height - LevelEntity->FigureEntity->FigureArea.h) / 2 - (GridEntity->GridArea.h / 2);
+        }
+
+static void
+LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity, 
+                                   game_offscreen_buffer *Buffer, game_input *Input)
+{
+    if(Input->WasPressed){
+        if(Input->LeftClick.IsDown){
+            for(u32 i = 0; i < 4; i++){
+                if(i == 0){
+/* Plus row */
+                    if (IsPointInsideRect(Input->MouseX, Input->MouseY,
+                                          &LevelEditor->GridTextureQuad[i]))
+                    {
+                        printf("Plus row!\n");
+                        
+                    }
+}
+else if(i == 1){
+    /* Minus row */
+    if (IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                          &LevelEditor->GridTextureQuad[i]))
+    printf("Minus row!\n");
+}
+else if(i == 2){
+    /* Plus column */
+    if (IsPointInsideRect(Input->MouseX, Input->MouseY,
+                          &LevelEditor->GridTextureQuad[i]))
+    printf("Plus column!\n");
+}
+else if(i == 3){
+    /* Minus column */
+    if (IsPointInsideRect(Input->MouseX, Input->MouseY,
+                          &LevelEditor->GridTextureQuad[i]))
+    printf("Minus column!\n");
+}
+            }
+            }
+    }
+    
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->GridButtonLayer, {0, 0, 255}, 50);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->PlusTexture,  &LevelEditor->GridTextureQuad[0]);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->MinusTexture, &LevelEditor->GridTextureQuad[1]);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->PlusTexture,  &LevelEditor->GridTextureQuad[2]);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->MinusTexture, &LevelEditor->GridTextureQuad[3]);
+}
+
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
     static r32 TimeElapsed = SDL_GetTicks();
     
     bool ShouldQuit       = false;
-    u32 ActiveBlockSize   = Memory->State.ActiveBlockSize;
-    u32 InActiveBlockSize = Memory->State.InActiveBlockSize;
     
-    level_entity  *GameState     = &Memory->State;
-    grid_entity   *&GridEntity   = Memory->State.GridEntity;
-    figure_entity *&FigureEntity = Memory->State.FigureEntity;
+    level_entity  *GameState     = &Memory->LevelEntity;
+    grid_entity   *&GridEntity   = GameState->GridEntity;
+    figure_entity *&FigureEntity = GameState->FigureEntity;
     
     if(!Memory->IsInitialized)
     {
+        u32 ActiveBlockSize   = 0;
+        u32 InActiveBlockSize = 0;
+        
         u32 RowAmount          = 5;
         u32 ColumnAmount       = 20;
         u32 FigureAmount       = 20;
@@ -1769,14 +1943,13 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         printf("ActiveBlockSize = %d\n", ActiveBlockSize);
         printf("InActiveBlockSize = %d\n", InActiveBlockSize);
         
-        Memory->State.ActiveBlockSize   = ActiveBlockSize;
-        Memory->State.InActiveBlockSize = InActiveBlockSize;
+        GameState->ActiveBlockSize   = ActiveBlockSize;
+        GameState->InActiveBlockSize = InActiveBlockSize;
         
         GameState->RotationVel         = 600.0f;
         GameState->StartAlphaPerSec    = 500.0f;
         GameState->FlippingAlphaPerSec = 1000.0f;
         GameState->GridScalePerSec     = ((RowAmount * ColumnAmount)) * (ActiveBlockSize/2);
-        printf("GridScalePerSec = %f\n", GameState->GridScalePerSec);
         
         //
         // Figure initialization
@@ -1846,7 +2019,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->GridArea.w = ActiveBlockSize * ColumnAmount;
         GridEntity->GridArea.h = ActiveBlockSize * RowAmount;
         GridEntity->GridArea.x = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
-        GridEntity->GridArea.y = (Buffer->Height - FigureEntity->FigureArea.h)/2 - (GridEntity->GridArea.h / 2);
+        GridEntity->GridArea.y = (Buffer->Height - FigureEntity->FigureArea.h) / 2 - (GridEntity->GridArea.h / 2);
         
         printf("Buffer->Width = %d\n", Buffer->Width);
         printf("Buffer->Height= %d\n", Buffer->Height);
@@ -1912,10 +2085,15 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->HorizontlaSquareTexture = GetTexture(Memory, "o_m.png", Buffer->Renderer);
         
         
-        Memory->Music = GetMusic(Memory, "amb_ending_water.ogg");
-        Assert(Memory->Music);
+        //Memory->Music = GetMusic(Memory, "amb_ending_water.ogg");
+        //Assert(Memory->Music);
         //Mix_PlayChannel(-1, Memory->Music, 0);
-        Mix_PlayMusic(Memory->Music, 0);
+        //Mix_PlayMusic(Memory->Music, 0);
+        
+        
+        // Level Editor initialization
+        LevelEditorInit(GameState, Memory, Buffer);
+        
         
         Memory->IsInitialized = true;
         printf("memory init!\n");
@@ -1923,7 +2101,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     TimeElapsed = (SDL_GetTicks() - TimeElapsed) / 1000.0f;
     
-    GameUpdateEvent(Input, GameState, ActiveBlockSize, InActiveBlockSize, Buffer->Width, Buffer->Height);
+    GameUpdateEvent(Input, GameState, GameState->ActiveBlockSize, GameState->InActiveBlockSize, Buffer->Width, Buffer->Height);
     
     if(Input->WasPressed)
     {
@@ -1935,7 +2113,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     //PrintArray2D(GridEntity->UnitField, GridEntity->RowAmount, GridEntity->ColumnAmount);
     
+    //LevelEditorUpdateAndRender(Buffer, GameState->LevelEditor);
+    
     LevelEntityUpdate(Buffer, GameState, TimeElapsed);
+    LevelEditorUpdateAndRender(Memory->LevelEditor, GameState, Buffer, Input);
+    
     
     TimeElapsed = SDL_GetTicks();
     return(ShouldQuit);

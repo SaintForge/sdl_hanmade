@@ -26,6 +26,7 @@ typedef SDL_Texture game_texture;
 typedef SDL_Surface game_surface;
 typedef Mix_Chunk   game_sound;
 typedef Mix_Music   game_music;
+typedef TTF_Font    game_font;
 
 typedef int8_t   s8;
 typedef int16_t s16;
@@ -318,22 +319,14 @@ int main(int argc, char **argv)
                 
                 if(Memory.AssetsInitialized)
                 {
-#if 0
-                    void *RawMem = (void*)Memory.Assets;
-                    
-                    binary_header *BinaryHeader = (binary_header*)RawMem;
-                    printf("BinaryHeader->BitmapSizeInBytes = %d\n", BinaryHeader->BitmapSizeInBytes);
-                    printf("BinaryHeader->AudioSizeInBytes = %d\n", BinaryHeader->AudioSizeInBytes);
-                    
-                    IsRunning = false;
-                    
-                    #endif
-                    if(GameUpdateAndRender(&Memory, &Input, &Buffer))
+if(GameUpdateAndRender(&Memory, &Input, &Buffer))
                     {
                         IsRunning = false;
                         
                         free(Memory.Assets);
                     }
+                    
+                    
                 }
                 
                 // draw loading screen
