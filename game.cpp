@@ -92,7 +92,7 @@ struct figure_unit
 
 struct figure_entity
 {
-    //u32 FigureAmountReserved;
+    u32 FigureAmountReserved;
     u32 ReturnIndex;
     s32 FigureActive;
     u32 FigureAmount;
@@ -577,6 +577,14 @@ FigureUnitResizeBy(figure_unit *Entity, r32 ScaleFactor)
         Entity->Shell[i].y += (OldCenter.y - NewCenter.y);
     }
     
+}
+
+static void
+FigureUnitAdd(figure_entity *FigureEntity, char* AssetName, 
+              figure_form Form, figure_type Type, 
+              game_memory *Memory, game_offscreen_buffer *Buffer)
+{
+    if(FigureEntity->FigureAmount >= FigureAmountReserved) return;
 }
 
 static void
@@ -2292,7 +2300,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity = (figure_entity*)malloc(sizeof(figure_entity));
         Assert(FigureEntity);
         
-        FigureEntity->FigureAmount  = FigureAmount;
+        FigureEntity->FigureAmount         = FigureAmount;
+        FigureEntity->FigureAmountReserved = 20;
+        
         FigureEntity->ReturnIndex   = -1;
         FigureEntity->FigureActive  = -1;
         
