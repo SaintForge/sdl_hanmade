@@ -193,8 +193,8 @@ struct level_editor
     game_texture *TypeTexture;
     
     game_font *Font;
-    };
-    
+};
+
 
 #include "game.h"
 #include "asset_game.h"
@@ -1058,32 +1058,32 @@ RestartLevelEntity(level_entity *LevelEntity)
             
             FigureEntity->FigureUnit[i].IsStick = false;
             BlockRatio = InActiveBlockSize / ActiveBlockSize;
-                FigureUnitSetToDefaultArea(&FigureEntity->FigureUnit[i], BlockRatio);
-                FigureUnitMoveToDefaultArea(&FigureEntity->FigureUnit[i], ActiveBlockSize);
+            FigureUnitSetToDefaultArea(&FigureEntity->FigureUnit[i], BlockRatio);
+            FigureUnitMoveToDefaultArea(&FigureEntity->FigureUnit[i], ActiveBlockSize);
             
             printf("BlockRatio = %f\n" ,BlockRatio);
-            }
         }
+    }
+    
+    for(u32 i = 0; i < GridEntity->StickUnitsAmount; ++i)
+    {
+        s32 Index = GridEntity->StickUnits[i].Index;
         
-        for(u32 i = 0; i < GridEntity->StickUnitsAmount; ++i)
+        if(GridEntity->StickUnits[i].IsSticked && Index >= 0)
         {
-            s32 Index = GridEntity->StickUnits[i].Index;
+            s32 RowIndex = 0;
+            s32 ColIndex = 0;
             
-            if(GridEntity->StickUnits[i].IsSticked && Index >= 0)
+            for(u32 l = 0; l < 4; l++)
             {
-                s32 RowIndex = 0;
-                s32 ColIndex = 0;
-                
-                for(u32 l = 0; l < 4; l++)
-                {
-                    RowIndex = GridEntity->StickUnits[i].Row[l];
-                     ColIndex = GridEntity->StickUnits[i].Col[l];
-                    GridEntity->UnitField[RowIndex][ColIndex] = 0;
-                }
-                
-                GridEntity->StickUnits[i].Index = -1;
+                RowIndex = GridEntity->StickUnits[i].Row[l];
+                ColIndex = GridEntity->StickUnits[i].Col[l];
+                GridEntity->UnitField[RowIndex][ColIndex] = 0;
             }
+            
+            GridEntity->StickUnits[i].Index = -1;
         }
+    }
 }
 
 static void
@@ -1747,15 +1747,15 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
                 if((Center->x == TargetCenter->x) && (Center->y == TargetCenter->y))
                 {
                     FigureEntity->FigureUnit[i].IsIdle = true;
-                    }
                 }
             }
+        }
         
-            if(AllFiguresReturned)
-            {
-                FigureEntity->IsRestarting = false;
-                printf("Restarted\n");
-            }
+        if(AllFiguresReturned)
+        {
+            FigureEntity->IsRestarting = false;
+            printf("Restarted\n");
+        }
     }
     
     bool ShouldHighlight = false;
@@ -1910,20 +1910,20 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     LevelEditor->GridButtonLayer.x = (Buffer->Width / 2) - (LevelEditor->GridButtonLayer.w / 2);
     LevelEditor->GridButtonLayer.y = LevelEntity->FigureEntity->FigureArea.y - ButtonSize;
     
-     LevelEditor->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", ButtonSize);
+    LevelEditor->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", ButtonSize);
     Assert(LevelEditor->Font);
     
     game_surface *Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, "+", {0, 0, 0});
     LevelEditor->PlusTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
     SDL_QueryTexture(LevelEditor->PlusTexture, 0, 0, &LevelEditor->GridButtonQuad[0].w, &LevelEditor->GridButtonQuad[0].h);
-    SDL_QueryTexture(LevelEditor->PlusTexture, 0, 0, &LevelEditor->GridButtonQuad[2].w, &LevelEditor->GridButtonQuad[2].h);
+    SDL_QueryTexture(LevelEditor->PlusTexture, 0, 0, &LevelEditor->GridButtonQuad[3].w, &LevelEditor->GridButtonQuad[3].h);
     SDL_FreeSurface(Surface);
     
     
     Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, "-", {0, 0, 0});
     LevelEditor->MinusTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
-    SDL_QueryTexture(LevelEditor->MinusTexture, 0, 0, &LevelEditor->GridButtonQuad[3].w,
-                     &LevelEditor->GridButtonQuad[3].h);
+    SDL_QueryTexture(LevelEditor->MinusTexture, 0, 0, &LevelEditor->GridButtonQuad[2].w,
+                     &LevelEditor->GridButtonQuad[2].h);
     SDL_QueryTexture(LevelEditor->MinusTexture, 0, 0, &LevelEditor->GridButtonQuad[5].w,
                      &LevelEditor->GridButtonQuad[5].h);
     SDL_FreeSurface(Surface);
@@ -1992,86 +1992,86 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
         LevelEditor->FigureButtonQuad[i].y = (UiQuad.y + UiQuad.h / 2) - (LevelEditor->FigureButtonQuad[i].h / 2);
         UiQuad.x += UiQuad.w;
     }
+}
+
+static void
+GridEntityNewGrid(game_offscreen_buffer *Buffer, level_entity *LevelEntity, 
+                  s32 NewRowAmount, s32 NewColumnAmount, level_editor *LevelEditor)
+{
+    if(NewRowAmount < 0 || NewColumnAmount < 0) return;
+    
+    grid_entity *&GridEntity = LevelEntity->GridEntity;
+    
+    s32 **UnitField = (s32**)malloc(sizeof(s32*) * NewRowAmount);
+    Assert(UnitField);
+    for(u32 i = 0; i < NewRowAmount; ++i){
+        UnitField[i] = (s32*)malloc(sizeof(s32) * NewColumnAmount);
+        Assert(UnitField[i]);
+        for(u32 j = 0; j < NewColumnAmount; j ++){
+            UnitField[i][j] = 0;
+        }
     }
     
-    static void
-    GridEntityNewGrid(game_offscreen_buffer *Buffer, level_entity *LevelEntity, 
-                          s32 NewRowAmount, s32 NewColumnAmount, level_editor *LevelEditor)
+    u32 CurrentRowAmount = NewRowAmount < GridEntity->RowAmount ? NewRowAmount : GridEntity->RowAmount;
+    u32 CurrentColumnAmount = NewColumnAmount < GridEntity->ColumnAmount ? NewColumnAmount : GridEntity->ColumnAmount;
+    
+    for(u32 i = 0; i < CurrentRowAmount; ++i){
+        for(u32 j = 0; j < CurrentColumnAmount; ++j){
+            UnitField[i][j] = GridEntity->UnitField[i][j];
+        }
+    }
+    
+    for(u32 i = 0; i < GridEntity->RowAmount; ++i){
+        free(GridEntity->UnitField[i]);
+    }
+    
+    free(GridEntity->UnitField);
+    
+    game_surface *Surface = 0;
+    char RowString[2] = {0};
+    char ColString[2] = {0};
+    
+    if(NewRowAmount != GridEntity->RowAmount)
     {
-        if(NewRowAmount < 0 || NewColumnAmount < 0) return;
+        sprintf(RowString, "%d", NewRowAmount);
         
-        grid_entity *&GridEntity = LevelEntity->GridEntity;
+        Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, RowString, { 0, 0, 0 });
+        LevelEditor->RowTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+        SDL_QueryTexture(LevelEditor->RowTexture, 0, 0, &LevelEditor->GridButtonQuad[1].w, &LevelEditor->GridButtonQuad[1].h);
+        SDL_FreeSurface(Surface);
+    }
+    else if(NewColumnAmount != GridEntity->ColumnAmount)
+    {
+        sprintf(ColString, "%d", NewColumnAmount);
         
-        s32 **UnitField = (s32**)malloc(sizeof(s32*) * NewRowAmount);
-        Assert(UnitField);
-        for(u32 i = 0; i < NewRowAmount; ++i){
-            UnitField[i] = (s32*)malloc(sizeof(s32) * NewColumnAmount);
-            Assert(UnitField[i]);
-            for(u32 j = 0; j < NewColumnAmount; j ++){
-                UnitField[i][j] = 0;
-            }
-            }
-            
-            u32 CurrentRowAmount = NewRowAmount < GridEntity->RowAmount ? NewRowAmount : GridEntity->RowAmount;
-            u32 CurrentColumnAmount = NewColumnAmount < GridEntity->ColumnAmount ? NewColumnAmount : GridEntity->ColumnAmount;
-            
-            for(u32 i = 0; i < CurrentRowAmount; ++i){
-                for(u32 j = 0; j < CurrentColumnAmount; ++j){
-                    UnitField[i][j] = GridEntity->UnitField[i][j];
-                }
-            }
-            
-            for(u32 i = 0; i < GridEntity->RowAmount; ++i){
-                free(GridEntity->UnitField[i]);
-                }
-                
-                free(GridEntity->UnitField);
-                
-                game_surface *Surface = 0;
-                char RowString[2] = {0};
-                char ColString[2] = {0};
-                
-                if(NewRowAmount != GridEntity->RowAmount)
-                {
-                    sprintf(RowString, "%d", NewRowAmount);
-                    
-                    Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, RowString, { 0, 0, 0 });
-                    LevelEditor->RowTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
-                    SDL_QueryTexture(LevelEditor->RowTexture, 0, 0, &LevelEditor->GridButtonQuad[1].w, &LevelEditor->GridButtonQuad[1].h);
-                    SDL_FreeSurface(Surface);
-                }
-                else if(NewColumnAmount != GridEntity->ColumnAmount)
-                {
-                    sprintf(ColString, "%d", NewColumnAmount);
-                    
-                    Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, ColString, { 0, 0, 0 });
-                    LevelEditor->RowTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
-                    SDL_QueryTexture(LevelEditor->ColumnTexture, 0, 0, &LevelEditor->GridButtonQuad[4].w, &LevelEditor->GridButtonQuad[4].h);
-                    SDL_FreeSurface(Surface);
-                }
-                
-                u32 DefaultBlocksInRow = 12;
-                u32 DefaultBlocksInCol = 9;
-                
-                RescaleGameField(Buffer, NewRowAmount, NewColumnAmount, LevelEntity->FigureEntity->FigureAmount, DefaultBlocksInRow, DefaultBlocksInCol, LevelEntity);
-                
-                 GridEntity->UnitField    = UnitField;
-                GridEntity->RowAmount    = NewRowAmount;
-                GridEntity->ColumnAmount = NewColumnAmount;
-                
-                u32 ActiveBlockSize   = LevelEntity->ActiveBlockSize;
-                u32 InActiveBlockSize = LevelEntity->InActiveBlockSize;
-                
-                LevelEntity->GridEntity->GridArea.w = ActiveBlockSize * NewColumnAmount;
-                LevelEntity->GridEntity->GridArea.h = ActiveBlockSize * NewRowAmount;
-                LevelEntity->GridEntity->GridArea.x = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
-                LevelEntity->GridEntity->GridArea.y = (Buffer->Height - LevelEntity->FigureEntity->FigureArea.h) / 2 - (GridEntity->GridArea.h / 2);
-                
-                }
+        Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, ColString, { 0, 0, 0 });
+        LevelEditor->ColumnTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+        SDL_QueryTexture(LevelEditor->ColumnTexture, 0, 0, &LevelEditor->GridButtonQuad[4].w, &LevelEditor->GridButtonQuad[4].h);
+        SDL_FreeSurface(Surface);
+    }
+    
+    u32 DefaultBlocksInRow = 12;
+    u32 DefaultBlocksInCol = 9;
+    
+    RescaleGameField(Buffer, NewRowAmount, NewColumnAmount, LevelEntity->FigureEntity->FigureAmount, DefaultBlocksInRow, DefaultBlocksInCol, LevelEntity);
+    
+    GridEntity->UnitField    = UnitField;
+    GridEntity->RowAmount    = NewRowAmount;
+    GridEntity->ColumnAmount = NewColumnAmount;
+    
+    u32 ActiveBlockSize   = LevelEntity->ActiveBlockSize;
+    u32 InActiveBlockSize = LevelEntity->InActiveBlockSize;
+    
+    LevelEntity->GridEntity->GridArea.w = ActiveBlockSize * NewColumnAmount;
+    LevelEntity->GridEntity->GridArea.h = ActiveBlockSize * NewRowAmount;
+    LevelEntity->GridEntity->GridArea.x = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
+    LevelEntity->GridEntity->GridArea.y = (Buffer->Height - LevelEntity->FigureEntity->FigureArea.h) / 2 - (GridEntity->GridArea.h / 2);
+    
+}
 
 static void
 LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity, 
-                                   game_offscreen_buffer *Buffer, game_input *Input)
+                           game_offscreen_buffer *Buffer, game_input *Input)
 {
     if(Input->WasPressed)
     {
@@ -2086,7 +2086,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             else
             {
                 LevelEntity->LevelPaused = false;
-                }
+            }
         }
     }
     
@@ -2153,7 +2153,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
                                           &LevelEditor->FigureButtonQuad[2]))
                 {
-                     
+                    
                 }
                 /* Flip figure */
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
@@ -2174,22 +2174,21 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                     
                 }
             }
-            }
+        }
     }
     
     game_rect ButtonQuad = 
     {
-    ButtonQuad.x = LevelEditor->GridButtonLayer.x,
-    ButtonQuad.y = LevelEditor->GridButtonLayer.y,
-    ButtonQuad.w = LevelEntity->InActiveBlockSize * 2, 
-    ButtonQuad.h = LevelEntity->InActiveBlockSize * 2
+        ButtonQuad.x = LevelEditor->GridButtonLayer.x,
+        ButtonQuad.y = LevelEditor->GridButtonLayer.y,
+        ButtonQuad.w = LevelEntity->InActiveBlockSize * 2, 
+        ButtonQuad.h = LevelEntity->InActiveBlockSize * 2
     };
     
     DEBUGRenderQuadFill(Buffer, &LevelEditor->GridButtonLayer, {0, 0, 255}, 255);
     
     DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->PlusTexture, 
-                             &LevelEditor->GridButtonQuad[0]);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->PlusTexture, &LevelEditor->GridButtonQuad[0]);
     
     ButtonQuad.x += ButtonQuad.w;
     
@@ -2255,7 +2254,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
     GameRenderBitmapToBuffer(Buffer, LevelEditor->TypeTexture, 
                              &LevelEditor->FigureButtonQuad[5]);
-    }
+}
 
 
 static bool
