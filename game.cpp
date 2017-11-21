@@ -43,7 +43,7 @@ PrintArray1D(u32 *Array, u32 Size)
 }
 
 static void
-PrintArray2D(u8 **Array, u32 RowAmount, u32 ColumnAmount)
+PrintArray2D(s32 **Array, u32 RowAmount, u32 ColumnAmount)
 {
     for (u32 i = 0; i < RowAmount; ++i) {
         for (u32 j = 0; j < ColumnAmount; ++j) {
@@ -588,6 +588,9 @@ CreateFigureUnit(figure_unit* Figure, char* AssetName,
     int RowAmount       = 0;
     int ColumnAmount    = 0;
     u32 BlockSize       = Memory->LevelEntity.InActiveBlockSize;
+    printf("BlockSize = %d\n", BlockSize);
+    printf("InActiveBlockSize = %d\n", Memory->LevelEntity.InActiveBlockSize);
+    printf("ActiveBlockSize = %d\n", Memory->LevelEntity.ActiveBlockSize);
     float CenterOffset  = 0.5f;
     vector<vector<int>> matrix(2);
     for (int i = 0; i < 2; i++)
@@ -862,9 +865,18 @@ DestroyFigureEntity(figure_unit *Entity)
 static void
 FigureUnitRenderBitmap(game_offscreen_buffer *Buffer, figure_unit *Entity)
 {
+    //printf("Rendering figure!\n");
     game_point Center;
     Center.x = Entity->Center.x - Entity->AreaQuad.x;
     Center.y = Entity->Center.y - Entity->AreaQuad.y;
+    #if 0 
+    printf("Entity->Center.x = %d\n", Entity->Center.x);
+    printf("Entity->Center.y = %d\n", Entity->Center.y);
+    printf("Entity->AreaQuad.x = %d\n", Entity->AreaQuad.x);
+    printf("Entity->AreaQuad.y = %d\n", Entity->AreaQuad.y);
+    printf("Entity->AreaQuad.w = %d\n", Entity->AreaQuad.w);
+    printf("Entity->AreaQuad.h = %d\n", Entity->AreaQuad.h);
+    #endif
     
     SDL_RenderCopyEx(Buffer->Renderer, Entity->Texture,
                      0, &Entity->AreaQuad, Entity->Angle, &Center, Entity->Flip);
@@ -1764,6 +1776,35 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
     
 }
 
+
+static void
+RescaleGameField(game_offscreen_buffer *Buffer,
+                 u32 RowAmount, u32 ColumnAmount, u32 FigureAmount,
+                 u32 DefaultBlocksInRow, u32 DefaultBlocksInCol,
+                 level_entity *LevelEntity)
+{
+    u32 InActiveBlockSize  = 0;
+    u32 ActiveBlockSize    = 0;
+    
+    u32 FigureAreaWidth  = Buffer->Width;
+    u32 FigureAreaHeight = Buffer->Height * 0.4f;
+    
+    u32 BlocksInRow = (FigureAmount / 2.0) + 0.5f;
+    BlocksInRow     = (BlocksInRow * 2) + 2;
+    
+    InActiveBlockSize = GameResizeInActiveBlock(FigureAreaWidth, FigureAreaHeight,
+                                                DefaultBlocksInRow, DefaultBlocksInCol,BlocksInRow);
+    FigureAreaHeight = InActiveBlockSize * DefaultBlocksInCol;
+    
+    u32 GridAreaWidth  = Buffer->Width;
+    u32 GridAreaHeight = Buffer->Height - FigureAreaHeight;
+    
+    ActiveBlockSize = GameResizeActiveBlock(GridAreaWidth, GridAreaHeight, RowAmount, ColumnAmount);
+    
+    LevelEntity->ActiveBlockSize   = ActiveBlockSize;
+    LevelEntity->InActiveBlockSize = InActiveBlockSize;
+}
+
 static void
 LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_buffer *Buffer)
 {
@@ -1823,7 +1864,8 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     }
     
     static void
-    GridEntityNewGrid(game_offscreen_buffer *Buffer, level_entity *LevelEntity, u32 NewRowAmount, u32 NewColumnAmount)
+    GridEntityNewGrid(game_offscreen_buffer *Buffer, level_entity *LevelEntity, 
+                          s32 NewRowAmount, s32 NewColumnAmount)
     {
         if(NewRowAmount < 0 || NewColumnAmount < 0) return;
         
@@ -1835,24 +1877,42 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
             UnitField[i] = (s32*)malloc(sizeof(s32) * NewColumnAmount);
             Assert(UnitField[i]);
             for(u32 j = 0; j < NewColumnAmount; j ++){
-                UnitField[i][j] = GridEntity->UnitField[i][j];
+                UnitField[i][j] = 0;
             }
             }
-        
+            
+            u32 CurrentRowAmount = NewRowAmount < GridEntity->RowAmount ? NewRowAmount : GridEntity->RowAmount;
+            u32 CurrentColumnAmount = NewColumnAmount < GridEntity->ColumnAmount ? NewColumnAmount : GridEntity->ColumnAmount;
+            
+            for(u32 i = 0; i < CurrentRowAmount; ++i){
+                for(u32 j = 0; j < CurrentColumnAmount; ++j){
+                    UnitField[i][j] = GridEntity->UnitField[i][j];
+                }
+            }
+            
             for(u32 i = 0; i < GridEntity->RowAmount; ++i){
                 free(GridEntity->UnitField[i]);
                 }
                 
                 free(GridEntity->UnitField);
                 
+                u32 DefaultBlocksInRow = 12;
+                u32 DefaultBlocksInCol = 9;
+                
+                RescaleGameField(Buffer, NewRowAmount, NewColumnAmount, LevelEntity->FigureEntity->FigureAmount, DefaultBlocksInRow, DefaultBlocksInCol, LevelEntity);
+                
                  GridEntity->UnitField    = UnitField;
                 GridEntity->RowAmount    = NewRowAmount;
                 GridEntity->ColumnAmount = NewColumnAmount;
-                GridEntity->GridArea.w   = LevelEntity->ActiveBlockSize * NewRowAmount;
-                GridEntity->GridArea.h   = LevelEntity->ActiveBlockSize * NewColumnAmount;
-                GridEntity->GridArea.x   = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
-                GridEntity->GridArea.y   = (Buffer->Height - LevelEntity->FigureEntity->FigureArea.h) / 2 - (GridEntity->GridArea.h / 2);
-        }
+                
+                u32 ActiveBlockSize   = LevelEntity->ActiveBlockSize;
+                u32 InActiveBlockSize = LevelEntity->InActiveBlockSize;
+                
+                LevelEntity->GridEntity->GridArea.w = ActiveBlockSize * NewColumnAmount;
+                LevelEntity->GridEntity->GridArea.h = ActiveBlockSize * NewRowAmount;
+                LevelEntity->GridEntity->GridArea.x = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
+                LevelEntity->GridEntity->GridArea.y = (Buffer->Height - LevelEntity->FigureEntity->FigureArea.h) / 2 - (GridEntity->GridArea.h / 2);
+                }
 
 static void
 LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity, 
@@ -1860,6 +1920,10 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
 {
     if(Input->WasPressed){
         if(Input->LeftClick.IsDown){
+            
+            u32 RowAmount = LevelEntity->GridEntity->RowAmount;
+            u32 ColAmount = LevelEntity->GridEntity->ColumnAmount;
+            
             for(u32 i = 0; i < 4; i++){
                 if(i == 0){
 /* Plus row */
@@ -1867,26 +1931,35 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                           &LevelEditor->GridTextureQuad[i]))
                     {
                         printf("Plus row!\n");
-                        
+                        GridEntityNewGrid(Buffer, LevelEntity, RowAmount+1, ColAmount);
                     }
 }
 else if(i == 1){
     /* Minus row */
     if (IsPointInsideRect(Input->MouseX, Input->MouseY, 
                           &LevelEditor->GridTextureQuad[i]))
+    {
     printf("Minus row!\n");
+        GridEntityNewGrid(Buffer, LevelEntity, RowAmount-1, ColAmount);
+    }
 }
 else if(i == 2){
     /* Plus column */
     if (IsPointInsideRect(Input->MouseX, Input->MouseY,
                           &LevelEditor->GridTextureQuad[i]))
+    {
     printf("Plus column!\n");
+        GridEntityNewGrid(Buffer, LevelEntity, RowAmount, ColAmount+1);
+    }
 }
 else if(i == 3){
     /* Minus column */
     if (IsPointInsideRect(Input->MouseX, Input->MouseY,
                           &LevelEditor->GridTextureQuad[i]))
+    {
     printf("Minus column!\n");
+        GridEntityNewGrid(Buffer, LevelEntity, RowAmount, ColAmount-1);
+    }
 }
             }
             }
@@ -1899,6 +1972,7 @@ else if(i == 3){
     GameRenderBitmapToBuffer(Buffer, LevelEditor->PlusTexture,  &LevelEditor->GridTextureQuad[2]);
     GameRenderBitmapToBuffer(Buffer, LevelEditor->MinusTexture, &LevelEditor->GridTextureQuad[3]);
 }
+
 
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
@@ -1913,43 +1987,21 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     if(!Memory->IsInitialized)
     {
-        u32 ActiveBlockSize   = 0;
-        u32 InActiveBlockSize = 0;
+        u32 DefaultBlocksInRow = 12;
+        u32 DefaultBlocksInCol = 9;
         
-        u32 RowAmount          = 5;
-        u32 ColumnAmount       = 20;
+        u32 RowAmount          = 10;
+        u32 ColumnAmount       = 5;
         u32 FigureAmount       = 20;
-        u32 MovingBlocksAmount = 2;
+        u32 MovingBlocksAmount = 0;
         
         GameState->LevelStarted  = false;
         GameState->LevelFinished = false;
         
-        u32 FigureAreaWidth    = Buffer->Width;
-        u32 FigureAreaHeight   = Buffer->Height * 0.4f;
-        u32 DefaultBlocksInRow = 12;
-        u32 DefaultBlocksInCol = 9;
+        RescaleGameField(Buffer, RowAmount, ColumnAmount, FigureAmount, DefaultBlocksInRow, DefaultBlocksInCol, GameState);
         
-        u32 BlocksInRow = (FigureAmount / 2.0) + 0.5f;
-        BlocksInRow     = (BlocksInRow * 2) + 2;
-        
-        InActiveBlockSize = GameResizeInActiveBlock(FigureAreaWidth, FigureAreaHeight, DefaultBlocksInRow, DefaultBlocksInCol, BlocksInRow);
-        FigureAreaHeight  = InActiveBlockSize * DefaultBlocksInCol;
-        
-        u32 GridAreaWidth  = Buffer->Width;
-        u32 GridAreaHeight = Buffer->Height - FigureAreaHeight;
-        
-        ActiveBlockSize    = GameResizeActiveBlock(GridAreaWidth, GridAreaHeight, RowAmount, ColumnAmount);
-        
-        printf("ActiveBlockSize = %d\n", ActiveBlockSize);
-        printf("InActiveBlockSize = %d\n", InActiveBlockSize);
-        
-        GameState->ActiveBlockSize   = ActiveBlockSize;
-        GameState->InActiveBlockSize = InActiveBlockSize;
-        
-        GameState->RotationVel         = 600.0f;
-        GameState->StartAlphaPerSec    = 500.0f;
-        GameState->FlippingAlphaPerSec = 1000.0f;
-        GameState->GridScalePerSec     = ((RowAmount * ColumnAmount)) * (ActiveBlockSize/2);
+        u32 ActiveBlockSize   = GameState->ActiveBlockSize;
+        u32 InActiveBlockSize = GameState->InActiveBlockSize;
         
         //
         // Figure initialization
@@ -1972,8 +2024,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->FadeInSum     = 0;
         FigureEntity->FadeOutSum    = 0;
         
-        FigureEntity->FigureArea.w  = FigureAreaWidth;
-        FigureEntity->FigureArea.h  = FigureAreaHeight;//InActiveBlockSize * 9;
+        FigureEntity->FigureArea.w  = Buffer->Width;
+        FigureEntity->FigureArea.h  = InActiveBlockSize * DefaultBlocksInCol;
         FigureEntity->FigureArea.y  = Buffer->Height - (FigureEntity->FigureArea.h);
         FigureEntity->FigureArea.x  = 0;
         
@@ -2006,8 +2058,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         for(u32 i = 0; i < FigureAmount; ++i) FigureEntity->FigureOrder[i] = i;
         
-        FigureEntityAlignHorizontally(FigureEntity, InActiveBlockSize);
-        
         // Grid initialization
         GridEntity  = (grid_entity *) malloc(sizeof(grid_entity));
         Assert(GridEntity);
@@ -2023,11 +2073,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         printf("Buffer->Width = %d\n", Buffer->Width);
         printf("Buffer->Height= %d\n", Buffer->Height);
-        
-        printf("GridEntity->GridArea.x = %d\n", GridEntity->GridArea.x);
-        printf("GridEntity->GridArea.y = %d\n", GridEntity->GridArea.y);
-        printf("GridEntity->GridArea.w = %d\n", GridEntity->GridArea.w);
-        printf("GridEntity->GridArea.h = %d\n", GridEntity->GridArea.h);
         
         //
         // UnitField initialization
@@ -2055,6 +2100,23 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 GridEntity->UnitSize[i][j] = 0;
             }
         }
+        
+        GameState->RotationVel         = 600.0f;
+        GameState->StartAlphaPerSec    = 500.0f;
+        GameState->FlippingAlphaPerSec = 1000.0f;
+        GameState->GridScalePerSec     = ((RowAmount * ColumnAmount)) * (ActiveBlockSize/2);
+        
+        FigureEntityAlignHorizontally(FigureEntity, InActiveBlockSize);
+        
+        printf("GridEntity->GridArea.x = %d\n", GridEntity->GridArea.x);
+        printf("GridEntity->GridArea.y = %d\n", GridEntity->GridArea.y);
+        printf("GridEntity->GridArea.w = %d\n", GridEntity->GridArea.w);
+        printf("GridEntity->GridArea.h = %d\n", GridEntity->GridArea.h);
+        
+        printf("FigureEntity->FigureArea.x = %d\n", FigureEntity->FigureArea.x);
+        printf("FigureEntity->FigureArea.y = %d\n", FigureEntity->FigureArea.y);
+        printf("FigureEntity->FigureArea.w = %d\n", FigureEntity->FigureArea.w);
+        printf("FigureEntity->FigureArea.h = %d\n", FigureEntity->FigureArea.h);
         
         //
         // StickUnits initialization
