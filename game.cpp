@@ -168,9 +168,7 @@ struct level_entity
     r32 RotationVel;
     r32 StartAlphaPerSec;
     r32 FlippingAlphaPerSec;
-    
     r32 GridScalePerSec;
-    //r32 ScaleAcceleration;
     
     bool LevelStarted;
     bool LevelPaused;
@@ -180,7 +178,11 @@ struct level_entity
 struct level_editor
 {
     game_rect GridButtonLayer;
-    game_rect GridTextureQuad[4];
+    game_rect GridButtonQuad[4];
+    
+    game_rect FigureButtonLayer;
+    game_rect FigureButtonQuad[6];
+    
     game_texture *PlusTexture;
     game_texture *MinusTexture;
 };
@@ -1026,12 +1028,16 @@ GridEntityMoveBlockVertically(grid_entity *GridEntity, moving_block *MovingBlock
 static void
 RestartLevelEntity(level_entity *LevelEntity)
 {
+    grid_entity   *&GridEntity   = LevelEntity->GridEntity;
     figure_entity *&FigureEntity = LevelEntity->FigureEntity;
+    
     
     if(FigureEntity->IsRotating || FigureEntity->IsFlipping) return;
     
     printf("Restarting!\n");
     r32 BlockRatio        = 0;
+    u32 RowAmount         = 0;
+    u32 ColumnAmount      = 0;
     u32 FigureAmount      = FigureEntity->FigureAmount;
     r32 ActiveBlockSize   = LevelEntity->ActiveBlockSize;
     r32 InActiveBlockSize = LevelEntity->InActiveBlockSize;
@@ -1040,11 +1046,33 @@ RestartLevelEntity(level_entity *LevelEntity)
     
     for(u32 i = 0; i < FigureAmount; ++i){
         if(!FigureEntity->FigureUnit[i].IsIdle){
+            
+            FigureEntity->FigureUnit[i].IsStick = false;
             BlockRatio = InActiveBlockSize / ActiveBlockSize;
                 FigureUnitSetToDefaultArea(&FigureEntity->FigureUnit[i], BlockRatio);
                 FigureUnitMoveToDefaultArea(&FigureEntity->FigureUnit[i], ActiveBlockSize);
             
             printf("BlockRatio = %f\n" ,BlockRatio);
+            }
+        }
+        
+        for(u32 i = 0; i < GridEntity->StickUnitsAmount; ++i)
+        {
+            s32 Index = GridEntity->StickUnits[i].Index;
+            
+            if(GridEntity->StickUnits[i].IsSticked && Index >= 0)
+            {
+                s32 RowIndex = 0;
+                s32 ColIndex = 0;
+                
+                for(u32 l = 0; l < 4; l++)
+                {
+                    RowIndex = GridEntity->StickUnits[i].Row[l];
+                     ColIndex = GridEntity->StickUnits[i].Col[l];
+                    GridEntity->UnitField[RowIndex][ColIndex] = 0;
+                }
+                
+                GridEntity->StickUnits[i].Index = -1;
             }
         }
 }
@@ -1885,25 +1913,30 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     LevelEditor->MinusTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, MinusSurface);
     SDL_QueryTexture(LevelEditor->MinusTexture, 0, 0, &MinusQuadWidth, &MinusQuadHeight);
     
-    LevelEditor->GridTextureQuad[0].w = PlusQuadWidth;
-    LevelEditor->GridTextureQuad[0].h = PlusQuadHeight;
-    LevelEditor->GridTextureQuad[1].w = MinusQuadWidth;
-    LevelEditor->GridTextureQuad[1].h = MinusQuadHeight;
+    LevelEditor->GridButtonQuad[0].w = PlusQuadWidth;
+    LevelEditor->GridButtonQuad[0].h = PlusQuadHeight;
+    LevelEditor->GridButtonQuad[1].w = MinusQuadWidth;
+    LevelEditor->GridButtonQuad[1].h = MinusQuadHeight;
     
-    LevelEditor->GridTextureQuad[2].w = PlusQuadWidth;
-    LevelEditor->GridTextureQuad[2].h = PlusQuadHeight;
-    LevelEditor->GridTextureQuad[3].w = MinusQuadWidth;
-    LevelEditor->GridTextureQuad[3].h = MinusQuadHeight;
+    LevelEditor->GridButtonQuad[2].w = PlusQuadWidth;
+    LevelEditor->GridButtonQuad[2].h = PlusQuadHeight;
+    LevelEditor->GridButtonQuad[3].w = MinusQuadWidth;
+    LevelEditor->GridButtonQuad[3].h = MinusQuadHeight;
     
     game_rect UiQuad = {LevelEditor->GridButtonLayer.x, LevelEditor->GridButtonLayer.y, 
         ButtonSize, ButtonSize};
     
     for(u32 i = 0; i < 4; i++)
     {
-        LevelEditor->GridTextureQuad[i].x = (UiQuad.x + UiQuad.w / 2) - (LevelEditor->GridTextureQuad[i].w / 2);
-        LevelEditor->GridTextureQuad[i].y = (UiQuad.y + UiQuad.h / 2) - (LevelEditor->GridTextureQuad[i].h / 2);
+        LevelEditor->GridButtonQuad[i].x = (UiQuad.x + UiQuad.w / 2) - (LevelEditor->GridButtonQuad[i].w / 2);
+        LevelEditor->GridButtonQuad[i].y = (UiQuad.y + UiQuad.h / 2) - (LevelEditor->GridButtonQuad[i].h / 2);
         UiQuad.x += UiQuad.w;
     }
+    
+    LevelEditor->FigureButtonLayer.w = ButtonSize * 6;
+    LevelEditor->FigureButtonLayer.h = ButtonSize;
+    LevelEditor->FigureButtonLayer.x = (Buffer->Width / 2) - (LevelEditor->FigureButtonLayer.w / 2);
+    LevelEditor->FigureButtonLayer.y = Buffer->Height - LevelEditor->FigureButtonLayer.h;
     
     SDL_FreeSurface(PlusSurface);
     SDL_FreeSurface(MinusSurface);
@@ -1992,58 +2025,111 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             u32 RowAmount = LevelEntity->GridEntity->RowAmount;
             u32 ColAmount = LevelEntity->GridEntity->ColumnAmount;
             
-            for(u32 i = 0; i < 4; i++)
+            if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->GridButtonLayer))
             {
-                if(i == 0)
+                /* Grid layer*/
+                
+                /* Plus row */
+                if (IsPointInsideRect(Input->MouseX, Input->MouseY,
+                                      &LevelEditor->GridButtonQuad[0]))
                 {
-/* Plus row */
-                    if (IsPointInsideRect(Input->MouseX, Input->MouseY,
-                                          &LevelEditor->GridTextureQuad[i]))
-                    {
-                        printf("Plus row!\n");
-                        GridEntityNewGrid(Buffer, LevelEntity, RowAmount+1, ColAmount);
-                    }
-}
-else if(i == 1)
-{
-    /* Minus row */
-    if (IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                          &LevelEditor->GridTextureQuad[i]))
-    {
-    printf("Minus row!\n");
-        GridEntityNewGrid(Buffer, LevelEntity, RowAmount-1, ColAmount);
-    }
-}
-else if(i == 2)
-{
-    /* Plus column */
-    if (IsPointInsideRect(Input->MouseX, Input->MouseY,
-                          &LevelEditor->GridTextureQuad[i]))
-    {
-    printf("Plus column!\n");
-        GridEntityNewGrid(Buffer, LevelEntity, RowAmount, ColAmount+1);
-    }
-}
-else if(i == 3)
-{
-    /* Minus column */
-    if (IsPointInsideRect(Input->MouseX, Input->MouseY,
-                          &LevelEditor->GridTextureQuad[i]))
-    {
-    printf("Minus column!\n");
-        GridEntityNewGrid(Buffer, LevelEntity, RowAmount, ColAmount-1);
-    }
-}
+                    printf("Plus row!\n");
+                    GridEntityNewGrid(Buffer, LevelEntity, RowAmount+1, ColAmount);
+                }
+                /* Minus row */
+                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                                          &LevelEditor->GridButtonQuad[1]))
+                {
+                    printf("Minus row!\n");
+                    GridEntityNewGrid(Buffer, LevelEntity, RowAmount-1, ColAmount);
+                }
+                /* Plus column */
+                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                                          &LevelEditor->GridButtonQuad[2]))
+                {
+                    printf("Plus column!\n");
+                    GridEntityNewGrid(Buffer, LevelEntity, RowAmount, ColAmount+1);
+                }
+                /* Minus column */
+                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                                          &LevelEditor->GridButtonQuad[3]))
+                {
+                    printf("Minus column!\n");
+                    GridEntityNewGrid(Buffer, LevelEntity, RowAmount, ColAmount-1);
+                }
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->FigureButtonLayer))
+            {
+                /* Figure Layer*/ 
+                
+                /* Add figure*/ 
+                if (IsPointInsideRect(Input->MouseX, Input->MouseY,
+                                      &LevelEditor->FigureButtonQuad[0]))
+                {
+                    
+                }
+                /* Delete figure */
+                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                                          &LevelEditor->FigureButtonQuad[1]))
+                {
+                    
+                }
+                /* Rotate figure */
+                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                                          &LevelEditor->FigureButtonQuad[2]))
+                {
+                     
+                }
+                /* Flip figure */
+                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                                          &LevelEditor->FigureButtonQuad[3]))
+                {
+                    
+                }
+                /* Change figure form */
+                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                                          &LevelEditor->FigureButtonQuad[4]))
+                {
+                    
+                }
+                /* Change figure type */
+                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                                          &LevelEditor->FigureButtonQuad[5]))
+                {
+                    
+                }
             }
             }
     }
     
+    game_rect ButtonQuad = {0};
+    ButtonQuad.x = LevelEditor->GridButtonLayer.x;
+    ButtonQuad.y = LevelEditor->GridButtonLayer.y;
+    ButtonQuad.w = LevelEntity->InActiveBlockSize * 2; 
+    ButtonQuad.h = LevelEntity->InActiveBlockSize * 2;
     
-    DEBUGRenderQuadFill(Buffer, &LevelEditor->GridButtonLayer, {0, 0, 255}, 50);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->PlusTexture,  &LevelEditor->GridTextureQuad[0]);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->MinusTexture, &LevelEditor->GridTextureQuad[1]);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->PlusTexture,  &LevelEditor->GridTextureQuad[2]);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->MinusTexture, &LevelEditor->GridTextureQuad[3]);
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->GridButtonLayer, {0, 0, 255}, 255);
+    
+    DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->PlusTexture, 
+                             &LevelEditor->GridButtonQuad[0]);
+    
+    ButtonQuad.x += ButtonQuad.w;
+    
+    DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->MinusTexture, &LevelEditor->GridButtonQuad[1]);
+    
+    ButtonQuad.x += ButtonQuad.w;
+    
+    DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->PlusTexture,  &LevelEditor->GridButtonQuad[2]);
+    
+    ButtonQuad.x += ButtonQuad.w;
+    
+    DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->MinusTexture, &LevelEditor->GridButtonQuad[3]);
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->FigureButtonLayer, {0, 255, 0}, 255);
 }
 
 
@@ -2065,7 +2151,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         u32 RowAmount          = 5;
         u32 ColumnAmount       = 5;
-        u32 FigureAmount       = 4;
+        u32 FigureAmount       = 20;
         u32 MovingBlocksAmount = 0;
         
         GameState->LevelStarted  = false;
@@ -2109,7 +2195,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         CreateFigureUnit(&FigureEntity->FigureUnit[1], "i_m.png", I_figure, mirror,  Memory, Buffer);
         CreateFigureUnit(&FigureEntity->FigureUnit[2], "l_m.png", L_figure, mirror,  Memory, Buffer);
         CreateFigureUnit(&FigureEntity->FigureUnit[3], "j_s.png", J_figure, classic, Memory, Buffer);
-        #if 0
         CreateFigureUnit(&FigureEntity->FigureUnit[4], "z_d.png", Z_figure, classic, Memory, Buffer);
         CreateFigureUnit(&FigureEntity->FigureUnit[5], "s_m.png", S_figure, mirror,  Memory, Buffer);
         CreateFigureUnit(&FigureEntity->FigureUnit[6], "l_m.png", L_figure, mirror,  Memory, Buffer);
@@ -2126,7 +2211,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         CreateFigureUnit(&FigureEntity->FigureUnit[17], "j_s.png", J_figure, classic, Memory, Buffer);
         CreateFigureUnit(&FigureEntity->FigureUnit[18], "l_m.png", L_figure, mirror,  Memory, Buffer);
         CreateFigureUnit(&FigureEntity->FigureUnit[19], "j_s.png", J_figure, classic, Memory, Buffer);
-        #endif
         
         FigureEntity->FigureOrder = (u32*)malloc(sizeof(u32) * FigureAmount);
         Assert(FigureEntity->FigureOrder);
@@ -2231,6 +2315,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     //PrintArray2D(GridEntity->UnitField, GridEntity->RowAmount, GridEntity->ColumnAmount);
     
     //LevelEditorUpdateAndRender(Buffer, GameState->LevelEditor);
+    
+    game_rect ScreenArea = { 0, 0, Buffer->Width, Buffer->Height};
+    DEBUGRenderQuadFill(Buffer, &ScreenArea, { 42, 6, 21 }, 255);
     
     LevelEntityUpdate(Buffer, GameState, TimeElapsed);
     LevelEditorUpdateAndRender(Memory->LevelEditor, GameState, Buffer, Input);
