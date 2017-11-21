@@ -47,6 +47,7 @@ struct game_input
             game_button_state LeftClick;
             game_button_state RightClick;
             game_button_state Escape;
+            game_button_state BackQuote;
         };
     };
     

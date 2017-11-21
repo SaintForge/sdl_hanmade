@@ -201,6 +201,10 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
                 {
                     SDLProcessKeyPress(&Input->Escape, IsDown, WasDown);
                 }
+                if(KeyCode == SDLK_BACKQUOTE)
+                {
+                    SDLProcessKeyPress(&Input->BackQuote, IsDown, WasDown);
+                }
             }										 
             
         } break;
