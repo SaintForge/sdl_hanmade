@@ -585,6 +585,20 @@ FigureUnitAdd(figure_entity *FigureEntity, char* AssetName,
               game_memory *Memory, game_offscreen_buffer *Buffer)
 {
     if(FigureEntity->FigureAmount >= FigureAmountReserved) return;
+    
+    u32 Index = FigureEntity->FigureAmount;
+    
+    FigureEntity->FigureUnit[Index].IsIdle       = true;
+    FigureEntity->FigureUnit[Index].IsStick      = false;
+    FigureEntity->FigureUnit[Index].IsEnlarged   = false;
+    FigureEntity->FigureUnit[Index].Angle        = 0.0f;
+    FigureEntity->FigureUnit[Index].DefaultAngle = 0.0f;
+    FigureEntity->FigureUnit[Index].Form         = Form;
+    FigureEntity->FigureUnit[Index].Type         = Type;
+    FigureEntity->FigureUnit[Index].Flip         = SDL_FLIP_NONE;
+    FigureEntity->FigureUnit[Index].Texture      = GetTexture(Memory, AssetName, Buffer->Renderer);
+    
+    
 }
 
 static void
