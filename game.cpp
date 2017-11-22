@@ -587,6 +587,7 @@ FigureUnitAdd(figure_entity *FigureEntity, char* AssetName,
     if(FigureEntity->FigureAmount >= FigureAmountReserved) return;
     
     u32 Index = FigureEntity->FigureAmount;
+    FigureEntity->FigureAmount += 1;
     
     FigureEntity->FigureUnit[Index].IsIdle       = true;
     FigureEntity->FigureUnit[Index].IsStick      = false;
@@ -599,6 +600,127 @@ FigureUnitAdd(figure_entity *FigureEntity, char* AssetName,
     FigureEntity->FigureUnit[Index].Texture      = GetTexture(Memory, AssetName, Buffer->Renderer);
     
     
+    u32 RowAmount         = 0;
+    u32 ColumnAmount      = 0;
+    u32 InActiveBlockSize = Memory->LevelEntity.InActiveBlockSize;
+    r32 CenterOffset      = 0.5f;
+    vector<vector<s32>> matrix(2);
+    for(u32 i = 0; i < 2; ++i)
+    {
+        matrix[i].resize(4);
+    }
+    
+    switch(Form)
+    {
+        case I_figure:
+        {
+            matrix = 
+            { 
+                {1, 1, 1, 1},
+                {0, 0, 0, 0} 
+            };
+            RowAmount    = 4;
+            ColumnAmount = 1;
+        } break;
+        
+        case O_figure:
+        {
+            matrix = 
+            { 
+                { 1, 1 },
+                { 1, 1 } 
+            };
+            RowAmount    = 2;
+            ColumnAmount = 2;
+        }break;
+        
+        case Z_figure:
+        {
+            matrix =
+            {
+                {1, 1, 0}, 
+                {0, 1, 1} 
+            };
+            RowAmount    = 3;
+            ColumnAmount = 2;
+        }break;
+        
+        case S_figure:
+        {
+            matrix =
+            { 
+                {0, 1, 1}, 
+                {1, 1, 0} 
+            };
+            RowAmount    = 3;
+            ColumnAmount = 2;
+        }break;
+        
+        case T_figure:
+        {
+            matrix = 
+            { 
+                {0, 1, 0},
+                {1, 1, 1}
+            };
+            CenterOffset = 0.75f;
+            RowAmount    = 3;
+            ColumnAmount = 2;
+        }break;
+        
+        case L_figure:
+        {
+            matrix = 
+            { 
+                {0, 0, 1},
+                {1, 1, 1}
+            };
+            CenterOffset = 0.75f;
+            RowAmount    = 3;
+            ColumnAmount = 2;
+        }break;
+        
+        case J_figure:
+        {
+            matrix = 
+            {
+                {1, 0, 0},
+                {1, 1, 1} 
+            };
+            CenterOffset = 0.75f;
+            RowAmount    = 3;
+            ColumnAmount = 2;
+        }break;
+    }
+    
+    
+    FigureEntity->FigureUnit[Index].AreaQuad.x = 0;
+    FigureEntity->FigureUnit[Index].AreaQuad.y = 0;
+    FigureEntity->FigureUnit[Index].AreaQuad.w = RowAmount * BlockSize;
+    FigureEntity->FigureUnit[Index].AreaQuad.h = ColumnAmount * BlockSize;
+    FigureEntity->FigureUnit[Index].Center.x   = FigureEntity->Figure.AreaQuad.x + (FigureEntity->Figure.AreaQuad.w / 2);
+    FigureEntity->FigureUnit[Index].Center.y   = FigureEntity->Figure.AreaQuad.y + (FigureEntity->Figure.AreaQuad.h) * CenterOffset;
+    FigureEntity->Figure.DefaultCenter = FigureEntity->Figure.Center;
+    
+    u32 ShellIndex = 0;
+    u32 HalfBlock  = BlockSize >> 1;
+    
+    for(u32 i = 0; i < 2; i++)
+    {
+        for(u32 j = 0; j < 4; j++)
+        {
+            if(matrix[i][j] == 1)
+            {
+                FigureEntity->FigureUnit[Index].Shell[ShellIndex].x = FigureEntity->FigureUnit[Index].AreaQuad.x + (j * BlockSize) + HalfBlock;
+                
+                FigureEntity->FigureUnit[Index].Shell[ShellIndex].y = FigureEntity->Figure[Index].AreaQuad.y + (i * BlockSize) + HalfBlock;
+                
+                FigureEntity->FigureUnit[Index].DefaultShell[ShellIndex] = FigureEntity->FigureUnit[Index].Shell[ShellIndexe];
+                
+                ShellIndex++;
+            }
+        }
+    }
 }
 
 static void
