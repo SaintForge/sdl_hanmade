@@ -29,6 +29,8 @@
 ---Data serialization---
 +	1. Distinct assets into groups of sprites, sound and music
 -	2. Make small level editor
++		2.1 Implement grid editor
+-   	 2.2 Implement figure editor
 -	3. Implement level data load/save from file
 
 ---Main Menu---
