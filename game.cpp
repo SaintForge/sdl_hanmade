@@ -2166,6 +2166,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     if(!LevelEntity->LevelPaused) return;
     
     game_rect GridArea = LevelEntity->GridEntity->GridArea;
+    game_rect FigureArea = LevelEntity->FigureEntity->FigureArea;
     
     u32 FigureAmount  = LevelEntity->FigureEntity->FigureAmount;
     u32 RowAmount  = LevelEntity->GridEntity->RowAmount;
@@ -2279,6 +2280,17 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                           &LevelEditor->FigureButtonQuad[5]))
                 {
                     
+                }
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &FigureArea))
+            {
+                for(u32 i = 0; i < FigureAmount; ++i)
+                {
+                    game_rect AreaQuad = FigureUnitGetArea(&LevelEntity->FigureEntity->FigureUnit[i]);
+                    if(IsPointInsideRect(Input->MouseX, Input->MouseY, &AreaQuad))
+                    {
+                        LevelEditor->SelectedFigure = i;
+                    }
                 }
             }
             else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &GridArea))
