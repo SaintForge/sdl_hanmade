@@ -180,6 +180,8 @@ struct level_entity
 
 struct level_editor
 {
+    u32 SelectedFigure;
+    
     game_rect GridButtonLayer;
     game_rect GridButtonQuad[6];
     
@@ -225,11 +227,11 @@ DEBUGRenderQuadFill(game_offscreen_buffer *Buffer, game_rect *AreaQuad, SDL_Colo
 }
 
 static void
-DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, u32 BlockSize, SDL_Color color)
+DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, u32 BlockSize, SDL_Color color, u8 Alpha)
 {
-    u8 r, g, b;
-    SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, 0);
-    SDL_SetRenderDrawColor(Buffer->Renderer, color.r, color.g, color.b, 255);
+    u8 r, g, b, a;
+    SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, &a);
+    SDL_SetRenderDrawColor(Buffer->Renderer, color.r, color.g, color.b, Alpha);
     
     game_rect Rect = {};
     
@@ -241,14 +243,14 @@ DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, u32 B
         Rect.y = Entity->Shell[i].y - (Rect.h / 2);
         
         SDL_RenderFillRect(Buffer->Renderer, &Rect);
-    }
+        }
     
     //SDL_SetRenderDrawColor(Buffer->Renderer, 255, 255, 255, 255);
     Rect.x = Entity->Center.x - (Rect.w / 2);
     Rect.y = Entity->Center.y - (Rect.h / 2);
     //SDL_RenderDrawRect(Buffer->Renderer, &Rect);
     
-    SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, 255);
+    SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
 }
 
 static void 
@@ -582,6 +584,24 @@ FigureUnitResizeBy(figure_unit *Entity, r32 ScaleFactor)
     
 }
 
+ static void
+FigureUnitDeleteFigure(figure_entity *FigureEntity, s32 Index)
+{
+    u32 FigureAmount = FigureEntity->FigureAmount;
+    
+    if(FigureAmount == 0) return;
+    if(Index < 0 || Index >= FigureAmount) return;
+    
+    FreeTexture(FigureEntity->FigureUnit[Index].Texture);
+    
+    for(u32 i = Index; i < FigureAmount; ++i)
+    {
+        FigureEntity->FigureUnit[i] = FigureEntity->FigureUnit[i+1];
+        }
+        
+        FigureEntity->FigureAmount -= 1;
+}
+
 static void
 FigureUnitAddNewFigure(figure_entity *FigureEntity, char* AssetName, 
               figure_form Form, figure_type Type, 
@@ -603,7 +623,6 @@ FigureUnitAddNewFigure(figure_entity *FigureEntity, char* AssetName,
     FigureEntity->FigureUnit[Index].Type         = Type;
     FigureEntity->FigureUnit[Index].Flip         = SDL_FLIP_NONE;
     FigureEntity->FigureUnit[Index].Texture      = GetTexture(Memory, AssetName, Buffer->Renderer);
-    
     
     u32 RowAmount         = 0;
     u32 ColumnAmount      = 0;
@@ -1277,8 +1296,10 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
     
     for (u32 i = 0; i < Size; ++i)
     {
-        FigureWidth  = Entity->FigureUnit[i].AreaQuad.w;
-        FigureHeight = Entity->FigureUnit[i].AreaQuad.h;
+        AreaQuad = FigureUnitGetArea(&Entity->FigureUnit[i]);
+        
+        FigureWidth  = AreaQuad.w;
+        FigureHeight = AreaQuad.h;
         
         if(FigureWidth > FigureHeight)
         {
@@ -1919,6 +1940,8 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     Memory->LevelEditor = (level_editor*)malloc(sizeof(level_editor));
     Assert(Memory->LevelEditor);
     
+    Memory->LevelEditor->SelectedFigure = 0;
+    
     u32 ButtonSize   = LevelEntity->InActiveBlockSize * 2;
     u32 RowAmount    = LevelEntity->GridEntity->RowAmount;
     u32 ColumnAmount = LevelEntity->GridEntity->ColumnAmount;
@@ -2100,7 +2123,8 @@ GridEntityNewGrid(game_offscreen_buffer *Buffer, level_entity *LevelEntity,
     u32 DefaultBlocksInRow = 12;
     u32 DefaultBlocksInCol = 9;
     
-    RescaleGameField(Buffer, NewRowAmount, NewColumnAmount, LevelEntity->FigureEntity->FigureAmount, DefaultBlocksInRow, DefaultBlocksInCol, LevelEntity);
+    RescaleGameField(Buffer, NewRowAmount, NewColumnAmount,
+                     LevelEntity->FigureEntity->FigureAmount, DefaultBlocksInRow, DefaultBlocksInCol, LevelEntity);
     
     GridEntity->UnitField    = UnitField;
     GridEntity->RowAmount    = NewRowAmount;
@@ -2118,7 +2142,7 @@ GridEntityNewGrid(game_offscreen_buffer *Buffer, level_entity *LevelEntity,
 
 static void
 LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity, 
-                           game_offscreen_buffer *Buffer, game_input *Input)
+                           game_memory *Memory, game_offscreen_buffer *Buffer, game_input *Input)
 {
     if(Input->WasPressed)
     {
@@ -2129,6 +2153,8 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             {
                 LevelEntity->LevelPaused = true;
                 RestartLevelEntity(LevelEntity);
+                
+                
             }
             else
             {
@@ -2141,15 +2167,46 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     
     game_rect GridArea = LevelEntity->GridEntity->GridArea;
     
+    u32 FigureAmount  = LevelEntity->FigureEntity->FigureAmount;
     u32 RowAmount  = LevelEntity->GridEntity->RowAmount;
     u32 ColAmount  = LevelEntity->GridEntity->ColumnAmount;
+    s32 NewIndex   = LevelEditor->SelectedFigure;
     
     if(Input->WasPressed){
+        if(Input->Up.IsDown)
+        {
+            NewIndex -= 1;
+        }
+        else if(Input->Down.IsDown)
+        {
+            NewIndex += 1;
+        }
+        else if(Input->Left.IsDown)
+        {
+            NewIndex -= 2;
+        }
+        else if(Input->Right.IsDown)
+        {
+            NewIndex += 2;
+        }
+        
+        if(NewIndex < 0)
+        {
+            NewIndex = LevelEntity->FigureEntity->FigureAmount - 1;
+        }
+        
+        if(NewIndex >= LevelEntity->FigureEntity->FigureAmount)
+        {
+            NewIndex = 0;
+        }
+        
+        LevelEditor->SelectedFigure = NewIndex;
         
         if(Input->LeftClick.IsDown)
         {
             if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->GridButtonLayer))
             {
+                
                 /* Grid layer*/
                 
                 /* Plus row */
@@ -2189,13 +2246,15 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 if (IsPointInsideRect(Input->MouseX, Input->MouseY,
                                       &LevelEditor->FigureButtonQuad[0]))
                 {
-                    
+                    FigureUnitAddNewFigure(LevelEntity->FigureEntity, "o_d.png", O_figure, classic, Memory, Buffer);
+                    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
                 }
                 /* Delete figure */
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
                                           &LevelEditor->FigureButtonQuad[1]))
                 {
-                    
+                    FigureUnitDeleteFigure(LevelEntity->FigureEntity, LevelEntity->FigureEntity->FigureAmount - 1);
+                    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
                 }
                 /* Rotate figure */
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
@@ -2294,6 +2353,8 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             }
         }
     }
+    
+    DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], LevelEntity->InActiveBlockSize, {255, 255, 255}, 100);
     
     game_rect ButtonQuad = 
     {
@@ -2400,7 +2461,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GameState->LevelStarted  = false;
         GameState->LevelFinished = false;
         
-        RescaleGameField(Buffer, RowAmount, ColumnAmount, FigureAmountReserve, DefaultBlocksInRow, DefaultBlocksInCol, GameState);
+        RescaleGameField(Buffer, RowAmount, ColumnAmount,
+                         FigureAmountReserve, DefaultBlocksInRow, DefaultBlocksInCol, GameState);
         
         u32 ActiveBlockSize   = GameState->ActiveBlockSize;
         u32 InActiveBlockSize = GameState->InActiveBlockSize;
@@ -2551,7 +2613,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     DEBUGRenderQuadFill(Buffer, &ScreenArea, { 42, 6, 21 }, 255);
     
     LevelEntityUpdateAndRender(Buffer, GameState, TimeElapsed);
-    LevelEditorUpdateAndRender(Memory->LevelEditor, GameState, Buffer, Input);
+    LevelEditorUpdateAndRender(Memory->LevelEditor, GameState, Memory, Buffer, Input);
     
     //printf("TimeElapsed = %f\n", TimeElapsed);
     
