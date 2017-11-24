@@ -2272,7 +2272,8 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
                                           &LevelEditor->FigureButtonQuad[3]))
                 {
-                    
+                    FigureUnitFlipHorizontally(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure]);
+                    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
                 }
                 /* Change figure form */
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
