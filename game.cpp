@@ -580,14 +580,16 @@ FigureUnitResizeBy(figure_unit *Entity, r32 ScaleFactor)
 }
 
 static void
-FigureUnitAdd(figure_entity *FigureEntity, char* AssetName, 
+FigureUnitAddNewFigure(figure_entity *FigureEntity, char* AssetName, 
               figure_form Form, figure_type Type, 
               game_memory *Memory, game_offscreen_buffer *Buffer)
 {
-    if(FigureEntity->FigureAmount >= FigureAmountReserved) return;
+    if(FigureEntity->FigureAmount >= FigureEntity->FigureAmountReserved) return;
+    
+    u32 ActiveBlockSize   = Memory->LevelEntity.ActiveBlockSize;
+    u32 InActiveBlockSize = Memory->LevelEntity.InActiveBlockSize;
     
     u32 Index = FigureEntity->FigureAmount;
-    FigureEntity->FigureAmount += 1;
     
     FigureEntity->FigureUnit[Index].IsIdle       = true;
     FigureEntity->FigureUnit[Index].IsStick      = false;
@@ -602,7 +604,6 @@ FigureUnitAdd(figure_entity *FigureEntity, char* AssetName,
     
     u32 RowAmount         = 0;
     u32 ColumnAmount      = 0;
-    u32 InActiveBlockSize = Memory->LevelEntity.InActiveBlockSize;
     r32 CenterOffset      = 0.5f;
     vector<vector<s32>> matrix(2);
     for(u32 i = 0; i < 2; ++i)
@@ -696,14 +697,14 @@ FigureUnitAdd(figure_entity *FigureEntity, char* AssetName,
     
     FigureEntity->FigureUnit[Index].AreaQuad.x = 0;
     FigureEntity->FigureUnit[Index].AreaQuad.y = 0;
-    FigureEntity->FigureUnit[Index].AreaQuad.w = RowAmount * BlockSize;
-    FigureEntity->FigureUnit[Index].AreaQuad.h = ColumnAmount * BlockSize;
-    FigureEntity->FigureUnit[Index].Center.x   = FigureEntity->Figure.AreaQuad.x + (FigureEntity->Figure.AreaQuad.w / 2);
-    FigureEntity->FigureUnit[Index].Center.y   = FigureEntity->Figure.AreaQuad.y + (FigureEntity->Figure.AreaQuad.h) * CenterOffset;
-    FigureEntity->Figure.DefaultCenter = FigureEntity->Figure.Center;
+    FigureEntity->FigureUnit[Index].AreaQuad.w = RowAmount * InActiveBlockSize;
+    FigureEntity->FigureUnit[Index].AreaQuad.h = ColumnAmount * InActiveBlockSize;
+    FigureEntity->FigureUnit[Index].Center.x   = FigureEntity->FigureUnit[Index].AreaQuad.x + (FigureEntity->FigureUnit[Index].AreaQuad.w / 2);
+    FigureEntity->FigureUnit[Index].Center.y   = FigureEntity->FigureUnit[Index].AreaQuad.y + (FigureEntity->FigureUnit[Index].AreaQuad.h) * CenterOffset;
+    FigureEntity->FigureUnit[Index].DefaultCenter = FigureEntity->FigureUnit[Index].Center;
     
     u32 ShellIndex = 0;
-    u32 HalfBlock  = BlockSize >> 1;
+    u32 HalfBlock  = InActiveBlockSize >> 1;
     
     for(u32 i = 0; i < 2; i++)
     {
@@ -711,16 +712,18 @@ FigureUnitAdd(figure_entity *FigureEntity, char* AssetName,
         {
             if(matrix[i][j] == 1)
             {
-                FigureEntity->FigureUnit[Index].Shell[ShellIndex].x = FigureEntity->FigureUnit[Index].AreaQuad.x + (j * BlockSize) + HalfBlock;
+                FigureEntity->FigureUnit[Index].Shell[ShellIndex].x = FigureEntity->FigureUnit[Index].AreaQuad.x + (j * InActiveBlockSize) + HalfBlock;
                 
-                FigureEntity->FigureUnit[Index].Shell[ShellIndex].y = FigureEntity->Figure[Index].AreaQuad.y + (i * BlockSize) + HalfBlock;
+                FigureEntity->FigureUnit[Index].Shell[ShellIndex].y = FigureEntity->FigureUnit[Index].AreaQuad.y + (i * InActiveBlockSize) + HalfBlock;
                 
-                FigureEntity->FigureUnit[Index].DefaultShell[ShellIndex] = FigureEntity->FigureUnit[Index].Shell[ShellIndexe];
+                FigureEntity->FigureUnit[Index].DefaultShell[ShellIndex] = FigureEntity->FigureUnit[Index].Shell[ShellIndex];
                 
                 ShellIndex++;
             }
         }
     }
+    
+    FigureEntity->FigureAmount += 1;
 }
 
 static void
@@ -1626,6 +1629,8 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
         return;
     }
     
+    
+    
     //
     // GridEntity Update and Rendering
     //
@@ -1635,6 +1640,11 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
         bool IsIdle     = FigureUnit[FigureIndex].IsIdle;
         bool IsSticked  = FigureUnit[FigureIndex].IsStick;
         bool IsAttached = FigureIndex == ActiveIndex;
+        
+        //printf("----------\n");
+        //printf("IsIdle = %d\n", IsIdle);
+        //printf("IsSticked = %d\n", IsSticked);
+        //printf("IsAttached = %d\n", IsAttached);
         
         if(IsIdle)
         {
@@ -1667,6 +1677,7 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
         }
         else if(!IsSticked && !IsAttached)
         {
+            printf("!IsSticked && !IsAttached!\n");
             if(!FigureEntity->IsRotating && !FigureEntity->IsFlipping)
             {
                 // Check if we can stick it!
@@ -1898,8 +1909,8 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
         if(AllFiguresReturned)
         {
             FigureEntity->IsRestarting = false;
-            printf("Restarted\n");
-        }
+            printf("Restarted!\n");
+            }
     }
     
     bool ShouldHighlight = false;
@@ -1924,6 +1935,8 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
     //
     // Figure returning to the idle zone
     //
+    
+    
     
     if(FigureEntity->IsReturning)
     {
@@ -1950,6 +1963,8 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
     {
         // TODO(max): Maybe put these values in level_entity ???
         r32 AngleDt = TimeElapsed * State->RotationVel;
+        printf("TimeElapsed = %f\n", TimeElapsed);
+        printf("AngleDt = %f\n", AngleDt);
         
         if(FigureEntity->RotationSum < 90.0f && !(FigureEntity->RotationSum + AngleDt >= 90.0f))
         {
@@ -1996,10 +2011,10 @@ LevelEntityUpdate(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeEl
     {
         u32 Index = FigureEntity->FigureOrder[i];
         //u32 BlockSize = FigureUnit[Index].IsEnlarged ? ActiveBlockSize : InActiveBlockSize;
-        //DEBUGRenderFigureShell(Buffer, &FigureUnit[Index], BlockSize, {255, 255, 0});
+        DEBUGRenderFigureShell(Buffer, &FigureUnit[Index], InActiveBlockSize, {255, 255, 0});
         FigureUnitRenderBitmap(Buffer, &FigureUnit[Index]);
         
-        //DEBUGRenderQuad(Buffer, &FigureUnit[Index].AreaQuad, {255, 0, 0});
+        DEBUGRenderQuad(Buffer, &FigureUnit[Index].AreaQuad, {255, 0, 0}, 255);
     }
     
 }
@@ -2404,7 +2419,8 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
-    static r32 TimeElapsed = SDL_GetTicks();
+    static r32 PreviousTimeTick = 0;
+    static r32 CurrentTimeTick  = 0;
     
     bool ShouldQuit       = false;
     
@@ -2417,15 +2433,15 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         u32 DefaultBlocksInRow = 12;
         u32 DefaultBlocksInCol = 9;
         
-        u32 RowAmount          = 5;
-        u32 ColumnAmount       = 5;
-        u32 FigureAmount       = 20;
-        u32 MovingBlocksAmount = 0;
+        u32 RowAmount           = 5;
+        u32 ColumnAmount        = 5;
+        u32 FigureAmountReserve = 20;
+        u32 MovingBlocksAmount  = 0;
         
         GameState->LevelStarted  = false;
         GameState->LevelFinished = false;
         
-        RescaleGameField(Buffer, RowAmount, ColumnAmount, FigureAmount, DefaultBlocksInRow, DefaultBlocksInCol, GameState);
+        RescaleGameField(Buffer, RowAmount, ColumnAmount, FigureAmountReserve, DefaultBlocksInRow, DefaultBlocksInCol, GameState);
         
         u32 ActiveBlockSize   = GameState->ActiveBlockSize;
         u32 InActiveBlockSize = GameState->InActiveBlockSize;
@@ -2436,8 +2452,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity = (figure_entity*)malloc(sizeof(figure_entity));
         Assert(FigureEntity);
         
-        FigureEntity->FigureAmount         = FigureAmount;
-        FigureEntity->FigureAmountReserved = 20;
+        FigureEntity->FigureAmount         = 0;
+        FigureEntity->FigureAmountReserved = FigureAmountReserve;
         
         FigureEntity->ReturnIndex   = -1;
         FigureEntity->FigureActive  = -1;
@@ -2445,6 +2461,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->IsGrabbed     = false;
         FigureEntity->IsRotating    = false;
         FigureEntity->IsReturning   = false;
+        FigureEntity->IsRestarting  = false;
         FigureEntity->IsFlipping    = false;
         
         FigureEntity->RotationSum   = 0;
@@ -2458,9 +2475,14 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->FigureArea.y  = Buffer->Height - (FigureEntity->FigureArea.h);
         FigureEntity->FigureArea.x  = 0;
         
-        FigureEntity->FigureUnit = (figure_unit*)malloc(sizeof(figure_unit)*FigureAmount);
+        FigureEntity->FigureUnit = (figure_unit*)malloc(sizeof(figure_unit)*FigureEntity->FigureAmountReserved);
         Assert(FigureEntity->FigureUnit);
         
+        FigureUnitAddNewFigure(FigureEntity, "z_d.png", Z_figure, classic, Memory, Buffer);
+        FigureUnitAddNewFigure(FigureEntity, "i_m.png", I_figure, classic, Memory, Buffer);
+        FigureUnitAddNewFigure(FigureEntity, "j_s.png", J_figure, classic, Memory, Buffer);
+        
+        #if 0
         CreateFigureUnit(&FigureEntity->FigureUnit[0], "z_d.png", Z_figure, classic, Memory, Buffer);
         CreateFigureUnit(&FigureEntity->FigureUnit[1], "i_m.png", I_figure, mirror,  Memory, Buffer);
         CreateFigureUnit(&FigureEntity->FigureUnit[2], "l_m.png", L_figure, mirror,  Memory, Buffer);
@@ -2482,10 +2504,12 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         CreateFigureUnit(&FigureEntity->FigureUnit[18], "l_m.png", L_figure, mirror,  Memory, Buffer);
         CreateFigureUnit(&FigureEntity->FigureUnit[19], "j_s.png", J_figure, classic, Memory, Buffer);
         
-        FigureEntity->FigureOrder = (u32*)malloc(sizeof(u32) * FigureAmount);
+        #endif 
+        
+        FigureEntity->FigureOrder = (u32*)malloc(sizeof(u32) * FigureEntity->FigureAmount);
         Assert(FigureEntity->FigureOrder);
         
-        for(u32 i = 0; i < FigureAmount; ++i) FigureEntity->FigureOrder[i] = i;
+        for(u32 i = 0; i < FigureEntity->FigureAmount; ++i) FigureEntity->FigureOrder[i] = i;
         
         // Grid initialization
         GridEntity  = (grid_entity *) malloc(sizeof(grid_entity));
@@ -2493,7 +2517,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         GridEntity->RowAmount           = RowAmount;
         GridEntity->ColumnAmount        = ColumnAmount;
-        GridEntity->StickUnitsAmount    = FigureAmount;
+        GridEntity->StickUnitsAmount    = FigureEntity->FigureAmount;
         GridEntity->MovingBlocksAmount  = MovingBlocksAmount;
         GridEntity->GridArea.w = ActiveBlockSize * ColumnAmount;
         GridEntity->GridArea.h = ActiveBlockSize * RowAmount;
@@ -2537,9 +2561,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         //
         // StickUnits initialization
         //
-        GridEntity->StickUnits = (sticked_unit*)calloc(sizeof(sticked_unit), FigureAmount);
+        GridEntity->StickUnits = (sticked_unit*)calloc(sizeof(sticked_unit), FigureEntity->FigureAmount);
         Assert(GridEntity->StickUnits);
-        for (u32 i = 0; i < FigureAmount; ++i)
+        for (u32 i = 0; i < FigureEntity->FigureAmount; ++i)
         {
             GridEntity->StickUnits[i].Index     = -1;
             GridEntity->StickUnits[i].IsSticked = false;
@@ -2570,8 +2594,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         printf("memory init!\n");
     }
     
-    TimeElapsed = (SDL_GetTicks() - TimeElapsed) / 1000.0f;
+    PreviousTimeTick = CurrentTimeTick;
+    CurrentTimeTick  = SDL_GetTicks();
     
+    r32 TimeElapsed = (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
     GameUpdateEvent(Input, GameState, GameState->ActiveBlockSize, GameState->InActiveBlockSize, Buffer->Width, Buffer->Height);
     
     if(Input->WasPressed)
@@ -2582,9 +2608,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         }
     }
     
-    //PrintArray2D(GridEntity->UnitField, GridEntity->RowAmount, GridEntity->ColumnAmount);
-    
-    //LevelEditorUpdateAndRender(Buffer, GameState->LevelEditor);
+    PrintArray2D(GridEntity->UnitField, GridEntity->RowAmount, GridEntity->ColumnAmount);
     
     game_rect ScreenArea = { 0, 0, Buffer->Width, Buffer->Height};
     DEBUGRenderQuadFill(Buffer, &ScreenArea, { 42, 6, 21 }, 255);
@@ -2592,7 +2616,5 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     LevelEntityUpdate(Buffer, GameState, TimeElapsed);
     LevelEditorUpdateAndRender(Memory->LevelEditor, GameState, Buffer, Input);
     
-    
-    TimeElapsed = SDL_GetTicks();
     return(ShouldQuit);
 }
