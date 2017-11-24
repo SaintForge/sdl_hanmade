@@ -1296,6 +1296,7 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
     
     for (u32 i = 0; i < Size; ++i)
     {
+        #if 0
         AreaQuad = FigureUnitGetArea(&Entity->FigureUnit[i]);
         
         FigureWidth  = AreaQuad.w;
@@ -1306,6 +1307,8 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
             FigureUnitRotateShellBy(&Entity->FigureUnit[i], 90.0);
             Entity->FigureUnit[i].Angle += 90.0;
         }
+        
+        #endif
         
         AreaQuad = FigureUnitGetArea(&Entity->FigureUnit[i]);
         i % 2 == 0
@@ -2261,7 +2264,9 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
                                           &LevelEditor->FigureButtonQuad[2]))
                 {
-                    
+                    FigureUnitRotateShellBy(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], 90);
+                    LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Angle += 90.0f;
+                    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
                 }
                 /* Flip figure */
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
