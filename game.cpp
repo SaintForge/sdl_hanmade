@@ -51,8 +51,7 @@ PrintArray2D(s32 **Array, u32 RowAmount, u32 ColumnAmount)
         }
         printf("\n");
     }
-    
-}
+    }
 
 
 enum figure_form
@@ -603,35 +602,35 @@ FigureUnitDeleteFigure(figure_entity *FigureEntity, s32 Index)
 }
 
 static void
-FigureUnitAddNewFigure(figure_entity *FigureEntity, char* AssetName, 
-              figure_form Form, figure_type Type, 
-              game_memory *Memory, game_offscreen_buffer *Buffer)
+FigureUnitInitFigure(figure_unit *FigureUnit, 
+                     figure_form Form, 
+                     figure_type Type,
+                     game_memory *Memory, 
+                     game_offscreen_buffer *Buffer)
 {
-    if(FigureEntity->FigureAmount >= FigureEntity->FigureAmountReserved) return;
-    
     u32 ActiveBlockSize   = Memory->LevelEntity.ActiveBlockSize;
     u32 InActiveBlockSize = Memory->LevelEntity.InActiveBlockSize;
     
-    u32 Index = FigureEntity->FigureAmount;
-    
-    FigureEntity->FigureUnit[Index].IsIdle       = true;
-    FigureEntity->FigureUnit[Index].IsStick      = false;
-    FigureEntity->FigureUnit[Index].IsEnlarged   = false;
-    FigureEntity->FigureUnit[Index].Angle        = 0.0f;
-    FigureEntity->FigureUnit[Index].DefaultAngle = 0.0f;
-    FigureEntity->FigureUnit[Index].Form         = Form;
-    FigureEntity->FigureUnit[Index].Type         = Type;
-    FigureEntity->FigureUnit[Index].Flip         = SDL_FLIP_NONE;
-    FigureEntity->FigureUnit[Index].Texture      = GetTexture(Memory, AssetName, Buffer->Renderer);
+    FigureUnit->IsIdle       = true;
+    FigureUnit->IsStick      = false;
+    FigureUnit->IsEnlarged   = false;
+    FigureUnit->Angle        = 0.0f;
+    FigureUnit->DefaultAngle = 0.0f;
+    FigureUnit->Form         = Form;
+    FigureUnit->Type         = Type;
+    FigureUnit->Flip         = SDL_FLIP_NONE;
     
     u32 RowAmount         = 0;
     u32 ColumnAmount      = 0;
     r32 CenterOffset      = 0.5f;
+    
     vector<vector<s32>> matrix(2);
     for(u32 i = 0; i < 2; ++i)
     {
         matrix[i].resize(4);
     }
+    
+    game_texture *Texture = 0;
     
     switch(Form)
     {
@@ -644,7 +643,10 @@ FigureUnitAddNewFigure(figure_entity *FigureEntity, char* AssetName,
             };
             RowAmount    = 4;
             ColumnAmount = 1;
-        } break;
+            if (Type == stone) Texture = GetTexture(Memory, "i_s.png", Buffer->Renderer);
+            else if (Type == mirror) Texture = GetTexture(Memory, "i_m.png", Buffer->Renderer);
+            else if (Type == classic) Texture = GetTexture(Memory, "i_d.png", Buffer->Renderer);
+            } break;
         
         case O_figure:
         {
@@ -655,6 +657,9 @@ FigureUnitAddNewFigure(figure_entity *FigureEntity, char* AssetName,
             };
             RowAmount    = 2;
             ColumnAmount = 2;
+            if (Type == stone) Texture = GetTexture(Memory, "o_s.png", Buffer->Renderer);
+            else if (Type == mirror) Texture = GetTexture(Memory, "o_m.png", Buffer->Renderer);
+            else if (Type == classic) Texture = GetTexture(Memory, "o_d.png", Buffer->Renderer);
         }break;
         
         case Z_figure:
@@ -666,6 +671,9 @@ FigureUnitAddNewFigure(figure_entity *FigureEntity, char* AssetName,
             };
             RowAmount    = 3;
             ColumnAmount = 2;
+            if (Type == stone) Texture = GetTexture(Memory, "z_s.png", Buffer->Renderer);
+            else if (Type == mirror) Texture = GetTexture(Memory, "z_m.png", Buffer->Renderer);
+            else if (Type == classic) Texture = GetTexture(Memory, "z_d.png", Buffer->Renderer);
         }break;
         
         case S_figure:
@@ -677,6 +685,9 @@ FigureUnitAddNewFigure(figure_entity *FigureEntity, char* AssetName,
             };
             RowAmount    = 3;
             ColumnAmount = 2;
+            if (Type == stone) Texture = GetTexture(Memory, "s_s.png", Buffer->Renderer);
+            else if (Type == mirror) Texture = GetTexture(Memory, "s_m.png", Buffer->Renderer);
+            else if (Type == classic) Texture = GetTexture(Memory, "s_d.png", Buffer->Renderer);
         }break;
         
         case T_figure:
@@ -686,9 +697,12 @@ FigureUnitAddNewFigure(figure_entity *FigureEntity, char* AssetName,
                 {0, 1, 0},
                 {1, 1, 1}
             };
-            CenterOffset = 0.75f;
+             CenterOffset = 0.75f;
             RowAmount    = 3;
             ColumnAmount = 2;
+            if (Type == stone) Texture = GetTexture(Memory, "t_s.png", Buffer->Renderer);
+            else if (Type == mirror) Texture = GetTexture(Memory, "t_m.png", Buffer->Renderer);
+            else if (Type == classic) Texture = GetTexture(Memory, "t_d.png", Buffer->Renderer);
         }break;
         
         case L_figure:
@@ -701,6 +715,9 @@ FigureUnitAddNewFigure(figure_entity *FigureEntity, char* AssetName,
             CenterOffset = 0.75f;
             RowAmount    = 3;
             ColumnAmount = 2;
+            if (Type == stone) Texture = GetTexture(Memory, "l_s.png", Buffer->Renderer);
+            else if (Type == mirror) Texture = GetTexture(Memory, "l_m.png", Buffer->Renderer);
+            else if (Type == classic) Texture = GetTexture(Memory, "l_d.png", Buffer->Renderer);
         }break;
         
         case J_figure:
@@ -713,17 +730,21 @@ FigureUnitAddNewFigure(figure_entity *FigureEntity, char* AssetName,
             CenterOffset = 0.75f;
             RowAmount    = 3;
             ColumnAmount = 2;
+            if (Type == stone) Texture = GetTexture(Memory, "j_s.png", Buffer->Renderer);
+            else if (Type == mirror) Texture = GetTexture(Memory, "j_m.png", Buffer->Renderer);
+            else if (Type == classic) Texture = GetTexture(Memory, "j_d.png", Buffer->Renderer);
         }break;
     }
     
+    FigureUnit->Texture = Texture;
     
-    FigureEntity->FigureUnit[Index].AreaQuad.x = 0;
-    FigureEntity->FigureUnit[Index].AreaQuad.y = 0;
-    FigureEntity->FigureUnit[Index].AreaQuad.w = RowAmount * InActiveBlockSize;
-    FigureEntity->FigureUnit[Index].AreaQuad.h = ColumnAmount * InActiveBlockSize;
-    FigureEntity->FigureUnit[Index].Center.x   = FigureEntity->FigureUnit[Index].AreaQuad.x + (FigureEntity->FigureUnit[Index].AreaQuad.w / 2);
-    FigureEntity->FigureUnit[Index].Center.y   = FigureEntity->FigureUnit[Index].AreaQuad.y + (FigureEntity->FigureUnit[Index].AreaQuad.h) * CenterOffset;
-    FigureEntity->FigureUnit[Index].DefaultCenter = FigureEntity->FigureUnit[Index].Center;
+    FigureUnit->AreaQuad.x = 0;
+    FigureUnit->AreaQuad.y = 0;
+    FigureUnit->AreaQuad.w = RowAmount * InActiveBlockSize;
+    FigureUnit->AreaQuad.h = ColumnAmount * InActiveBlockSize;
+    FigureUnit->Center.x   = FigureUnit->AreaQuad.x + (FigureUnit->AreaQuad.w / 2);
+    FigureUnit->Center.y   = FigureUnit->AreaQuad.y + (FigureUnit->AreaQuad.h) * CenterOffset;
+    FigureUnit->DefaultCenter = FigureUnit->Center;
     
     u32 ShellIndex = 0;
     u32 HalfBlock  = InActiveBlockSize >> 1;
@@ -734,20 +755,30 @@ FigureUnitAddNewFigure(figure_entity *FigureEntity, char* AssetName,
         {
             if(matrix[i][j] == 1)
             {
-                FigureEntity->FigureUnit[Index].Shell[ShellIndex].x = FigureEntity->FigureUnit[Index].AreaQuad.x + (j * InActiveBlockSize) + HalfBlock;
+                FigureUnit->Shell[ShellIndex].x = FigureUnit->AreaQuad.x + (j * InActiveBlockSize) + HalfBlock;
                 
-                FigureEntity->FigureUnit[Index].Shell[ShellIndex].y = FigureEntity->FigureUnit[Index].AreaQuad.y + (i * InActiveBlockSize) + HalfBlock;
+                FigureUnit->Shell[ShellIndex].y = FigureUnit->AreaQuad.y + (i * InActiveBlockSize) + HalfBlock;
                 
-                FigureEntity->FigureUnit[Index].DefaultShell[ShellIndex] = FigureEntity->FigureUnit[Index].Shell[ShellIndex];
+                FigureUnit->DefaultShell[ShellIndex] = FigureUnit->Shell[ShellIndex];
                 
                 ShellIndex++;
             }
         }
     }
-    
-    FigureEntity->FigureAmount += 1;
-}
+    }
 
+static void
+FigureUnitAddNewFigure(figure_entity *FigureEntity, 
+              figure_form Form, figure_type Type, 
+              game_memory *Memory, game_offscreen_buffer *Buffer)
+{
+    if(FigureEntity->FigureAmount >= FigureEntity->FigureAmountReserved) return;
+    
+    u32 Index = FigureEntity->FigureAmount;
+    FigureEntity->FigureAmount += 1;
+    
+    FigureUnitInitFigure(&FigureEntity->FigureUnit[Index], Form, Type, Memory, Buffer);
+    }
 
 static game_rect
 FigureUnitGetArea(figure_unit *Unit)
@@ -2143,6 +2174,36 @@ GridEntityNewGrid(game_offscreen_buffer *Buffer, level_entity *LevelEntity,
     
 }
 
+static figure_form
+LevelEditorGetNextFigureForm(figure_form CurrentForm)
+{
+    switch(CurrentForm)
+    {
+        case I_figure: return O_figure;
+        case O_figure: return Z_figure;
+        case Z_figure: return S_figure;
+        case S_figure: return T_figure;
+        case T_figure: return L_figure;
+        case L_figure: return J_figure;
+        case J_figure: return I_figure;
+    }
+    
+     return O_figure;
+}
+
+static figure_type
+LevelEditorGetNextFigureType(figure_type CurrentType)
+{
+    switch(CurrentType)
+    {
+        case classic: return stone;
+        case stone:   return mirror;
+        case mirror:  return classic;
+    }
+    
+    return classic;
+}
+
 static void
 LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity, 
                            game_memory *Memory, game_offscreen_buffer *Buffer, game_input *Input)
@@ -2156,9 +2217,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             {
                 LevelEntity->LevelPaused = true;
                 RestartLevelEntity(LevelEntity);
-                
-                
-            }
+                }
             else
             {
                 LevelEntity->LevelPaused = false;
@@ -2250,7 +2309,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 if (IsPointInsideRect(Input->MouseX, Input->MouseY,
                                       &LevelEditor->FigureButtonQuad[0]))
                 {
-                    FigureUnitAddNewFigure(LevelEntity->FigureEntity, "o_d.png", O_figure, classic, Memory, Buffer);
+                    FigureUnitAddNewFigure(LevelEntity->FigureEntity, O_figure, classic, Memory, Buffer);
                     FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
                 }
                 /* Delete figure */
@@ -2279,13 +2338,35 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
                                           &LevelEditor->FigureButtonQuad[4]))
                 {
-                    
+                    if(LevelEditor->SelectedFigure >= 0)
+                    {
+                        FreeTexture(LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Texture);
+                        
+                        figure_form Form = LevelEditorGetNextFigureForm(LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Form);
+                        
+                        figure_type Type = LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Type;
+                        
+                        FigureUnitInitFigure(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], Form,Type, Memory, Buffer);
+                        
+                        FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
+                    }
                 }
                 /* Change figure type */
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
                                           &LevelEditor->FigureButtonQuad[5]))
                 {
-                    
+                    if(LevelEditor->SelectedFigure >= 0)
+                    {
+                        FreeTexture(LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Texture);
+                        
+                        figure_type Type = LevelEditorGetNextFigureType(LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Type);
+                        
+                        figure_form Form = LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Form;
+                        
+                        FigureUnitInitFigure(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], Form,Type, Memory, Buffer);
+                        
+                        FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
+                    }
                 }
             }
             else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &FigureArea))
@@ -2372,7 +2453,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         }
     }
     
-    DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], LevelEntity->InActiveBlockSize, {255, 255, 255}, 100);
+    DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], LevelEntity->InActiveBlockSize, {255, 255, 255}, 150);
     
     game_rect ButtonQuad = 
     {
@@ -2517,9 +2598,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->FigureUnit = (figure_unit*)malloc(sizeof(figure_unit)*FigureEntity->FigureAmountReserved);
         Assert(FigureEntity->FigureUnit);
         
-        FigureUnitAddNewFigure(FigureEntity, "z_d.png", Z_figure, classic, Memory, Buffer);
-        FigureUnitAddNewFigure(FigureEntity, "i_m.png", I_figure, classic, Memory, Buffer);
-        FigureUnitAddNewFigure(FigureEntity, "j_s.png", J_figure, classic, Memory, Buffer);
+        FigureUnitAddNewFigure(FigureEntity, Z_figure, classic, Memory, Buffer);
+        FigureUnitAddNewFigure(FigureEntity, I_figure, stone,   Memory, Buffer);
+        FigureUnitAddNewFigure(FigureEntity, J_figure, mirror,  Memory, Buffer);
         
         FigureEntity->FigureOrder = (u32*)malloc(sizeof(u32) * FigureEntity->FigureAmountReserved);
         Assert(FigureEntity->FigureOrder);
