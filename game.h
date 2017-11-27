@@ -72,6 +72,7 @@ struct game_memory
     bool IsInitialized;
     bool AssetsInitialized;
     bool LevelMemoryInitialized;
+    bool ToggleMenu;
 };
 
 static bool GameUpdateAndRender(game_memory *Memory, game_input *Input,

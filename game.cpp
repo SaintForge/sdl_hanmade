@@ -53,7 +53,6 @@ PrintArray2D(s32 **Array, u32 RowAmount, u32 ColumnAmount)
     }
     }
 
-
 enum figure_form
 {
     O_figure, I_figure, L_figure, J_figure,
@@ -127,7 +126,6 @@ struct sticked_unit
 struct moving_block
 {
     game_rect AreaQuad;
-    //game_texture *Texture;
     
     u32 RowNumber;
     u32 ColNumber;
@@ -202,6 +200,7 @@ struct level_editor
 
 #include "game.h"
 #include "asset_game.h"
+#include "menu_game.h"
 
 static void
 DEBUGRenderQuad(game_offscreen_buffer *Buffer, game_rect *AreaQuad, SDL_Color color, u8 Alpha)
@@ -2549,6 +2548,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     if(!Memory->IsInitialized)
     {
+        //TODO(max): here will be the memory read from the binary file
+        
+        Memory->ToggleMenu = false;
+        
         u32 DefaultBlocksInRow = 12;
         u32 DefaultBlocksInCol = 9;
         
@@ -2613,7 +2616,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         GridEntity->RowAmount           = RowAmount;
         GridEntity->ColumnAmount        = ColumnAmount;
-        GridEntity->StickUnitsAmount    = FigureEntity->FigureAmount;
+        GridEntity->StickUnitsAmount    = FigureEntity->FigureAmountReserved;
         GridEntity->MovingBlocksAmount  = 0;
         GridEntity->MovingBlocksAmountReserved  = MovingBlocksAmountReserved;
         GridEntity->GridArea.w = ActiveBlockSize * ColumnAmount;
@@ -2658,9 +2661,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         //
         // StickUnits initialization
         //
-        GridEntity->StickUnits = (sticked_unit*)calloc(sizeof(sticked_unit), FigureEntity->FigureAmount);
+        GridEntity->StickUnits = (sticked_unit*)calloc(sizeof(sticked_unit), FigureEntity->FigureAmountReserved);
         Assert(GridEntity->StickUnits);
-        for (u32 i = 0; i < FigureEntity->FigureAmount; ++i)
+        for (u32 i = 0; i < FigureEntity->FigureAmountReserved; ++i)
         {
             GridEntity->StickUnits[i].Index     = -1;
             GridEntity->StickUnits[i].IsSticked = false;
@@ -2696,25 +2699,37 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     r32 TimeElapsed = (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
     
-    GameUpdateEvent(Input, GameState, GameState->ActiveBlockSize, GameState->InActiveBlockSize, Buffer->Width, Buffer->Height);
-    
     if(Input->WasPressed)
     {
         if(Input->Escape.IsDown)
         {
-            ShouldQuit = true;
+            //ShouldQuit = true;
+            if (!Memory->ToggleMenu) Memory->ToggleMenu = true;
+            else Memory->ToggleMenu = false;
         }
     }
     
-    //PrintArray2D(GridEntity->UnitField, GridEntity->RowAmount, GridEntity->ColumnAmount);
+    if(Memory->ToggleMenu)
+    {
+        MenuUpdateAndRender(Buffer, Memory, Input);
+    }
+    else
+    {
+        
+        GameUpdateEvent(Input, GameState, GameState->ActiveBlockSize, GameState->InActiveBlockSize, Buffer->Width, Buffer->Height);
+        
+        //PrintArray2D(GridEntity->UnitField, GridEntity->RowAmount, GridEntity->ColumnAmount);
+        
+        game_rect ScreenArea = { 0, 0, Buffer->Width, Buffer->Height};
+        DEBUGRenderQuadFill(Buffer, &ScreenArea, { 42, 6, 21 }, 255);
+        
+        LevelEntityUpdateAndRender(Buffer, GameState, TimeElapsed);
+        LevelEditorUpdateAndRender(Memory->LevelEditor, GameState, Memory, Buffer, Input);
+        
+        //printf("TimeElapsed = %f\n", TimeElapsed);
+    }
     
-    game_rect ScreenArea = { 0, 0, Buffer->Width, Buffer->Height};
-    DEBUGRenderQuadFill(Buffer, &ScreenArea, { 42, 6, 21 }, 255);
     
-    LevelEntityUpdateAndRender(Buffer, GameState, TimeElapsed);
-    LevelEditorUpdateAndRender(Memory->LevelEditor, GameState, Memory, Buffer, Input);
-    
-    //printf("TimeElapsed = %f\n", TimeElapsed);
     
     return(ShouldQuit);
 }
