@@ -69,7 +69,6 @@ static game_sound*   GetSound(game_memory *Memory, char* FileName);
 static game_music*   GetMusic(game_memory *Memory, char* FileName);
 static game_texture* GetTexture(game_memory *&Memory, char* FileName, SDL_Renderer*& Renderer);
 
-
 static void FreeSound(game_sound *&Sound)
 {
      if(Sound)
@@ -93,6 +92,25 @@ static void FreeTexture(game_texture *&Texture)
           SDL_DestroyTexture(Texture);
      }
 }
+
+struct figure_memory
+{
+    r32 Angle;
+    u32 Form;
+    u32 Type;
+    u32 Flip;
+    };
+
+struct level_memory
+{
+    u32 RowAmount;
+    u32 ColumnAmount;
+    u32 MovingBlockAmount;
+    u32 FigureAmount;
+    
+    s32 **UnitField;
+    figure_memory *Figures;
+    };
 
 
 #define ASSERT_GAME_H

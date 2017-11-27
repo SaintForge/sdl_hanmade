@@ -185,6 +185,11 @@ struct level_editor
     game_rect FigureButtonLayer;
     game_rect FigureButtonQuad[6];
     
+    game_rect SaveButtonQuad;
+    game_rect SaveButtonLayer;
+    game_rect LoadButtonQuad;
+    game_rect LoadButtonLayer;
+    
     game_texture *PlusTexture;
     game_texture *MinusTexture;
     game_texture *RowTexture;
@@ -193,6 +198,8 @@ struct level_editor
     game_texture *FlipTexture;
     game_texture *FormTexture;
     game_texture *TypeTexture;
+    game_texture *SaveTexture;
+    game_texture *LoadTexture;
     
     game_font *Font;
 };
@@ -1990,6 +1997,9 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     LevelEditor->GridButtonLayer.x = (Buffer->Width / 2) - (LevelEditor->GridButtonLayer.w / 2);
     LevelEditor->GridButtonLayer.y = LevelEntity->FigureEntity->FigureArea.y - ButtonSize;
     
+    //LevelEditor->GridButtonLayer.x = 0;
+    //LevelEditor->GridButtonLayer.y = 0;
+    
     LevelEditor->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", ButtonSize);
     Assert(LevelEditor->Font);
     
@@ -2036,6 +2046,9 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     LevelEditor->FigureButtonLayer.x = (Buffer->Width / 2) - (LevelEditor->FigureButtonLayer.w / 2);
     LevelEditor->FigureButtonLayer.y = Buffer->Height - LevelEditor->FigureButtonLayer.h;
     
+    //LevelEditor->FigureButtonLayer.x = 0;
+    //LevelEditor->FigureButtonLayer.y = LevelEditor->GridButtonLayer.y + LevelEditor->GridButtonLayer.h;
+    
     LevelEditor->FigureButtonQuad[0].w = LevelEditor->GridButtonQuad[0].w;
     LevelEditor->FigureButtonQuad[0].h = LevelEditor->GridButtonQuad[0].h;
     LevelEditor->FigureButtonQuad[1].w = LevelEditor->GridButtonQuad[2].w;
@@ -2072,6 +2085,37 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
         LevelEditor->FigureButtonQuad[i].y = (UiQuad.y + UiQuad.h / 2) - (LevelEditor->FigureButtonQuad[i].h / 2);
         UiQuad.x += UiQuad.w;
     }
+
+    Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, "Save level", {0, 0, 0});
+    LevelEditor->SaveTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+    SDL_QueryTexture(LevelEditor->SaveTexture, 0, 0,
+                     &LevelEditor->SaveButtonQuad.w, &LevelEditor->SaveButtonQuad.h);
+    SDL_FreeSurface(Surface);
+    
+    Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, "Load level", {0, 0, 0});
+    LevelEditor->LoadTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+    SDL_QueryTexture(LevelEditor->LoadTexture, 0, 0, &LevelEditor->LoadButtonQuad.w, &LevelEditor->LoadButtonQuad.h);
+    SDL_FreeSurface(Surface);
+    
+    LevelEditor->SaveButtonLayer.w = LevelEditor->FigureButtonLayer.w;
+    LevelEditor->SaveButtonLayer.h = LevelEditor->FigureButtonLayer.h;
+    LevelEditor->SaveButtonLayer.x = 0;
+    LevelEditor->SaveButtonLayer.y = LevelEditor->FigureButtonLayer.y + LevelEditor->SaveButtonLayer.h;
+    
+    LevelEditor->SaveButtonQuad.x = LevelEditor->SaveButtonLayer.x + (LevelEditor->SaveButtonLayer.w / 2) - (LevelEditor->SaveButtonQuad.w / 2);
+    LevelEditor->SaveButtonQuad.y = LevelEditor->SaveButtonLayer.y + (LevelEditor->SaveButtonLayer.h / 2) - (LevelEditor->SaveButtonQuad.h / 2);
+    
+    LevelEditor->LoadButtonLayer.w = LevelEditor->FigureButtonLayer.w;
+    LevelEditor->LoadButtonLayer.h = LevelEditor->FigureButtonLayer.h;
+    LevelEditor->LoadButtonLayer.x = 0;
+    LevelEditor->LoadButtonLayer.y = LevelEditor->SaveButtonLayer.y + (LevelEditor->LoadButtonLayer.h);
+    
+    LevelEditor->LoadButtonQuad.x = LevelEditor->LoadButtonLayer.x + (LevelEditor->LoadButtonLayer.w / 2) - (LevelEditor->LoadButtonQuad.w / 2);
+    LevelEditor->LoadButtonQuad.y = LevelEditor->LoadButtonLayer.y + (LevelEditor->LoadButtonLayer.h / 2) - (LevelEditor->LoadButtonQuad.h / 2);
+    
+    
+    TTF_CloseFont(LevelEditor->Font);
+    
 }
 
 static void
@@ -2137,6 +2181,8 @@ GridEntityNewGrid(game_offscreen_buffer *Buffer, level_entity *LevelEntity,
     if(NewRowAmount != GridEntity->RowAmount)
     {
         sprintf(RowString, "%d", NewRowAmount);
+        printf("freeing texture!\n");
+        FreeTexture(LevelEditor->RowTexture);
         
         Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, RowString, { 0, 0, 0 });
         LevelEditor->RowTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
@@ -2146,6 +2192,8 @@ GridEntityNewGrid(game_offscreen_buffer *Buffer, level_entity *LevelEntity,
     else if(NewColumnAmount != GridEntity->ColumnAmount)
     {
         sprintf(ColString, "%d", NewColumnAmount);
+        
+        FreeTexture(LevelEditor->ColumnTexture);
         
         Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, ColString, { 0, 0, 0 });
         LevelEditor->ColumnTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
@@ -2492,7 +2540,6 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
     GameRenderBitmapToBuffer(Buffer, LevelEditor->MinusTexture, &LevelEditor->GridButtonQuad[5]);
     
-    
     ButtonQuad.x = LevelEditor->FigureButtonLayer.x;
     ButtonQuad.y = LevelEditor->FigureButtonLayer.y;
     
@@ -2531,6 +2578,16 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
     GameRenderBitmapToBuffer(Buffer, LevelEditor->TypeTexture, 
                              &LevelEditor->FigureButtonQuad[5]);
+
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->SaveButtonLayer, {255, 0, 0}, 255);
+    DEBUGRenderQuad(Buffer, &LevelEditor->SaveButtonLayer, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->SaveTexture, &LevelEditor->SaveButtonQuad);
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->LoadButtonLayer, {255, 255, 0}, 255);
+    DEBUGRenderQuad(Buffer, &LevelEditor->LoadButtonLayer, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->LoadTexture, &LevelEditor->LoadButtonQuad);
+    
 }
 
 
@@ -2703,9 +2760,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     {
         if(Input->Escape.IsDown)
         {
-            //ShouldQuit = true;
-            if (!Memory->ToggleMenu) Memory->ToggleMenu = true;
-            else Memory->ToggleMenu = false;
+            ShouldQuit = true;
+            //if (!Memory->ToggleMenu) Memory->ToggleMenu = true;
+            //else Memory->ToggleMenu = false;
         }
     }
     
