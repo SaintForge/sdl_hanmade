@@ -247,6 +247,7 @@ static void
 SDLFlushEvents(game_input *Input)
 {
     if(Input->WasPressed) Input->WasPressed = false;
+    
     if(Input->MouseMotion)
     {
         Input->MouseMotion = false;
@@ -330,9 +331,7 @@ if(GameUpdateAndRender(&Memory, &Input, &Buffer))
                         
                         free(Memory.Assets);
                     }
-                    
-                    
-                }
+                    }
                 
                 // draw loading screen
                 SDLUpdateWindow(Window, Renderer, &BackBuffer);
@@ -342,5 +341,6 @@ if(GameUpdateAndRender(&Memory, &Input, &Buffer))
         }
     }
     
+    printf("Exit\n");
     return 0;
 }
