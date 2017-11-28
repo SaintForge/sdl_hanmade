@@ -28,6 +28,8 @@ typedef Mix_Chunk   game_sound;
 typedef Mix_Music   game_music;
 typedef TTF_Font    game_font;
 
+typedef SDL_RendererFlip figure_flip;
+
 typedef int8_t   s8;
 typedef int16_t s16;
 typedef int32_t s32;
@@ -305,6 +307,8 @@ int main(int argc, char **argv)
             SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread",
                                                        (void*)&Memory);
             game_input Input = {};
+            
+            LoadLevelMemoryFromFile(&Memory);
             
             while(IsRunning)
             {

@@ -61,10 +61,11 @@ struct game_memory
     level_editor *LevelEditor;
     
     void *Assets;
-    u64 AssetsSpace;
+    u32 AssetsSpaceAmount;
     
-    void *LevelMemory;
-    u64 LevelSpace;
+    level_memory* LevelMemory;
+    u32 LevelMemoryAmount;
+    u32 LevelMemoryReserved;
     
     game_music *Music;
     game_font *Font;

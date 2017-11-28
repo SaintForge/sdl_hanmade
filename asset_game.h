@@ -93,25 +93,15 @@ static void FreeTexture(game_texture *&Texture)
      }
 }
 
-struct figure_memory
-{
-    r32 Angle;
-    u32 Form;
-    u32 Type;
-    u32 Flip;
-    };
-
-struct level_memory
-{
-    u32 RowAmount;
-    u32 ColumnAmount;
-    u32 MovingBlockAmount;
-    u32 FigureAmount;
+static void
+        SaveLevelMemoryToFile();
+    static void
+        LoadLevelMemoryFromFile();
     
-    s32 **UnitField;
-    figure_memory *Figures;
-    };
-
+    static void 
+        SaveLevelEntityToMemory(game_memory *Memory, level_entity* LevelEntity, u32 Index);
+    static void
+        LoadLevelEntityFromMemory(level_entity *LevelEntity, u32 LevelNumber);
 
 #define ASSERT_GAME_H
 #endif

@@ -52,6 +52,8 @@ PrintArray2D(s32 **Array, u32 RowAmount, u32 ColumnAmount)
         printf("\n");
     }
     }
+    
+    
 
 enum figure_form
 {
@@ -73,14 +75,14 @@ struct figure_unit
     u32 Index;     
     r32 Angle;
     r32 DefaultAngle;
-    SDL_RendererFlip Flip;
-    
+     
     game_point Center;
     game_point DefaultCenter;
     game_point Shell[4];
     game_point DefaultShell[4];
     game_rect AreaQuad;
     
+    figure_flip Flip;
     figure_form Form;
     figure_type Type;
     
@@ -162,6 +164,7 @@ struct level_entity
     grid_entity   *GridEntity;
     figure_entity *FigureEntity;
     
+    u32 LevelNumber;
     u32 ActiveBlockSize;
     u32 InActiveBlockSize;
     
@@ -203,6 +206,36 @@ struct level_editor
     
     game_font *Font;
 };
+
+struct figure_memory
+{
+    r32 Angle;
+    figure_flip Flip;
+    figure_form Form;
+    figure_type Type;
+};
+
+struct moving_block_memory
+{
+    u32 RowNumber;
+    u32 ColNumber;
+    bool IsVertical;
+    bool MoveSwitch;
+};
+
+struct level_memory
+{
+    u32 LevelNumber;
+    u32 RowAmount;
+    u32 ColumnAmount;
+    u32 MovingBlocksAmount;
+    u32 FigureAmount;
+    
+    s32 **UnitField;
+    moving_block_memory *MovingBlocks;
+    figure_memory *Figures;
+};
+
 
 
 #include "game.h"
@@ -2400,6 +2433,17 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                     }
                 }
             }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY,
+                                      &LevelEditor->SaveButtonLayer))
+            {
+                printf("Save!\n");
+                SaveLevelEntityToMemory(Memory, LevelEntity, 0);
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                                      &LevelEditor->LoadButtonLayer))
+            {
+                printf("Load!\n");
+            }
             else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &FigureArea))
             {
                 for(u32 i = 0; i < FigureAmount; ++i)
@@ -2602,6 +2646,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         //TODO(max): here will be the memory read from the binary file
         
         Memory->ToggleMenu = false;
+        Memory->LevelMemoryAmount = 1;
+        
+        GameState->LevelNumber = 1;
         
         u32 DefaultBlocksInRow = 12;
         u32 DefaultBlocksInCol = 9;
