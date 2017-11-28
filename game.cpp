@@ -51,9 +51,9 @@ PrintArray2D(s32 **Array, u32 RowAmount, u32 ColumnAmount)
         }
         printf("\n");
     }
-    }
-    
-    
+}
+
+
 
 enum figure_form
 {
@@ -75,7 +75,7 @@ struct figure_unit
     u32 Index;     
     r32 Angle;
     r32 DefaultAngle;
-     
+    
     game_point Center;
     game_point DefaultCenter;
     game_point Shell[4];
@@ -281,7 +281,7 @@ DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, u32 B
         Rect.y = Entity->Shell[i].y - (Rect.h / 2);
         
         SDL_RenderFillRect(Buffer->Renderer, &Rect);
-        }
+    }
     
     //SDL_SetRenderDrawColor(Buffer->Renderer, 255, 255, 255, 255);
     Rect.x = Entity->Center.x - (Rect.w / 2);
@@ -622,7 +622,7 @@ FigureUnitResizeBy(figure_unit *Entity, r32 ScaleFactor)
     
 }
 
- static void
+static void
 FigureUnitDeleteFigure(figure_entity *FigureEntity, s32 Index)
 {
     u32 FigureAmount = FigureEntity->FigureAmount;
@@ -635,9 +635,9 @@ FigureUnitDeleteFigure(figure_entity *FigureEntity, s32 Index)
     for(u32 i = Index; i < FigureAmount; ++i)
     {
         FigureEntity->FigureUnit[i] = FigureEntity->FigureUnit[i+1];
-        }
-        
-        FigureEntity->FigureAmount -= 1;
+    }
+    
+    FigureEntity->FigureAmount -= 1;
 }
 
 static void
@@ -685,7 +685,7 @@ FigureUnitInitFigure(figure_unit *FigureUnit,
             if (Type == stone) Texture = GetTexture(Memory, "i_s.png", Buffer->Renderer);
             else if (Type == mirror) Texture = GetTexture(Memory, "i_m.png", Buffer->Renderer);
             else if (Type == classic) Texture = GetTexture(Memory, "i_d.png", Buffer->Renderer);
-            } break;
+        } break;
         
         case O_figure:
         {
@@ -736,7 +736,7 @@ FigureUnitInitFigure(figure_unit *FigureUnit,
                 {0, 1, 0},
                 {1, 1, 1}
             };
-             CenterOffset = 0.75f;
+            CenterOffset = 0.75f;
             RowAmount    = 3;
             ColumnAmount = 2;
             if (Type == stone) Texture = GetTexture(Memory, "t_s.png", Buffer->Renderer);
@@ -804,12 +804,12 @@ FigureUnitInitFigure(figure_unit *FigureUnit,
             }
         }
     }
-    }
+}
 
 static void
 FigureUnitAddNewFigure(figure_entity *FigureEntity, 
-              figure_form Form, figure_type Type, 
-              game_memory *Memory, game_offscreen_buffer *Buffer)
+                       figure_form Form, figure_type Type, 
+                       game_memory *Memory, game_offscreen_buffer *Buffer)
 {
     if(FigureEntity->FigureAmount >= FigureEntity->FigureAmountReserved) return;
     
@@ -817,7 +817,7 @@ FigureUnitAddNewFigure(figure_entity *FigureEntity,
     FigureEntity->FigureAmount += 1;
     
     FigureUnitInitFigure(&FigureEntity->FigureUnit[Index], Form, Type, Memory, Buffer);
-    }
+}
 
 static game_rect
 FigureUnitGetArea(figure_unit *Unit)
@@ -1062,9 +1062,9 @@ FigureUnitMoveToDefaultArea(figure_unit *FigureUnit, u32 ActiveBlockSize)
 
 static void
 GridEntityAddMovingBlock(grid_entity *GridEntity,
-                          u32 RowNumber, u32 ColNumber, 
-                          bool IsVertical, bool MoveSwitch, 
-                          u32 ActiveBlockSize)
+                         u32 RowNumber, u32 ColNumber, 
+                         bool IsVertical, bool MoveSwitch, 
+                         u32 ActiveBlockSize)
 {
     if(GridEntity->MovingBlocksAmount >= GridEntity->MovingBlocksAmountReserved) return;
     if((RowNumber >= GridEntity->RowAmount) || RowNumber < 0) return;
@@ -1364,7 +1364,7 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
     
     for (u32 i = 0; i < Size; ++i)
     {
-        #if 0
+#if 0
         AreaQuad = FigureUnitGetArea(&Entity->FigureUnit[i]);
         
         FigureWidth  = AreaQuad.w;
@@ -1376,7 +1376,7 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
             Entity->FigureUnit[i].Angle += 90.0;
         }
         
-        #endif
+#endif
         
         AreaQuad = FigureUnitGetArea(&Entity->FigureUnit[i]);
         i % 2 == 0
@@ -1834,7 +1834,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, level_entity *State, r
         else
         {
             GameRenderBitmapToBuffer(Buffer, GridEntity->HorizontlaSquareTexture, &GridEntity->MovingBlocks[i].AreaQuad);
-            }
+        }
     }
     
     //
@@ -1870,7 +1870,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, level_entity *State, r
         {
             FigureEntity->IsRestarting = false;
             printf("Restarted!\n");
-            }
+        }
     }
     
     bool ShouldHighlight = false;
@@ -2013,7 +2013,7 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     
     Memory->LevelEditor->SelectedFigure = 0;
     
-    u32 ButtonSize   = LevelEntity->InActiveBlockSize * 2;
+    s32 ButtonSize   = LevelEntity->InActiveBlockSize * 2;
     u32 RowAmount    = LevelEntity->GridEntity->RowAmount;
     u32 ColumnAmount = LevelEntity->GridEntity->ColumnAmount;
     
@@ -2061,7 +2061,9 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     SDL_FreeSurface(Surface);
     
     
-    game_rect UiQuad = {LevelEditor->GridButtonLayer.x, LevelEditor->GridButtonLayer.y, 
+    game_rect UiQuad = 
+    {
+        LevelEditor->GridButtonLayer.x, LevelEditor->GridButtonLayer.y, 
         ButtonSize, ButtonSize
     };
     
@@ -2116,7 +2118,7 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
         LevelEditor->FigureButtonQuad[i].y = (UiQuad.y + UiQuad.h / 2) - (LevelEditor->FigureButtonQuad[i].h / 2);
         UiQuad.y += UiQuad.h;
     }
-
+    
     Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, "save", {255, 255, 255});
     LevelEditor->SaveTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
     SDL_QueryTexture(LevelEditor->SaveTexture, 0, 0,
@@ -2144,7 +2146,7 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     LevelEditor->LoadButtonQuad.x = LevelEditor->LoadButtonLayer.x + (LevelEditor->LoadButtonLayer.w / 2) - (LevelEditor->LoadButtonQuad.w / 2);
     LevelEditor->LoadButtonQuad.y = LevelEditor->LoadButtonLayer.y + (LevelEditor->LoadButtonLayer.h / 2) - (LevelEditor->LoadButtonQuad.h / 2);
     
-    }
+}
 
 static void
 GridEntityDeleteMovingBlock(grid_entity *GridEntity, u32 Index)
@@ -2164,9 +2166,9 @@ GridEntityDeleteMovingBlock(grid_entity *GridEntity, u32 Index)
         MovingBlocks[i].IsVertical = MovingBlocks[i+1].IsVertical;
         MovingBlocks[i].IsMoving   = MovingBlocks[i+1].IsMoving;
         MovingBlocks[i].MoveSwitch = MovingBlocks[i+1].MoveSwitch;
-        }
-        
-        GridEntity->MovingBlocksAmount -= 1;
+    }
+    
+    GridEntity->MovingBlocksAmount -= 1;
 }
 
 static void
@@ -2264,7 +2266,7 @@ LevelEditorGetNextFigureForm(figure_form CurrentForm)
         case J_figure: return I_figure;
     }
     
-     return O_figure;
+    return O_figure;
 }
 
 static figure_type
@@ -2293,7 +2295,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             {
                 LevelEntity->LevelPaused = true;
                 RestartLevelEntity(LevelEntity);
-                }
+            }
             else
             {
                 LevelEntity->LevelPaused = false;
@@ -2459,7 +2461,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             {
                 printf("GridArea click !\n");
                 
-                game_rect AreaQuad = { 0, 0, LevelEntity->ActiveBlockSize, LevelEntity->ActiveBlockSize };
+                game_rect AreaQuad = { 0, 0, (s32)LevelEntity->ActiveBlockSize, (s32)LevelEntity->ActiveBlockSize };
                 
                 u32 StartX = 0;
                 u32 StartY = 0;
@@ -2482,7 +2484,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                             if(GridUnit == 0)
                             {
                                 LevelEntity->GridEntity->UnitField[i][j] = 1;
-}
+                            }
                             else
                             {
                                 s32 Index = -1;
@@ -2504,7 +2506,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                     if(!LevelEntity->GridEntity->MovingBlocks[Index].MoveSwitch)
                                     {
                                         LevelEntity->GridEntity->MovingBlocks[Index].MoveSwitch = true;
-                                        }
+                                    }
                                     else if(!LevelEntity->GridEntity->MovingBlocks[Index].IsVertical)
                                     {
                                         LevelEntity->GridEntity->MovingBlocks[Index].IsVertical = true;
@@ -2522,7 +2524,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                 }
                             }
                         }
-                        }
+                    }
                 }
             }
         }
@@ -2617,7 +2619,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
     GameRenderBitmapToBuffer(Buffer, LevelEditor->TypeTexture, 
                              &LevelEditor->FigureButtonQuad[5]);
-
+    
     DEBUGRenderQuadFill(Buffer, &LevelEditor->SaveButtonLayer, {255, 0, 0}, 255);
     DEBUGRenderQuad(Buffer, &LevelEditor->SaveButtonLayer, {0, 0, 0}, 255);
     GameRenderBitmapToBuffer(Buffer, LevelEditor->SaveTexture, &LevelEditor->SaveButtonQuad);
@@ -2780,6 +2782,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         //
         // GridEntity texture initialization
         //
+        
         GridEntity->NormalSquareTexture     = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
         GridEntity->VerticalSquareTexture   = GetTexture(Memory, "o_s.png", Buffer->Renderer);
         GridEntity->HorizontlaSquareTexture = GetTexture(Memory, "o_m.png", Buffer->Renderer);
@@ -2789,7 +2792,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         LevelEditorInit(GameState, Memory, Buffer);
         
         Memory->IsInitialized = true;
-         printf("memory init!\n");
+        printf("memory init!\n");
     }
     
     PreviousTimeTick = CurrentTimeTick;
@@ -2802,6 +2805,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         if(Input->Escape.IsDown)
         {
             ShouldQuit = true;
+            printf("ShouldQuit\n");
             //if (!Memory->ToggleMenu) Memory->ToggleMenu = true;
             //else Memory->ToggleMenu = false;
         }

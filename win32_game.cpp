@@ -300,7 +300,7 @@ int main(int argc, char **argv)
             //printf("BUILDED!!!\n");
             //printf("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n");
 #endif
-            game_memory Memory = {};
+            game_memory Memory = {0};
             
             
             u64 TotalAssetSize = SDLSizeOfBinaryFile("package1.bin");
@@ -308,7 +308,7 @@ int main(int argc, char **argv)
                                                        (void*)&Memory);
             game_input Input = {};
             
-            LoadLevelMemoryFromFile(&Memory);
+            
             
             while(IsRunning)
             {
@@ -329,13 +329,18 @@ int main(int argc, char **argv)
                 
                 if(Memory.AssetsInitialized)
                 {
-if(GameUpdateAndRender(&Memory, &Input, &Buffer))
+                    if(!Memory.LevelMemory)
+                    {
+                        LoadLevelMemoryFromFile(&Memory);
+                    }
+                    
+                    if(GameUpdateAndRender(&Memory, &Input, &Buffer))
                     {
                         IsRunning = false;
                         
                         free(Memory.Assets);
                     }
-                    }
+                }
                 
                 // draw loading screen
                 SDLUpdateWindow(Window, Renderer, &BackBuffer);

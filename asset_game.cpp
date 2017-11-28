@@ -493,7 +493,7 @@ SDLAssetBuildBinaryFile()
 }
 
 static void
-ConvertLevelMemoryFromRaw(game_memory *Memory, void *RawMemory, u32 RawMemorySpace)
+ConvertLevelMemoryFromRaw(game_memory *&Memory, void *&RawMemory, u32 RawMemorySpace)
 {
     
     u32 TotalBytesRead = 0;
@@ -504,7 +504,9 @@ ConvertLevelMemoryFromRaw(game_memory *Memory, void *RawMemory, u32 RawMemorySpa
         u32 Index = Memory->LevelMemoryAmount;
         u32 BytesToSkip = 0;
         
-        LevelMemory = (level_memory*)RawMemory;
+        u8 *U8Mem = (u8*)RawMemory;
+        
+        LevelMemory = (level_memory*)U8Mem;
         Memory->LevelMemory[Index].LevelNumber        = LevelMemory->LevelNumber;
         Memory->LevelMemory[Index].RowAmount          = LevelMemory->RowAmount;
         Memory->LevelMemory[Index].ColumnAmount       = LevelMemory->ColumnAmount;
@@ -532,48 +534,49 @@ ConvertLevelMemoryFromRaw(game_memory *Memory, void *RawMemory, u32 RawMemorySpa
             }
             
             BytesToSkip += LevelMemory->RowAmount * LevelMemory->ColumnAmount * sizeof(s32);
-            }
-        
-        if(LevelMemory->MovingBlocksAmount > 0)
-            {
-                moving_block_memory *MovingBlocks = ((moving_block_memory*)(((u8*)LevelMemory) + BytesToSkip));
-                
-                Memory->LevelMemory[Index].MovingBlocks = (moving_block_memory*) malloc(sizeof(moving_block_memory) * LevelMemory->MovingBlocksAmount);
-                Assert(Memory->LevelMemory[Index].MovingBlocks);
-                
-                for(u32 i = 0; i < LevelMemory->MovingBlocksAmount; ++i)
-                {
-                    Memory->LevelMemory[Index].MovingBlocks[i].RowNumber = MovingBlocks[i].RowNumber;
-                    Memory->LevelMemory[Index].MovingBlocks[i].ColNumber = MovingBlocks[i].ColNumber;
-                    Memory->LevelMemory[Index].MovingBlocks[i].IsVertical = MovingBlocks[i].IsVertical;
-                    Memory->LevelMemory[Index].MovingBlocks[i].MoveSwitch = MovingBlocks[i].MoveSwitch;
-                }
-                
-                BytesToSkip += LevelMemory->MovingBlocksAmount * sizeof(moving_block_memory);
-                }
-                
-                if(LevelMemory->FigureAmount > 0)
-                {
-                     figure_memory *FigureMemory = ((figure_memory*)(((u8*)LevelMemory) + BytesToSkip));
-                    
-                    Memory->LevelMemory[Index].Figures = (figure_memory*) malloc(sizeof(figure_memory) * LevelMemory->FigureAmount);
-                    Assert(Memory->LevelMemory[Index].Figures);
-                    
-                    for(u32 i = 0; i < LevelMemory->FigureAmount; ++i)
-                    {
-                        Memory->LevelMemory[Index].Figures[i].Angle = FigureMemory->Angle;
-                        Memory->LevelMemory[Index].Figures[i].Flip  = FigureMemory->Flip;
-                        Memory->LevelMemory[Index].Figures[i].Form  = FigureMemory->Form;
-                        Memory->LevelMemory[Index].Figures[i].Type  = FigureMemory->Type;
-                    }
-                    
-                    BytesToSkip += LevelMemory->FigureAmount * sizeof(figure_memory);
-                }
-                
-                Memory->LevelMemoryAmount += 1;
-                TotalBytesRead += BytesToSkip;
-                LevelMemory = ((level_memory*)(((u8*)LevelMemory) + BytesToSkip));
         }
+        
+
+        if(LevelMemory->MovingBlocksAmount > 0)
+        {
+            moving_block_memory *MovingBlocks = ((moving_block_memory*)(((u8*)LevelMemory) + BytesToSkip));
+            
+            Memory->LevelMemory[Index].MovingBlocks = (moving_block_memory*) malloc(sizeof(moving_block_memory) * LevelMemory->MovingBlocksAmount);
+            Assert(Memory->LevelMemory[Index].MovingBlocks);
+            
+            for(u32 i = 0; i < LevelMemory->MovingBlocksAmount; ++i)
+            {
+                Memory->LevelMemory[Index].MovingBlocks[i].RowNumber = MovingBlocks[i].RowNumber;
+                Memory->LevelMemory[Index].MovingBlocks[i].ColNumber = MovingBlocks[i].ColNumber;
+                Memory->LevelMemory[Index].MovingBlocks[i].IsVertical = MovingBlocks[i].IsVertical;
+                Memory->LevelMemory[Index].MovingBlocks[i].MoveSwitch = MovingBlocks[i].MoveSwitch;
+            }
+            
+            BytesToSkip += LevelMemory->MovingBlocksAmount * sizeof(moving_block_memory);
+        }
+        
+        if(LevelMemory->FigureAmount > 0)
+        {
+            figure_memory *FigureMemory = ((figure_memory*)(((u8*)LevelMemory) + BytesToSkip));
+            
+            Memory->LevelMemory[Index].Figures = (figure_memory*) malloc(sizeof(figure_memory) * LevelMemory->FigureAmount);
+            Assert(Memory->LevelMemory[Index].Figures);
+            
+            for(u32 i = 0; i < LevelMemory->FigureAmount; ++i)
+            {
+                Memory->LevelMemory[Index].Figures[i].Angle = FigureMemory->Angle;
+                Memory->LevelMemory[Index].Figures[i].Flip  = FigureMemory->Flip;
+                Memory->LevelMemory[Index].Figures[i].Form  = FigureMemory->Form;
+                Memory->LevelMemory[Index].Figures[i].Type  = FigureMemory->Type;
+            }
+            
+            BytesToSkip += LevelMemory->FigureAmount * sizeof(figure_memory);
+        }
+        
+        Memory->LevelMemoryAmount += 1;
+        TotalBytesRead += BytesToSkip;
+        LevelMemory = ((level_memory*)(((u8*)LevelMemory) + BytesToSkip));
+    }
 }
 
 static void
@@ -589,14 +592,14 @@ LoadLevelMemoryFromFile(game_memory *Memory)
     if(!(BinaryFile) || ByteAmount == 0)
     {
         printf("Failed to find package2.bin or it is empty!\n");
-        }
-        else
+    }
+    else
     {
         u32 RawMemorySpace = SDLSizeOfSDL_RWops(BinaryFile);
         void *RawMemory = malloc(RawMemorySpace);
         Assert(RawMemory);
         
-        SDL_RWwrite(BinaryFile, RawMemory, RawMemorySpace, 1);
+        SDL_RWread(BinaryFile, RawMemory, RawMemorySpace, 1);
         
         ConvertLevelMemoryFromRaw(Memory, RawMemory, RawMemorySpace);
         
@@ -611,18 +614,19 @@ SaveLevelMemoryToFile(game_memory *Memory)
     
     for(u32 i = 0; i < Memory->LevelMemoryAmount; ++i)
     {
-        printf("kek1\n");
-        printf("Memory->LevelMemory[0].RowAmount = %d\n", Memory->LevelMemory[i].RowAmount);
-        printf("Memory->LevelMemory[0].ColumnAmount = %d\n", Memory->LevelMemory[i].ColumnAmount);
         SDL_RWwrite(BinaryFile, &Memory->LevelMemory[i], sizeof(level_memory), 1);
-        
-        printf("kek2\n");
-        SDL_RWwrite(BinaryFile, Memory->LevelMemory[i].UnitField, sizeof(s32), Memory->LevelMemory[i].RowAmount * Memory->LevelMemory[i].ColumnAmount);
-        printf("kek3\n");
-        SDL_RWwrite(BinaryFile, Memory->LevelMemory[i].MovingBlocks, sizeof(moving_block_memory), Memory->LevelMemory[i].MovingBlocksAmount);
-        printf("kek4\n");
+        SDL_RWwrite(BinaryFile, Memory->LevelMemory[i].UnitField, sizeof(s32) *  Memory->LevelMemory[i].RowAmount * Memory->LevelMemory[i].ColumnAmount, 1);
+        //SDL_RWwrite(BinaryFile, Memory->LevelMemory[i].MovingBlocks, sizeof(moving_block_memory), Memory->LevelMemory[i].MovingBlocksAmount);
         SDL_RWwrite(BinaryFile, Memory->LevelMemory[i].Figures, sizeof(figure_memory), Memory->LevelMemory[i].FigureAmount);
+        
+        printf("sizeof(level_memory) = %d\n", sizeof(level_memory));
+        printf("sizeof(s32) * RowAmount * ColumnAmount = %d\n",sizeof(s32) * Memory->LevelMemory[i].RowAmount * Memory->LevelMemory[i].ColumnAmount);
+        printf("sizeof(moving_block_memory) * MovingBlocksAmount = %d\n", sizeof(moving_block_memory) * Memory->LevelMemory[i].MovingBlocksAmount);
+        printf("sizeof(figure_memory) * Memory->LevelMemory[i].FigureAmount = %d\n", sizeof(figure_memory) * Memory->LevelMemory[i].FigureAmount);
     }
+    
+    u32 ByteSize = SDLSizeOfSDL_RWops(BinaryFile);
+    printf("ByteSize = %d\n", ByteSize);
     
     SDL_RWclose(BinaryFile);
 }
@@ -634,11 +638,10 @@ SaveLevelEntityToMemory(game_memory *Memory, level_entity* LevelEntity, u32 Inde
     
     printf("SaveLevelEntityToMemory\n");
     
-    Memory->LevelMemory[Index].LevelNumber      = LevelEntity->LevelNumber;
+    Memory->LevelMemory[Index].LevelNumber = LevelEntity->LevelNumber;
     
     if(Memory->LevelMemory[Index].RowAmount > 0)
     {
-        printf("Memory->LevelMemory[Index].RowAmount = %d\n", Memory->LevelMemory[Index].RowAmount);
         for(u32 i = 0; i < Memory->LevelMemory[Index].RowAmount; ++i)
         {
             free(Memory->LevelMemory[Index].UnitField[i]);
@@ -650,61 +653,80 @@ SaveLevelEntityToMemory(game_memory *Memory, level_entity* LevelEntity, u32 Inde
     Memory->LevelMemory[Index].RowAmount        = LevelEntity->GridEntity->RowAmount;
     Memory->LevelMemory[Index].ColumnAmount     = LevelEntity->GridEntity->ColumnAmount;
     
-    Memory->LevelMemory[Index].UnitField = (s32**)malloc(Memory->LevelMemory[Index].RowAmount * sizeof(s32*));
-    
-    for(u32 i = 0; i < Memory->LevelMemory[Index].RowAmount; ++i)
+    if(Memory->LevelMemory[Index].RowAmount > 0)
     {
-        Memory->LevelMemory[Index].UnitField[i] = (s32*)malloc(sizeof(s32) * Memory->LevelMemory[Index].ColumnAmount);
+        Memory->LevelMemory[Index].UnitField = (s32**)malloc(Memory->LevelMemory[Index].RowAmount * sizeof(s32*));
         
-        for(u32 j = 0; j < Memory->LevelMemory[Index].ColumnAmount;++j)
+        for(u32 i = 0; i < Memory->LevelMemory[Index].RowAmount; ++i)
         {
-            Memory->LevelMemory[Index].UnitField[i][j] = LevelEntity->GridEntity->UnitField[i][j];
+            Memory->LevelMemory[Index].UnitField[i] = (s32*)malloc(sizeof(s32) * Memory->LevelMemory[Index].ColumnAmount);
+            
+            for(u32 j = 0; j < Memory->LevelMemory[Index].ColumnAmount;++j)
+            {
+                Memory->LevelMemory[Index].UnitField[i][j] = LevelEntity->GridEntity->UnitField[i][j];
+            }
         }
     }
     
     printf("sas1\n");
     
-    if(Memory->LevelMemory[Index].MovingBlocksAmount > 0)
+    if(LevelEntity->GridEntity->MovingBlocksAmount > 0)
     {
-    free(Memory->LevelMemory[Index].MovingBlocks);
-    }
-    
-    Memory->LevelMemory[Index].MovingBlocksAmount = LevelEntity->GridEntity->MovingBlocksAmount;
-    Memory->LevelMemory[Index].MovingBlocks = (moving_block_memory*)malloc(sizeof(moving_block_memory) * Memory->LevelMemory[Index].MovingBlocksAmount);
-    
-    for(u32 i = 0; i < Memory->LevelMemory[Index].MovingBlocksAmount; ++i)
-    {
-        Memory->LevelMemory[Index].MovingBlocks[i].RowNumber = LevelEntity->GridEntity->MovingBlocks[i].RowNumber;
-        Memory->LevelMemory[Index].MovingBlocks[i].ColNumber = LevelEntity->GridEntity->MovingBlocks[i].ColNumber;
-        Memory->LevelMemory[Index].MovingBlocks[i].IsVertical = LevelEntity->GridEntity->MovingBlocks[i].IsVertical;
-        Memory->LevelMemory[Index].MovingBlocks[i].MoveSwitch = LevelEntity->GridEntity->MovingBlocks[i].MoveSwitch;
+        if(Memory->LevelMemory[Index].MovingBlocksAmount > 0)
+        {
+            free(Memory->LevelMemory[Index].MovingBlocks);
+        }
+        
+        Memory->LevelMemory[Index].MovingBlocksAmount = LevelEntity->GridEntity->MovingBlocksAmount;
+        
+        if(Memory->LevelMemory[Index].MovingBlocksAmount > 0)
+        {
+            Memory->LevelMemory[Index].MovingBlocks = (moving_block_memory*)malloc(sizeof(moving_block_memory) * Memory->LevelMemory[Index].MovingBlocksAmount);
+            
+            for(u32 i = 0; i < Memory->LevelMemory[Index].MovingBlocksAmount; ++i)
+            {
+                Memory->LevelMemory[Index].MovingBlocks[i].RowNumber  = LevelEntity->GridEntity->MovingBlocks[i].RowNumber;
+                Memory->LevelMemory[Index].MovingBlocks[i].ColNumber  = LevelEntity->GridEntity->MovingBlocks[i].ColNumber;
+                Memory->LevelMemory[Index].MovingBlocks[i].IsVertical = LevelEntity->GridEntity->MovingBlocks[i].IsVertical;
+                Memory->LevelMemory[Index].MovingBlocks[i].MoveSwitch = LevelEntity->GridEntity->MovingBlocks[i].MoveSwitch;
+            }
+        }
+        
     }
     
     printf("sas2\n");
     
-    if(Memory->LevelMemory[Index].FigureAmount > 0)
+    if(LevelEntity->FigureEntity->FigureAmount > 0)
     {
-    free(Memory->LevelMemory[Index].Figures);
-    }
-    
-    Memory->LevelMemory[Index].FigureAmount = LevelEntity->FigureEntity->FigureAmount;
-    Memory->LevelMemory[Index].Figures = (figure_memory*)malloc(sizeof(figure_memory) * Memory->LevelMemory[Index].FigureAmount);
-    
-    for(u32 i = 0; i < Memory->LevelMemory[Index].FigureAmount; ++i)
-    {
-        Memory->LevelMemory[Index].Figures[i].Angle = LevelEntity->FigureEntity->FigureUnit[i].Angle;
-        Memory->LevelMemory[Index].Figures[i].Flip = LevelEntity->FigureEntity->FigureUnit[i].Flip;
-        Memory->LevelMemory[Index].Figures[i].Form = LevelEntity->FigureEntity->FigureUnit[i].Form;
-        Memory->LevelMemory[Index].Figures[i].Type = LevelEntity->FigureEntity->FigureUnit[i].Type;
+        if(Memory->LevelMemory[Index].FigureAmount > 0)
+        {
+            free(Memory->LevelMemory[Index].Figures);
+        }
+        
+        Memory->LevelMemory[Index].FigureAmount = LevelEntity->FigureEntity->FigureAmount;
+        
+        if(Memory->LevelMemory[Index].FigureAmount > 0)
+        {
+            Memory->LevelMemory[Index].Figures = (figure_memory*)malloc(sizeof(figure_memory) * Memory->LevelMemory[Index].FigureAmount);
+            
+            for(u32 i = 0; i < Memory->LevelMemory[Index].FigureAmount; ++i)
+            {
+                Memory->LevelMemory[Index].Figures[i].Angle = LevelEntity->FigureEntity->FigureUnit[i].Angle;
+                Memory->LevelMemory[Index].Figures[i].Flip = LevelEntity->FigureEntity->FigureUnit[i].Flip;
+                Memory->LevelMemory[Index].Figures[i].Form = LevelEntity->FigureEntity->FigureUnit[i].Form;
+                Memory->LevelMemory[Index].Figures[i].Type = LevelEntity->FigureEntity->FigureUnit[i].Type;
+            }
+        }
+        
     }
     
     printf("sas3\n");
     
     SaveLevelMemoryToFile(Memory);
-    }
+}
 
 static void
-        LoadLevelEntityFromMemory(game_memory *Memory, level_entity *LevelEntity, u32 LevelNumber)
+LoadLevelEntityFromMemory(game_memory *Memory, level_entity *LevelEntity, u32 LevelNumber)
 {
     
     }
