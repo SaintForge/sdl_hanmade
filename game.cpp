@@ -2733,8 +2733,8 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                     game_rect AreaQuad = FigureUnitGetArea(&LevelEntity->FigureEntity->FigureUnit[i]);
                     if(IsPointInsideRect(Input->MouseX, Input->MouseY, &AreaQuad))
                     {
-                        LevelEditor->SelectedFigure = i;
-                    }
+                        NewIndex = i;
+                        }
                 }
             }
             else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &GridArea))
@@ -2826,7 +2826,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     
     for(u32 i = 0; i < LevelEntity->FigureEntity->FigureAmount; ++i)
     {
-        DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[i], LevelEntity->InActiveBlockSize / 4, {255, 255, 255}, 255);
+        DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[i], LevelEntity->InActiveBlockSize / 4, {0, 0, 0}, 255);
     }
     
     
