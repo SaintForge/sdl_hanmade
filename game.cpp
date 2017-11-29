@@ -2382,6 +2382,8 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     
     */
     
+    LevelEntity->FigureEntity->FigureAlpha = 0;
+    
     LevelEntity->FigureEntity->FigureArea.w = Buffer->Width;
     LevelEntity->FigureEntity->FigureArea.h = InActiveBlockSize * LevelEntity->DefaultBlocksInCol;
     LevelEntity->FigureEntity->FigureArea.y = Buffer->Height - (LevelEntity->FigureEntity->FigureArea.h);
@@ -2819,15 +2821,18 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     }
     LevelEditor->SelectedFigure = NewIndex;
     
+    if(LevelEntity->LevelStarted)
+    {
+    
     for(u32 i = 0; i < LevelEntity->FigureEntity->FigureAmount; ++i)
     {
-        DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[i], LevelEntity->InActiveBlockSize / 4, {255, 255, 0}, 255);
+        DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[i], LevelEntity->InActiveBlockSize / 4, {255, 255, 255}, 255);
     }
     
-    if(LevelEntity->FigureEntity->FigureAmount > 0)
-    {
-        DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], LevelEntity->InActiveBlockSize, {255, 255, 255}, 150);
+    
+        DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], LevelEntity->InActiveBlockSize, {255, 255, 255}, 100);
     }
+    
     
     game_rect ButtonQuad = 
     {
