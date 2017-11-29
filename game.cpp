@@ -2162,6 +2162,7 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
 static void
 GridEntityDeleteMovingBlock(grid_entity *GridEntity, u32 Index)
 {
+    printf("GridEntityDeleteMovingBlock\n");
     u32 Amount = GridEntity->MovingBlocksAmount;
     
     if(Index < 0 || Index >= Amount) return;
@@ -2464,6 +2465,7 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     
     LevelEntity->GridEntity->MovingBlocksAmount = 0;
     
+    printf("LevelEntity->GridEntity->MovingBlocksAmountReserved = %d\n", LevelEntity->GridEntity->MovingBlocksAmountReserved);
     LevelEntity->GridEntity->MovingBlocks = (moving_block *) malloc(sizeof(moving_block) * LevelEntity->GridEntity->MovingBlocksAmountReserved);
     Assert(LevelEntity->GridEntity->MovingBlocks);
     
@@ -2475,12 +2477,6 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
         bool MoveSwitch = Memory->LevelMemory[Index].MovingBlocks[i].MoveSwitch;
         
         GridEntityAddMovingBlock(LevelEntity->GridEntity, RowNumber, ColNumber, IsVertical, MoveSwitch, ActiveBlockSize);
-        printf("----\n");
-        printf("RowNumber = %u\n", RowNumber);
-        printf("ColNumber = %u\n", ColNumber);
-        printf("IsVertical = %d\n",IsVertical);
-        printf("MoveSwitch = %d\n", MoveSwitch);
-        
         }
     
     printf("grid_entity init!\n");
@@ -2828,8 +2824,10 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[i], LevelEntity->InActiveBlockSize / 4, {255, 255, 0}, 255);
     }
     
-    
-    DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], LevelEntity->InActiveBlockSize, {255, 255, 255}, 150);
+    if(LevelEntity->FigureEntity->FigureAmount > 0)
+    {
+        DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], LevelEntity->InActiveBlockSize, {255, 255, 255}, 150);
+    }
     
     game_rect ButtonQuad = 
     {
@@ -3065,8 +3063,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->MovingBlocks = (moving_block*)malloc(sizeof(moving_block) * MovingBlocksAmountReserved);
         Assert(GridEntity->MovingBlocks);
         
-        GridEntityAddMovingBlock(GridEntity, 1, 3, false, true, ActiveBlockSize);
-        GridEntityAddMovingBlock(GridEntity, 3, 2, true,  false, ActiveBlockSize);
+        //GridEntityAddMovingBlock(GridEntity, 1, 3, false, true, ActiveBlockSize);
+        //GridEntityAddMovingBlock(GridEntity, 3, 2, true,  false, ActiveBlockSize);
         
         //
         // GridEntity texture initialization
