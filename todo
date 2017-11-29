@@ -26,6 +26,7 @@
 +	8. Find or implement a math vector!
 -    9. Change unit field memory allocation to be just one block of memory instead 
 		allocating memory for every row!
+-	10. Need to think about the default size of active block size
 
 
 ---Data serialization---
@@ -33,7 +34,7 @@
 +	2. Make small level editor
 +		2.1 Implement grid editor
 +   	 2.2 Implement figure editor
--	3. Implement level data load/save from file
++	3. Implement level data load/save from file
 
 ---Main Menu---
 -	1. Implement level navigation
