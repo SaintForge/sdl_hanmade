@@ -99,9 +99,7 @@ static void
         LoadLevelMemoryFromFile();
     
     static void 
-        SaveLevelEntityToMemory(game_memory *Memory, level_entity* LevelEntity, u32 Index);
-    static void
-        LoadLevelEntityFromMemory(level_entity *LevelEntity, u32 LevelNumber);
-
+        SaveLevelToMemory(game_memory *Memory, level_entity* LevelEntity, u32 Index);
+    
 #define ASSERT_GAME_H
 #endif

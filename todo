@@ -24,6 +24,8 @@
 
 +	7. Fix boundaries check when figure gets outside the screen!
 +	8. Find or implement a math vector!
+-    9. Change unit field memory allocation to be just one block of memory instead 
+		allocating memory for every row!
 
 
 ---Data serialization---
