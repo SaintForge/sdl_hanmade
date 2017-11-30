@@ -9,23 +9,6 @@
 
 #if !defined(MENU_GAME_H)
 
-struct menu_button
-{
-    game_rect LevelNumberTextureQuad;
-    game_texture *LevelNumberTexture;
-};
-
-struct game_menu
-{
-    u32 ButtonSizeWidth;
-    u32 ButtonSizeHeight;
-    u32 ButtonsAmount;
-    
-    game_texture *BackTexture;
-    game_texture *FrontTexture;
-    menu_button  *Buttons;
-    };
-
 static void MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_input *Input);
 
 #define MENU_GAME_H

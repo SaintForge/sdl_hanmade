@@ -332,8 +332,6 @@ int main(int argc, char **argv)
                                                        (void*)&Memory);
             game_input Input = {};
             
-            
-            
             while(IsRunning)
             {
                 SDL_Event Event;
@@ -353,11 +351,6 @@ int main(int argc, char **argv)
                 
                 if(Memory.AssetsInitialized)
                 {
-                    if(!Memory.LevelMemory)
-                    {
-                        LoadLevelMemoryFromFile(&Memory);
-                    }
-                    
                     if(GameUpdateAndRender(&Memory, &Input, &Buffer))
                     {
                         IsRunning = false;

@@ -60,6 +60,8 @@ struct game_memory
     level_entity LevelEntity;
     level_editor *LevelEditor;
     
+    menu_entity *MenuEntity;
+    
     void *Assets;
     u32 AssetsSpaceAmount;
     
@@ -68,7 +70,7 @@ struct game_memory
     u32 LevelMemoryReserved;
     
     game_music *Music;
-    game_font *Font;
+    game_font *LevelNumberFont;
     
     bool IsInitialized;
     bool AssetsInitialized;

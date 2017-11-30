@@ -425,73 +425,6 @@ GetTexture(game_memory *&Memory, char* FileName, SDL_Renderer *&Renderer)
     return(Texture);
 }
 
-static int
-SDLAssetLoadBinaryFile(void *Data)
-{
-    game_memory *Memory = ((game_memory*)Data);
-    SDLReadEntireAssetFile("package1.bin", Memory);
-    
-    Memory->AssetsInitialized = true;
-    
-    return(1);
-}
-
-static void
-SDLAssetBuildBinaryFile()
-{
-    SDL_RWops *BinaryFile = SDL_RWFromFile("package1.bin", "wb");
-    
-    binary_header BinaryHeader = {};
-    SDL_RWwrite(BinaryFile, &BinaryHeader, sizeof(binary_header), 1);
-    
-    /* Bitmap loading */
-    BinaryHeader.BitmapSizeInBytes = 0;
-    
-    SDLWriteBitmapToFile(BinaryFile, "grid_cell.png");
-    SDLWriteBitmapToFile(BinaryFile, "grid_cell_1.png");
-    SDLWriteBitmapToFile(BinaryFile, "grid_cell_2.png");
-    
-    SDLWriteBitmapToFile(BinaryFile, "i_d.png");
-    SDLWriteBitmapToFile(BinaryFile, "i_m.png");
-    SDLWriteBitmapToFile(BinaryFile, "i_s.png");
-    
-    SDLWriteBitmapToFile(BinaryFile, "o_d.png");
-    SDLWriteBitmapToFile(BinaryFile, "o_m.png");
-    SDLWriteBitmapToFile(BinaryFile, "o_s.png");
-    
-    SDLWriteBitmapToFile(BinaryFile, "l_d.png");
-    SDLWriteBitmapToFile(BinaryFile, "l_m.png");
-    SDLWriteBitmapToFile(BinaryFile, "l_s.png");
-    
-    SDLWriteBitmapToFile(BinaryFile, "j_d.png");
-    SDLWriteBitmapToFile(BinaryFile, "j_m.png");
-    SDLWriteBitmapToFile(BinaryFile, "j_s.png");
-    
-    SDLWriteBitmapToFile(BinaryFile, "s_d.png");
-    SDLWriteBitmapToFile(BinaryFile, "s_m.png");
-    SDLWriteBitmapToFile(BinaryFile, "s_s.png");
-    
-    SDLWriteBitmapToFile(BinaryFile, "z_d.png");
-    SDLWriteBitmapToFile(BinaryFile, "z_m.png");
-    SDLWriteBitmapToFile(BinaryFile, "z_s.png");
-    
-    SDLWriteBitmapToFile(BinaryFile, "t_d.png");
-    SDLWriteBitmapToFile(BinaryFile, "t_m.png");
-    SDLWriteBitmapToFile(BinaryFile, "t_s.png");
-    
-    /* Audio loading */
-    BinaryHeader.AudioSizeInBytes = SDL_RWtell(BinaryFile) - sizeof(binary_header);
-    
-    SDLWriteSoundToFile(BinaryFile, "focus.wav");
-    SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
-    
-    SDL_RWseek(BinaryFile, 0, RW_SEEK_SET);
-    
-    SDL_RWwrite(BinaryFile, &BinaryHeader, sizeof(binary_header), 1);
-    
-    SDL_RWclose(BinaryFile);
-}
-
 static void
 ConvertLevelMemoryFromRaw(game_memory *&Memory, void *&RawMemory, u32 RawMemorySpace)
 {
@@ -501,7 +434,6 @@ ConvertLevelMemoryFromRaw(game_memory *&Memory, void *&RawMemory, u32 RawMemoryS
     
     while(TotalBytesRead < RawMemorySpace)
     {
-        printf("TotalBytesRead = %d\n", TotalBytesRead);
         u32 Index = Memory->LevelMemoryAmount;
         u32 BytesToSkip = 0;
         
@@ -526,27 +458,13 @@ ConvertLevelMemoryFromRaw(game_memory *&Memory, void *&RawMemory, u32 RawMemoryS
             for(u32 i = 0; i < LevelMemory->RowAmount * LevelMemory->ColumnAmount; ++i)
             {
                 Memory->LevelMemory[Index].UnitField[i] = UnitField[i];
-                }
+            }
             
             BytesToSkip += LevelMemory->RowAmount * LevelMemory->ColumnAmount * sizeof(s32);
-            }
-            
-            u32 UnitIndex = 0;
-            for(u32 i = 0; i < LevelMemory->RowAmount; ++i)
-            {
-                for(u32 j = 0; j < LevelMemory->ColumnAmount; ++j)
-                {
-                    printf("%d ", Memory->LevelMemory[Index].UnitField[UnitIndex]);
-                    UnitIndex += 1;
-                }
-                printf("\n");
-            }
-            
-            printf("sas!\n");
+        }
         
         if(LevelMemory->MovingBlocksAmount > 0)
         {
-            printf("LevelMemory->MovingBlocksAmount = %d\n", LevelMemory->MovingBlocksAmount);
             moving_block_memory *MovingBlocks = ((moving_block_memory*)((U8Mem) + BytesToSkip));
             
             Memory->LevelMemory[Index].MovingBlocks = (moving_block_memory*) malloc(sizeof(moving_block_memory) * LevelMemory->MovingBlocksAmount);
@@ -562,18 +480,11 @@ ConvertLevelMemoryFromRaw(game_memory *&Memory, void *&RawMemory, u32 RawMemoryS
                 
                 Memory->LevelMemory[Index].MovingBlocks[i].MoveSwitch = MovingBlocks->MoveSwitch;
                 
-                printf("----\n");
-                printf("RowNumber = %u\n",  MovingBlocks[i].RowNumber);
-                printf("ColNumber = %u\n",  MovingBlocks[i].ColNumber);
-                printf("IsVertical = %d\n", MovingBlocks[i].IsVertical);
-                printf("MoveSwitch = %d\n", MovingBlocks[i].MoveSwitch);
-                
                 BytesToSkip += sizeof(moving_block_memory);
-                printf("BytesToSkip = %d\n", BytesToSkip);
                 MovingBlocks = ((moving_block_memory*)((U8Mem) + BytesToSkip));
             }
             
-            }
+        }
         
         if(LevelMemory->FigureAmount > 0)
         {
@@ -592,7 +503,7 @@ ConvertLevelMemoryFromRaw(game_memory *&Memory, void *&RawMemory, u32 RawMemoryS
                 BytesToSkip += sizeof(figure_memory);
                 FigureMemory = ((figure_memory*)((U8Mem) + BytesToSkip));
             }
-            }
+        }
         
         Memory->LevelMemoryAmount += 1;
         TotalBytesRead += BytesToSkip;
@@ -641,7 +552,7 @@ SaveLevelMemoryToFile(game_memory *Memory)
         SDL_RWwrite(BinaryFile, Memory->LevelMemory[i].MovingBlocks, sizeof(moving_block_memory), Memory->LevelMemory[i].MovingBlocksAmount);
         
         SDL_RWwrite(BinaryFile, Memory->LevelMemory[i].Figures, sizeof(figure_memory), Memory->LevelMemory[i].FigureAmount);
-        }
+    }
     
     u32 ByteSize = SDLSizeOfSDL_RWops(BinaryFile);
     
@@ -652,8 +563,6 @@ static void
 SaveLevelToMemory(game_memory *Memory, level_entity* LevelEntity, u32 Index)
 {
     if(Index < 0 || Index >= Memory->LevelMemoryAmount) return;
-    
-    printf("SaveLevelEntityToMemory\n");
     
     Memory->LevelMemory[Index].LevelNumber = LevelEntity->LevelNumber;
     
@@ -685,7 +594,6 @@ SaveLevelToMemory(game_memory *Memory, level_entity* LevelEntity, u32 Index)
     
     if(LevelEntity->GridEntity->MovingBlocksAmount > 0)
     {
-        printf("LevelEntity->GridEntity->MovingBlocksAmount = %d\n", LevelEntity->GridEntity->MovingBlocksAmount);
         if(Memory->LevelMemory[Index].MovingBlocksAmount > 0)
         {
             free(Memory->LevelMemory[Index].MovingBlocks);
@@ -695,20 +603,14 @@ SaveLevelToMemory(game_memory *Memory, level_entity* LevelEntity, u32 Index)
         {
             Memory->LevelMemory[Index].MovingBlocks = (moving_block_memory*)malloc(sizeof(moving_block_memory) * Memory->LevelMemory[Index].MovingBlocksAmount);
             
-            printf("saving moving blocks!\n");
+            
             for(u32 i = 0; i < Memory->LevelMemory[Index].MovingBlocksAmount; ++i)
             {
                 Memory->LevelMemory[Index].MovingBlocks[i].RowNumber  = LevelEntity->GridEntity->MovingBlocks[i].RowNumber;
                 Memory->LevelMemory[Index].MovingBlocks[i].ColNumber  = LevelEntity->GridEntity->MovingBlocks[i].ColNumber;
                 Memory->LevelMemory[Index].MovingBlocks[i].IsVertical = LevelEntity->GridEntity->MovingBlocks[i].IsVertical;
                 Memory->LevelMemory[Index].MovingBlocks[i].MoveSwitch = LevelEntity->GridEntity->MovingBlocks[i].MoveSwitch;
-                
-                printf("----\n");
-                printf("RowNumber = %u\n",  Memory->LevelMemory[Index].MovingBlocks[i].RowNumber);
-                printf("ColNumber = %u\n",  Memory->LevelMemory[Index].MovingBlocks[i].ColNumber);
-                printf("IsVertical = %d\n", Memory->LevelMemory[Index].MovingBlocks[i].IsVertical);
-                printf("MoveSwitch = %d\n", Memory->LevelMemory[Index].MovingBlocks[i].MoveSwitch);
-            }
+                }
         }
         
     }
@@ -733,10 +635,82 @@ SaveLevelToMemory(game_memory *Memory, level_entity* LevelEntity, u32 Index)
                 
                 Memory->LevelMemory[Index].Figures[i].Form = LevelEntity->FigureEntity->FigureUnit[i].Form;
                 Memory->LevelMemory[Index].Figures[i].Type = LevelEntity->FigureEntity->FigureUnit[i].Type;
-                }
+            }
         }
         
     }
     
     SaveLevelMemoryToFile(Memory);
 }
+
+
+static int
+SDLAssetLoadBinaryFile(void *Data)
+{
+    game_memory *Memory = ((game_memory*)Data);
+    SDLReadEntireAssetFile("package1.bin", Memory);
+    LoadLevelMemoryFromFile(Memory);
+    
+    Memory->AssetsInitialized = true;
+    
+    return(1);
+}
+
+static void
+SDLAssetBuildBinaryFile()
+{
+    SDL_RWops *BinaryFile = SDL_RWFromFile("package1.bin", "wb");
+    
+    binary_header BinaryHeader = {};
+    SDL_RWwrite(BinaryFile, &BinaryHeader, sizeof(binary_header), 1);
+    
+    /* Bitmap loading */
+    BinaryHeader.BitmapSizeInBytes = 0;
+    
+    SDLWriteBitmapToFile(BinaryFile, "circle_touch.png");
+    
+    SDLWriteBitmapToFile(BinaryFile, "grid_cell.png");
+    SDLWriteBitmapToFile(BinaryFile, "grid_cell_1.png");
+    SDLWriteBitmapToFile(BinaryFile, "grid_cell_2.png");
+    
+    SDLWriteBitmapToFile(BinaryFile, "i_d.png");
+    SDLWriteBitmapToFile(BinaryFile, "i_m.png");
+    SDLWriteBitmapToFile(BinaryFile, "i_s.png");
+    
+    SDLWriteBitmapToFile(BinaryFile, "o_d.png");
+    SDLWriteBitmapToFile(BinaryFile, "o_m.png");
+    SDLWriteBitmapToFile(BinaryFile, "o_s.png");
+    
+    SDLWriteBitmapToFile(BinaryFile, "l_d.png");
+    SDLWriteBitmapToFile(BinaryFile, "l_m.png");
+    SDLWriteBitmapToFile(BinaryFile, "l_s.png");
+    
+    SDLWriteBitmapToFile(BinaryFile, "j_d.png");
+    SDLWriteBitmapToFile(BinaryFile, "j_m.png");
+    SDLWriteBitmapToFile(BinaryFile, "j_s.png");
+    
+    SDLWriteBitmapToFile(BinaryFile, "s_d.png");
+    SDLWriteBitmapToFile(BinaryFile, "s_m.png");
+    SDLWriteBitmapToFile(BinaryFile, "s_s.png");
+    
+    SDLWriteBitmapToFile(BinaryFile, "z_d.png");
+    SDLWriteBitmapToFile(BinaryFile, "z_m.png");
+    SDLWriteBitmapToFile(BinaryFile, "z_s.png");
+    
+    SDLWriteBitmapToFile(BinaryFile, "t_d.png");
+    SDLWriteBitmapToFile(BinaryFile, "t_m.png");
+    SDLWriteBitmapToFile(BinaryFile, "t_s.png");
+    
+    /* Audio loading */
+    BinaryHeader.AudioSizeInBytes = SDL_RWtell(BinaryFile) - sizeof(binary_header);
+    
+    SDLWriteSoundToFile(BinaryFile, "focus.wav");
+    SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
+    
+    SDL_RWseek(BinaryFile, 0, RW_SEEK_SET);
+    
+    SDL_RWwrite(BinaryFile, &BinaryHeader, sizeof(binary_header), 1);
+    
+    SDL_RWclose(BinaryFile);
+}
+
