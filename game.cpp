@@ -3033,6 +3033,11 @@ static void
         {
             XOffset = i % ButtonsPerRow;
             
+            if((i % 20 == 0) && i != 0)
+            {
+                StartX += ScreenWidth + (ScreenWidth / 2);
+            }
+            
             if(i % ButtonsPerColumn == 0)
             {
                 YOffset += 1;
@@ -3046,8 +3051,8 @@ static void
             printf("XOffset = %d\n", XOffset);
             printf("YOffset = %d\n", YOffset);
             
-            XPosition = StartX + (XOffset * ButtonWidth);
-            YPosition = StartY + (YOffset * ButtonHeight);
+            XPosition = StartX + (XOffset * ButtonWidth) + (XOffset * SpaceBetweenButtons);
+            YPosition = StartY + (YOffset * ButtonHeight) + (YOffset * SpaceBetweenButtons);
             
             printf("XPosition = %d\n", XPosition);
             printf("YPosition = %d\n", YPosition);
@@ -3088,7 +3093,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         Memory->MenuEntity->ButtonsAmountReserved = Memory->LevelMemoryReserved;
         //Memory->MenuEntity->ButtonsAmount         = Memory->LevelMemoryAmount == Memory->LevelMemoryReserved ? Memory->LevelMemoryAmount : Memory->LevelMemoryAmount + 1;
-        Memory->MenuEntity->ButtonsAmount = 20;
+        Memory->MenuEntity->ButtonsAmount = 21;
         
         printf("MenuEntity->ButtonsAmount = %d\n", Memory->MenuEntity->ButtonsAmount);
         
