@@ -177,7 +177,7 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
                 {
                     SDLProcessMousePress(&Input->LeftClick, IsDown, WasDown);
                 }
-                if(Button == SDL_BUTTON_RIGHT)
+                else if(Button == SDL_BUTTON_RIGHT)
                 {
                     SDLProcessMousePress(&Input->RightClick, IsDown, WasDown);
                 }
@@ -211,24 +211,24 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
                 {
                     SDLProcessKeyPress(&Input->Up, IsDown, WasDown);
                 }
-                if(KeyCode == SDLK_s)
+                else if(KeyCode == SDLK_s)
                 {
                     SDLProcessKeyPress(&Input->Down, IsDown, WasDown);
                 }
-                if(KeyCode == SDLK_a)
+                else if(KeyCode == SDLK_a)
                 {
                     SDLProcessKeyPress(&Input->Left, IsDown, WasDown);
                 }
-                if(KeyCode == SDLK_d)
+                else if(KeyCode == SDLK_d)
                 {
                     SDLProcessKeyPress(&Input->Right, IsDown, WasDown);
                 }
-                if(KeyCode == SDLK_ESCAPE)
+                else if(KeyCode == SDLK_ESCAPE)
                 {
                     printf("KeyCode == SDLK_ESCAPE\n");
                     SDLProcessKeyPress(&Input->Escape, IsDown, WasDown);
                 }
-                if(KeyCode == SDLK_BACKQUOTE)
+                else if(KeyCode == SDLK_BACKQUOTE)
                 {
                     SDLProcessKeyPress(&Input->BackQuote, IsDown, WasDown);
                 }

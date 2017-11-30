@@ -2654,7 +2654,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                     printf("Plus row!\n");
                     GridEntityNewGrid(Buffer, LevelEntity, RowAmount+1, ColAmount, LevelEditor);
                     
-                    LevelEditor->ActiveButton.y = LevelEditor->GridButtonLayer.y;
+                    LevelEditor->ActiveButton = LevelEditor->GridButton[0];
                     }
                 /* Minus row */
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
@@ -2662,7 +2662,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 {
                     printf("Minus row!\n");
                     GridEntityNewGrid(Buffer, LevelEntity, RowAmount-1, ColAmount, LevelEditor);
-                    LevelEditor->ActiveButton.y = LevelEditor->ActiveButton.h * 2;
+                    LevelEditor->ActiveButton = LevelEditor->GridButton[2];
                 }
                 /* Plus column */
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
@@ -2670,7 +2670,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 {
                     printf("Plus column!\n");
                     GridEntityNewGrid(Buffer, LevelEntity, RowAmount, ColAmount+1, LevelEditor);
-                    LevelEditor->ActiveButton.y = LevelEditor->ActiveButton.h * 3;
+                    LevelEditor->ActiveButton = LevelEditor->GridButton[3];
                 }
                 /* Minus column */
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
@@ -2679,7 +2679,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                     printf("Minus column!\n");
                     GridEntityNewGrid(Buffer, LevelEntity, RowAmount, ColAmount-1, LevelEditor);
                     
-                    LevelEditor->ActiveButton.y = LevelEditor->ActiveButton.h * 5;
+                    LevelEditor->ActiveButton = LevelEditor->GridButton[5];
                 }
             }
             else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->FigureButtonLayer))
@@ -2688,36 +2688,44 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 
                 /* Add figure*/ 
                 if (IsPointInsideRect(Input->MouseX, Input->MouseY,
-                                      &LevelEditor->FigureButtonQuad[0]))
+                                      &LevelEditor->FigureButton[0]))
                 {
                     FigureUnitAddNewFigure(LevelEntity->FigureEntity, O_figure, classic, 0.0f, Memory, Buffer);
                     FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
+                    
+                    LevelEditor->ActiveButton = LevelEditor->FigureButton[0];
                 }
                 /* Delete figure */
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                                          &LevelEditor->FigureButtonQuad[1]))
+                                          &LevelEditor->FigureButton[1]))
                 {
                     FigureUnitDeleteFigure(LevelEntity->FigureEntity, LevelEntity->FigureEntity->FigureAmount - 1);
                     FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
+                    
+                    LevelEditor->ActiveButton = LevelEditor->FigureButton[1];
                 }
                 /* Rotate figure */
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                                          &LevelEditor->FigureButtonQuad[2]))
+                                          &LevelEditor->FigureButton[2]))
                 {
                     FigureUnitRotateShellBy(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], 90);
                     LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Angle += 90.0f;
                     FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
+                    
+                    LevelEditor->ActiveButton = LevelEditor->FigureButton[2];
                 }
                 /* Flip figure */
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                                          &LevelEditor->FigureButtonQuad[3]))
+                                          &LevelEditor->FigureButton[3]))
                 {
                     FigureUnitFlipHorizontally(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure]);
                     FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
+                    
+                    LevelEditor->ActiveButton = LevelEditor->FigureButton[3];
                 }
                 /* Change figure form */
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                                          &LevelEditor->FigureButtonQuad[4]))
+                                          &LevelEditor->FigureButton[4]))
                 {
                     if(LevelEditor->SelectedFigure >= 0)
                     {
@@ -2731,10 +2739,12 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                         
                         FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
                     }
+                    
+                    LevelEditor->ActiveButton = LevelEditor->FigureButton[4];
                 }
                 /* Change figure type */
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                                          &LevelEditor->FigureButtonQuad[5]))
+                                          &LevelEditor->FigureButton[5]))
                 {
                     if(LevelEditor->SelectedFigure >= 0)
                     {
@@ -2748,6 +2758,8 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                         
                         FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
                     }
+                    
+                    LevelEditor->ActiveButton = LevelEditor->FigureButton[5];
                 }
             }
             else if(IsPointInsideRect(Input->MouseX, Input->MouseY,
@@ -2755,6 +2767,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             {
                 printf("Save!\n");
                 SaveLevelToMemory(Memory, LevelEntity, 0);
+                LevelEditor->ActiveButton = LevelEditor->SaveButtonLayer;
             }
             else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
                                       &LevelEditor->LoadButtonLayer))
@@ -2767,6 +2780,8 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                                   LevelEntity->GridEntity->RowAmount, LevelEntity->GridEntity->ColumnAmount, 
                                                   RowAmount, ColAmount,
                                                   Buffer);
+                
+                LevelEditor->ActiveButton = LevelEditor->LoadButtonLayer;
             }
             else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &FigureArea))
             {
@@ -2970,7 +2985,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     {
         if(Input->LeftClick.IsDown && Input->LeftClick.WasDown)
         {
-            DEBUGRenderQuadFill(Buffer, &LevelEditor->ActiveButton, {255, 255, 255}, 150);
+            DEBUGRenderQuadFill(Buffer, &LevelEditor->ActiveButton, {255, 0, 0}, 150);
         }
     }
     
