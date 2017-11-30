@@ -183,12 +183,15 @@ struct level_entity
 struct level_editor
 {
     u32 SelectedFigure;
+    game_rect ActiveButton;
     
     game_rect GridButtonLayer;
     game_rect GridButtonQuad[6];
+    game_rect GridButton[6];
     
     game_rect FigureButtonLayer;
     game_rect FigureButtonQuad[6];
+    game_rect FigureButton[6];
     
     game_rect SaveButtonQuad;
     game_rect SaveButtonLayer;
@@ -2023,6 +2026,7 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     Assert(Memory->LevelEditor);
     
     Memory->LevelEditor->SelectedFigure = 0;
+     
     
     s32 ButtonSize   = LevelEntity->InActiveBlockSize * 2;
     u32 RowAmount    = LevelEntity->GridEntity->RowAmount;
@@ -2032,6 +2036,8 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     char ColString[2] = {0};
     sprintf(RowString, "%d", RowAmount);
     sprintf(ColString, "%d", ColumnAmount);
+    
+    
     
     level_editor *&LevelEditor = Memory->LevelEditor;
     LevelEditor->GridButtonLayer.w = ButtonSize;
@@ -2082,6 +2088,7 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     {
         LevelEditor->GridButtonQuad[i].x = (UiQuad.x + UiQuad.w / 2) - (LevelEditor->GridButtonQuad[i].w / 2);
         LevelEditor->GridButtonQuad[i].y = (UiQuad.y + UiQuad.h / 2) - (LevelEditor->GridButtonQuad[i].h / 2);
+        LevelEditor->GridButton[i] = UiQuad;
         UiQuad.y += UiQuad.h;
     }
     
@@ -2127,6 +2134,7 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     {
         LevelEditor->FigureButtonQuad[i].x = (UiQuad.x + UiQuad.w / 2) - (LevelEditor->FigureButtonQuad[i].w / 2);
         LevelEditor->FigureButtonQuad[i].y = (UiQuad.y + UiQuad.h / 2) - (LevelEditor->FigureButtonQuad[i].h / 2);
+        LevelEditor->FigureButton[i] = UiQuad;
         UiQuad.y += UiQuad.h;
     }
     
@@ -2157,6 +2165,11 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     LevelEditor->LoadButtonQuad.x = LevelEditor->LoadButtonLayer.x + (LevelEditor->LoadButtonLayer.w / 2) - (LevelEditor->LoadButtonQuad.w / 2);
     LevelEditor->LoadButtonQuad.y = LevelEditor->LoadButtonLayer.y + (LevelEditor->LoadButtonLayer.h / 2) - (LevelEditor->LoadButtonQuad.h / 2);
     
+    
+    Memory->LevelEditor->ActiveButton.x = LevelEditor->GridButtonLayer.x;
+    Memory->LevelEditor->ActiveButton.y = -100;
+    Memory->LevelEditor->ActiveButton.w = ButtonSize;
+    Memory->LevelEditor->ActiveButton.h = ButtonSize;
 }
 
 static void
@@ -2181,6 +2194,49 @@ GridEntityDeleteMovingBlock(grid_entity *GridEntity, u32 Index)
     }
     
     GridEntity->MovingBlocksAmount -= 1;
+}
+
+static void
+LevelEditorChangeGridCounters(level_editor *LevelEditor, 
+                              u32 NewRowAmount, u32 NewColumnAmount, 
+                              u32 OldRowAmount, u32 OldColumnAmount,
+                              game_offscreen_buffer *Buffer)
+{
+    char RowString[3] = {0};
+    char ColString[3] = {0};
+    sprintf(RowString, "%d", NewRowAmount);
+    sprintf(ColString, "%d", NewColumnAmount);
+    
+    if(NewRowAmount != OldRowAmount)
+    {
+        game_surface *Surface = 0;
+        FreeTexture(LevelEditor->RowTexture);
+        
+        Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, RowString, { 0, 0, 0 });
+        
+        LevelEditor->RowTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+        SDL_QueryTexture(LevelEditor->RowTexture, 0, 0, &LevelEditor->GridButtonQuad[1].w, &LevelEditor->GridButtonQuad[1].h);
+        
+        LevelEditor->GridButtonQuad[1].x = LevelEditor->GridButton[1].x + (LevelEditor->GridButton[1].w /2) - (LevelEditor->GridButtonQuad[1].w / 2);
+        LevelEditor->GridButtonQuad[1].y = LevelEditor->GridButton[1].y + (LevelEditor->GridButton[4].h /2) - (LevelEditor->GridButtonQuad[1].h / 2);
+        
+        SDL_FreeSurface(Surface);
+    }
+    
+    if(NewColumnAmount != OldColumnAmount)
+    {
+        game_surface *Surface = 0;
+        FreeTexture(LevelEditor->ColumnTexture);
+        
+        Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, ColString, { 0, 0, 0 });
+        LevelEditor->ColumnTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+        SDL_QueryTexture(LevelEditor->ColumnTexture, 0, 0, &LevelEditor->GridButtonQuad[4].w, &LevelEditor->GridButtonQuad[4].h);
+        
+        LevelEditor->GridButtonQuad[4].x = LevelEditor->GridButton[4].x + (LevelEditor->GridButton[4].w /2) - (LevelEditor->GridButtonQuad[4].w / 2);
+        LevelEditor->GridButtonQuad[4].y = LevelEditor->GridButton[4].y + (LevelEditor->GridButton[4].h /2) - (LevelEditor->GridButtonQuad[4].h / 2);
+        
+        SDL_FreeSurface(Surface);
+    }
 }
 
 static void
@@ -2216,33 +2272,10 @@ GridEntityNewGrid(game_offscreen_buffer *Buffer, level_entity *LevelEntity,
     
     free(GridEntity->UnitField);
     
-    game_surface *Surface = 0;
-    char RowString[3] = {0};
-    char ColString[3] = {0};
-    sprintf(RowString, "%d", NewRowAmount);
-    sprintf(ColString, "%d", NewColumnAmount);
-    
-    if(NewRowAmount != GridEntity->RowAmount)
-    {
-        FreeTexture(LevelEditor->RowTexture);
-        
-        Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, RowString, { 0, 0, 0 });
-        
-        LevelEditor->RowTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
-        SDL_QueryTexture(LevelEditor->RowTexture, 0, 0, &LevelEditor->GridButtonQuad[1].w, &LevelEditor->GridButtonQuad[1].h);
-        
-        SDL_FreeSurface(Surface);
-    }
-    else if(NewColumnAmount != GridEntity->ColumnAmount)
-    {
-        FreeTexture(LevelEditor->ColumnTexture);
-        
-        Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, ColString, { 0, 0, 0 });
-        LevelEditor->ColumnTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
-        SDL_QueryTexture(LevelEditor->ColumnTexture, 0, 0, &LevelEditor->GridButtonQuad[4].w, &LevelEditor->GridButtonQuad[4].h);
-        
-        SDL_FreeSurface(Surface);
-    }
+    LevelEditorChangeGridCounters(LevelEditor, 
+                                      NewRowAmount, NewColumnAmount, 
+                                      GridEntity->RowAmount, GridEntity->ColumnAmount,
+                                  Buffer);
     
     u32 DefaultBlocksInRow = 12;
     u32 DefaultBlocksInCol = 9;
@@ -2464,7 +2497,6 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
         LevelEntity->GridEntity->StickUnits[i].IsSticked = false;
     }
     
-    
     LevelEntity->GridEntity->MovingBlocksAmount = 0;
     
     printf("LevelEntity->GridEntity->MovingBlocksAmountReserved = %d\n", LevelEntity->GridEntity->MovingBlocksAmountReserved);
@@ -2586,9 +2618,9 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     game_rect FigureArea = LevelEntity->FigureEntity->FigureArea;
     
     u32 FigureAmount  = LevelEntity->FigureEntity->FigureAmount;
-    u32 RowAmount  = LevelEntity->GridEntity->RowAmount;
-    u32 ColAmount  = LevelEntity->GridEntity->ColumnAmount;
-    s32 NewIndex   = LevelEditor->SelectedFigure;
+    u32 RowAmount     = LevelEntity->GridEntity->RowAmount;
+    u32 ColAmount     = LevelEntity->GridEntity->ColumnAmount;
+    s32 NewIndex      = LevelEditor->SelectedFigure;
     
     if(Input->WasPressed){
         if(Input->Up.IsDown)
@@ -2607,41 +2639,47 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         {
             NewIndex += 2;
         }
+        
         else if(Input->LeftClick.IsDown)
         {
+            printf("it is down!\n");
             if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->GridButtonLayer))
             {
-                
                 /* Grid layer*/
                 
                 /* Plus row */
                 if (IsPointInsideRect(Input->MouseX, Input->MouseY,
-                                      &LevelEditor->GridButtonQuad[0]))
+                                      &LevelEditor->GridButton[0]))
                 {
                     printf("Plus row!\n");
                     GridEntityNewGrid(Buffer, LevelEntity, RowAmount+1, ColAmount, LevelEditor);
-                }
+                    
+                    LevelEditor->ActiveButton.y = LevelEditor->GridButtonLayer.y;
+                    }
                 /* Minus row */
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                                          &LevelEditor->GridButtonQuad[2]))
+                                          &LevelEditor->GridButton[2]))
                 {
                     printf("Minus row!\n");
                     GridEntityNewGrid(Buffer, LevelEntity, RowAmount-1, ColAmount, LevelEditor);
+                    LevelEditor->ActiveButton.y = LevelEditor->ActiveButton.h * 2;
                 }
                 /* Plus column */
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                                          &LevelEditor->GridButtonQuad[3]))
+                                          &LevelEditor->GridButton[3]))
                 {
                     printf("Plus column!\n");
                     GridEntityNewGrid(Buffer, LevelEntity, RowAmount, ColAmount+1, LevelEditor);
+                    LevelEditor->ActiveButton.y = LevelEditor->ActiveButton.h * 3;
                 }
                 /* Minus column */
                 else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                                          &LevelEditor->GridButtonQuad[5]))
+                                          &LevelEditor->GridButton[5]))
                 {
                     printf("Minus column!\n");
                     GridEntityNewGrid(Buffer, LevelEntity, RowAmount, ColAmount-1, LevelEditor);
-                    printf("Minus column complete!\n");
+                    
+                    LevelEditor->ActiveButton.y = LevelEditor->ActiveButton.h * 5;
                 }
             }
             else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->FigureButtonLayer))
@@ -2725,6 +2763,10 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 LevelEntityUpdateLevelEntityFromMemory(LevelEntity, 
                                                        0,
                                                        Memory, Buffer);
+                LevelEditorChangeGridCounters(LevelEditor, 
+                                                  LevelEntity->GridEntity->RowAmount, LevelEntity->GridEntity->ColumnAmount, 
+                                                  RowAmount, ColAmount,
+                                                  Buffer);
             }
             else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &FigureArea))
             {
@@ -2823,16 +2865,13 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     
     if(LevelEntity->LevelStarted)
     {
-    
     for(u32 i = 0; i < LevelEntity->FigureEntity->FigureAmount; ++i)
     {
         DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[i], LevelEntity->InActiveBlockSize / 4, {0, 0, 0}, 255);
     }
     
-    
         DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], LevelEntity->InActiveBlockSize, {255, 255, 255}, 100);
     }
-    
     
     game_rect ButtonQuad = 
     {
@@ -2842,7 +2881,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         ButtonQuad.h = LevelEntity->InActiveBlockSize * 2
     };
     
-    DEBUGRenderQuadFill(Buffer, &LevelEditor->GridButtonLayer, {0, 0, 255}, 255);
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->GridButtonLayer, {0, 0, 255}, 100);
     
     DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
     GameRenderBitmapToBuffer(Buffer, LevelEditor->PlusTexture, &LevelEditor->GridButtonQuad[0]);
@@ -2875,7 +2914,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     ButtonQuad.x = LevelEditor->FigureButtonLayer.x;
     ButtonQuad.y = LevelEditor->FigureButtonLayer.y;
     
-    DEBUGRenderQuadFill(Buffer, &LevelEditor->FigureButtonLayer, {0, 255, 0}, 255);
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->FigureButtonLayer, {0, 255, 0}, 100);
     
     DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
     GameRenderBitmapToBuffer(Buffer, LevelEditor->PlusTexture, 
@@ -2911,15 +2950,31 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     GameRenderBitmapToBuffer(Buffer, LevelEditor->TypeTexture, 
                              &LevelEditor->FigureButtonQuad[5]);
     
-    DEBUGRenderQuadFill(Buffer, &LevelEditor->SaveButtonLayer, {255, 0, 0}, 255);
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->SaveButtonLayer, {255, 0, 0}, 100);
     DEBUGRenderQuad(Buffer, &LevelEditor->SaveButtonLayer, {0, 0, 0}, 255);
     GameRenderBitmapToBuffer(Buffer, LevelEditor->SaveTexture, &LevelEditor->SaveButtonQuad);
     
-    DEBUGRenderQuadFill(Buffer, &LevelEditor->LoadButtonLayer, {255, 0, 0}, 255);
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->LoadButtonLayer, {255, 0, 0}, 100);
     DEBUGRenderQuad(Buffer, &LevelEditor->LoadButtonLayer, {0, 0, 0}, 255);
     GameRenderBitmapToBuffer(Buffer, LevelEditor->LoadTexture, &LevelEditor->LoadButtonQuad);
     
-}
+    if(!Input->WasPressed)
+    {
+        if(!Input->LeftClick.IsDown && Input->LeftClick.WasDown)
+        {
+            LevelEditor->ActiveButton.y = -100;
+        }
+    }
+    
+    if(!Input->WasPressed)
+    {
+        if(Input->LeftClick.IsDown && Input->LeftClick.WasDown)
+        {
+            DEBUGRenderQuadFill(Buffer, &LevelEditor->ActiveButton, {255, 255, 255}, 150);
+        }
+    }
+    
+    }
 
 
 

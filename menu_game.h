@@ -11,8 +11,8 @@
 
 struct menu_button
 {
-    game_rect TextureQuad;
-    game_texture *Texture;
+    game_rect LevelNumberTextureQuad;
+    game_texture *LevelNumberTexture;
 };
 
 struct game_menu
@@ -21,8 +21,9 @@ struct game_menu
     u32 ButtonSizeHeight;
     u32 ButtonsAmount;
     
-    game_texture *Texture;
-    menu_button *Buttons;
+    game_texture *BackTexture;
+    game_texture *FrontTexture;
+    menu_button  *Buttons;
     };
 
 static void MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_input *Input);
