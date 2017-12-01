@@ -152,9 +152,10 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
             ShouldQuit = true;
         } break;
         
-        case SDL_MOUSEBUTTONDOWN:
-        case SDL_MOUSEBUTTONUP:
+        case SDL_MOUSEBUTTONDOWN: 
+        case SDL_MOUSEBUTTONUP: 
         {
+            
             u8 Button = Event->button.button;
             
             bool IsDown  = Event->button.state == SDL_PRESSED;
@@ -280,6 +281,9 @@ SDLFlushEvents(game_input *Input)
         Input->MouseRelX = 0;
         Input->MouseRelY = 0;
     }
+    
+    if(Input->LeftClick.IsDown)  Input->LeftClick.IsDown  = false;
+    if(Input->LeftClick.WasDown) Input->LeftClick.WasDown = false;
 }
 
 #undef main //NOTE(Max): Because SDL_main doesn't work on some windows versions 

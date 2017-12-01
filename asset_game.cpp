@@ -564,6 +564,8 @@ SaveLevelToMemory(game_memory *Memory, level_entity* LevelEntity, u32 Index)
 {
     if(Index < 0 || Index >= Memory->LevelMemoryAmount) return;
     
+    printf("LevelEntity->LevelNumber = %d\n", LevelEntity->LevelNumber);
+    
     Memory->LevelMemory[Index].LevelNumber = LevelEntity->LevelNumber;
     
     if(Memory->LevelMemory[Index].RowAmount > 0)

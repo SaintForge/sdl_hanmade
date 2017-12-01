@@ -183,6 +183,7 @@ struct level_entity
 struct level_editor
 {
     u32 SelectedFigure;
+    bool ButtonPressed;
     game_rect ActiveButton;
     
     game_rect GridButtonLayer;
@@ -250,13 +251,22 @@ struct menu_button
 
 struct menu_entity
 {
+    bool IsMoving;
+    
     u32 ButtonSizeWidth;
     u32 ButtonSizeHeight;
     u32 ButtonsAmount;
     u32 ButtonsAmountReserved;
     
+    s32 ScrollingTicks;
+    r32 MaxAcceleration;
+    vector2 Acceleration;
+    vector2 Velocity;
+    
     game_texture *BackTexture;
     game_texture *FrontTexture;
+    
+    game_rect    *ButtonsArea;
     menu_button  *Buttons;
 };
 
@@ -2043,6 +2053,7 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     Assert(Memory->LevelEditor);
     
     Memory->LevelEditor->SelectedFigure = 0;
+    Memory->LevelEditor->ButtonPressed  = false;
      
     s32 ButtonSize   = LevelEntity->InActiveBlockSize * 2;
     u32 RowAmount    = LevelEntity->GridEntity->RowAmount;
@@ -2656,7 +2667,9 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         
         else if(Input->LeftClick.IsDown)
         {
-            printf("it is down!\n");
+            printf("is down!\n");
+            LevelEditor->ButtonPressed = true;
+            
             if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->GridButtonLayer))
             {
                 /* Grid layer*/
@@ -2879,6 +2892,12 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 }
             }
         }
+        else if(Input->LeftClick.WasDown)
+        {
+            LevelEditor->ButtonPressed = false;
+            LevelEditor->ActiveButton.y = -100;
+            printf("was down\n");
+        }
     }
     
     if(NewIndex < 0)
@@ -2987,22 +3006,10 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     DEBUGRenderQuad(Buffer, &LevelEditor->LoadButtonLayer, {0, 0, 0}, 255);
     GameRenderBitmapToBuffer(Buffer, LevelEditor->LoadTexture, &LevelEditor->LoadButtonQuad);
     
-    if(!Input->WasPressed)
+    if(LevelEditor->ButtonPressed)
     {
-        if(!Input->LeftClick.IsDown && Input->LeftClick.WasDown)
-        {
-            LevelEditor->ActiveButton.y = -100;
-        }
+        DEBUGRenderQuadFill(Buffer, &LevelEditor->ActiveButton, {255, 0, 0}, 150);
     }
-    
-    if(!Input->WasPressed)
-    {
-        if(Input->LeftClick.IsDown && Input->LeftClick.WasDown)
-        {
-            DEBUGRenderQuadFill(Buffer, &LevelEditor->ActiveButton, {255, 0, 0}, 150);
-        }
-    }
-    
     }
 
 static void
@@ -3024,10 +3031,20 @@ static void
         u32 ButtonHeight = MenuEntity->ButtonSizeHeight;
         
         s32 StartX = (ScreenWidth / 2)  - ((ButtonWidth * ButtonsPerRow) / 2);
-        s32 StartY = (ScreenHeight / 3) - ((ButtonHeight * ButtonsPerColumn) / 2);
+        s32 StartY = (ScreenHeight / 2) - ((ButtonHeight * ButtonsPerColumn) / 2)- ((ButtonsPerColumn * SpaceBetweenButtons) / 2);
         
-        printf("StartX = %d\n", StartX);
         printf("StartY = %d\n", StartY);
+        
+        u32 ButtonsAreaAmount = MenuEntity->ButtonsAmountReserved / 20;
+        for(u32 i = 0; i < ButtonsAreaAmount; ++i)
+        {
+            MenuEntity->ButtonsArea[i].x = StartX + (i * ScreenWidth);
+            MenuEntity->ButtonsArea[i].y = StartY;;
+            MenuEntity->ButtonsArea[i].w = (ButtonWidth * ButtonsPerRow) + ((ButtonsPerRow - 1) * SpaceBetweenButtons);
+            MenuEntity->ButtonsArea[i].h = (ButtonHeight * ButtonsPerColumn) + ((ButtonsPerColumn - 1) * SpaceBetweenButtons);
+            
+            printf("MenuEntity->ButtonsArea[i].x = %d\n", MenuEntity->ButtonsArea[i].x );
+        }
         
         for(u32 i = 0; i < MenuEntity->ButtonsAmount; ++i)
         {
@@ -3035,10 +3052,10 @@ static void
             
             if((i % 20 == 0) && i != 0)
             {
-                StartX += ScreenWidth + (ScreenWidth / 2);
+                StartX += ScreenWidth;
             }
             
-            if(i % ButtonsPerColumn == 0)
+            if(i % ButtonsPerRow == 0 && i != 0)
             {
                 YOffset += 1;
             }
@@ -3048,13 +3065,10 @@ static void
                 YOffset = 0;
             }
             
-            printf("XOffset = %d\n", XOffset);
             printf("YOffset = %d\n", YOffset);
             
             XPosition = StartX + (XOffset * ButtonWidth) + (XOffset * SpaceBetweenButtons);
             YPosition = StartY + (YOffset * ButtonHeight) + (YOffset * SpaceBetweenButtons);
-            
-            printf("XPosition = %d\n", XPosition);
             printf("YPosition = %d\n", YPosition);
             
             MenuEntity->Buttons[i].ButtonQuad.x = XPosition;
@@ -3073,6 +3087,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     static r32 CurrentTimeTick  = 0;
     
     bool ShouldQuit       = false;
+
     
     level_entity  *GameState     = &Memory->LevelEntity;
     grid_entity   *&GridEntity   = GameState->GridEntity;
@@ -3083,49 +3098,38 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         // Memory initialization
         
         Memory->LevelMemoryAmount = 1;
+        GameState->LevelNumber = 1;
         
         Memory->ToggleMenu = false;
+        
         Memory->MenuEntity = (menu_entity *) malloc(sizeof(menu_entity));
         Assert(Memory->MenuEntity);
         
-        Memory->MenuEntity->ButtonSizeWidth  = 50;
-        Memory->MenuEntity->ButtonSizeHeight = 50;
+        Memory->MenuEntity->IsMoving = false;
+        Memory->MenuEntity->ButtonSizeWidth  = 100;
+        Memory->MenuEntity->ButtonSizeHeight = 100;
         
         Memory->MenuEntity->ButtonsAmountReserved = Memory->LevelMemoryReserved;
         //Memory->MenuEntity->ButtonsAmount         = Memory->LevelMemoryAmount == Memory->LevelMemoryReserved ? Memory->LevelMemoryAmount : Memory->LevelMemoryAmount + 1;
         Memory->MenuEntity->ButtonsAmount = 21;
         
-        printf("MenuEntity->ButtonsAmount = %d\n", Memory->MenuEntity->ButtonsAmount);
+        Memory->MenuEntity->ButtonsArea = (game_rect *) malloc(sizeof(game_rect) * (Memory->MenuEntity->ButtonsAmountReserved / 20));
+        Assert(Memory->MenuEntity->ButtonsArea);
         
-        Memory->LevelNumberFont = TTF_OpenFont("..\\data\\Karmina-Bold.otf", 20);
+        Memory->LevelNumberFont = TTF_OpenFont("..\\data\\Karmina-Bold.otf", 50);
         Assert(Memory->LevelNumberFont);
         
         Memory->MenuEntity->Buttons = (menu_button *) malloc(sizeof(menu_button) * Memory->MenuEntity->ButtonsAmountReserved);
         Assert(Memory->MenuEntity->Buttons);
         
+        game_surface *Surface = 0; 
+        
         for(u32 i = 0; i < Memory->MenuEntity->ButtonsAmount; ++i)
         {
-            game_surface *Surface = 0; 
+            if(i == Memory->MenuEntity->ButtonsAmountReserved - 1) continue;
             
-            if((i == Memory->MenuEntity->ButtonsAmount - 1) && Memory->MenuEntity->ButtonsAmountReserved != Memory->MenuEntity->ButtonsAmount)
-            {
-                Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, "+", {255, 255, 255 });
-                Assert(Surface);
-                
-                Memory->MenuEntity->Buttons[i].LevelNumberTextureQuad.w = Surface->w;
-                Memory->MenuEntity->Buttons[i].LevelNumberTextureQuad.h = Surface->h;
-                
-                
-                
-                Memory->MenuEntity->Buttons[i].LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
-                Assert(Memory->MenuEntity->Buttons[i].LevelNumberTexture);
-                
-                SDL_FreeSurface(Surface);
-                }
-                else
-                {
-                    char LevelNumber[3] = {0};
-                    sprintf(LevelNumber, "%d", Memory->LevelMemory[i].LevelNumber);
+            char LevelNumber[3] = {0};
+            sprintf(LevelNumber, "%d", Memory->LevelMemory[i].LevelNumber);
                     
                     Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, LevelNumber, {255, 255, 255});
                     Assert(Surface);
@@ -3137,22 +3141,40 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                     Assert(Memory->MenuEntity->Buttons[i].LevelNumberTexture);
                     
                     SDL_FreeSurface(Surface);
-                }
-                
                 
                 Memory->MenuEntity->Buttons[i].ButtonQuad.w = Memory->MenuEntity->ButtonSizeWidth;
                 Memory->MenuEntity->Buttons[i].ButtonQuad.h = Memory->MenuEntity->ButtonSizeHeight; 
                 
             }
             
+            if(Memory->MenuEntity->ButtonsAmount < Memory->MenuEntity->ButtonsAmountReserved)
+            {
+                printf("+\n");
+                u32 Index = Memory->MenuEntity->ButtonsAmount - 1;
+                
+                Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, "+", {255, 255, 255 });
+                Assert(Surface);
+                
+                Memory->MenuEntity->Buttons[Index].LevelNumberTextureQuad.w = Surface->w;
+                Memory->MenuEntity->Buttons[Index].LevelNumberTextureQuad.h = Surface->h;
+                
+                Memory->MenuEntity->Buttons[Index].LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+                Assert(Memory->MenuEntity->Buttons[Index].LevelNumberTexture);
+                
+                SDL_FreeSurface(Surface);
+                
+                Memory->MenuEntity->Buttons[Index].ButtonQuad.w = Memory->MenuEntity->ButtonSizeWidth;
+                Memory->MenuEntity->Buttons[Index].ButtonQuad.h = Memory->MenuEntity->ButtonSizeHeight; 
+            }
+            
+            
+            
             MenuEntityAlignButtons(Memory->MenuEntity, Buffer->Width, Buffer->Height);
         
-        Memory->MenuEntity->BackTexture = GetTexture(Memory, "circle_touch.png", Buffer->Renderer);
+        Memory->MenuEntity->BackTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
         
         
         // temporal level_entity initialization
-        
-        GameState->LevelNumber = 1;
         
         GameState->DefaultBlocksInRow = 12;
         GameState->DefaultBlocksInCol = 9;
