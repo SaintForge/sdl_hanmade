@@ -243,6 +243,8 @@ struct menu_entity
     
     vector2 Velocity;
     vector2 Acceleration;
+    s32 TargetPosition;
+    u32 TargetIndex;
     
     s32 ScrollingTicks;
     r32 MaxAcceleration;
@@ -3094,9 +3096,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         Memory->MenuEntity->IsMoving    = false;
         Memory->MenuEntity->IsAnimating = false;
-        Memory->MenuEntity->MaxVelocity = 10.0f;
+        Memory->MenuEntity->MaxVelocity = 20.0f;
         Memory->MenuEntity->OldMouseX = 0;
         Memory->MenuEntity->NewMouseX = 0;
+        Memory->MenuEntity->TargetIndex = 0;
+        Memory->MenuEntity->TargetPosition = 0;
         Memory->MenuEntity->ButtonSizeWidth  = 100;
         Memory->MenuEntity->ButtonSizeHeight = 100;
         
