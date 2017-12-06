@@ -62,11 +62,9 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             if(ButtonsAreaAmount > 0)
             {
                 LeftBoundary  = Memory->MenuEntity->ButtonsArea[0].x;
-                RightBoundary = Memory->MenuEntity->ButtonsArea[ButtonsAreaAmount - 1].x + (Memory->MenuEntity->ButtonsArea[ButtonsAreaAmount - 1]. w / 2);
+                //RightBoundary = Memory->MenuEntity->ButtonsArea[ButtonsAreaAmount - 1].x + (Memory->MenuEntity->ButtonsArea[ButtonsAreaAmount - 1]. w / 2);
+                RightBoundary = Memory->MenuEntity->ButtonsArea[ButtonsAreaAmount - 1].x;
             }
-            
-            printf("TargetPosition before = %f\n", Memory->MenuEntity->TargetPosition);
-            printf("Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x = %d\n", Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x);
             
             //TODO(max): Check only these first two conditions. The third condition will be checked after the movement was done
             if(LeftBoundary + Memory->MenuEntity->TargetPosition >= Buffer->Width)
@@ -77,12 +75,10 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             else if(RightBoundary + Memory->MenuEntity->TargetPosition <= 0)
             {
                 printf("right edge!\n");
-                Memory->MenuEntity->TargetPosition = Memory->MenuEntity->TargetPosition - RightBoundary;
+                Memory->MenuEntity->TargetPosition = Center_x - Memory->MenuEntity->TargetPosition;
             }
             else
             {
-                printf("CenterOffset = %d\n", CenterOffset);
-                
                 if(Memory->MenuEntity->TargetPosition > 0)
                 {
                     Center_x = Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x + (Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].w * 0.2f);
@@ -108,14 +104,8 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                         printf("gotcha!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
                         printf("TargetIndex = %d\n", Memory->MenuEntity->TargetIndex);
                         
-                        
                         s32 ScreenCenter_x = Buffer->Width / 2;
-                        Memory->MenuEntity->TargetPosition = ScreenCenter_x;
-                        
-                        //Memory->MenuEntity->TargetPosition = Memory->MenuEntity->ButtonsArea[i].x + (Memory->MenuEntity->ButtonsArea[i].w / 2) - ScreenCenter_x;
-                        
-                        
-                        
+                        Memory->MenuEntity->TargetPosition = Buffer->Width / 2;
                         break;
                     }
                     
