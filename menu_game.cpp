@@ -67,6 +67,8 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             
             printf("TargetPosition before = %f\n", Memory->MenuEntity->TargetPosition);
             printf("Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x = %d\n", Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x);
+            
+            //TODO(max): Check only these first two conditions. The third condition will be checked after the movement was done
             if(LeftBoundary + Memory->MenuEntity->TargetPosition >= Buffer->Width)
             {
                 printf("Left edge!\n");
