@@ -243,12 +243,12 @@ struct menu_entity
     
     vector2 Velocity;
     vector2 Acceleration;
-    s32 TargetPosition;
+    r32 TargetPosition;
     u32 TargetIndex;
     
     s32 ScrollingTicks;
     r32 MaxAcceleration;
-    s32 AccelerationSum;
+    r32 AccelerationSum;
     //s32 Acceleration;
     //s32 Velocity;
     
@@ -450,17 +450,7 @@ GetFigureUnitAt(figure_entity *Group, u32 Index)
 
 #endif
 
-inline static bool
-IsPointInsideRect(s32 X, s32 Y, game_rect *Quad)
-{
-    if(!Quad) return false;
-    
-    if(X <= Quad->x)                 return false;
-    else if(Y <= Quad->y)            return false;
-    else if(X > (Quad->x + Quad->w)) return false;
-    else if(Y > (Quad->y + Quad->h)) return false;
-    else                             return true;
-}
+
 
 inline static bool
 IsFigureUnitInsideRect(figure_unit *Unit, game_rect *AreaQuad)
@@ -3019,7 +3009,7 @@ MenuEntityAlignButtons(menu_entity *MenuEntity,
     u32 ButtonWidth  = MenuEntity->ButtonSizeWidth;
     u32 ButtonHeight = MenuEntity->ButtonSizeHeight;
     
-    s32 StartX = (ScreenWidth / 2)  - ((ButtonWidth * ButtonsPerRow) / 2);
+    s32 StartX = (ScreenWidth / 2)  - (((ButtonWidth * ButtonsPerRow) + ((ButtonsPerRow - 1) * SpaceBetweenButtons)) / 2);
     s32 StartY = (ScreenHeight / 2) - ((ButtonHeight * ButtonsPerColumn) / 2)- ((ButtonsPerColumn * SpaceBetweenButtons) / 2);
     
     printf("StartY = %d\n", StartY);
@@ -3032,7 +3022,7 @@ MenuEntityAlignButtons(menu_entity *MenuEntity,
         MenuEntity->ButtonsArea[i].w = (ButtonWidth * ButtonsPerRow) + ((ButtonsPerRow - 1) * SpaceBetweenButtons);
         MenuEntity->ButtonsArea[i].h = (ButtonHeight * ButtonsPerColumn) + ((ButtonsPerColumn - 1) * SpaceBetweenButtons);
         
-        printf("MenuEntity->ButtonsArea[i].x = %d\n", MenuEntity->ButtonsArea[i].x );
+        printf("MenuEntity->ButtonsArea[i].w = %d\n", MenuEntity->ButtonsArea[i].w );
     }
     
     for(u32 i = 0; i < MenuEntity->ButtonsAmount; ++i)

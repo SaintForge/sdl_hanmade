@@ -100,6 +100,18 @@ Min3(s32 a, s32 b, s32 c)
     return fmin(fmin(a,b),c);
 }
 
+inline static bool
+IsPointInsideRect(s32 X, s32 Y, game_rect *Quad)
+{
+    if(!Quad) return false;
+    
+    if(X <= Quad->x)                 return false;
+    else if(Y <= Quad->y)            return false;
+    else if(X > (Quad->x + Quad->w)) return false;
+    else if(Y > (Quad->y + Quad->h)) return false;
+    else                             return true;
+}
+
 #define GAME_MATH_H
 #endif 
 

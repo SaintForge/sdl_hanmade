@@ -24,8 +24,10 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             Memory->MenuEntity->IsAnimating = false;
             Memory->MenuEntity->ScrollingTicks = SDL_GetTicks();
             Memory->MenuEntity->TargetPosition = 0;
-            Vector2Mult(&Memory->MenuEntity->Velocity, 0);
+            Memory->MenuEntity->Velocity.x = 0;
             Memory->MenuEntity->AccelerationSum = 0;
+            
+            printf("before Memory->MenuEntity->ButtonsArea[0].x = %d\n", Memory->MenuEntity->ButtonsArea[0].x);
         }
         else if(Input->LeftClick.WasDown)
         {
@@ -48,6 +50,12 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             }
 #endif
             
+            s32 Center_x = Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x + (Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].w / 2);
+            s32 Center_y = Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].y + (Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].h / 2);
+            
+            s32 CenterOffset = Center_x + Memory->MenuEntity->TargetPosition;
+            
+            
             s32 LeftBoundary  = 0;
             s32 RightBoundary = 0;
             u32 ButtonsAreaAmount = (Memory->MenuEntity->ButtonsAmount / 20) + 1;
@@ -57,13 +65,12 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                 RightBoundary = Memory->MenuEntity->ButtonsArea[ButtonsAreaAmount - 1].x;
             }
             
-            printf("TargetPosition before = %d\n", Memory->MenuEntity->TargetPosition);
+            printf("TargetPosition before = %f\n", Memory->MenuEntity->TargetPosition);
+            printf("Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x = %d\n", Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x);
             if(LeftBoundary + Memory->MenuEntity->TargetPosition >= Buffer->Width)
             {
                 printf("Left edge!\n");
-                //Memory->MenuEntity->TargetPosition = Memory->MenuEntity->OldMouseX - Memory->MenuEntity->NewMouseX;
-                //Memory->MenuEntity->TargetPosition = -(Memory->MenuEntity->TargetPosition + (LeftBoundary - Buffer->Width));
-                Memory->MenuEntity->TargetPosition = -Memory->MenuEntity->TargetPosition;
+                Memory->MenuEntity->TargetPosition   = Center_x - Memory->MenuEntity->TargetPosition;
             }
             else if(RightBoundary + Memory->MenuEntity->TargetPosition <= 0)
             {
@@ -72,14 +79,31 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             }
             else
             {
-                Memory->MenuEntity->TargetPosition = Memory->MenuEntity->NewMouseX - Memory->MenuEntity->OldMouseX;
+                printf("CenterOffset = %d\n", CenterOffset);
+                
+                //u32 ButtonsAreaAmount = (Memory->MenuEntity->ButtonsAmount / 20) + 1;
+                for(u32 i = 0; i < ButtonsAreaAmount; ++i)
+                {
+                    game_rect TargetArea;
+                    TargetArea.x = Memory->MenuEntity->ButtonsArea[i].x + (Memory->MenuEntity->ButtonsArea[i].w / 2) - (Buffer->Width / 2);
+                    TargetArea.y = Memory->MenuEntity->ButtonsArea[i].y + (Memory->MenuEntity->ButtonsArea[i].h / 2) - (Buffer->Height / 2);
+                    TargetArea.w = Buffer->Width;
+                    TargetArea.h = Buffer->Height;
+                    
+                    if(IsPointInsideRect(CenterOffset, Center_x, &TargetArea))
+                    {
+                        Memory->MenuEntity->TargetIndex = i;
+                        printf("gotcha!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+                        break;
+                    }
+                    
+                    Memory->MenuEntity->TargetIndex = 1;
+                }
             }
             
             printf("LeftBoundary = %d\n", LeftBoundary);
             printf("RightBoundary = %d\n", RightBoundary);
-            printf("NewMouseX = %d\n", Memory->MenuEntity->NewMouseX);
-            printf("OldMouseX = %d\n", Memory->MenuEntity->OldMouseX);
-            printf("TargetPosition = %d\n", Memory->MenuEntity->TargetPosition);
+            printf("TargetPosition = %f\n", Memory->MenuEntity->TargetPosition);
         }
     }
     
@@ -94,7 +118,8 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
     
     if(Memory->MenuEntity->IsAnimating)
     {
-        vector2 Vector = { Memory->MenuEntity->TargetPosition, 0 };
+        s32 RelativeCenter = Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x + (Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].w/2);
+        vector2 Vector = { Memory->MenuEntity->TargetPosition - RelativeCenter, 0 };
         
         r32 Ratio = 0;
         r32 Distance = Vector2Mag(&Vector);
@@ -103,25 +128,39 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
         if(Distance < ApproachRadius)
         {
             Ratio = Distance / ApproachRadius;
-            if(Ratio > 0.01)
+            //printf("Ratio = %f\n", Ratio);
+            if(Ratio > 0.02f)
             {
                 Vector.x *= Distance / ApproachRadius * Memory->MenuEntity->MaxVelocity;
                 Vector.y *= Distance / ApproachRadius * Memory->MenuEntity->MaxVelocity;
             }
             else
             {
-                printf("TargetPosition after = %d\n", Memory->MenuEntity->TargetPosition);
-                printf("AccelerationSum = %d\n", Memory->MenuEntity->AccelerationSum);
+                printf("TargetIndex = %d\n", Memory->MenuEntity->TargetIndex);
+                s32 Width = (Buffer->Width / 2) - (Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].w / 2);
+                s32 Offset = Width - Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x;
+                printf("Offset = %d\n", Offset);
                 
-                if(Memory->MenuEntity->TargetPosition == 0)
+                Vector.x = 0;
+                Vector.y = 0;
+                
+                Memory->MenuEntity->Velocity.x     = 0;
+                Memory->MenuEntity->TargetPosition = 0;
+                Memory->MenuEntity->IsAnimating    = false;
+                
+                u32 ButtonsAreaAmount = (Memory->MenuEntity->ButtonsAmount / 20) + 1;
+                for(u32 i = 0; i < ButtonsAreaAmount; ++i)
                 {
-                    Memory->MenuEntity->IsAnimating = false;
-                    Vector.x = 0;
+                    Memory->MenuEntity->ButtonsArea[i].x += Offset;
                 }
-                else
+                
+                for(u32 i = 0; i < Memory->MenuEntity->ButtonsAmount; ++i)
                 {
-                    Memory->MenuEntity->Velocity.x = Memory->MenuEntity->TargetPosition;
+                    Memory->MenuEntity->Buttons[i].ButtonQuad.x += Offset;
+                    Memory->MenuEntity->Buttons[i].LevelNumberTextureQuad.x += Offset;
                 }
+                
+                //printf("after Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x = %d\n", Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x);
             }
         }
         else
@@ -131,15 +170,7 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
         }
         
         Memory->MenuEntity->Acceleration.x = Vector.x - Memory->MenuEntity->Velocity.x;
-        
-        Memory->MenuEntity->TargetPosition -= Memory->MenuEntity->Velocity.x;
-        Memory->MenuEntity->AccelerationSum += Memory->MenuEntity->Velocity.x;
-        
         Vector2Add(&Memory->MenuEntity->Velocity, &Memory->MenuEntity->Acceleration);
-        printf("Velocity.x = %f\n", Memory->MenuEntity->Velocity.x);
-        printf("TargetPosition = %d\n", Memory->MenuEntity->TargetPosition);
-        
-        
     }
     
     
