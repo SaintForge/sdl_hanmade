@@ -53,7 +53,7 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             s32 Center_x = Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x + (Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].w / 2);
             s32 Center_y = Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].y + (Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].h / 2);
             
-            s32 CenterOffset = Center_x + Memory->MenuEntity->TargetPosition;
+            s32 CenterOffset = Center_x - Memory->MenuEntity->TargetPosition;
             
             
             s32 LeftBoundary  = 0;
@@ -62,7 +62,7 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             if(ButtonsAreaAmount > 0)
             {
                 LeftBoundary  = Memory->MenuEntity->ButtonsArea[0].x;
-                RightBoundary = Memory->MenuEntity->ButtonsArea[ButtonsAreaAmount - 1].x;
+                RightBoundary = Memory->MenuEntity->ButtonsArea[ButtonsAreaAmount - 1].x + (Memory->MenuEntity->ButtonsArea[ButtonsAreaAmount - 1]. w / 2);
             }
             
             printf("TargetPosition before = %f\n", Memory->MenuEntity->TargetPosition);
@@ -72,7 +72,7 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             if(LeftBoundary + Memory->MenuEntity->TargetPosition >= Buffer->Width)
             {
                 printf("Left edge!\n");
-                Memory->MenuEntity->TargetPosition   = Center_x - Memory->MenuEntity->TargetPosition;
+                Memory->MenuEntity->TargetPosition = Center_x - Memory->MenuEntity->TargetPosition;
             }
             else if(RightBoundary + Memory->MenuEntity->TargetPosition <= 0)
             {
@@ -83,23 +83,43 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             {
                 printf("CenterOffset = %d\n", CenterOffset);
                 
-                //u32 ButtonsAreaAmount = (Memory->MenuEntity->ButtonsAmount / 20) + 1;
+                if(Memory->MenuEntity->TargetPosition > 0)
+                {
+                    Center_x = Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x + (Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].w * 0.2f);
+                }
+                else
+                {
+                    Center_x = Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x + (Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].w * 1.5f);
+                }
+                
+                CenterOffset = Center_x - Memory->MenuEntity->TargetPosition;
+                
                 for(u32 i = 0; i < ButtonsAreaAmount; ++i)
                 {
                     game_rect TargetArea;
                     TargetArea.x = Memory->MenuEntity->ButtonsArea[i].x + (Memory->MenuEntity->ButtonsArea[i].w / 2) - (Buffer->Width / 2);
-                    TargetArea.y = Memory->MenuEntity->ButtonsArea[i].y + (Memory->MenuEntity->ButtonsArea[i].h / 2) - (Buffer->Height / 2);
+                    TargetArea.y = Memory->MenuEntity->ButtonsArea[i].y + (Memory->MenuEntity->ButtonsArea[i].h / 2);
                     TargetArea.w = Buffer->Width;
                     TargetArea.h = Buffer->Height;
                     
-                    if(IsPointInsideRect(CenterOffset, Center_x, &TargetArea))
+                    if(IsPointInsideRect(CenterOffset, Center_y, &TargetArea))
                     {
                         Memory->MenuEntity->TargetIndex = i;
                         printf("gotcha!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+                        printf("TargetIndex = %d\n", Memory->MenuEntity->TargetIndex);
+                        
+                        
+                        s32 ScreenCenter_x = Buffer->Width / 2;
+                        Memory->MenuEntity->TargetPosition = ScreenCenter_x;
+                        
+                        //Memory->MenuEntity->TargetPosition = Memory->MenuEntity->ButtonsArea[i].x + (Memory->MenuEntity->ButtonsArea[i].w / 2) - ScreenCenter_x;
+                        
+                        
+                        
                         break;
                     }
                     
-                    Memory->MenuEntity->TargetIndex = 1;
+                    //Memory->MenuEntity->TargetIndex = 1;
                 }
             }
             

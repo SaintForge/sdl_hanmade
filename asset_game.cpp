@@ -218,6 +218,8 @@ SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
     strcpy(FullName, SpritePath);
     strcat(FullName, FileName);
     
+    printf("FileName = %s\n", FileName);
+    
     SDL_Surface *Surface = IMG_Load(FullName);
     Assert(Surface);
     
@@ -612,7 +614,7 @@ SaveLevelToMemory(game_memory *Memory, level_entity* LevelEntity, u32 Index)
                 Memory->LevelMemory[Index].MovingBlocks[i].ColNumber  = LevelEntity->GridEntity->MovingBlocks[i].ColNumber;
                 Memory->LevelMemory[Index].MovingBlocks[i].IsVertical = LevelEntity->GridEntity->MovingBlocks[i].IsVertical;
                 Memory->LevelMemory[Index].MovingBlocks[i].MoveSwitch = LevelEntity->GridEntity->MovingBlocks[i].MoveSwitch;
-                }
+            }
         }
         
     }
@@ -669,7 +671,7 @@ SDLAssetBuildBinaryFile()
     /* Bitmap loading */
     BinaryHeader.BitmapSizeInBytes = 0;
     
-    SDLWriteBitmapToFile(BinaryFile, "circle_touch.png");
+    //SDLWriteBitmapToFile(BinaryFile, "circle_touch.png");
     
     SDLWriteBitmapToFile(BinaryFile, "grid_cell.png");
     SDLWriteBitmapToFile(BinaryFile, "grid_cell_1.png");
