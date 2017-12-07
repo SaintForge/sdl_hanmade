@@ -241,6 +241,7 @@ struct menu_entity
     s32 ScrollingTicks;
     r32 TargetPosition;
     u32 TargetIndex;
+    u32 ButtonIndex;
     vector2 Velocity;
     
     game_texture *BackTexture;
@@ -3092,6 +3093,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Memory->MenuEntity->MaxVelocity = 20.0f;
         Memory->MenuEntity->OldMouseX   = 0;
         Memory->MenuEntity->TargetIndex = 0;
+        Memory->MenuEntity->ButtonIndex = -1;
         Memory->MenuEntity->TargetPosition = 0;
         Memory->MenuEntity->ButtonSizeWidth  = 100;
         Memory->MenuEntity->ButtonSizeHeight = 100;
