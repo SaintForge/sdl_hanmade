@@ -237,20 +237,11 @@ struct menu_entity
     u32 ButtonsAmountReserved;
     
     s32 OldMouseX;
-    s32 NewMouseX;
-    
     r32 MaxVelocity;
-    
-    vector2 Velocity;
-    vector2 Acceleration;
+    s32 ScrollingTicks;
     r32 TargetPosition;
     u32 TargetIndex;
-    
-    s32 ScrollingTicks;
-    r32 MaxAcceleration;
-    r32 AccelerationSum;
-    //s32 Acceleration;
-    //s32 Velocity;
+    vector2 Velocity;
     
     game_texture *BackTexture;
     game_texture *FrontTexture;
@@ -3080,7 +3071,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     bool ShouldQuit       = false;
     
-    
     level_entity  *GameState     = &Memory->LevelEntity;
     grid_entity   *&GridEntity   = GameState->GridEntity;
     figure_entity *&FigureEntity = GameState->FigureEntity;
@@ -3099,9 +3089,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         Memory->MenuEntity->IsMoving    = false;
         Memory->MenuEntity->IsAnimating = false;
-        Memory->MenuEntity->MaxVelocity = 20.0f;
-        Memory->MenuEntity->OldMouseX = 0;
-        Memory->MenuEntity->NewMouseX = 0;
+        Memory->MenuEntity->MaxVelocity = 30.0f;
+        Memory->MenuEntity->OldMouseX   = 0;
         Memory->MenuEntity->TargetIndex = 0;
         Memory->MenuEntity->TargetPosition = 0;
         Memory->MenuEntity->ButtonSizeWidth  = 100;
@@ -3109,7 +3098,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         Memory->MenuEntity->ButtonsAmountReserved = Memory->LevelMemoryReserved;
         //Memory->MenuEntity->ButtonsAmount         = Memory->LevelMemoryAmount == Memory->LevelMemoryReserved ? Memory->LevelMemoryAmount : Memory->LevelMemoryAmount + 1;
-        Memory->MenuEntity->ButtonsAmount = 21;
+        Memory->MenuEntity->ButtonsAmount = 99;
         
         Memory->MenuEntity->ButtonsArea = (game_rect *) malloc(sizeof(game_rect) * (Memory->MenuEntity->ButtonsAmountReserved / 20));
         Assert(Memory->MenuEntity->ButtonsArea);
