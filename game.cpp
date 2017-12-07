@@ -3089,7 +3089,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         Memory->MenuEntity->IsMoving    = false;
         Memory->MenuEntity->IsAnimating = false;
-        Memory->MenuEntity->MaxVelocity = 30.0f;
+        Memory->MenuEntity->MaxVelocity = 20.0f;
         Memory->MenuEntity->OldMouseX   = 0;
         Memory->MenuEntity->TargetIndex = 0;
         Memory->MenuEntity->TargetPosition = 0;

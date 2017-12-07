@@ -29,18 +29,41 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
         }
         else if(Input->LeftClick.WasDown)
         {
-            Memory->MenuEntity->IsMoving  = false;
+            Memory->MenuEntity->IsMoving    = false;
             Memory->MenuEntity->IsAnimating = true;
             Memory->MenuEntity->ScrollingTicks = SDL_GetTicks() - Memory->MenuEntity->ScrollingTicks;
-            
-            if(Memory->MenuEntity->ScrollingTicks < 500)
-            {
-                Memory->MenuEntity->TargetPosition *= 8;
-            }
+            Memory->MenuEntity->MaxVelocity = 20.0f;
             
             s32 Center_x = 0;
             s32 Center_y = 0;
             s32 CenterOffset = 0;
+            u32 ButtonsAreaAmount = (Memory->MenuEntity->ButtonsAmount / 20) + 1;
+            
+            if(Memory->MenuEntity->ScrollingTicks < 500)
+            {
+                printf("ScrollingTicks < 500\n");
+                bool ShouldJump = false;
+                
+                s32 LeftBorder  = Memory->MenuEntity->ButtonsArea[0].x;
+                s32 RightBorder = Memory->MenuEntity->ButtonsArea[ButtonsAreaAmount-1].x + Memory->MenuEntity->ButtonsArea[ButtonsAreaAmount-1].w;
+                
+                ShouldJump = (LeftBorder >= Buffer->Width / 2) || (RightBorder <= Buffer->Width / 2);
+                
+                if(!ShouldJump)
+                {
+                    s32 TargetOffset = Memory->MenuEntity->TargetPosition;
+                    if(abs(TargetOffset) < Memory->MenuEntity->ButtonsArea[0].w
+                       && abs(TargetOffset) > 0)
+                    {
+                        TargetOffset = TargetOffset > 0
+                            ? Buffer->Width
+                            : -Buffer->Width;
+                        
+                        Memory->MenuEntity->MaxVelocity   *= 2;
+                        Memory->MenuEntity->TargetPosition = TargetOffset;
+                    }
+                }
+            }
             
             if(Memory->MenuEntity->TargetPosition > 0)
             {
@@ -53,9 +76,7 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             
             CenterOffset = Center_x - Memory->MenuEntity->TargetPosition;
             
-            bool IndexChanged = false;
             
-            u32 ButtonsAreaAmount = (Memory->MenuEntity->ButtonsAmount / 20) + 1;
             for(u32 i = 0; i < ButtonsAreaAmount; ++i)
             {
                 game_rect TargetArea;
@@ -91,7 +112,7 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
         
         r32 Ratio = 0;
         r32 Distance = Vector2Mag(&Vector);
-        r32 ApproachRadius = 100.0f;
+        r32 ApproachRadius = 50.0f;
         Vector2Norm(&Vector);
         if(Distance < ApproachRadius)
         {
