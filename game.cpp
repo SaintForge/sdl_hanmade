@@ -264,6 +264,19 @@ struct menu_entity
 #include "menu_game.h"
 
 static void
+DEBUGRenderLine(game_offscreen_buffer *Buffer, 
+                s32 x1, s32 y1, s32 x2, s32 y2,
+                SDL_Color color, u8 Alpha)
+{
+    u8 r, g, b, a;
+    SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, &a);
+    
+    SDL_SetRenderDrawColor(Buffer->Renderer, color.r, color.g, color.b, Alpha);
+    SDL_RenderDrawLine(Buffer->Renderer, x1, y1, x2, y2);
+    SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
+}
+
+static void
 DEBUGRenderQuad(game_offscreen_buffer *Buffer, game_rect *AreaQuad, SDL_Color color, u8 Alpha)
 {
     u8 r, g, b, a;

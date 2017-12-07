@@ -18,26 +18,22 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
     {
         if(Input->LeftClick.IsDown)
         {
-            printf("left click is down!\n");
-            Memory->MenuEntity->IsMoving  = true;
-            Memory->MenuEntity->OldMouseX = Input->MouseX;
+            Memory->MenuEntity->IsMoving    = true;
             Memory->MenuEntity->IsAnimating = false;
-            Memory->MenuEntity->ScrollingTicks = SDL_GetTicks();
-            Memory->MenuEntity->TargetPosition = 0;
-            Memory->MenuEntity->Velocity.x = 0;
-            Memory->MenuEntity->AccelerationSum = 0;
             
-            printf("before Memory->MenuEntity->ButtonsArea[0].x = %d\n", Memory->MenuEntity->ButtonsArea[0].x);
+            Memory->MenuEntity->OldMouseX      = Input->MouseX;
+            Memory->MenuEntity->ScrollingTicks = SDL_GetTicks();
+            
+            Memory->MenuEntity->TargetPosition  = 0;
+            Memory->MenuEntity->Velocity.x      = 0;
+            Memory->MenuEntity->AccelerationSum = 0;
         }
         else if(Input->LeftClick.WasDown)
         {
-            printf("left click was down!\n");
             Memory->MenuEntity->IsMoving  = false;
             Memory->MenuEntity->IsAnimating = true;
             Memory->MenuEntity->NewMouseX = Input->MouseX;
             Memory->MenuEntity->ScrollingTicks = SDL_GetTicks() - Memory->MenuEntity->ScrollingTicks;
-            
-            printf("ScrollingTicks = %d\n", Memory->MenuEntity->ScrollingTicks);
             
 #if 0
             if(Memory->MenuEntity->ScrollingTicks > 500)
@@ -49,73 +45,40 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                 Memory->MenuEntity->TargetPosition = Memory->MenuEntity->NewMouseX - Memory->MenuEntity->OldMouseX;
             }
 #endif
+            s32 Center_x = 0;
+            s32 Center_y = 0;
+            s32 CenterOffset = 0;
             
-            s32 Center_x = Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x + (Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].w / 2);
-            s32 Center_y = Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].y + (Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].h / 2);
-            
-            s32 CenterOffset = Center_x - Memory->MenuEntity->TargetPosition;
-            
-            
-            s32 LeftBoundary  = 0;
-            s32 RightBoundary = 0;
-            u32 ButtonsAreaAmount = (Memory->MenuEntity->ButtonsAmount / 20) + 1;
-            if(ButtonsAreaAmount > 0)
+            if(Memory->MenuEntity->TargetPosition > 0)
             {
-                LeftBoundary  = Memory->MenuEntity->ButtonsArea[0].x;
-                //RightBoundary = Memory->MenuEntity->ButtonsArea[ButtonsAreaAmount - 1].x + (Memory->MenuEntity->ButtonsArea[ButtonsAreaAmount - 1]. w / 2);
-                RightBoundary = Memory->MenuEntity->ButtonsArea[ButtonsAreaAmount - 1].x;
-            }
-            
-            //TODO(max): Check only these first two conditions. The third condition will be checked after the movement was done
-            if(LeftBoundary + Memory->MenuEntity->TargetPosition >= Buffer->Width)
-            {
-                printf("Left edge!\n");
-                Memory->MenuEntity->TargetPosition = Center_x - Memory->MenuEntity->TargetPosition;
-            }
-            else if(RightBoundary + Memory->MenuEntity->TargetPosition <= 0)
-            {
-                printf("right edge!\n");
-                Memory->MenuEntity->TargetPosition = Center_x - Memory->MenuEntity->TargetPosition;
+                Center_x = Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x + (Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].w * 0.2f);
             }
             else
             {
-                if(Memory->MenuEntity->TargetPosition > 0)
-                {
-                    Center_x = Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x + (Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].w * 0.2f);
-                }
-                else
-                {
-                    Center_x = Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x + (Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].w * 1.5f);
-                }
+                Center_x = Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x + (Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].w * 1.5f);
+            }
+            
+            CenterOffset = Center_x - Memory->MenuEntity->TargetPosition;
+            
+            bool IndexChanged = false;
+            
+            u32 ButtonsAreaAmount = (Memory->MenuEntity->ButtonsAmount / 20) + 1;
+            for(u32 i = 0; i < ButtonsAreaAmount; ++i)
+            {
+                game_rect TargetArea;
+                TargetArea.x = Memory->MenuEntity->ButtonsArea[i].x + (Memory->MenuEntity->ButtonsArea[i].w / 2) - (Buffer->Width / 2);
+                TargetArea.y = 0;
+                TargetArea.w = Buffer->Width;
+                TargetArea.h = Buffer->Height;
                 
-                CenterOffset = Center_x - Memory->MenuEntity->TargetPosition;
-                
-                for(u32 i = 0; i < ButtonsAreaAmount; ++i)
+                if(IsPointInsideRect(CenterOffset, Center_y, &TargetArea))
                 {
-                    game_rect TargetArea;
-                    TargetArea.x = Memory->MenuEntity->ButtonsArea[i].x + (Memory->MenuEntity->ButtonsArea[i].w / 2) - (Buffer->Width / 2);
-                    TargetArea.y = Memory->MenuEntity->ButtonsArea[i].y + (Memory->MenuEntity->ButtonsArea[i].h / 2);
-                    TargetArea.w = Buffer->Width;
-                    TargetArea.h = Buffer->Height;
-                    
-                    if(IsPointInsideRect(CenterOffset, Center_y, &TargetArea))
-                    {
-                        Memory->MenuEntity->TargetIndex = i;
-                        printf("gotcha!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-                        printf("TargetIndex = %d\n", Memory->MenuEntity->TargetIndex);
-                        
-                        s32 ScreenCenter_x = Buffer->Width / 2;
-                        Memory->MenuEntity->TargetPosition = Buffer->Width / 2;
-                        break;
-                    }
-                    
-                    //Memory->MenuEntity->TargetIndex = 1;
+                    Memory->MenuEntity->TargetIndex = i;
+                    break;
                 }
             }
             
-            printf("LeftBoundary = %d\n", LeftBoundary);
-            printf("RightBoundary = %d\n", RightBoundary);
-            printf("TargetPosition = %f\n", Memory->MenuEntity->TargetPosition);
+            Memory->MenuEntity->TargetPosition = Buffer->Width / 2;
         }
     }
     
@@ -125,8 +88,6 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
         Memory->MenuEntity->TargetPosition += OffsetX;
     }
     
-    game_rect ScreenQuad = {0, 0, Buffer->Width, Buffer->Height };
-    DEBUGRenderQuadFill(Buffer, &ScreenQuad, {0, 0, 0}, 0);
     
     if(Memory->MenuEntity->IsAnimating)
     {
@@ -171,8 +132,6 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                     Memory->MenuEntity->Buttons[i].ButtonQuad.x += Offset;
                     Memory->MenuEntity->Buttons[i].LevelNumberTextureQuad.x += Offset;
                 }
-                
-                //printf("after Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x = %d\n", Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x);
             }
         }
         else
@@ -185,6 +144,12 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
         Vector2Add(&Memory->MenuEntity->Velocity, &Memory->MenuEntity->Acceleration);
     }
     
+    //
+    // Menu Rendering
+    //
+    
+    game_rect ScreenQuad = {0, 0, Buffer->Width, Buffer->Height };
+    DEBUGRenderQuadFill(Buffer, &ScreenQuad, {0, 0, 0}, 0);
     
     u32 ButtonsAreaAmount = (Memory->MenuEntity->ButtonsAmount / 20) + 1;
     for(u32 i = 0; i < ButtonsAreaAmount; ++i)
@@ -192,6 +157,15 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
         if(Memory->MenuEntity->IsMoving)
         {
             Memory->MenuEntity->ButtonsArea[i].x += OffsetX;
+            {
+                game_rect TargetArea;
+                TargetArea.x = Memory->MenuEntity->ButtonsArea[i].x + (Memory->MenuEntity->ButtonsArea[i].w / 2) - (Buffer->Width / 2);
+                TargetArea.y = 0;
+                TargetArea.w = Buffer->Width;
+                TargetArea.h = Buffer->Height;
+                
+                DEBUGRenderQuad(Buffer, &TargetArea, {255, 0, 0}, 255);
+            }
         }
         
         if(Memory->MenuEntity->IsAnimating)
@@ -221,6 +195,16 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                                  &Memory->MenuEntity->Buttons[i].LevelNumberTextureQuad);
     }
     
+    
+    if(Memory->MenuEntity->IsMoving)
+    {
+        s32 ButtonCenter = Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x + (Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].w / 2);
+        s32 Target = ButtonCenter + Memory->MenuEntity->TargetPosition;
+        DEBUGRenderLine(Buffer, 
+                        ButtonCenter, Buffer->Height / 2,
+                        Target, Buffer->Height / 2,
+                        {0, 255, 0}, 255);
+    }
 }
 
 
