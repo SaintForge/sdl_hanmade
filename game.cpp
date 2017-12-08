@@ -242,6 +242,7 @@ struct menu_entity
     r32 TargetPosition;
     u32 TargetIndex;
     u32 ButtonIndex;
+    u32 NewButtonIndex;
     vector2 Velocity;
     
     game_texture *BackTexture;
@@ -3080,7 +3081,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     {
         // Memory initialization
         
-        Memory->LevelMemoryAmount = 1;
+        //Memory->LevelMemoryAmount = 1;
         GameState->LevelNumber = 1;
         
         Memory->ToggleMenu = false;
@@ -3100,7 +3101,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         Memory->MenuEntity->ButtonsAmountReserved = Memory->LevelMemoryReserved;
         //Memory->MenuEntity->ButtonsAmount         = Memory->LevelMemoryAmount == Memory->LevelMemoryReserved ? Memory->LevelMemoryAmount : Memory->LevelMemoryAmount + 1;
-        Memory->MenuEntity->ButtonsAmount = Memory->LevelMemoryAmount+1;
+        Memory->MenuEntity->ButtonsAmount  = Memory->LevelMemoryAmount + 1;
+        Memory->MenuEntity->NewButtonIndex = Memory->MenuEntity->ButtonsAmount - 1;
+        printf("NewButtonIndex =%d\n", Memory->MenuEntity->NewButtonIndex);
         
         Memory->MenuEntity->ButtonsArea = (game_rect *) malloc(sizeof(game_rect) * (Memory->MenuEntity->ButtonsAmountReserved / 20));
         Assert(Memory->MenuEntity->ButtonsArea);
@@ -3317,8 +3320,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     {
         if(Input->Escape.IsDown)
         {
-            //ShouldQuit = true;
-            //printf("ShouldQuit\n");
             if (!Memory->ToggleMenu) Memory->ToggleMenu = true;
             else Memory->ToggleMenu = false;
         }

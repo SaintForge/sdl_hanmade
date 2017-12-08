@@ -46,7 +46,7 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             Memory->MenuEntity->IsAnimating = true;
             Memory->MenuEntity->ScrollingTicks = SDL_GetTicks() - Memory->MenuEntity->ScrollingTicks;
             Memory->MenuEntity->MaxVelocity = 20.0f;
-            Memory->MenuEntity->ButtonIndex = -1;
+            //Memory->MenuEntity->ButtonIndex = -1;
             
             u32 ButtonsAreaAmount = (Memory->MenuEntity->ButtonsAmount / 20) + 1;
             
@@ -116,6 +116,28 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                 
                 Memory->MenuEntity->TargetPosition = Buffer->Width / 2;
                 Memory->ToggleMenu = false;
+                
+                if(Memory->MenuEntity->ButtonIndex == Memory->MenuEntity->NewButtonIndex)
+                {
+                    printf("u hit plus new button\n");
+                }
+                else
+                {
+                    u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
+                    u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
+                    
+                    LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
+                                                           Memory->MenuEntity->ButtonIndex,
+                                                           Memory, Buffer);
+                    LevelEditorChangeGridCounters(Memory->LevelEditor, 
+                                                  Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
+                                                  RowAmount, ColAmount,
+                                                  Buffer);
+                    
+                    
+                }
+                
+                Memory->MenuEntity->ButtonIndex = -1;
             }
             
         }
