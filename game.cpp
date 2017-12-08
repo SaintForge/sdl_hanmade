@@ -3094,13 +3094,13 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Memory->MenuEntity->OldMouseX   = 0;
         Memory->MenuEntity->TargetIndex = 0;
         Memory->MenuEntity->ButtonIndex = -1;
-        Memory->MenuEntity->TargetPosition = 0;
+        Memory->MenuEntity->TargetPosition   = 0;
         Memory->MenuEntity->ButtonSizeWidth  = 100;
         Memory->MenuEntity->ButtonSizeHeight = 100;
         
         Memory->MenuEntity->ButtonsAmountReserved = Memory->LevelMemoryReserved;
         //Memory->MenuEntity->ButtonsAmount         = Memory->LevelMemoryAmount == Memory->LevelMemoryReserved ? Memory->LevelMemoryAmount : Memory->LevelMemoryAmount + 1;
-        Memory->MenuEntity->ButtonsAmount = 99;
+        Memory->MenuEntity->ButtonsAmount = Memory->LevelMemoryAmount+1;
         
         Memory->MenuEntity->ButtonsArea = (game_rect *) malloc(sizeof(game_rect) * (Memory->MenuEntity->ButtonsAmountReserved / 20));
         Assert(Memory->MenuEntity->ButtonsArea);
@@ -3118,7 +3118,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             if(i == Memory->MenuEntity->ButtonsAmountReserved - 1) continue;
             
             char LevelNumber[3] = {0};
-            sprintf(LevelNumber, "%d", Memory->LevelMemory[i].LevelNumber);
+            sprintf(LevelNumber, "%d", i + 1);
             
             Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, LevelNumber, {255, 255, 255});
             Assert(Surface);

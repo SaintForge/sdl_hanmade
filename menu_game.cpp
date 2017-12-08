@@ -43,16 +43,15 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
         else if(Input->LeftClick.WasDown)
         {
             Memory->MenuEntity->IsMoving    = false;
+            Memory->MenuEntity->IsAnimating = true;
             Memory->MenuEntity->ScrollingTicks = SDL_GetTicks() - Memory->MenuEntity->ScrollingTicks;
             Memory->MenuEntity->MaxVelocity = 20.0f;
             Memory->MenuEntity->ButtonIndex = -1;
             
             u32 ButtonsAreaAmount = (Memory->MenuEntity->ButtonsAmount / 20) + 1;
             
-            if(abs(Memory->MenuEntity->TargetPosition) > Memory->MenuEntity->ButtonSizeWidth / 4)
+            if(abs(Memory->MenuEntity->TargetPosition) >= Memory->MenuEntity->ButtonSizeWidth * 0.5f)
             {
-                Memory->MenuEntity->IsAnimating = true;
-                
                 s32 Center_x = 0;
                 s32 Center_y = 0;
                 s32 CenterOffset = 0;
@@ -77,7 +76,7 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                             
                             Memory->MenuEntity->MaxVelocity   *= 2;
                             Memory->MenuEntity->TargetPosition = TargetOffset;
-                            Memory->MenuEntity->ButtonIndex = -1;
+                            Memory->MenuEntity->ButtonIndex    = -1;
                         }
                     }
                 }
@@ -115,8 +114,8 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             {
                 printf("gotta be button click!\n");
                 
-                Memory->MenuEntity->IsAnimating = true;
                 Memory->MenuEntity->TargetPosition = Buffer->Width / 2;
+                Memory->ToggleMenu = false;
             }
             
         }
@@ -127,7 +126,7 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
         OffsetX += Input->MouseRelX;
         Memory->MenuEntity->TargetPosition += OffsetX;
         
-        if(abs(Memory->MenuEntity->TargetPosition) >= Memory->MenuEntity->ButtonSizeWidth / 4)
+        if(abs(Memory->MenuEntity->TargetPosition) >= Memory->MenuEntity->ButtonSizeWidth * 0.5f)
         {
             Memory->MenuEntity->ButtonIndex = -1;
         }
@@ -242,14 +241,20 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             AreaCenter.y = Memory->MenuEntity->Buttons[i].ButtonQuad.y + (Memory->MenuEntity->Buttons[i].ButtonQuad.h / 2);
             
             game_rect AreaQuad = {0};
-            AreaQuad.w = Memory->MenuEntity->Buttons[i].ButtonQuad.w * 1.5f;
-            AreaQuad.h = Memory->MenuEntity->Buttons[i].ButtonQuad.h * 1.5f;
+            AreaQuad.w = Memory->MenuEntity->Buttons[i].ButtonQuad.w * 1.2f;
+            AreaQuad.h = Memory->MenuEntity->Buttons[i].ButtonQuad.h * 1.2f;
             AreaQuad.x = AreaCenter.x - (AreaQuad.w / 2);
             AreaQuad.y = AreaCenter.y - (AreaQuad.h / 2);
             
+            game_rect NumberQuad = {0};
+            NumberQuad.w = Memory->MenuEntity->Buttons[i].LevelNumberTextureQuad.w * 1.2f;
+            NumberQuad.h = Memory->MenuEntity->Buttons[i].LevelNumberTextureQuad.h * 1.2f;
+            NumberQuad.x = AreaCenter.x - (NumberQuad.w / 2);
+            NumberQuad.y = AreaCenter.y - (NumberQuad.h / 2);
+            
             GameRenderBitmapToBuffer(Buffer, Memory->MenuEntity->BackTexture, &AreaQuad);
             GameRenderBitmapToBuffer(Buffer, Memory->MenuEntity->Buttons[i].LevelNumberTexture,
-                                     &Memory->MenuEntity->Buttons[i].LevelNumberTextureQuad);
+                                     &NumberQuad);
         }
         else
         {
@@ -257,10 +262,7 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             GameRenderBitmapToBuffer(Buffer, Memory->MenuEntity->Buttons[i].LevelNumberTexture,
                                      &Memory->MenuEntity->Buttons[i].LevelNumberTextureQuad);
         }
-        
-        
     }
-    
     
     if(Memory->MenuEntity->IsMoving)
     {
