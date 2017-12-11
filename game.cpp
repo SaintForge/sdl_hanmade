@@ -342,21 +342,6 @@ FigureEntityHighlightFigureArea(figure_entity *FigureEntity,
     SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, 255);
 }
 
-#if 0
-static void
-DEBUGPrintEntityOrder(figure_entity *FigureEntity)
-{
-    figure_unit *FigureHead = FigureEntity->HeadFigure;
-    while(FigureHead)
-    {
-        printf("%d ", FigureHead->Index);
-        FigureHead = FigureHead->Next;
-    }
-    printf("\n");
-}
-
-#endif
-
 static u32
 GameResizeActiveBlock(u32 GridAreaWidth, 
                       u32 GridAreaHeight, 
@@ -436,28 +421,6 @@ GameCopyImageToBuffer(game_bitmap* GameBitmap, u32 X, u32 Y,
 }
 #endif
 
-#if 0
-static figure_unit*
-GetFigureUnitAt(figure_entity *Group, u32 Index)
-{
-    u32 Size = Group->FigureAmount;
-    
-    figure_unit *Figure = Group->HeadFigure;
-    for (u32 i = 0; i < Group->FigureAmount; ++i)
-    {
-        if(Figure->Index == Index)
-        {
-            return Figure;
-        }
-        
-        Figure = Figure->Next;
-    }
-}
-
-#endif
-
-
-
 inline static bool
 IsFigureUnitInsideRect(figure_unit *Unit, game_rect *AreaQuad)
 {
@@ -529,72 +492,6 @@ FigureEntityLowPriority(figure_entity *FigureEntity, u32 Index)
     
     FigureOrder[0] = Index;
 }
-
-#if 0
-static void
-FigureUnitSwapAtEnd(figure_unit *&Head, u32 FigureIndex)
-{
-    if(Head->Next == NULL) return;
-    
-    figure_unit *TargetNode  = NULL;
-    figure_unit *PrevNode    = NULL;
-    figure_unit *CurrentNode = Head;
-    
-    while(CurrentNode)
-    {
-        if(CurrentNode->Index == FigureIndex)
-        {
-            if(PrevNode)
-            {
-                if(CurrentNode->Next)
-                {
-                    PrevNode->Next = CurrentNode->Next;
-                }
-                else
-                {
-                    PrevNode->Next = CurrentNode;
-                }
-            }
-            else
-            {
-                Head = CurrentNode->Next;
-            }
-            
-            TargetNode = CurrentNode;
-        }
-        
-        PrevNode    = CurrentNode;
-        CurrentNode = CurrentNode->Next;
-    }
-    
-    PrevNode->Next   = TargetNode;
-    TargetNode->Next = NULL;
-}
-
-
-
-static void
-FigureUnitSwapAtBeginning(figure_unit *&FigureHead, u32 Index)
-{
-    if(FigureHead->Index == Index) return;
-    
-    figure_unit *TargetNode = NULL;
-    figure_unit *PrevNode   = NULL;
-    figure_unit *CurrentNode = FigureHead;
-    
-    while(CurrentNode && 
-          Index != CurrentNode->Index)
-    {
-        PrevNode = CurrentNode;
-        CurrentNode = CurrentNode->Next;
-    }
-    
-    PrevNode->Next = CurrentNode->Next;
-    CurrentNode->Next = FigureHead;
-    FigureHead = CurrentNode;
-}
-
-#endif
 
 static void
 FigureUnitResizeBy(figure_unit *Entity, r32 ScaleFactor)
@@ -1389,20 +1286,6 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
     
     for (u32 i = 0; i < Size; ++i)
     {
-#if 0
-        AreaQuad = FigureUnitGetArea(&Entity->FigureUnit[i]);
-        
-        FigureWidth  = AreaQuad.w;
-        FigureHeight = AreaQuad.h;
-        
-        if(FigureWidth > FigureHeight)
-        {
-            FigureUnitRotateShellBy(&Entity->FigureUnit[i], 90.0);
-            Entity->FigureUnit[i].Angle += 90.0;
-        }
-        
-#endif
-        
         AreaQuad = FigureUnitGetArea(&Entity->FigureUnit[i]);
         i % 2 == 0
             ? RowSize1 += AreaQuad.w + FigureIntervalX
@@ -1448,7 +1331,7 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
 inline static bool
 Change1DUnitPerSec(r32 *Unit, r32 MaxValue, r32 ChangePerSec, r32 TimeElapsed)
 {
-    bool IsFinished = true;
+    
     r32 UnitValue = *Unit;
     
     if(MaxValue > 0)
