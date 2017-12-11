@@ -1331,7 +1331,9 @@ FigureEntityAlignHorizontally(figure_entity* Entity, u32 BlockSize)
 inline static bool
 Change1DUnitPerSec(r32 *Unit, r32 MaxValue, r32 ChangePerSec, r32 TimeElapsed)
 {
+    if(!Unit) return false;
     
+    bool IsFinished = true;
     r32 UnitValue = *Unit;
     
     if(MaxValue > 0)
@@ -1405,8 +1407,8 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, level_entity *State, r
     
     game_rect AreaQuad = {};
     r32 MaxVel       = ActiveBlockSize / 6;
-    u32 RowAmount    = GridEntity->RowAmount;
-    u32 ColumnAmount = GridEntity->ColumnAmount;
+    s32 RowAmount    = GridEntity->RowAmount;
+    s32 ColumnAmount = GridEntity->ColumnAmount;
     u32 FigureAmount = FigureEntity->FigureAmount;
     s32 ActiveIndex  = FigureEntity->FigureActive;
     
@@ -1420,7 +1422,8 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, level_entity *State, r
         bool IsLevelReady = true;
         r32 ScaleSpeed    = TimeElapsed * (State->GridScalePerSec);
         
-        for(u32 line = 1; line <=(RowAmount + ColumnAmount - 1); ++line)
+        
+        for(s32 line = 1; line <=((RowAmount + ColumnAmount) - 1); ++line)
         {
             bool ShouldBreak = true;
             s32 StartColumn  = Max2(0, line - RowAmount);
@@ -1794,8 +1797,18 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, level_entity *State, r
         
     }
     
-    if(ShouldHighlight) Change1DUnitPerSec(&FigureEntity->AreaAlpha, 255, State->FlippingAlphaPerSec, TimeElapsed);
-    else                Change1DUnitPerSec(&FigureEntity->AreaAlpha, 0, State->FlippingAlphaPerSec, TimeElapsed);
+    printf("sas\n");
+    
+    if(ShouldHighlight) 
+    {
+        Change1DUnitPerSec(&FigureEntity->AreaAlpha, 255, State->FlippingAlphaPerSec, TimeElapsed);
+    }
+    else
+    {
+        
+        Change1DUnitPerSec(&FigureEntity->AreaAlpha, 0, State->FlippingAlphaPerSec, TimeElapsed);
+    }
+    
     
     if(FigureEntity->AreaAlpha != 0) ToggleHighlight = true;
     
@@ -2287,7 +2300,6 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     
     u32 RowAmount    = Memory->LevelMemory[Index].RowAmount;
     u32 ColumnAmount = Memory->LevelMemory[Index].ColumnAmount;
-    
     
     LevelEntity->LevelNumber   = Memory->LevelMemory[Index].LevelNumber;
     LevelEntity->LevelStarted  = false;

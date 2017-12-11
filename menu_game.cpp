@@ -120,6 +120,18 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                 if(Memory->MenuEntity->ButtonIndex == Memory->MenuEntity->NewButtonIndex)
                 {
                     printf("u hit plus new button\n");
+                    printf("Memory->MenuEntity->ButtonIndex = %d\n",Memory->MenuEntity->ButtonIndex);
+                    u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
+                    u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
+                    
+                    LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
+                                                           Memory->MenuEntity->ButtonIndex,
+                                                           Memory, Buffer);
+                    LevelEditorChangeGridCounters(Memory->LevelEditor, 
+                                                  Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
+                                                  RowAmount, ColAmount,
+                                                  Buffer);
+                    Memory->ToggleMenu = false;
                 }
                 else if(Memory->MenuEntity->ButtonIndex >= 0)
                 {
