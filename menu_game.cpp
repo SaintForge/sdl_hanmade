@@ -115,14 +115,15 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                 printf("gotta be button click!\n");
                 
                 Memory->MenuEntity->TargetPosition = Buffer->Width / 2;
-                Memory->ToggleMenu = false;
+                
                 
                 if(Memory->MenuEntity->ButtonIndex == Memory->MenuEntity->NewButtonIndex)
                 {
                     printf("u hit plus new button\n");
                 }
-                else
+                else if(Memory->MenuEntity->ButtonIndex >= 0)
                 {
+                    printf("Memory->MenuEntity->ButtonIndex = %d\n",Memory->MenuEntity->ButtonIndex);
                     u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
                     u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
                     
@@ -133,7 +134,7 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                                                   Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
                                                   RowAmount, ColAmount,
                                                   Buffer);
-                    
+                    Memory->ToggleMenu = false;
                     
                 }
                 

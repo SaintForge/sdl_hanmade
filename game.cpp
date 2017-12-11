@@ -241,7 +241,7 @@ struct menu_entity
     s32 ScrollingTicks;
     r32 TargetPosition;
     u32 TargetIndex;
-    u32 ButtonIndex;
+    s32 ButtonIndex;
     u32 NewButtonIndex;
     vector2 Velocity;
     
@@ -2342,6 +2342,9 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
                                        u32 Index,
                                        game_memory *Memory, game_offscreen_buffer *Buffer)
 {
+    printf("LevelEntityUpdateLevelEntityFromMemory\n");
+    printf("Index = %d\n",Index);
+    
     if(LevelEntity->FigureEntity->FigureOrder)
     {
         free(LevelEntity->FigureEntity->FigureOrder);
