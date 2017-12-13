@@ -433,20 +433,20 @@ ConvertLevelMemoryFromRaw(game_memory *&Memory, void *&RawMemory, u32 RawMemoryS
     
     u32 TotalBytesRead = 0;
     level_memory *LevelMemory = NULL;
+    u8 *U8Mem = (u8*)RawMemory;
+    LevelMemory = (level_memory*)U8Mem;
     
     while(TotalBytesRead < RawMemorySpace)
     {
         u32 Index = Memory->LevelMemoryAmount;
         u32 BytesToSkip = 0;
         
-        u8 *U8Mem = (u8*)RawMemory;
-        
-        LevelMemory = (level_memory*)U8Mem;
         Memory->LevelMemory[Index].LevelNumber        = LevelMemory->LevelNumber;
         Memory->LevelMemory[Index].RowAmount          = LevelMemory->RowAmount;
         Memory->LevelMemory[Index].ColumnAmount       = LevelMemory->ColumnAmount;
         Memory->LevelMemory[Index].MovingBlocksAmount = LevelMemory->MovingBlocksAmount;
         Memory->LevelMemory[Index].FigureAmount       = LevelMemory->FigureAmount;
+        printf("FigureAmount = %d\n", Memory->LevelMemory[Index].FigureAmount);
         
         BytesToSkip += sizeof(level_memory);
         
@@ -510,7 +510,13 @@ ConvertLevelMemoryFromRaw(game_memory *&Memory, void *&RawMemory, u32 RawMemoryS
         Memory->LevelMemoryAmount += 1;
         TotalBytesRead += BytesToSkip;
         LevelMemory = ((level_memory*)(((u8*)LevelMemory) + BytesToSkip));
+        U8Mem = U8Mem + BytesToSkip;
     }
+    
+    printf("READ %d LEVELS FROM BINARY!!!!!!!!\n",Memory->LevelMemoryAmount);
+    printf("Memory->LevelMemory[0].FigureAmount = %d\n", Memory->LevelMemory[0].FigureAmount);
+    printf("Memory->LevelMemory[1].FigureAmount = %d\n", Memory->LevelMemory[1].FigureAmount);
+    printf("Memory->LevelMemory[2].FigureAmount = %d\n", Memory->LevelMemory[2].FigureAmount);
 }
 
 static void
@@ -529,6 +535,7 @@ LoadLevelMemoryFromFile(game_memory *Memory)
     }
     else
     {
+        // note: why do we do that 2 times???
         u32 RawMemorySpace = SDLSizeOfSDL_RWops(BinaryFile);
         void *RawMemory = malloc(RawMemorySpace);
         Assert(RawMemory);
@@ -548,6 +555,7 @@ SaveLevelMemoryToFile(game_memory *Memory)
     
     for(u32 i = 0; i < Memory->LevelMemoryAmount; ++i)
     {
+        printf("writing loop %d\n", i);
         SDL_RWwrite(BinaryFile, &Memory->LevelMemory[i], sizeof(level_memory), 1);
         SDL_RWwrite(BinaryFile, Memory->LevelMemory[i].UnitField, sizeof(s32) *  Memory->LevelMemory[i].RowAmount * Memory->LevelMemory[i].ColumnAmount, 1);
         
@@ -557,6 +565,11 @@ SaveLevelMemoryToFile(game_memory *Memory)
     }
     
     u32 ByteSize = SDLSizeOfSDL_RWops(BinaryFile);
+    
+    printf("WROTE %d LEVELS TO BINARY!!!!!!!!\n",Memory->LevelMemoryAmount);
+    printf("Memory->LevelMemory[0].FigureAmount = %d\n", Memory->LevelMemory[0].FigureAmount);
+    printf("Memory->LevelMemory[1].FigureAmount = %d\n", Memory->LevelMemory[1].FigureAmount);
+    printf("Memory->LevelMemory[2].FigureAmount = %d\n", Memory->LevelMemory[2].FigureAmount);
     
     SDL_RWclose(BinaryFile);
 }

@@ -114,40 +114,93 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             {
                 printf("gotta be button click!\n");
                 
+                
                 Memory->MenuEntity->TargetPosition = Buffer->Width / 2;
                 
+                s32 Index = Memory->MenuEntity->ButtonIndex;
+                printf("new index = %d\n", Index);
                 
-                if(Memory->MenuEntity->ButtonIndex == Memory->MenuEntity->NewButtonIndex)
+                if(Index == Memory->MenuEntity->NewButtonIndex)
                 {
-                    printf("u hit plus new button\n");
-                    printf("Memory->MenuEntity->ButtonIndex = %d\n",Memory->MenuEntity->ButtonIndex);
+                    printf("+ button\n");
                     u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
                     u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
                     
                     LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
-                                                           Memory->MenuEntity->ButtonIndex,
+                                                           Index,
                                                            Memory, Buffer);
                     LevelEditorChangeGridCounters(Memory->LevelEditor, 
                                                   Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
                                                   RowAmount, ColAmount,
                                                   Buffer);
-                    Memory->ToggleMenu = false;
+                    
+                    
+                    Memory->LevelEntity.LevelNumber = Index;
+                    Memory->LevelMemory[Index].LevelNumber = Index;
+                    
+                    SDL_DestroyTexture(Memory->MenuEntity->Buttons[Index].LevelNumberTexture);
+                    
+                    Memory->MenuEntity->ButtonsAmount += 1;
+                    
+                    char LevelNumber[3] = {0};
+                    sprintf(LevelNumber, "%d", Index + 1);
+                    
+                    game_surface *Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, LevelNumber, {255, 255, 255});
+                    Assert(Surface);
+                    
+                    Memory->MenuEntity->Buttons[Index].LevelNumberTextureQuad.w = Surface->w;
+                    Memory->MenuEntity->Buttons[Index].LevelNumberTextureQuad.h = Surface->h;
+                    
+                    Memory->MenuEntity->Buttons[Index].LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+                    Assert(Memory->MenuEntity->Buttons[Index].LevelNumberTexture);
+                    
+                    SDL_FreeSurface(Surface);
+                    
+                    Memory->MenuEntity->Buttons[Index].ButtonQuad.w = Memory->MenuEntity->ButtonSizeWidth;
+                    Memory->MenuEntity->Buttons[Index].ButtonQuad.h = Memory->MenuEntity->ButtonSizeHeight;
+                    
+                    Index += 1;
+                    
+                    Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, "+", {255, 255, 255 });
+                    Assert(Surface);
+                    
+                    Memory->MenuEntity->Buttons[Index].LevelNumberTextureQuad.w = Surface->w;
+                    Memory->MenuEntity->Buttons[Index].LevelNumberTextureQuad.h = Surface->h;
+                    
+                    Memory->MenuEntity->Buttons[Index].LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+                    Assert(Memory->MenuEntity->Buttons[Index].LevelNumberTexture);
+                    
+                    SDL_FreeSurface(Surface);
+                    
+                    Memory->MenuEntity->Buttons[Index].ButtonQuad.w = Memory->MenuEntity->ButtonSizeWidth;
+                    Memory->MenuEntity->Buttons[Index].ButtonQuad.h = Memory->MenuEntity->ButtonSizeHeight; 
+                    
+                    //Memory->ToggleMenu = false;
+                    Memory->MenuEntity->NewButtonIndex = Index;
+                    
+                    MenuEntityAlignButtons(Memory->MenuEntity, Buffer->Width, Buffer->Height);
+                    
+                    //Memory->LevelMemory[Memory->LevelMemoryAmount].LevelNumber = Memory->LevelMemoryAmount - 1;
+                    
+                    Memory->LevelMemoryAmount += 1;
+                    
                 }
-                else if(Memory->MenuEntity->ButtonIndex >= 0)
+                else if(Index >= 0)
                 {
-                    printf("Memory->MenuEntity->ButtonIndex = %d\n",Memory->MenuEntity->ButtonIndex);
+                    printf("level button\n");
+                    
                     u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
                     u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
                     
                     LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
-                                                           Memory->MenuEntity->ButtonIndex,
+                                                           Index,
                                                            Memory, Buffer);
                     LevelEditorChangeGridCounters(Memory->LevelEditor, 
                                                   Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
                                                   RowAmount, ColAmount,
                                                   Buffer);
                     Memory->ToggleMenu = false;
-                    
+                    Memory->LevelEntity.LevelNumber = Index;
                 }
                 
                 Memory->MenuEntity->ButtonIndex = -1;
@@ -308,6 +361,7 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                         Target, Buffer->Height / 2,
                         {0, 255, 0}, 255);
     }
+    
 }
 
 

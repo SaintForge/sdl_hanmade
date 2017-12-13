@@ -226,7 +226,6 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
                 }
                 else if(KeyCode == SDLK_ESCAPE)
                 {
-                    printf("KeyCode == SDLK_ESCAPE\n");
                     SDLProcessKeyPress(&Input->Escape, IsDown, WasDown);
                 }
                 else if(KeyCode == SDLK_BACKQUOTE)

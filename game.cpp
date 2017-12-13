@@ -1797,8 +1797,6 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, level_entity *State, r
         
     }
     
-    printf("sas\n");
-    
     if(ShouldHighlight) 
     {
         Change1DUnitPerSec(&FigureEntity->AreaAlpha, 255, State->FlippingAlphaPerSec, TimeElapsed);
@@ -2235,7 +2233,7 @@ LevelEditorGetNextFigureType(figure_type CurrentType)
 
 static void
 LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity, 
-                                       u32 Index,
+                                       s32 Index,
                                        game_memory *Memory, game_offscreen_buffer *Buffer)
 {
     printf("LevelEntityUpdateLevelEntityFromMemory\n");
@@ -2295,8 +2293,7 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
         free(LevelEntity->GridEntity->MovingBlocks);
         LevelEntity->GridEntity->MovingBlocks = 0;
     }
-    
-    printf("deleted old memory!\n");
+    printf("from memory index = %d\n", Index);
     
     u32 RowAmount    = Memory->LevelMemory[Index].RowAmount;
     u32 ColumnAmount = Memory->LevelMemory[Index].ColumnAmount;
@@ -2305,8 +2302,6 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     LevelEntity->LevelStarted  = false;
     LevelEntity->LevelFinished = false;
     
-    printf("rescaling!\n");
-    
     RescaleGameField(Buffer, RowAmount, ColumnAmount,
                      LevelEntity->FigureEntity->FigureAmountReserved, LevelEntity->DefaultBlocksInRow, LevelEntity->DefaultBlocksInCol, LevelEntity);
     
@@ -2314,8 +2309,6 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     u32 InActiveBlockSize = LevelEntity->InActiveBlockSize;
     
     LevelEntity->GridScalePerSec     = ((RowAmount * ColumnAmount)) * (ActiveBlockSize/2);
-    
-    printf("level_entity init!\n");
     
     /*
     
@@ -2348,8 +2341,6 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     {
         LevelEntity->FigureEntity->FigureOrder[i] = i;
     }
-    
-    printf("figure_entity init!\n");
     
     /*
     
@@ -2407,7 +2398,7 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     
     LevelEntity->GridEntity->MovingBlocksAmount = 0;
     
-    printf("LevelEntity->GridEntity->MovingBlocksAmountReserved = %d\n", LevelEntity->GridEntity->MovingBlocksAmountReserved);
+    
     LevelEntity->GridEntity->MovingBlocks = (moving_block *) malloc(sizeof(moving_block) * LevelEntity->GridEntity->MovingBlocksAmountReserved);
     Assert(LevelEntity->GridEntity->MovingBlocks);
     
@@ -2420,8 +2411,6 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
         
         GridEntityAddMovingBlock(LevelEntity->GridEntity, RowNumber, ColNumber, IsVertical, MoveSwitch, ActiveBlockSize);
     }
-    
-    printf("grid_entity init!\n");
     
 }
 
@@ -2676,7 +2665,9 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                       &LevelEditor->SaveButtonLayer))
             {
                 printf("Save!\n");
-                SaveLevelToMemory(Memory, LevelEntity, 0);
+                printf("LevelNumber = %d\n", LevelEntity->LevelNumber);
+                
+                SaveLevelToMemory(Memory, LevelEntity, LevelEntity->LevelNumber);
                 LevelEditor->ActiveButton = LevelEditor->SaveButtonLayer;
             }
             else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
@@ -2684,7 +2675,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             {
                 printf("Load!\n");
                 LevelEntityUpdateLevelEntityFromMemory(LevelEntity, 
-                                                       0,
+                                                       LevelEntity->LevelNumber,
                                                        Memory, Buffer);
                 LevelEditorChangeGridCounters(LevelEditor, 
                                               LevelEntity->GridEntity->RowAmount, LevelEntity->GridEntity->ColumnAmount, 
@@ -2916,8 +2907,6 @@ MenuEntityAlignButtons(menu_entity *MenuEntity,
     s32 StartX = (ScreenWidth / 2)  - (((ButtonWidth * ButtonsPerRow) + ((ButtonsPerRow - 1) * SpaceBetweenButtons)) / 2);
     s32 StartY = (ScreenHeight / 2) - ((ButtonHeight * ButtonsPerColumn) / 2)- ((ButtonsPerColumn * SpaceBetweenButtons) / 2);
     
-    printf("StartY = %d\n", StartY);
-    
     u32 ButtonsAreaAmount = MenuEntity->ButtonsAmountReserved / 20;
     for(u32 i = 0; i < ButtonsAreaAmount; ++i)
     {
@@ -2925,8 +2914,6 @@ MenuEntityAlignButtons(menu_entity *MenuEntity,
         MenuEntity->ButtonsArea[i].y = StartY;;
         MenuEntity->ButtonsArea[i].w = (ButtonWidth * ButtonsPerRow) + ((ButtonsPerRow - 1) * SpaceBetweenButtons);
         MenuEntity->ButtonsArea[i].h = (ButtonHeight * ButtonsPerColumn) + ((ButtonsPerColumn - 1) * SpaceBetweenButtons);
-        
-        printf("MenuEntity->ButtonsArea[i].w = %d\n", MenuEntity->ButtonsArea[i].w );
     }
     
     for(u32 i = 0; i < MenuEntity->ButtonsAmount; ++i)
@@ -2948,12 +2935,8 @@ MenuEntityAlignButtons(menu_entity *MenuEntity,
             YOffset = 0;
         }
         
-        printf("YOffset = %d\n", YOffset);
-        
         XPosition = StartX + (XOffset * ButtonWidth) + (XOffset * SpaceBetweenButtons);
         YPosition = StartY + (YOffset * ButtonHeight) + (YOffset * SpaceBetweenButtons);
-        printf("YPosition = %d\n", YPosition);
-        
         MenuEntity->Buttons[i].ButtonQuad.x = XPosition;
         MenuEntity->Buttons[i].ButtonQuad.y = YPosition;
         
@@ -2980,7 +2963,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         // Memory initialization
         
         //Memory->LevelMemoryAmount = 1;
-        GameState->LevelNumber = 1;
+        GameState->LevelNumber = 0;
         
         Memory->ToggleMenu = false;
         
@@ -3001,7 +2984,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         //Memory->MenuEntity->ButtonsAmount         = Memory->LevelMemoryAmount == Memory->LevelMemoryReserved ? Memory->LevelMemoryAmount : Memory->LevelMemoryAmount + 1;
         Memory->MenuEntity->ButtonsAmount  = Memory->LevelMemoryAmount + 1;
         Memory->MenuEntity->NewButtonIndex = Memory->MenuEntity->ButtonsAmount - 1;
-        printf("NewButtonIndex =%d\n", Memory->MenuEntity->NewButtonIndex);
         
         Memory->MenuEntity->ButtonsArea = (game_rect *) malloc(sizeof(game_rect) * (Memory->MenuEntity->ButtonsAmountReserved / 20));
         Assert(Memory->MenuEntity->ButtonsArea);
@@ -3057,12 +3039,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             Memory->MenuEntity->Buttons[Index].ButtonQuad.h = Memory->MenuEntity->ButtonSizeHeight; 
         }
         
-        
-        
         MenuEntityAlignButtons(Memory->MenuEntity, Buffer->Width, Buffer->Height);
         
         Memory->MenuEntity->BackTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
-        
         
         // temporal level_entity initialization
         
@@ -3239,7 +3218,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         LevelEntityUpdateAndRender(Buffer, GameState, TimeElapsed);
         LevelEditorUpdateAndRender(Memory->LevelEditor, GameState, Memory, Buffer, Input);
         
-        //printf("TimeElapsed = %f\n", TimeElapsed);
+        ///printf("TimeElapsed = %f\n", TimeElapsed);
+        //printf("GameState->LevelNumber = %d\n", GameState->LevelNumber);
     }
     
     
