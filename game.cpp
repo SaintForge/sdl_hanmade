@@ -230,6 +230,7 @@ struct menu_entity
 {
     bool IsMoving;
     bool IsAnimating;
+    bool DevMode;
     
     u32 ButtonSizeWidth;
     u32 ButtonSizeHeight;
@@ -2972,6 +2973,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         Memory->MenuEntity->IsMoving    = false;
         Memory->MenuEntity->IsAnimating = false;
+        Memory->MenuEntity->DevMode     = false;
         Memory->MenuEntity->MaxVelocity = 20.0f;
         Memory->MenuEntity->OldMouseX   = 0;
         Memory->MenuEntity->TargetIndex = 0;
