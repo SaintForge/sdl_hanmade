@@ -1,4 +1,3 @@
-
 ---General---
 +	1. Change order of the figure when it sticks to the grid 
 
@@ -37,9 +36,10 @@
 +	3. Implement level data load/save from file
 
 ---Main Menu---
--	1. Implement level navigation
--	2. Implement main menu
--	3. Implement level creation/deletion from level navigator
++	1. Implement level navigation
+-	2. Implement level creation/deletion from level navigator
+-	3. Implement main menu
+
 
 BUGS:
 	+ 1. When I want to pick the figure that lies on top of the figure that is sticked

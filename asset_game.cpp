@@ -520,14 +520,14 @@ ConvertLevelMemoryFromRaw(game_memory *&Memory, void *&RawMemory, u32 RawMemoryS
 }
 
 static void
-LoadLevelMemoryFromFile(game_memory *Memory)
+LoadLevelMemoryFromFile(char* FileName, game_memory *Memory)
 {
     Memory->LevelMemoryAmount = 0;
     Memory->LevelMemoryReserved = 100;
     Memory->LevelMemory = (level_memory *)calloc(sizeof(level_memory), Memory->LevelMemoryReserved);
     Assert(Memory->LevelMemory);
     
-    SDL_RWops *BinaryFile = SDL_RWFromFile("package2.bin", "rb");
+    SDL_RWops *BinaryFile = SDL_RWFromFile(FileName, "rb");
     u32 ByteAmount = SDLSizeOfSDL_RWops(BinaryFile);
     if(!(BinaryFile) || ByteAmount == 0)
     {
@@ -665,8 +665,9 @@ static int
 SDLAssetLoadBinaryFile(void *Data)
 {
     game_memory *Memory = ((game_memory*)Data);
+    
     SDLReadEntireAssetFile("package1.bin", Memory);
-    LoadLevelMemoryFromFile(Memory);
+    LoadLevelMemoryFromFile("package2.bin", Memory);
     
     Memory->AssetsInitialized = true;
     

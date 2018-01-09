@@ -22,6 +22,7 @@ using namespace std;
 
 typedef SDL_Rect    game_rect;
 typedef SDL_Point   game_point;
+typedef SDL_Color   game_color;
 typedef SDL_Texture game_texture;
 typedef SDL_Surface game_surface;
 typedef Mix_Chunk   game_sound;

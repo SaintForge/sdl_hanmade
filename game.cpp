@@ -230,6 +230,8 @@ struct menu_entity
 {
     bool IsMoving;
     bool IsAnimating;
+    bool IsShowingDelete;
+    bool IsToBeDeleted;
     bool DevMode;
     
     u32 ButtonSizeWidth;
@@ -251,6 +253,7 @@ struct menu_entity
     
     game_rect    *ButtonsArea;
     menu_button  *Buttons;
+    menu_button  *ConfirmButtons;
 };
 
 #include "game.h"
@@ -2974,6 +2977,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Memory->MenuEntity->IsMoving    = false;
         Memory->MenuEntity->IsAnimating = false;
         Memory->MenuEntity->DevMode     = false;
+        Memory->MenuEntity->IsShowingDelete = false;
+        Memory->MenuEntity->IsToBeDeleted = false;
         Memory->MenuEntity->MaxVelocity = 20.0f;
         Memory->MenuEntity->OldMouseX   = 0;
         Memory->MenuEntity->TargetIndex = 0;
@@ -3044,6 +3049,40 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         MenuEntityAlignButtons(Memory->MenuEntity, Buffer->Width, Buffer->Height);
         
         Memory->MenuEntity->BackTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
+        
+        //
+        // Additional buttons for confirming deletion of a level
+        //
+        
+        Memory->MenuEntity->ConfirmButtons = (menu_button *) malloc(sizeof(menu_button) * 2);
+        Assert(Memory->MenuEntity->ConfirmButtons);
+        
+        Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.w = Memory->MenuEntity->ButtonSizeWidth / 4;
+        Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.h = Memory->MenuEntity->ButtonSizeHeight / 4;
+        
+        Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, "Y", {0, 0, 255});
+        Assert(Surface);
+        
+        Memory->MenuEntity->ConfirmButtons[0].LevelNumberTextureQuad.w = Surface->w < Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.w ? Surface->w : Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.w;
+        
+        Memory->MenuEntity->ConfirmButtons[0].LevelNumberTextureQuad.h = Surface->h < Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.h ? Surface->h : Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.h;
+        
+        Memory->MenuEntity->ConfirmButtons[0].LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+        
+        Memory->MenuEntity->ConfirmButtons[1].ButtonQuad.w = Memory->MenuEntity->ButtonSizeWidth / 4;
+        Memory->MenuEntity->ConfirmButtons[1].ButtonQuad.h = Memory->MenuEntity->ButtonSizeHeight / 4;
+        
+        SDL_FreeSurface(Surface);
+        
+        Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, "N", {255, 0, 0});
+        Assert(Surface);
+        
+        Memory->MenuEntity->ConfirmButtons[1].LevelNumberTextureQuad.w = Surface->w < Memory->MenuEntity->ConfirmButtons[1].ButtonQuad.w ? Surface->w : Memory->MenuEntity->ConfirmButtons[1].ButtonQuad.w;
+        
+        Memory->MenuEntity->ConfirmButtons[1].LevelNumberTextureQuad.h = Surface->h < Memory->MenuEntity->ConfirmButtons[1].ButtonQuad.h ? Surface->h : Memory->MenuEntity->ConfirmButtons[1].ButtonQuad.h;
+        
+        Memory->MenuEntity->ConfirmButtons[1].LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+        
         
         // temporal level_entity initialization
         
@@ -3185,6 +3224,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         // Level Editor initialization
         LevelEditorInit(GameState, Memory, Buffer);
+        
+        //Memory->Music = GetMusic(Memory, "amb_ending_water.ogg");
+        //Assert(Memory->Music);
+        //Mix_PlayMusic(Memory->Music, -1);
         
         Memory->IsInitialized = true;
         printf("memory init!\n");
