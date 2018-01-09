@@ -16,7 +16,6 @@ MenuChangeButtonText(game_font *&Font, char *Text,
                      game_color Color, 
                      game_offscreen_buffer *Buffer)
 {
-    printf("Start!\n");
     game_surface *Surface = TTF_RenderUTF8_Blended(Font, Text, Color);
     Assert(Surface);
     
@@ -30,7 +29,6 @@ MenuChangeButtonText(game_font *&Font, char *Text,
     
     Button->ButtonQuad.w = MenuEntity->ButtonSizeWidth;
     Button->ButtonQuad.h = MenuEntity->ButtonSizeHeight;
-    printf("End\n");
 }
 
 static void 
@@ -136,10 +134,8 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             
             if(Memory->MenuEntity->DevMode)
             {
-                printf("Left click in dev mode!\n");
                 if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Memory->MenuEntity->ConfirmButtons[0].ButtonQuad))
                 {
-                    printf("deleting the level!\n");
                     Memory->MenuEntity->IsToBeDeleted = true;
                 }
                 Memory->MenuEntity->IsShowingDelete = false;
