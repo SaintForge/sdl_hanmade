@@ -167,6 +167,7 @@ struct level_editor
 {
     u32 SelectedFigure;
     bool ButtonPressed;
+    bool KeyPressed;
     game_rect ActiveButton;
     
     game_rect PrevLevelQuad;
@@ -2348,21 +2349,7 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     }
     printf("from memory index = %d\n", Index);
     
-    char LevelNumberString[3] = {0};
-    sprintf(LevelNumberString, "%d", Index+1);
     
-    game_surface *Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, LevelNumberString, {255, 255, 255});
-    Assert(Surface);
-    
-    LevelEntity->LevelNumberQuad.w = Surface->w;
-    LevelEntity->LevelNumberQuad.h = Surface->h;
-    LevelEntity->LevelNumberQuad.x = Buffer->Width / 2;
-    LevelEntity->LevelNumberQuad.y = Surface->h;
-    
-    LevelEntity->LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
-    Assert(LevelEntity->LevelNumberTexture);
-    
-    SDL_FreeSurface(Surface);
     
     u32 RowAmount    = Memory->LevelMemory[Index].RowAmount;
     u32 ColumnAmount = Memory->LevelMemory[Index].ColumnAmount;
@@ -2481,6 +2468,27 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
         GridEntityAddMovingBlock(LevelEntity->GridEntity, RowNumber, ColNumber, IsVertical, MoveSwitch, ActiveBlockSize);
     }
     
+    //
+    // level number texture loading
+    //
+    
+    char LevelNumberString[3] = {0};
+    sprintf(LevelNumberString, "%d", Index+1);
+    
+    game_surface *Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, LevelNumberString, {255, 255, 255});
+    Assert(Surface);
+    
+    s32 ButtonSize = LevelEntity->InActiveBlockSize * 2;
+    
+    LevelEntity->LevelNumberQuad.w = Surface->w;
+    LevelEntity->LevelNumberQuad.h = Surface->h;
+    LevelEntity->LevelNumberQuad.x = Buffer->Width - ButtonSize;
+    LevelEntity->LevelNumberQuad.y = ButtonSize - Surface->h;
+    
+    LevelEntity->LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+    Assert(LevelEntity->LevelNumberTexture);
+    
+    SDL_FreeSurface(Surface);
 }
 
 static void
@@ -2625,7 +2633,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 
             }
             
-            LevelEditor->ButtonPressed = true;
+            LevelEditor->KeyPressed = true;
             LevelEditor->ActiveButton = LevelEditor->PrevLevelQuad;
             
         }
@@ -2647,7 +2655,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                               Buffer);
             }
             
-            LevelEditor->ButtonPressed = true;
+            LevelEditor->KeyPressed = true;
             LevelEditor->ActiveButton = LevelEditor->NextLevelQuad;
         }
         else if(Input->LeftClick.IsDown)
@@ -2929,12 +2937,12 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         else if(Input->Q_Button.WasDown)
         {
             printf("q key was down\n");
-            LevelEditor->ButtonPressed = false;
+            LevelEditor->KeyPressed = false;
         }
         else if(Input->E_Button.WasDown)
         {
             printf("e key was down\n");
-            LevelEditor->ButtonPressed = false;
+            LevelEditor->KeyPressed = false;
         }
     }
     
@@ -3056,6 +3064,11 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     if(LevelEditor->ButtonPressed)
     {
         DEBUGRenderQuadFill(Buffer, &LevelEditor->ActiveButton, {255, 0, 0}, 150);
+    }
+    
+    if(LevelEditor->KeyPressed)
+    {
+        DEBUGRenderQuad(Buffer, &LevelEditor->ActiveButton, {255, 0, 0}, 150);
     }
 }
 
