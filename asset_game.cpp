@@ -422,6 +422,8 @@ GetTexture(game_memory *&Memory, char* FileName, SDL_Renderer *&Renderer)
         
         Texture = SDL_CreateTextureFromSurface(Renderer, Surface);
         Assert(Texture);
+        
+        SDL_FreeSurface(Surface);
     }
     
     return(Texture);
@@ -718,6 +720,9 @@ SDLAssetBuildBinaryFile()
     SDLWriteBitmapToFile(BinaryFile, "t_d.png");
     SDLWriteBitmapToFile(BinaryFile, "t_m.png");
     SDLWriteBitmapToFile(BinaryFile, "t_s.png");
+    
+    SDLWriteBitmapToFile(BinaryFile, "left_arrow.png");
+    SDLWriteBitmapToFile(BinaryFile, "right_arrow.png");
     
     /* Audio loading */
     BinaryHeader.AudioSizeInBytes = SDL_RWtell(BinaryFile) - sizeof(binary_header);

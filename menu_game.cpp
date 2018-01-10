@@ -83,9 +83,9 @@ MenuDeleteLevel(game_offscreen_buffer *Buffer,
     Memory->LevelMemory[Memory->LevelMemoryAmount].MovingBlocksAmount = 0;
     Memory->LevelMemory[Memory->LevelMemoryAmount].FigureAmount       = 0;
     
-    Memory->LevelMemory[Memory->LevelMemoryAmount].UnitField   = NULL;
+    Memory->LevelMemory[Memory->LevelMemoryAmount].UnitField    = NULL;
     Memory->LevelMemory[Memory->LevelMemoryAmount].MovingBlocks = NULL;
-    Memory->LevelMemory[Memory->LevelMemoryAmount].Figures     = NULL;
+    Memory->LevelMemory[Memory->LevelMemoryAmount].Figures      = NULL;
 }
 
 static void
@@ -134,11 +134,15 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             
             if(Memory->MenuEntity->DevMode)
             {
-                if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Memory->MenuEntity->ConfirmButtons[0].ButtonQuad))
+                if(Memory->MenuEntity->IsShowingDelete)
                 {
-                    Memory->MenuEntity->IsToBeDeleted = true;
+                    if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Memory->MenuEntity->ConfirmButtons[0].ButtonQuad))
+                    {
+                        Memory->MenuEntity->IsToBeDeleted = true;
+                    }
+                    
+                    Memory->MenuEntity->IsShowingDelete = false;
                 }
-                Memory->MenuEntity->IsShowingDelete = false;
             }
             
         }
@@ -264,6 +268,7 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                         if(Memory->MenuEntity->IsToBeDeleted)
                         {
                             MenuDeleteLevel(Buffer, Memory, Memory->MenuEntity->ButtonIndex);
+                            Memory->MenuEntity->IsToBeDeleted = false;
                             
                         }
                     }
@@ -311,7 +316,6 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                 if(Index >= 0 && Index != Memory->MenuEntity->NewButtonIndex)
                 {
                     Memory->MenuEntity->IsShowingDelete = true;
-                    printf("Are u sure u want to delete %d level?\n", Index + 1);
                     
                     Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.x = Memory->MenuEntity->Buttons[Index].ButtonQuad.x + Memory->MenuEntity->Buttons[Index].ButtonQuad.w - (Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.w * 2);
                     Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.y = Memory->MenuEntity->Buttons[Index].ButtonQuad.y;
