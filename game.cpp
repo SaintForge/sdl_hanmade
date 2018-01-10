@@ -1911,8 +1911,8 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, level_entity *State, r
         //DEBUGRenderQuad(Buffer, &FigureUnit[Index].AreaQuad, {255, 0, 0}, 255);
     }
     
+    GameRenderBitmapToBuffer(Buffer, State->LevelNumberShadowTexture,   &State->LevelNumberShadowQuad);
     GameRenderBitmapToBuffer(Buffer, State->LevelNumberTexture,   &State->LevelNumberQuad);
-    
 }
 
 
@@ -2290,9 +2290,6 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
         LevelEntity->LevelNumberTexture = NULL;
     }
     
-    
-    
-    
     if(LevelEntity->FigureEntity->FigureOrder)
     {
         free(LevelEntity->FigureEntity->FigureOrder);
@@ -2485,10 +2482,23 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     LevelEntity->LevelNumberQuad.x = Buffer->Width - ButtonSize;
     LevelEntity->LevelNumberQuad.y = ButtonSize - Surface->h;
     
+    LevelEntity->LevelNumberShadowQuad = LevelEntity->LevelNumberQuad;
+    LevelEntity->LevelNumberShadowQuad.x += 3;
+    LevelEntity->LevelNumberShadowQuad.y += 3;
+    
     LevelEntity->LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
     Assert(LevelEntity->LevelNumberTexture);
     
     SDL_FreeSurface(Surface);
+    
+    Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, LevelNumberString, {0, 0, 0});
+    Assert(Surface);
+    
+    LevelEntity->LevelNumberShadowTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+    Assert(LevelEntity->LevelNumberShadowTexture);
+    
+    SDL_FreeSurface(Surface);
+    
 }
 
 static void
