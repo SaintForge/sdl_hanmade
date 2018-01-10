@@ -235,10 +235,12 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
                 }
                 else if(KeyCode == SDLK_q)
                 {
+                    printf("KeyCode == SDLK_q\n");
                     SDLProcessKeyPress(&Input->Q_Button, IsDown, WasDown);
                 }
                 else if(KeyCode == SDLK_e)
                 {
+                    printf("KeyCode == SDLK_q\n");
                     SDLProcessKeyPress(&Input->E_Button, IsDown, WasDown);
                 }
             }										 
@@ -293,8 +295,8 @@ SDLFlushEvents(game_input *Input)
     if(Input->LeftClick.IsDown)  Input->LeftClick.IsDown  = false;
     if(Input->LeftClick.WasDown) Input->LeftClick.WasDown = false;
     
-    if(Input->Q_Button.IsDown)  Input->Q_Button.IsDown = false;
-    if(Input->Q_Button.WasDown) Input->Q_Button.WasDown = false;
+    //if(Input->Q_Button.IsDown)  Input->Q_Button.IsDown = false;
+    //if(Input->Q_Button.WasDown) Input->Q_Button.WasDown = false;
 }
 
 #undef main //NOTE(Max): Because SDL_main doesn't work on some windows versions 

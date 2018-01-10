@@ -167,7 +167,6 @@ struct level_editor
 {
     u32 SelectedFigure;
     bool ButtonPressed;
-    bool KeyPressed;
     game_rect ActiveButton;
     
     game_rect PrevLevelQuad;
@@ -2275,9 +2274,6 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
                                        s32 Index,
                                        game_memory *Memory, game_offscreen_buffer *Buffer)
 {
-    printf("LevelEntityUpdateLevelEntityFromMemory\n");
-    printf("Index = %d\n",Index);
-    
     if(LevelEntity->LevelNumberTexture)
     {
         SDL_DestroyTexture(LevelEntity->LevelNumberTexture);
@@ -2344,9 +2340,6 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
         free(LevelEntity->GridEntity->MovingBlocks);
         LevelEntity->GridEntity->MovingBlocks = 0;
     }
-    printf("from memory index = %d\n", Index);
-    
-    
     
     u32 RowAmount    = Memory->LevelMemory[Index].RowAmount;
     u32 ColumnAmount = Memory->LevelMemory[Index].ColumnAmount;
@@ -2626,6 +2619,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         }
         else if(Input->Q_Button.IsDown)
         {
+            printf("Q_Button is down\n");
             s32 PrevLevelNumber = LevelEntity->LevelNumber - 1;
             if(PrevLevelNumber >= 0)
             {
@@ -2643,12 +2637,17 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 
             }
             
-            LevelEditor->KeyPressed = true;
+            LevelEditor->PrevLevelQuad.x -= LevelEditor->PrevLevelQuad.w/2;
+            LevelEditor->PrevLevelQuad.y -= LevelEditor->PrevLevelQuad.h/2;
+            LevelEditor->PrevLevelQuad.w *= 2;
+            LevelEditor->PrevLevelQuad.h *= 2;
+            
             LevelEditor->ActiveButton = LevelEditor->PrevLevelQuad;
             
         }
         else if(Input->E_Button.IsDown)
         {
+            printf("E_Button is down\n");
             s32 NextLevelNumber = LevelEntity->LevelNumber + 1;
             if(NextLevelNumber < Memory->LevelMemoryAmount)
             {
@@ -2665,7 +2664,11 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                               Buffer);
             }
             
-            LevelEditor->KeyPressed = true;
+            LevelEditor->NextLevelQuad.x -= LevelEditor->NextLevelQuad.w/2;
+            LevelEditor->NextLevelQuad.y -= LevelEditor->NextLevelQuad.h/2;
+            LevelEditor->NextLevelQuad.w *= 2;
+            LevelEditor->NextLevelQuad.h *= 2;
+            
             LevelEditor->ActiveButton = LevelEditor->NextLevelQuad;
         }
         else if(Input->LeftClick.IsDown)
@@ -2942,17 +2945,22 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         {
             LevelEditor->ButtonPressed = false;
             LevelEditor->ActiveButton.y = -100;
-            printf("was down\n");
         }
         else if(Input->Q_Button.WasDown)
         {
-            printf("q key was down\n");
-            LevelEditor->KeyPressed = false;
+            printf("Q_Button was down\n");
+            LevelEditor->PrevLevelQuad.w /= 2;
+            LevelEditor->PrevLevelQuad.h /= 2;
+            LevelEditor->PrevLevelQuad.x += LevelEditor->PrevLevelQuad.w/2;
+            LevelEditor->PrevLevelQuad.y += LevelEditor->PrevLevelQuad.h/2;
         }
         else if(Input->E_Button.WasDown)
         {
-            printf("e key was down\n");
-            LevelEditor->KeyPressed = false;
+            printf("E_Button was down\n");
+            LevelEditor->NextLevelQuad.w /= 2;
+            LevelEditor->NextLevelQuad.h /= 2;
+            LevelEditor->NextLevelQuad.x += LevelEditor->NextLevelQuad.w/2;
+            LevelEditor->NextLevelQuad.y += LevelEditor->NextLevelQuad.h/2;
         }
     }
     
@@ -3074,11 +3082,6 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     if(LevelEditor->ButtonPressed)
     {
         DEBUGRenderQuadFill(Buffer, &LevelEditor->ActiveButton, {255, 0, 0}, 150);
-    }
-    
-    if(LevelEditor->KeyPressed)
-    {
-        DEBUGRenderQuad(Buffer, &LevelEditor->ActiveButton, {255, 0, 0}, 150);
     }
 }
 
