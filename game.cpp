@@ -2617,7 +2617,8 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         {
             NewIndex += 2;
         }
-        else if(Input->Q_Button.IsDown)
+        
+        if(Input->Q_Button.IsDown)
         {
             printf("Q_Button is down\n");
             s32 PrevLevelNumber = LevelEntity->LevelNumber - 1;
@@ -2946,7 +2947,8 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             LevelEditor->ButtonPressed = false;
             LevelEditor->ActiveButton.y = -100;
         }
-        else if(Input->Q_Button.WasDown)
+        
+        if(Input->Q_Button.WasDown)
         {
             printf("Q_Button was down\n");
             LevelEditor->PrevLevelQuad.w /= 2;
@@ -2954,7 +2956,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             LevelEditor->PrevLevelQuad.x += LevelEditor->PrevLevelQuad.w/2;
             LevelEditor->PrevLevelQuad.y += LevelEditor->PrevLevelQuad.h/2;
         }
-        else if(Input->E_Button.WasDown)
+        if(Input->E_Button.WasDown)
         {
             printf("E_Button was down\n");
             LevelEditor->NextLevelQuad.w /= 2;

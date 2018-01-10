@@ -235,12 +235,12 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
                 }
                 else if(KeyCode == SDLK_q)
                 {
-                    printf("KeyCode == SDLK_q\n");
+                    //printf("KeyCode == SDLK_q\n");
                     SDLProcessKeyPress(&Input->Q_Button, IsDown, WasDown);
                 }
                 else if(KeyCode == SDLK_e)
                 {
-                    printf("KeyCode == SDLK_q\n");
+                    //printf("KeyCode == SDLK_e\n");
                     SDLProcessKeyPress(&Input->E_Button, IsDown, WasDown);
                 }
             }										 
@@ -295,8 +295,16 @@ SDLFlushEvents(game_input *Input)
     if(Input->LeftClick.IsDown)  Input->LeftClick.IsDown  = false;
     if(Input->LeftClick.WasDown) Input->LeftClick.WasDown = false;
     
-    //if(Input->Q_Button.IsDown)  Input->Q_Button.IsDown = false;
-    //if(Input->Q_Button.WasDown) Input->Q_Button.WasDown = false;
+    if(Input->Q_Button.IsDown)  Input->Q_Button.IsDown  = false;
+    if(Input->Q_Button.WasDown) Input->Q_Button.WasDown = false;
+    if(Input->E_Button.IsDown)  Input->E_Button.IsDown  = false;
+    if(Input->E_Button.WasDown) Input->E_Button.WasDown = false;
+    
+    if(Input->Up.IsDown)  Input->Q_Button.IsDown  = false;
+    if(Input->Up.WasDown) Input->Q_Button.WasDown = false;
+    if(Input->Down.IsDown)  Input->E_Button.IsDown  = false;
+    if(Input->Down.WasDown) Input->E_Button.WasDown = false;
+    
 }
 
 #undef main //NOTE(Max): Because SDL_main doesn't work on some windows versions 
@@ -343,7 +351,6 @@ int main(int argc, char **argv)
 #endif
             game_memory Memory = {0};
             
-            
             u64 TotalAssetSize = SDLSizeOfBinaryFile("package1.bin");
             SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread",
                                                        (void*)&Memory);
@@ -384,6 +391,5 @@ int main(int argc, char **argv)
         }
     }
     
-    printf("Exit\n");
     return 0;
 }
