@@ -36,7 +36,7 @@ struct game_input
     bool MouseMotion;
     union
     {
-        game_button_state Buttons[7];
+        game_button_state Buttons[8];
         struct
         
         {
@@ -48,6 +48,8 @@ struct game_input
             game_button_state RightClick;
             game_button_state Escape;
             game_button_state BackQuote;
+            game_button_state Q_Button;
+            game_button_state E_Button;
         };
     };
     

@@ -156,7 +156,6 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
         case SDL_MOUSEBUTTONDOWN: 
         case SDL_MOUSEBUTTONUP: 
         {
-            
             u8 Button = Event->button.button;
             
             bool IsDown  = Event->button.state == SDL_PRESSED;
@@ -191,12 +190,11 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
         case SDL_KEYUP:
         {
             SDL_Keycode KeyCode = Event->key.keysym.sym;
-            u8 Button = Event->button.button;
             
             bool IsDown = (Event->key.state == SDL_PRESSED);
             bool WasDown = false;
             
-            if ((Event->button.state == SDL_RELEASED))
+            if ((Event->key.state == SDL_RELEASED))
             {
                 WasDown = true;
             }
@@ -232,6 +230,14 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
                 else if(KeyCode == SDLK_BACKQUOTE)
                 {
                     SDLProcessKeyPress(&Input->BackQuote, IsDown, WasDown);
+                }
+                else if(KeyCode == SDLK_q)
+                {
+                    SDLProcessKeyPress(&Input->Q_Button, IsDown, WasDown);
+                }
+                else if(KeyCode == SDLK_e)
+                {
+                    SDLProcessKeyPress(&Input->E_Button, IsDown, WasDown);
                 }
             }										 
             
@@ -284,6 +290,9 @@ SDLFlushEvents(game_input *Input)
     
     if(Input->LeftClick.IsDown)  Input->LeftClick.IsDown  = false;
     if(Input->LeftClick.WasDown) Input->LeftClick.WasDown = false;
+    
+    if(Input->Q_Button.IsDown)  Input->Q_Button.IsDown = false;
+    if(Input->Q_Button.WasDown) Input->Q_Button.WasDown = false;
 }
 
 #undef main //NOTE(Max): Because SDL_main doesn't work on some windows versions 
