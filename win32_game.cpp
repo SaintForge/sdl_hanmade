@@ -104,6 +104,8 @@ SDLUploadTexture(SDL_Renderer *&Renderer, game_rect *Quad, char* FileName)
     Quad->h = Surface->h;
     SDL_Texture *Texture = SDL_CreateTextureFromSurface(Renderer, Surface);
     
+    SDL_FreeSurface(Surface);
+    
     return (Texture);
 }
 

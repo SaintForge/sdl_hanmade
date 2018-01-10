@@ -141,6 +141,12 @@ struct level_entity
     grid_entity   *GridEntity;
     figure_entity *FigureEntity;
     
+    game_texture *LevelNumberTexture;
+    game_texture *LevelNumberShadowTexture;
+    
+    game_rect LevelNumberQuad;
+    game_rect LevelNumberShadowQuad;
+    
     u32 LevelNumber;
     u32 DefaultBlocksInRow;
     u32 DefaultBlocksInCol;
@@ -1904,6 +1910,8 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, level_entity *State, r
         //DEBUGRenderQuad(Buffer, &FigureUnit[Index].AreaQuad, {255, 0, 0}, 255);
     }
     
+    GameRenderBitmapToBuffer(Buffer, State->LevelNumberTexture,   &State->LevelNumberQuad);
+    
 }
 
 
@@ -2269,6 +2277,21 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     printf("LevelEntityUpdateLevelEntityFromMemory\n");
     printf("Index = %d\n",Index);
     
+    if(LevelEntity->LevelNumberTexture)
+    {
+        SDL_DestroyTexture(LevelEntity->LevelNumberTexture);
+        LevelEntity->LevelNumberTexture = NULL;
+    }
+    
+    if(LevelEntity->LevelNumberShadowTexture)
+    {
+        SDL_DestroyTexture(LevelEntity->LevelNumberShadowTexture);
+        LevelEntity->LevelNumberTexture = NULL;
+    }
+    
+    
+    
+    
     if(LevelEntity->FigureEntity->FigureOrder)
     {
         free(LevelEntity->FigureEntity->FigureOrder);
@@ -2324,6 +2347,22 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
         LevelEntity->GridEntity->MovingBlocks = 0;
     }
     printf("from memory index = %d\n", Index);
+    
+    char LevelNumberString[3] = {0};
+    sprintf(LevelNumberString, "%d", Index+1);
+    
+    game_surface *Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, LevelNumberString, {255, 255, 255});
+    Assert(Surface);
+    
+    LevelEntity->LevelNumberQuad.w = Surface->w;
+    LevelEntity->LevelNumberQuad.h = Surface->h;
+    LevelEntity->LevelNumberQuad.x = Buffer->Width / 2;
+    LevelEntity->LevelNumberQuad.y = Surface->h;
+    
+    LevelEntity->LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+    Assert(LevelEntity->LevelNumberTexture);
+    
+    SDL_FreeSurface(Surface);
     
     u32 RowAmount    = Memory->LevelMemory[Index].RowAmount;
     u32 ColumnAmount = Memory->LevelMemory[Index].ColumnAmount;
@@ -2908,6 +2947,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     {
         NewIndex = 0;
     }
+    
     LevelEditor->SelectedFigure = NewIndex;
     
     if(LevelEntity->LevelStarted)
