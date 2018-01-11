@@ -1954,7 +1954,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
     }
     
     //
-    // Updating stick units
+    // Stick units
     //
     
     bool IsAllSticked = true;
@@ -1993,8 +1993,6 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
                     ColIndex = GridEntity->StickUnits[i].Col[j];
                     GridEntity->UnitField[RowIndex][ColIndex] = 1;
                 }
-                
-                printf("%d is sticked!\n", i);
             }
         }
     }
@@ -2002,6 +2000,14 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
     if(IsAllSticked)
     {
         printf("All sticked!\n");
+        
+        u32 NextLevelNumber = State->LevelNumber < Memory->LevelMemoryAmount - 1 ? State->LevelNumber + 1 : State->LevelNumber;
+        LevelEntityUpdateLevelEntityFromMemory(State, NextLevelNumber,false, Memory, Buffer);
+        
+        
+        // Level is completed.
+        return;
+        
     }
     
     AreaQuad.w = ActiveBlockSize;
