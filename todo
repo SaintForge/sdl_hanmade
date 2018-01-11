@@ -40,6 +40,9 @@
 +	2. Implement level creation/deletion from level navigator
 -	3. Implement main menu
 
+---Misc---
+-	1. Think about a better way to handle input events
+
 
 BUGS:
 	+ 1. When I want to pick the figure that lies on top of the figure that is sticked
