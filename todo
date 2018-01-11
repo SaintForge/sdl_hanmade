@@ -49,3 +49,6 @@ BUGS:
 	somehow I pick the one that is sticked instead of one that is on top of that
 	- 2. There is something wrong with timer after loading another level
 	+ 3. Pressing multiple keys on keyboard gives the weird result
+	- 4. When pulling off the figure on the grid sometimes the wrong cell of the grid
+		 gets disappeared
+

@@ -1416,7 +1416,265 @@ Move2DPointPerSec(game_point *p1, game_point *p2, r32 MaxVelocity, r32 TimeElaps
 }
 
 static void
-LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, level_entity *State, r32 TimeElapsed)
+RescaleGameField(game_offscreen_buffer *Buffer,
+                 u32 RowAmount, u32 ColumnAmount, u32 FigureAmount,
+                 u32 DefaultBlocksInRow, u32 DefaultBlocksInCol,
+                 level_entity *LevelEntity)
+{
+    u32 InActiveBlockSize  = 0;
+    u32 ActiveBlockSize    = 0;
+    
+    u32 FigureAreaWidth  = Buffer->Width;
+    u32 FigureAreaHeight = Buffer->Height * 0.4f;
+    
+    u32 BlocksInRow = (FigureAmount / 2.0) + 0.5f;
+    BlocksInRow     = (BlocksInRow * 2) + 2;
+    
+    InActiveBlockSize = GameResizeInActiveBlock(FigureAreaWidth, FigureAreaHeight,
+                                                DefaultBlocksInRow, DefaultBlocksInCol,BlocksInRow);
+    FigureAreaHeight = InActiveBlockSize * DefaultBlocksInCol;
+    
+    u32 GridAreaWidth  = Buffer->Width;
+    u32 GridAreaHeight = Buffer->Height - FigureAreaHeight;
+    
+    ActiveBlockSize = GameResizeActiveBlock(GridAreaWidth, GridAreaHeight, RowAmount, ColumnAmount);
+    
+    LevelEntity->ActiveBlockSize   = ActiveBlockSize;
+    LevelEntity->InActiveBlockSize = InActiveBlockSize;
+}
+
+static void
+LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity, 
+                                       s32 Index, bool IsStarted,
+                                       game_memory *Memory, game_offscreen_buffer *Buffer)
+{
+    if(LevelEntity->LevelNumberTexture)
+    {
+        SDL_DestroyTexture(LevelEntity->LevelNumberTexture);
+        LevelEntity->LevelNumberTexture = NULL;
+    }
+    
+    if(LevelEntity->LevelNumberShadowTexture)
+    {
+        SDL_DestroyTexture(LevelEntity->LevelNumberShadowTexture);
+        LevelEntity->LevelNumberTexture = NULL;
+    }
+    
+    if(LevelEntity->FigureEntity->FigureOrder)
+    {
+        free(LevelEntity->FigureEntity->FigureOrder);
+        LevelEntity->FigureEntity->FigureOrder = 0;
+    }
+    
+    for(u32 i = 0; i < LevelEntity->FigureEntity->FigureAmount; ++i)
+    {
+        if(LevelEntity->FigureEntity->FigureUnit[i].Texture)
+        {
+            FreeTexture(LevelEntity->FigureEntity->FigureUnit[i].Texture);
+            LevelEntity->FigureEntity->FigureUnit[i].Texture = 0;
+        }
+    }
+    
+    if(LevelEntity->FigureEntity->FigureUnit)
+    {
+        free(LevelEntity->FigureEntity->FigureUnit);
+        LevelEntity->FigureEntity->FigureUnit = 0;
+    }
+    
+    if(LevelEntity->GridEntity->UnitSize)
+    {
+        for(u32 i = 0; i < LevelEntity->GridEntity->RowAmount; ++i)
+        {
+            free(LevelEntity->GridEntity->UnitSize[i]);
+        }
+        
+        free(LevelEntity->GridEntity->UnitSize);
+        LevelEntity->GridEntity->UnitSize = 0;
+    }
+    
+    if(LevelEntity->GridEntity->UnitField)
+    {
+        for(u32 i = 0; i < LevelEntity->GridEntity->RowAmount; ++i)
+        {
+            free(LevelEntity->GridEntity->UnitField[i]);
+        }
+        
+        free(LevelEntity->GridEntity->UnitField);
+        LevelEntity->GridEntity->UnitField = 0;
+    }
+    
+    if(LevelEntity->GridEntity->StickUnits)
+    {
+        free(LevelEntity->GridEntity->StickUnits);
+        LevelEntity->GridEntity->StickUnits = 0;
+    }
+    
+    if(LevelEntity->GridEntity->MovingBlocks)
+    {
+        free(LevelEntity->GridEntity->MovingBlocks);
+        LevelEntity->GridEntity->MovingBlocks = 0;
+    }
+    
+    u32 RowAmount    = Memory->LevelMemory[Index].RowAmount;
+    u32 ColumnAmount = Memory->LevelMemory[Index].ColumnAmount;
+    
+    LevelEntity->LevelNumber   = Memory->LevelMemory[Index].LevelNumber;
+    LevelEntity->LevelStarted  = IsStarted;
+    LevelEntity->LevelFinished = false;
+    
+    RescaleGameField(Buffer, RowAmount, ColumnAmount,
+                     LevelEntity->FigureEntity->FigureAmountReserved, LevelEntity->DefaultBlocksInRow, LevelEntity->DefaultBlocksInCol, LevelEntity);
+    
+    u32 ActiveBlockSize   = LevelEntity->ActiveBlockSize;
+    u32 InActiveBlockSize = LevelEntity->InActiveBlockSize;
+    
+    LevelEntity->GridScalePerSec     = ((RowAmount * ColumnAmount)) * (ActiveBlockSize/2);
+    
+    /*
+    
+    figure_entity initialization
+    
+    */
+    
+    LevelEntity->FigureEntity->FigureAlpha = 0;
+    
+    LevelEntity->FigureEntity->FigureArea.w = Buffer->Width;
+    LevelEntity->FigureEntity->FigureArea.h = InActiveBlockSize * LevelEntity->DefaultBlocksInCol;
+    LevelEntity->FigureEntity->FigureArea.y = Buffer->Height - (LevelEntity->FigureEntity->FigureArea.h);
+    LevelEntity->FigureEntity->FigureArea.x = 0;
+    
+    LevelEntity->FigureEntity->FigureAmount = 0;
+    LevelEntity->FigureEntity->FigureUnit = (figure_unit *) malloc(sizeof(figure_unit) * LevelEntity->FigureEntity->FigureAmountReserved);
+    Assert(LevelEntity->FigureEntity->FigureUnit);
+    
+    for(u32 i = 0; i < Memory->LevelMemory[Index].FigureAmount; ++i)
+    {
+        FigureUnitAddNewFigure(LevelEntity->FigureEntity, Memory->LevelMemory[Index].Figures[i].Form, Memory->LevelMemory[Index].Figures[i].Type, Memory->LevelMemory[Index].Figures[i].Angle, Memory, Buffer);
+    }
+    
+    LevelEntity->FigureEntity->FigureOrder = (u32 *) malloc(sizeof(u32) * LevelEntity->FigureEntity->FigureAmountReserved);
+    Assert(LevelEntity->FigureEntity->FigureOrder);
+    
+    for(u32 i = 0; 
+        i < LevelEntity->FigureEntity->FigureAmountReserved;
+        ++i)
+    {
+        LevelEntity->FigureEntity->FigureOrder[i] = i;
+    }
+    
+    /*
+    
+    grid_entity initialization
+    
+    */
+    
+    LevelEntity->GridEntity->RowAmount    = RowAmount;
+    LevelEntity->GridEntity->ColumnAmount = ColumnAmount;
+    
+    LevelEntity->GridEntity->GridArea.w   = ActiveBlockSize * ColumnAmount;
+    LevelEntity->GridEntity->GridArea.h   = ActiveBlockSize * RowAmount;
+    LevelEntity->GridEntity->GridArea.x   = (Buffer->Width / 2) - (LevelEntity->GridEntity->GridArea.w / 2);
+    LevelEntity->GridEntity->GridArea.y   = (Buffer->Height - LevelEntity->FigureEntity->FigureArea.h) / 2 - (LevelEntity->GridEntity->GridArea.h / 2);
+    
+    
+    LevelEntity->GridEntity->UnitField = (s32 **) malloc(sizeof(s32 *) * RowAmount);
+    Assert(LevelEntity->GridEntity->UnitField);
+    
+    u32 UnitIndex = 0;
+    for(u32 i = 0; i < RowAmount; ++i)
+    {
+        LevelEntity->GridEntity->UnitField[i] = (s32 *) malloc(sizeof(s32) * ColumnAmount);
+        Assert(LevelEntity->GridEntity->UnitField[i]);
+        for(u32 j = 0; j < ColumnAmount; ++j)
+        {
+            LevelEntity->GridEntity->UnitField[i][j] = Memory->LevelMemory[Index].UnitField[UnitIndex];
+            
+            UnitIndex += 1;
+        }
+    }
+    
+    if(!IsStarted)
+    {
+        LevelEntity->GridEntity->UnitSize = (r32 **) malloc(RowAmount * sizeof(r32 *));
+        Assert(LevelEntity->GridEntity->UnitSize);
+        
+        for(u32 i = 0; i < RowAmount; ++i)
+        {
+            LevelEntity->GridEntity->UnitSize[i] = (r32 *) malloc(sizeof(r32) * ColumnAmount);
+            Assert(LevelEntity->GridEntity->UnitSize[i]);
+            for(u32 j = 0; j < ColumnAmount; ++j)
+            {
+                LevelEntity->GridEntity->UnitSize[i][j] = 0;
+            }
+        }
+    }
+    
+    
+    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, InActiveBlockSize);
+    
+    LevelEntity->GridEntity->StickUnitsAmount = LevelEntity->FigureEntity->FigureAmount;
+    LevelEntity->GridEntity->StickUnits = (sticked_unit *) malloc(sizeof(sticked_unit) * LevelEntity->FigureEntity->FigureAmount);
+    Assert(LevelEntity->GridEntity->StickUnits);
+    for(u32 i = 0; i < LevelEntity->FigureEntity->FigureAmount; ++i)
+    {
+        LevelEntity->GridEntity->StickUnits[i].Index = -1;
+        LevelEntity->GridEntity->StickUnits[i].IsSticked = false;
+    }
+    
+    LevelEntity->GridEntity->MovingBlocksAmount = 0;
+    
+    
+    LevelEntity->GridEntity->MovingBlocks = (moving_block *) malloc(sizeof(moving_block) * LevelEntity->GridEntity->MovingBlocksAmountReserved);
+    Assert(LevelEntity->GridEntity->MovingBlocks);
+    
+    for(u32 i = 0; i < Memory->LevelMemory[Index].MovingBlocksAmount; ++i)
+    {
+        u32 RowNumber   = Memory->LevelMemory[Index].MovingBlocks[i].RowNumber;
+        u32 ColNumber   = Memory->LevelMemory[Index].MovingBlocks[i].ColNumber;
+        bool IsVertical = Memory->LevelMemory[Index].MovingBlocks[i].IsVertical;
+        bool MoveSwitch = Memory->LevelMemory[Index].MovingBlocks[i].MoveSwitch;
+        
+        GridEntityAddMovingBlock(LevelEntity->GridEntity, RowNumber, ColNumber, IsVertical, MoveSwitch, ActiveBlockSize);
+    }
+    
+    //
+    // level number texture loading
+    //
+    
+    char LevelNumberString[3] = {0};
+    sprintf(LevelNumberString, "%d", Index+1);
+    
+    game_surface *Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, LevelNumberString, {255, 255, 255});
+    Assert(Surface);
+    
+    s32 ButtonSize = LevelEntity->InActiveBlockSize * 2;
+    
+    LevelEntity->LevelNumberQuad.w = Surface->w;
+    LevelEntity->LevelNumberQuad.h = Surface->h;
+    LevelEntity->LevelNumberQuad.x = Buffer->Width - ButtonSize;
+    LevelEntity->LevelNumberQuad.y = ButtonSize - Surface->h;
+    
+    LevelEntity->LevelNumberShadowQuad = LevelEntity->LevelNumberQuad;
+    LevelEntity->LevelNumberShadowQuad.x += 3;
+    LevelEntity->LevelNumberShadowQuad.y += 3;
+    
+    LevelEntity->LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+    Assert(LevelEntity->LevelNumberTexture);
+    
+    SDL_FreeSurface(Surface);
+    
+    Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, LevelNumberString, {0, 0, 0});
+    Assert(Surface);
+    
+    LevelEntity->LevelNumberShadowTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+    Assert(LevelEntity->LevelNumberShadowTexture);
+    
+    SDL_FreeSurface(Surface);
+    
+}
+
+static void
+LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  level_entity *State, r32 TimeElapsed)
 {
     static r32 TotalElapsed = SDL_GetTicks();
     
@@ -1613,7 +1871,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, level_entity *State, r
                 if(Count == 4)
                 {
                     bool IsFree = true;
-                    bool IsFull = true;
+                    bool IsFull = false;
                     
                     for (u32 i = 0; i < 4; ++i)
                     {
@@ -1655,7 +1913,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, level_entity *State, r
                         {
                             for (u32 j = 0; j < ColumnAmount; ++j)
                             {
-                                if(GridEntity->UnitField[i][j] == 0)
+                                if(GridEntity->UnitField[i][j] == 1)
                                 {
                                     IsFull = true;
                                 }
@@ -1674,11 +1932,25 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, level_entity *State, r
         }
     }
     
+    //
+    // Updating stick units
+    //
+    
+    bool IsAllSticked = true;
     
     for(u32 i = 0; i < GridEntity->StickUnitsAmount; ++i)
     {
+        bool IsSticked = GridEntity->StickUnits[i].IsSticked;
+        
+        if(!IsSticked)
+        {
+            IsAllSticked = false;
+            printf("%d is still not sticked!\n", i);
+        }
+        
         s32 Index = GridEntity->StickUnits[i].Index;
-        if(!GridEntity->StickUnits[i].IsSticked && Index >= 0)
+        
+        if(!IsSticked && Index >= 0)
         {
             game_point *FigureCenter = &FigureUnit[Index].Center;
             game_point *TargetCenter = &GridEntity->StickUnits[i].Center;
@@ -1700,8 +1972,15 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, level_entity *State, r
                     ColIndex = GridEntity->StickUnits[i].Col[j];
                     GridEntity->UnitField[RowIndex][ColIndex] = 1;
                 }
+                
+                printf("%d is sticked!\n", i);
             }
         }
+    }
+    
+    if(IsAllSticked)
+    {
+        printf("All sticked!\n");
     }
     
     AreaQuad.w = ActiveBlockSize;
@@ -1921,33 +2200,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, level_entity *State, r
 }
 
 
-static void
-RescaleGameField(game_offscreen_buffer *Buffer,
-                 u32 RowAmount, u32 ColumnAmount, u32 FigureAmount,
-                 u32 DefaultBlocksInRow, u32 DefaultBlocksInCol,
-                 level_entity *LevelEntity)
-{
-    u32 InActiveBlockSize  = 0;
-    u32 ActiveBlockSize    = 0;
-    
-    u32 FigureAreaWidth  = Buffer->Width;
-    u32 FigureAreaHeight = Buffer->Height * 0.4f;
-    
-    u32 BlocksInRow = (FigureAmount / 2.0) + 0.5f;
-    BlocksInRow     = (BlocksInRow * 2) + 2;
-    
-    InActiveBlockSize = GameResizeInActiveBlock(FigureAreaWidth, FigureAreaHeight,
-                                                DefaultBlocksInRow, DefaultBlocksInCol,BlocksInRow);
-    FigureAreaHeight = InActiveBlockSize * DefaultBlocksInCol;
-    
-    u32 GridAreaWidth  = Buffer->Width;
-    u32 GridAreaHeight = Buffer->Height - FigureAreaHeight;
-    
-    ActiveBlockSize = GameResizeActiveBlock(GridAreaWidth, GridAreaHeight, RowAmount, ColumnAmount);
-    
-    LevelEntity->ActiveBlockSize   = ActiveBlockSize;
-    LevelEntity->InActiveBlockSize = InActiveBlockSize;
-}
+
 
 static void
 LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_buffer *Buffer)
@@ -2297,234 +2550,7 @@ LevelEditorGetNextFigureType(figure_type CurrentType)
     return classic;
 }
 
-static void
-LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity, 
-                                       s32 Index, bool IsStarted,
-                                       game_memory *Memory, game_offscreen_buffer *Buffer)
-{
-    if(LevelEntity->LevelNumberTexture)
-    {
-        SDL_DestroyTexture(LevelEntity->LevelNumberTexture);
-        LevelEntity->LevelNumberTexture = NULL;
-    }
-    
-    if(LevelEntity->LevelNumberShadowTexture)
-    {
-        SDL_DestroyTexture(LevelEntity->LevelNumberShadowTexture);
-        LevelEntity->LevelNumberTexture = NULL;
-    }
-    
-    if(LevelEntity->FigureEntity->FigureOrder)
-    {
-        free(LevelEntity->FigureEntity->FigureOrder);
-        LevelEntity->FigureEntity->FigureOrder = 0;
-    }
-    
-    for(u32 i = 0; i < LevelEntity->FigureEntity->FigureAmount; ++i)
-    {
-        if(LevelEntity->FigureEntity->FigureUnit[i].Texture)
-        {
-            FreeTexture(LevelEntity->FigureEntity->FigureUnit[i].Texture);
-            LevelEntity->FigureEntity->FigureUnit[i].Texture = 0;
-        }
-    }
-    
-    if(LevelEntity->FigureEntity->FigureUnit)
-    {
-        free(LevelEntity->FigureEntity->FigureUnit);
-        LevelEntity->FigureEntity->FigureUnit = 0;
-    }
-    
-    if(LevelEntity->GridEntity->UnitSize)
-    {
-        for(u32 i = 0; i < LevelEntity->GridEntity->RowAmount; ++i)
-        {
-            free(LevelEntity->GridEntity->UnitSize[i]);
-        }
-        
-        free(LevelEntity->GridEntity->UnitSize);
-        LevelEntity->GridEntity->UnitSize = 0;
-    }
-    
-    if(LevelEntity->GridEntity->UnitField)
-    {
-        for(u32 i = 0; i < LevelEntity->GridEntity->RowAmount; ++i)
-        {
-            free(LevelEntity->GridEntity->UnitField[i]);
-        }
-        
-        free(LevelEntity->GridEntity->UnitField);
-        LevelEntity->GridEntity->UnitField = 0;
-    }
-    
-    if(LevelEntity->GridEntity->StickUnits)
-    {
-        free(LevelEntity->GridEntity->StickUnits);
-        LevelEntity->GridEntity->StickUnits = 0;
-    }
-    
-    if(LevelEntity->GridEntity->MovingBlocks)
-    {
-        free(LevelEntity->GridEntity->MovingBlocks);
-        LevelEntity->GridEntity->MovingBlocks = 0;
-    }
-    
-    u32 RowAmount    = Memory->LevelMemory[Index].RowAmount;
-    u32 ColumnAmount = Memory->LevelMemory[Index].ColumnAmount;
-    
-    LevelEntity->LevelNumber   = Memory->LevelMemory[Index].LevelNumber;
-    LevelEntity->LevelStarted  = IsStarted;
-    LevelEntity->LevelFinished = false;
-    
-    RescaleGameField(Buffer, RowAmount, ColumnAmount,
-                     LevelEntity->FigureEntity->FigureAmountReserved, LevelEntity->DefaultBlocksInRow, LevelEntity->DefaultBlocksInCol, LevelEntity);
-    
-    u32 ActiveBlockSize   = LevelEntity->ActiveBlockSize;
-    u32 InActiveBlockSize = LevelEntity->InActiveBlockSize;
-    
-    LevelEntity->GridScalePerSec     = ((RowAmount * ColumnAmount)) * (ActiveBlockSize/2);
-    
-    /*
-    
-    figure_entity initialization
-    
-    */
-    
-    LevelEntity->FigureEntity->FigureAlpha = 0;
-    
-    LevelEntity->FigureEntity->FigureArea.w = Buffer->Width;
-    LevelEntity->FigureEntity->FigureArea.h = InActiveBlockSize * LevelEntity->DefaultBlocksInCol;
-    LevelEntity->FigureEntity->FigureArea.y = Buffer->Height - (LevelEntity->FigureEntity->FigureArea.h);
-    LevelEntity->FigureEntity->FigureArea.x = 0;
-    
-    LevelEntity->FigureEntity->FigureAmount = 0;
-    LevelEntity->FigureEntity->FigureUnit = (figure_unit *) malloc(sizeof(figure_unit) * LevelEntity->FigureEntity->FigureAmountReserved);
-    Assert(LevelEntity->FigureEntity->FigureUnit);
-    
-    for(u32 i = 0; i < Memory->LevelMemory[Index].FigureAmount; ++i)
-    {
-        FigureUnitAddNewFigure(LevelEntity->FigureEntity, Memory->LevelMemory[Index].Figures[i].Form, Memory->LevelMemory[Index].Figures[i].Type, Memory->LevelMemory[Index].Figures[i].Angle, Memory, Buffer);
-    }
-    
-    LevelEntity->FigureEntity->FigureOrder = (u32 *) malloc(sizeof(u32) * LevelEntity->FigureEntity->FigureAmountReserved);
-    Assert(LevelEntity->FigureEntity->FigureOrder);
-    
-    for(u32 i = 0; 
-        i < LevelEntity->FigureEntity->FigureAmountReserved;
-        ++i)
-    {
-        LevelEntity->FigureEntity->FigureOrder[i] = i;
-    }
-    
-    /*
-    
-    grid_entity initialization
-    
-    */
-    
-    LevelEntity->GridEntity->RowAmount    = RowAmount;
-    LevelEntity->GridEntity->ColumnAmount = ColumnAmount;
-    
-    LevelEntity->GridEntity->GridArea.w   = ActiveBlockSize * ColumnAmount;
-    LevelEntity->GridEntity->GridArea.h   = ActiveBlockSize * RowAmount;
-    LevelEntity->GridEntity->GridArea.x   = (Buffer->Width / 2) - (LevelEntity->GridEntity->GridArea.w / 2);
-    LevelEntity->GridEntity->GridArea.y   = (Buffer->Height - LevelEntity->FigureEntity->FigureArea.h) / 2 - (LevelEntity->GridEntity->GridArea.h / 2);
-    
-    
-    LevelEntity->GridEntity->UnitField = (s32 **) malloc(sizeof(s32 *) * RowAmount);
-    Assert(LevelEntity->GridEntity->UnitField);
-    
-    u32 UnitIndex = 0;
-    for(u32 i = 0; i < RowAmount; ++i)
-    {
-        LevelEntity->GridEntity->UnitField[i] = (s32 *) malloc(sizeof(s32) * ColumnAmount);
-        Assert(LevelEntity->GridEntity->UnitField[i]);
-        for(u32 j = 0; j < ColumnAmount; ++j)
-        {
-            LevelEntity->GridEntity->UnitField[i][j] = Memory->LevelMemory[Index].UnitField[UnitIndex];
-            
-            UnitIndex += 1;
-        }
-    }
-    
-    if(!IsStarted)
-    {
-        LevelEntity->GridEntity->UnitSize = (r32 **) malloc(RowAmount * sizeof(r32 *));
-        Assert(LevelEntity->GridEntity->UnitSize);
-        
-        for(u32 i = 0; i < RowAmount; ++i)
-        {
-            LevelEntity->GridEntity->UnitSize[i] = (r32 *) malloc(sizeof(r32) * ColumnAmount);
-            Assert(LevelEntity->GridEntity->UnitSize[i]);
-            for(u32 j = 0; j < ColumnAmount; ++j)
-            {
-                LevelEntity->GridEntity->UnitSize[i][j] = 0;
-            }
-        }
-    }
-    
-    
-    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, InActiveBlockSize);
-    
-    LevelEntity->GridEntity->StickUnits = (sticked_unit *) malloc(sizeof(sticked_unit) * LevelEntity->FigureEntity->FigureAmountReserved);
-    Assert(LevelEntity->GridEntity->StickUnits);
-    for(u32 i = 0; i < LevelEntity->FigureEntity->FigureAmountReserved; ++i)
-    {
-        LevelEntity->GridEntity->StickUnits[i].Index = -1;
-        LevelEntity->GridEntity->StickUnits[i].IsSticked = false;
-    }
-    
-    LevelEntity->GridEntity->MovingBlocksAmount = 0;
-    
-    
-    LevelEntity->GridEntity->MovingBlocks = (moving_block *) malloc(sizeof(moving_block) * LevelEntity->GridEntity->MovingBlocksAmountReserved);
-    Assert(LevelEntity->GridEntity->MovingBlocks);
-    
-    for(u32 i = 0; i < Memory->LevelMemory[Index].MovingBlocksAmount; ++i)
-    {
-        u32 RowNumber   = Memory->LevelMemory[Index].MovingBlocks[i].RowNumber;
-        u32 ColNumber   = Memory->LevelMemory[Index].MovingBlocks[i].ColNumber;
-        bool IsVertical = Memory->LevelMemory[Index].MovingBlocks[i].IsVertical;
-        bool MoveSwitch = Memory->LevelMemory[Index].MovingBlocks[i].MoveSwitch;
-        
-        GridEntityAddMovingBlock(LevelEntity->GridEntity, RowNumber, ColNumber, IsVertical, MoveSwitch, ActiveBlockSize);
-    }
-    
-    //
-    // level number texture loading
-    //
-    
-    char LevelNumberString[3] = {0};
-    sprintf(LevelNumberString, "%d", Index+1);
-    
-    game_surface *Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, LevelNumberString, {255, 255, 255});
-    Assert(Surface);
-    
-    s32 ButtonSize = LevelEntity->InActiveBlockSize * 2;
-    
-    LevelEntity->LevelNumberQuad.w = Surface->w;
-    LevelEntity->LevelNumberQuad.h = Surface->h;
-    LevelEntity->LevelNumberQuad.x = Buffer->Width - ButtonSize;
-    LevelEntity->LevelNumberQuad.y = ButtonSize - Surface->h;
-    
-    LevelEntity->LevelNumberShadowQuad = LevelEntity->LevelNumberQuad;
-    LevelEntity->LevelNumberShadowQuad.x += 3;
-    LevelEntity->LevelNumberShadowQuad.y += 3;
-    
-    LevelEntity->LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
-    Assert(LevelEntity->LevelNumberTexture);
-    
-    SDL_FreeSurface(Surface);
-    
-    Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, LevelNumberString, {0, 0, 0});
-    Assert(Surface);
-    
-    LevelEntity->LevelNumberShadowTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
-    Assert(LevelEntity->LevelNumberShadowTexture);
-    
-    SDL_FreeSurface(Surface);
-    
-}
+
 
 static void
 LevelEntityInitParameters(game_memory *Memory,
@@ -3369,7 +3395,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         GridEntity->RowAmount           = RowAmount;
         GridEntity->ColumnAmount        = ColumnAmount;
-        GridEntity->StickUnitsAmount    = FigureEntity->FigureAmountReserved;
+        GridEntity->StickUnitsAmount    = FigureEntity->FigureAmount;
         GridEntity->MovingBlocksAmount  = 0;
         GridEntity->MovingBlocksAmountReserved  = MovingBlocksAmountReserved;
         GridEntity->GridArea.w = ActiveBlockSize * ColumnAmount;
@@ -3479,11 +3505,15 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         game_rect ScreenArea = { 0, 0, Buffer->Width, Buffer->Height};
         DEBUGRenderQuadFill(Buffer, &ScreenArea, { 42, 6, 21 }, 255);
         
-        LevelEntityUpdateAndRender(Buffer, GameState, TimeElapsed);
+        LevelEntityUpdateAndRender(Buffer, Memory, GameState, TimeElapsed);
         LevelEditorUpdateAndRender(Memory->LevelEditor, GameState, Memory, Buffer, Input);
         
         ///printf("TimeElapsed = %f\n", TimeElapsed);
         //printf("GameState->LevelNumber = %d\n", GameState->LevelNumber);
+        
+        
+        //PrintArray2D(GameState->GridEntity->UnitField, GameState->GridEntity->RowAmount, GameState->GridEntity->ColumnAmount);
+        
     }
     
     
