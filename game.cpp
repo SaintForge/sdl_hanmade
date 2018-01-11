@@ -777,6 +777,26 @@ FigureUnitAddNewFigure(figure_entity *FigureEntity,
     FigureUnitInitFigure(&FigureEntity->FigureUnit[Index], Form, Type, Angle, Memory, Buffer);
 }
 
+static void
+GridEntityUpdateStickUnits(grid_entity *GridEntity, u32 FigureAmount)
+{
+    if(GridEntity->StickUnits)
+    {
+        free(GridEntity->StickUnits);
+    }
+    
+    GridEntity->StickUnitsAmount = FigureAmount;
+    
+    GridEntity->StickUnits = (sticked_unit *) malloc(sizeof(sticked_unit) * FigureAmount);
+    Assert(GridEntity->StickUnits);
+    
+    for(u32 i = 0; i < FigureAmount; ++i)
+    {
+        GridEntity->StickUnits[i].Index = -1;
+        GridEntity->StickUnits[i].IsSticked = false;
+    }
+}
+
 static game_rect
 FigureUnitGetArea(figure_unit *Unit)
 {
@@ -1576,7 +1596,6 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     LevelEntity->GridEntity->GridArea.x   = (Buffer->Width / 2) - (LevelEntity->GridEntity->GridArea.w / 2);
     LevelEntity->GridEntity->GridArea.y   = (Buffer->Height - LevelEntity->FigureEntity->FigureArea.h) / 2 - (LevelEntity->GridEntity->GridArea.h / 2);
     
-    
     LevelEntity->GridEntity->UnitField = (s32 **) malloc(sizeof(s32 *) * RowAmount);
     Assert(LevelEntity->GridEntity->UnitField);
     
@@ -1621,9 +1640,11 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
         LevelEntity->GridEntity->StickUnits[i].IsSticked = false;
     }
     
+    //
+    // Moving Blocks
+    //
+    
     LevelEntity->GridEntity->MovingBlocksAmount = 0;
-    
-    
     LevelEntity->GridEntity->MovingBlocks = (moving_block *) malloc(sizeof(moving_block) * LevelEntity->GridEntity->MovingBlocksAmountReserved);
     Assert(LevelEntity->GridEntity->MovingBlocks);
     
@@ -2765,6 +2786,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 {
                     FigureUnitAddNewFigure(LevelEntity->FigureEntity, O_figure, classic, 0.0f, Memory, Buffer);
                     FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
+                    GridEntityUpdateStickUnits(LevelEntity->GridEntity, LevelEntity->FigureEntity->FigureAmount);
                     
                     LevelEditor->ActiveButton = LevelEditor->FigureButton[0];
                 }
@@ -2774,6 +2796,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 {
                     FigureUnitDeleteFigure(LevelEntity->FigureEntity, LevelEntity->FigureEntity->FigureAmount - 1);
                     FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
+                    GridEntityUpdateStickUnits(LevelEntity->GridEntity, LevelEntity->FigureEntity->FigureAmount);
                     
                     LevelEditor->ActiveButton = LevelEditor->FigureButton[1];
                 }
