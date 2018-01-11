@@ -2271,7 +2271,7 @@ LevelEditorGetNextFigureType(figure_type CurrentType)
 
 static void
 LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity, 
-                                       s32 Index,
+                                       s32 Index, bool IsStarted,
                                        game_memory *Memory, game_offscreen_buffer *Buffer)
 {
     if(LevelEntity->LevelNumberTexture)
@@ -2345,7 +2345,7 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     u32 ColumnAmount = Memory->LevelMemory[Index].ColumnAmount;
     
     LevelEntity->LevelNumber   = Memory->LevelMemory[Index].LevelNumber;
-    LevelEntity->LevelStarted  = false;
+    LevelEntity->LevelStarted  = IsStarted;
     LevelEntity->LevelFinished = false;
     
     RescaleGameField(Buffer, RowAmount, ColumnAmount,
@@ -2419,18 +2419,22 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
         }
     }
     
-    LevelEntity->GridEntity->UnitSize = (r32 **) malloc(RowAmount * sizeof(r32 *));
-    Assert(LevelEntity->GridEntity->UnitSize);
-    
-    for(u32 i = 0; i < RowAmount; ++i)
+    if(!IsStarted)
     {
-        LevelEntity->GridEntity->UnitSize[i] = (r32 *) malloc(sizeof(r32) * ColumnAmount);
-        Assert(LevelEntity->GridEntity->UnitSize[i]);
-        for(u32 j = 0; j < ColumnAmount; ++j)
+        LevelEntity->GridEntity->UnitSize = (r32 **) malloc(RowAmount * sizeof(r32 *));
+        Assert(LevelEntity->GridEntity->UnitSize);
+        
+        for(u32 i = 0; i < RowAmount; ++i)
         {
-            LevelEntity->GridEntity->UnitSize[i][j] = 0;
+            LevelEntity->GridEntity->UnitSize[i] = (r32 *) malloc(sizeof(r32) * ColumnAmount);
+            Assert(LevelEntity->GridEntity->UnitSize[i]);
+            for(u32 j = 0; j < ColumnAmount; ++j)
+            {
+                LevelEntity->GridEntity->UnitSize[i][j] = 0;
+            }
         }
     }
+    
     
     FigureEntityAlignHorizontally(LevelEntity->FigureEntity, InActiveBlockSize);
     
@@ -2598,6 +2602,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     u32 RowAmount     = LevelEntity->GridEntity->RowAmount;
     u32 ColAmount     = LevelEntity->GridEntity->ColumnAmount;
     s32 NewIndex      = LevelEditor->SelectedFigure;
+    s32 CurrentLevel  = LevelEntity->LevelNumber;
     
     if(Input->WasPressed)
     {
@@ -2621,11 +2626,11 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         if(Input->Q_Button.IsDown)
         {
             printf("Q_Button is down\n");
-            s32 PrevLevelNumber = LevelEntity->LevelNumber - 1;
+            s32 PrevLevelNumber = CurrentLevel - 1;
             if(PrevLevelNumber >= 0)
             {
                 LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
-                                                       PrevLevelNumber,
+                                                       PrevLevelNumber, true,
                                                        Memory, Buffer);
                 
                 u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
@@ -2642,18 +2647,15 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             LevelEditor->PrevLevelQuad.y -= LevelEditor->PrevLevelQuad.h/2;
             LevelEditor->PrevLevelQuad.w *= 2;
             LevelEditor->PrevLevelQuad.h *= 2;
-            
-            LevelEditor->ActiveButton = LevelEditor->PrevLevelQuad;
-            
         }
         else if(Input->E_Button.IsDown)
         {
             printf("E_Button is down\n");
-            s32 NextLevelNumber = LevelEntity->LevelNumber + 1;
+            s32 NextLevelNumber = CurrentLevel + 1;
             if(NextLevelNumber < Memory->LevelMemoryAmount)
             {
                 LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
-                                                       NextLevelNumber,
+                                                       NextLevelNumber,true,
                                                        Memory, Buffer);
                 
                 u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
@@ -2669,8 +2671,6 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             LevelEditor->NextLevelQuad.y -= LevelEditor->NextLevelQuad.h/2;
             LevelEditor->NextLevelQuad.w *= 2;
             LevelEditor->NextLevelQuad.h *= 2;
-            
-            LevelEditor->ActiveButton = LevelEditor->NextLevelQuad;
         }
         else if(Input->LeftClick.IsDown)
         {
@@ -2810,7 +2810,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 printf("Load!\n");
                 LevelEntityUpdateLevelEntityFromMemory(LevelEntity, 
                                                        LevelEntity->LevelNumber,
-                                                       Memory, Buffer);
+                                                       false, Memory, Buffer);
                 LevelEditorChangeGridCounters(LevelEditor, 
                                               LevelEntity->GridEntity->RowAmount, LevelEntity->GridEntity->ColumnAmount, 
                                               RowAmount, ColAmount,
@@ -2836,7 +2836,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                     {
                         LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
                                                                PrevLevelNumber,
-                                                               Memory, Buffer);
+                                                               true, Memory, Buffer);
                         
                         u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
                         u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
@@ -2856,7 +2856,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                     {
                         LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
                                                                NextLevelNumber,
-                                                               Memory, Buffer);
+                                                               true, Memory, Buffer);
                         
                         u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
                         u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
@@ -3076,10 +3076,18 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     // Prev/Next level buttons rendering
     //
     
-    //DEBUGRenderQuadFill(Buffer, &LevelEditor->LoadButtonLayer, {255, 0, 0}, 100);
-    //DEBUGRenderQuad(Buffer, &LevelEditor->PrevLevelQuad, {0, 0, 0}, 255);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->PrevLevelTexture, &LevelEditor->PrevLevelQuad);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->NextLevelTexture, &LevelEditor->NextLevelQuad);
+    CurrentLevel = LevelEntity->LevelNumber;
+    
+    if(CurrentLevel > 0)
+    {
+        GameRenderBitmapToBuffer(Buffer, LevelEditor->PrevLevelTexture, &LevelEditor->PrevLevelQuad);
+    }
+    
+    if(CurrentLevel < Memory->LevelMemoryAmount-1)
+    {
+        GameRenderBitmapToBuffer(Buffer, LevelEditor->NextLevelTexture, &LevelEditor->NextLevelQuad);
+    }
+    
     
     if(LevelEditor->ButtonPressed)
     {

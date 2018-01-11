@@ -228,7 +228,7 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                         u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
                         
                         LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity,
-                                                               Index,
+                                                               Index, false,
                                                                Memory, Buffer);
                         
                         LevelEditorChangeGridCounters(Memory->LevelEditor, 
@@ -278,7 +278,7 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                         u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
                         
                         LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
-                                                               Index,
+                                                               Index, false,
                                                                Memory, Buffer);
                         LevelEditorChangeGridCounters(Memory->LevelEditor, 
                                                       Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
