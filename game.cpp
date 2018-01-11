@@ -1008,9 +1008,6 @@ GridEntityAddMovingBlock(grid_entity *GridEntity,
     
     u32 Index = GridEntity->MovingBlocksAmount;
     
-    GridEntity->MovingBlocks[Index].RowNumber = RowNumber;
-    GridEntity->MovingBlocks[Index].RowNumber = ColNumber;
-    
     GridEntity->MovingBlocks[Index].AreaQuad.w = ActiveBlockSize;
     GridEntity->MovingBlocks[Index].AreaQuad.h = ActiveBlockSize;
     GridEntity->MovingBlocks[Index].AreaQuad.x = GridEntity->GridArea.x + (ColNumber * ActiveBlockSize);
@@ -1148,7 +1145,16 @@ GameUpdateEvent(game_input *Input, level_entity *GameState,
     
     if(Input->WasPressed)
     {
-        if(Input->LeftClick.IsDown)
+        if(Input->BackQuote.IsDown)
+        {
+            if(!GameState->LevelPaused)
+            {
+                GameState->LevelPaused = true;
+                RestartLevelEntity(GameState);
+                Input->BackQuote.IsDown = false;
+            }
+        }
+        else if(Input->LeftClick.IsDown)
         {
             if(!FigureEntity->IsGrabbed)
             {
@@ -2237,6 +2243,28 @@ GridEntityNewGrid(game_offscreen_buffer *Buffer, level_entity *LevelEntity,
     LevelEntity->GridEntity->GridArea.x = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
     LevelEntity->GridEntity->GridArea.y = (Buffer->Height - LevelEntity->FigureEntity->FigureArea.h) / 2 - (GridEntity->GridArea.h / 2);
     
+    for(u32 i = 0; i < LevelEntity->GridEntity->MovingBlocksAmount; ++i)
+    {
+        u32 RowNumber = LevelEntity->GridEntity->MovingBlocks[i].RowNumber;
+        u32 ColNumber = LevelEntity->GridEntity->MovingBlocks[i].ColNumber;
+        
+        if(RowNumber >= NewRowAmount || ColNumber >= NewColumnAmount)
+        {
+            GridEntityDeleteMovingBlock(GridEntity, i);
+        }
+    }
+    
+    for(u32 i = 0; i < LevelEntity->GridEntity->MovingBlocksAmount; ++i)
+    {
+        u32 RowNumber = LevelEntity->GridEntity->MovingBlocks[i].RowNumber;
+        u32 ColNumber = LevelEntity->GridEntity->MovingBlocks[i].ColNumber;
+        
+        GridEntity->MovingBlocks[i].AreaQuad.w = ActiveBlockSize;
+        GridEntity->MovingBlocks[i].AreaQuad.h = ActiveBlockSize;
+        GridEntity->MovingBlocks[i].AreaQuad.x = GridEntity->GridArea.x + (ColNumber * ActiveBlockSize);
+        GridEntity->MovingBlocks[i].AreaQuad.y = GridEntity->GridArea.y + (RowNumber * ActiveBlockSize);
+    }
+    
 }
 
 static figure_form
@@ -2576,23 +2604,6 @@ static void
 LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity, 
                            game_memory *Memory, game_offscreen_buffer *Buffer, game_input *Input)
 {
-    if(Input->WasPressed)
-    {
-        if(Input->BackQuote.IsDown)
-        {
-            printf("BackQuote!\n");
-            if(!LevelEntity->LevelPaused)
-            {
-                LevelEntity->LevelPaused = true;
-                RestartLevelEntity(LevelEntity);
-            }
-            else
-            {
-                LevelEntity->LevelPaused = false;
-            }
-        }
-    }
-    
     if(!LevelEntity->LevelPaused) return;
     
     game_rect GridArea   = LevelEntity->GridEntity->GridArea;
@@ -2629,12 +2640,12 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             s32 PrevLevelNumber = CurrentLevel - 1;
             if(PrevLevelNumber >= 0)
             {
+                u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
+                u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
+                
                 LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
                                                        PrevLevelNumber, true,
                                                        Memory, Buffer);
-                
-                u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
-                u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
                 
                 LevelEditorChangeGridCounters(Memory->LevelEditor, 
                                               Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
@@ -2648,19 +2659,18 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             LevelEditor->PrevLevelQuad.w *= 2;
             LevelEditor->PrevLevelQuad.h *= 2;
         }
-        else if(Input->E_Button.IsDown)
+        if(Input->E_Button.IsDown)
         {
             printf("E_Button is down\n");
             s32 NextLevelNumber = CurrentLevel + 1;
             if(NextLevelNumber < Memory->LevelMemoryAmount)
             {
-                LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
-                                                       NextLevelNumber,true,
-                                                       Memory, Buffer);
-                
                 u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
                 u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
                 
+                LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
+                                                       NextLevelNumber,true,
+                                                       Memory, Buffer);
                 LevelEditorChangeGridCounters(Memory->LevelEditor, 
                                               Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
                                               RowAmount, ColAmount,
@@ -2671,6 +2681,10 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             LevelEditor->NextLevelQuad.y -= LevelEditor->NextLevelQuad.h/2;
             LevelEditor->NextLevelQuad.w *= 2;
             LevelEditor->NextLevelQuad.h *= 2;
+        }
+        else if(Input->BackQuote.IsDown)
+        {
+            LevelEntity->LevelPaused = false;
         }
         else if(Input->LeftClick.IsDown)
         {

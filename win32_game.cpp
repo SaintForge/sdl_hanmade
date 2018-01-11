@@ -297,13 +297,18 @@ SDLFlushEvents(game_input *Input)
     
     if(Input->Q_Button.IsDown)  Input->Q_Button.IsDown  = false;
     if(Input->Q_Button.WasDown) Input->Q_Button.WasDown = false;
+    
     if(Input->E_Button.IsDown)  Input->E_Button.IsDown  = false;
     if(Input->E_Button.WasDown) Input->E_Button.WasDown = false;
     
     if(Input->Up.IsDown)  Input->Q_Button.IsDown  = false;
     if(Input->Up.WasDown) Input->Q_Button.WasDown = false;
+    
     if(Input->Down.IsDown)  Input->E_Button.IsDown  = false;
     if(Input->Down.WasDown) Input->E_Button.WasDown = false;
+    
+    if(Input->Escape.IsDown) Input->Escape.IsDown   = false;
+    if(Input->Escape.WasDown) Input->Escape.WasDown = false;
     
 }
 
