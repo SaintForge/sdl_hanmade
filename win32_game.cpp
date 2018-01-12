@@ -237,11 +237,27 @@ bool HandleEvent(SDL_Event *Event, game_input *Input)
                 {
                     //printf("KeyCode == SDLK_q\n");
                     SDLProcessKeyPress(&Input->Q_Button, IsDown, WasDown);
+                    if(Input->Q_Button.IsDown)
+                    {
+                        printf("Q_Button.IsDown\n");
+                    }
+                    if(Input->Q_Button.WasDown)
+                    {
+                        printf("Q_Button.WasDown\n");
+                    }
                 }
                 else if(KeyCode == SDLK_e)
                 {
                     //printf("KeyCode == SDLK_e\n");
                     SDLProcessKeyPress(&Input->E_Button, IsDown, WasDown);
+                    if(Input->E_Button.IsDown)
+                    {
+                        printf("E_Button.IsDown\n");
+                    }
+                    if(Input->E_Button.WasDown)
+                    {
+                        printf("E_Button.WasDown\n");
+                    }
                 }
             }										 
             
