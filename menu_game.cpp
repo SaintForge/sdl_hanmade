@@ -107,6 +107,8 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                 printf("Dev mode is on\n");
                 Memory->MenuEntity->DevMode = true;
             }
+            
+            Input->BackQuote.IsDown = false;
         }
         
         if(Input->LeftClick.IsDown)
@@ -139,9 +141,20 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                     if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Memory->MenuEntity->ConfirmButtons[0].ButtonQuad))
                     {
                         Memory->MenuEntity->IsToBeDeleted = true;
+                        Memory->MenuEntity->IsToBeSaved = true;
+                        Memory->MenuEntity->IsToBeLoaded = true;
                     }
                     
                     Memory->MenuEntity->IsShowingDelete = false;
+                }
+                if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Memory->MenuEntity->SaveAndLoadButtons[0].ButtonQuad))
+                {
+                    Memory->MenuEntity->IsToBeSaved = false;
+                    SaveLevelMemoryToFile(Memory);
+                }
+                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Memory->MenuEntity->SaveAndLoadButtons[1].ButtonQuad))
+                {
+                    Memory->MenuEntity->IsToBeLoaded = false;
                 }
             }
             
@@ -269,7 +282,6 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                         {
                             MenuDeleteLevel(Buffer, Memory, Memory->MenuEntity->ButtonIndex);
                             Memory->MenuEntity->IsToBeDeleted = false;
-                            
                         }
                     }
                     else
@@ -286,6 +298,7 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                                                       Buffer);
                         Memory->ToggleMenu = false;
                         Memory->LevelEntity.LevelNumber = Index;
+                        
                     }
                 }
                 
@@ -517,9 +530,23 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             DEBUGRenderQuad(Buffer, &Memory->MenuEntity->ConfirmButtons[1].ButtonQuad, {0, 0, 0}, 255);
             GameRenderBitmapToBuffer(Buffer, Memory->MenuEntity->ConfirmButtons[1].LevelNumberTexture, &Memory->MenuEntity->ConfirmButtons[1].LevelNumberTextureQuad);
         }
+        
+        // Save and load buttons
+        
+        if(Memory->MenuEntity->IsToBeSaved)
+        {
+            DEBUGRenderQuadFill(Buffer, &Memory->MenuEntity->SaveAndLoadButtons[0].ButtonQuad, {100, 0, 0}, 255);
+            DEBUGRenderQuad(Buffer, &Memory->MenuEntity->SaveAndLoadButtons[0].ButtonQuad, {0, 0, 255}, 255);
+            GameRenderBitmapToBuffer(Buffer, Memory->MenuEntity->SaveAndLoadButtons[0].LevelNumberTexture, &Memory->MenuEntity->SaveAndLoadButtons[0].LevelNumberTextureQuad);
+        }
+        
+        if(Memory->MenuEntity->IsToBeLoaded)
+        {
+            DEBUGRenderQuadFill(Buffer, &Memory->MenuEntity->SaveAndLoadButtons[1].ButtonQuad, {100, 0, 0}, 255);
+            DEBUGRenderQuad(Buffer, &Memory->MenuEntity->SaveAndLoadButtons[1].ButtonQuad, {0, 0, 255}, 255);
+            GameRenderBitmapToBuffer(Buffer, Memory->MenuEntity->SaveAndLoadButtons[1].LevelNumberTexture, &Memory->MenuEntity->SaveAndLoadButtons[1].LevelNumberTextureQuad);
+        }
     }
-    
-    
 }
 
 
