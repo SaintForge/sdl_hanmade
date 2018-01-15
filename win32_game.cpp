@@ -122,8 +122,11 @@ window_dimension SDLGetWindowDimension(SDL_Window* Window)
 static void
 SDLProcessKeyPress(game_button_state *NewState, bool IsDown, bool WasDown)
 {
-    NewState->IsDown  = IsDown;
-    NewState->WasDown = WasDown;
+    //NewState->IsDown  = IsDown;
+    //NewState->WasDown = WasDown;
+    
+    if(!NewState->IsDown)  NewState->IsDown = IsDown;
+    if(!NewState->WasDown) NewState->WasDown = WasDown;
 }
 
 static void
