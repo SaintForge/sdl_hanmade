@@ -26,19 +26,16 @@ struct game_offscreen_buffer
 
 struct game_button_state
 {
-    bool IsDown;
-    bool WasDown;
+    bool EndedDown;
+    bool EndedUp;
 };
 
-struct game_input
+struct game_keyboard_input
 {
-    bool WasPressed;
-    bool MouseMotion;
     union
     {
-        game_button_state Buttons[8];
+        game_button_state Buttons[10];
         struct
-        
         {
             game_button_state Up;
             game_button_state Down;
@@ -52,10 +49,17 @@ struct game_input
             game_button_state E_Button;
         };
     };
-    
+};
+
+struct game_input
+{
     s32 MouseX, MouseY;
     s32 MouseRelX, MouseRelY;
+    game_button_state MouseButtons[2];
+    
+    game_keyboard_input Keyboard;
 };
+
 
 struct game_memory
 {

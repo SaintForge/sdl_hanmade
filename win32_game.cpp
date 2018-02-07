@@ -122,155 +122,94 @@ window_dimension SDLGetWindowDimension(SDL_Window* Window)
 static void
 SDLProcessKeyPress(game_button_state *NewState, bool IsDown, bool WasDown)
 {
-    //NewState->IsDown  = IsDown;
-    //NewState->WasDown = WasDown;
-    
-    if(!NewState->IsDown)  NewState->IsDown = IsDown;
-    if(!NewState->WasDown) NewState->WasDown = WasDown;
+    if(NewState->EndedDown != IsDown)
+    {
+        NewState->EndedDown = IsDown;
+    }
+    if(NewState->EndedUp != WasDown)
+    {
+        NewState->EndedUp = WasDown;
+    }
 }
 
-static void
-SDLProcessMousePress(game_button_state *NewState, bool IsDown, bool WasDown)
-{
-    NewState->IsDown  = IsDown;
-    NewState->WasDown = WasDown;
-}
-
-bool HandleEvent(SDL_Event *Event, game_input *Input)
+bool SDLHandleEvent(SDL_Event *Event, game_input *Input)
 {
     bool ShouldQuit = false;
     
-    switch(Event->type)
+    while(SDL_PollEvent(Event))
     {
-        case SDL_MOUSEMOTION:
+        switch(Event->type)
         {
-            Input->MouseMotion = true;
-            Input->MouseX = Event->motion.x;
-            Input->MouseY = Event->motion.y;
-            
-            Input->MouseRelX += Event->motion.xrel;
-            Input->MouseRelY += Event->motion.yrel;
-        } break;
-        
-        case SDL_QUIT:
-        {
-            printf("SDL_QUIT\n");
-            ShouldQuit = true;
-        } break;
-        
-        case SDL_MOUSEBUTTONDOWN: 
-        case SDL_MOUSEBUTTONUP: 
-        {
-            u8 Button = Event->button.button;
-            
-            bool IsDown  = Event->button.state == SDL_PRESSED;
-            bool WasDown = false;
-            
-            if(Event->button.state == SDL_RELEASED)
+            case SDL_MOUSEMOTION:
             {
-                WasDown = true;
-            }
-            else if(Event->button.clicks != 0)
-            {
-                WasDown = true;
-            }
-            
-            if(Event->button.clicks != 0)
-            {
-                Input->WasPressed = true;
                 
-                if(Button == SDL_BUTTON_LEFT)
-                {
-                    SDLProcessMousePress(&Input->LeftClick, IsDown, WasDown);
-                }
-                else if(Button == SDL_BUTTON_RIGHT)
-                {
-                    SDLProcessMousePress(&Input->RightClick, IsDown, WasDown);
-                }
-            }
+            } break;
             
-        } break;
-        
-        case SDL_KEYDOWN:
-        case SDL_KEYUP:
-        {
-            SDL_Keycode KeyCode = Event->key.keysym.sym;
-            
-            bool IsDown = (Event->key.state == SDL_PRESSED);
-            bool WasDown = false;
-            
-            if ((Event->key.state == SDL_RELEASED))
+            case SDL_QUIT:
             {
-                WasDown = true;
-            }
-            else if (Event->key.repeat != 0)
-            {
-                WasDown = true;
-            }
+                printf("SDL_QUIT\n");
+                ShouldQuit = true;
+            } break;
             
-            if(Event->key.repeat == 0)
+            case SDL_MOUSEBUTTONDOWN: 
+            case SDL_MOUSEBUTTONUP: 
             {
-                Input->WasPressed = true;
                 
-                if(KeyCode == SDLK_w)
+                u8 Button = Event->button.button;
+                
+                bool IsDown  = (Event->button.state == SDL_PRESSED);
+                bool WasDown = (Event->button.state == SDL_RELEASED);
+                
+                
+                if(Event->button.clicks != 0)
                 {
-                    SDLProcessKeyPress(&Input->Up, IsDown, WasDown);
-                }
-                else if(KeyCode == SDLK_s)
-                {
-                    SDLProcessKeyPress(&Input->Down, IsDown, WasDown);
-                }
-                else if(KeyCode == SDLK_a)
-                {
-                    SDLProcessKeyPress(&Input->Left, IsDown, WasDown);
-                }
-                else if(KeyCode == SDLK_d)
-                {
-                    SDLProcessKeyPress(&Input->Right, IsDown, WasDown);
-                }
-                else if(KeyCode == SDLK_ESCAPE)
-                {
-                    SDLProcessKeyPress(&Input->Escape, IsDown, WasDown);
-                }
-                else if(KeyCode == SDLK_BACKQUOTE)
-                {
-                    SDLProcessKeyPress(&Input->BackQuote, IsDown, WasDown);
-                }
-                else if(KeyCode == SDLK_q)
-                {
-                    //printf("KeyCode == SDLK_q\n");
-                    SDLProcessKeyPress(&Input->Q_Button, IsDown, WasDown);
-                    if(Input->Q_Button.IsDown)
+                    if(Button == SDL_BUTTON_LEFT)
                     {
-                        printf("Q_Button.IsDown\n");
+                        SDLProcessKeyPress(&Input->MouseButtons[0], IsDown, WasDown);
                     }
-                    if(Input->Q_Button.WasDown)
+                    else if(Button == SDL_BUTTON_RIGHT)
                     {
-                        printf("Q_Button.WasDown\n");
+                        SDLProcessKeyPress(&Input->MouseButtons[1], IsDown, WasDown);
                     }
                 }
-                else if(KeyCode == SDLK_e)
-                {
-                    //printf("KeyCode == SDLK_e\n");
-                    SDLProcessKeyPress(&Input->E_Button, IsDown, WasDown);
-                    if(Input->E_Button.IsDown)
-                    {
-                        printf("E_Button.IsDown\n");
-                    }
-                    if(Input->E_Button.WasDown)
-                    {
-                        printf("E_Button.WasDown\n");
-                    }
-                }
-            }										 
+                
+            } break;
             
-        } break;
+            case SDL_KEYDOWN:
+            case SDL_KEYUP:
+            {
+                SDL_Keycode KeyCode = Event->key.keysym.sym;
+                
+                bool IsDown  = (Event->key.state == SDL_PRESSED);
+                bool WasDown = (Event->key.state == SDL_RELEASED);
+                
+                if (Event->key.repeat != 0)
+                {
+                    WasDown = true;
+                }
+                
+                if(Event->key.repeat == 0)
+                {
+                    if(KeyCode == SDLK_q)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.Q_Button, IsDown, WasDown);
+                    }
+                    else if(KeyCode == SDLK_e)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.E_Button, IsDown, WasDown);
+                    }
+                    else if(KeyCode == SDLK_ESCAPE)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.Escape, IsDown, WasDown);
+                    }
+                }										 
+                
+            } break;
+        }
     }
-    
     
     return (ShouldQuit);
 }
-
 
 static void
 SDLUpdateWindow(SDL_Window* Window, SDL_Renderer *Renderer, sdl_offscreen_buffer *Buffer)
@@ -297,38 +236,6 @@ SDLReloadFontTexture(TTF_Font *&Font, SDL_Texture *&Texture, SDL_Rect *Quad,
     Texture = SDL_CreateTextureFromSurface(Renderer, Surface);
     Assert(Texture);
     SDL_FreeSurface(Surface);
-}
-
-static void
-SDLFlushEvents(game_input *Input)
-{
-    if(Input->WasPressed) Input->WasPressed = false;
-    
-    if(Input->MouseMotion)
-    {
-        Input->MouseMotion = false;
-        Input->MouseRelX = 0;
-        Input->MouseRelY = 0;
-    }
-    
-    if(Input->LeftClick.IsDown)  Input->LeftClick.IsDown  = false;
-    if(Input->LeftClick.WasDown) Input->LeftClick.WasDown = false;
-    
-    if(Input->Q_Button.IsDown)  Input->Q_Button.IsDown  = false;
-    if(Input->Q_Button.WasDown) Input->Q_Button.WasDown = false;
-    
-    if(Input->E_Button.IsDown)  Input->E_Button.IsDown  = false;
-    if(Input->E_Button.WasDown) Input->E_Button.WasDown = false;
-    
-    if(Input->Up.IsDown)  Input->Q_Button.IsDown  = false;
-    if(Input->Up.WasDown) Input->Q_Button.WasDown = false;
-    
-    if(Input->Down.IsDown)  Input->E_Button.IsDown  = false;
-    if(Input->Down.WasDown) Input->E_Button.WasDown = false;
-    
-    if(Input->Escape.IsDown) Input->Escape.IsDown   = false;
-    if(Input->Escape.WasDown) Input->Escape.WasDown = false;
-    
 }
 
 #undef main //NOTE(Max): Because SDL_main doesn't work on some windows versions 
@@ -385,7 +292,7 @@ int main(int argc, char **argv)
                 SDL_Event Event;
                 while(SDL_PollEvent(&Event))
                 {
-                    if(HandleEvent(&Event, &Input))
+                    if(SDLHandleEvent(&Event, &Input))
                     {
                         IsRunning = false;
                     }
@@ -409,7 +316,6 @@ int main(int argc, char **argv)
                 
                 // draw loading screen
                 SDLUpdateWindow(Window, Renderer, &BackBuffer);
-                SDLFlushEvents(&Input);
             }
             
         }

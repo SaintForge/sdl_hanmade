@@ -93,34 +93,224 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
 {
     s32 OffsetX = 0;
     
-    if(Input->WasPressed)
+    if(Input->Keyboard.BackQuote.EndedDown)
     {
-        if(Input->BackQuote.IsDown)
+        if(Memory->MenuEntity->DevMode)
         {
-            if(Memory->MenuEntity->DevMode)
+            printf("Dev mode is off\n");
+            Memory->MenuEntity->DevMode = false;
+        }
+        else
+        {
+            printf("Dev mode is on\n");
+            Memory->MenuEntity->DevMode = true;
+        }
+        
+        Input->Keyboard.BackQuote.EndedDown = false;
+    }
+    
+    if(Input->MouseButtons[0].EndedDown)
+    {
+        Memory->MenuEntity->IsMoving    = true;
+        Memory->MenuEntity->IsAnimating = false;
+        
+        Memory->MenuEntity->OldMouseX      = Input->MouseX;
+        Memory->MenuEntity->ScrollingTicks = SDL_GetTicks();
+        
+        Memory->MenuEntity->TargetPosition  = 0;
+        Memory->MenuEntity->Velocity.x      = 0;
+        
+        u32 BeginIndex = Memory->MenuEntity->TargetIndex * 20;
+        u32 EndIndex   = BeginIndex + 20;
+        
+        for(u32 i = BeginIndex; i < EndIndex; ++i)
+        {
+            if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Memory->MenuEntity->Buttons[i].ButtonQuad))
             {
-                printf("Dev mode is off\n");
-                Memory->MenuEntity->DevMode = false;
+                Memory->MenuEntity->ButtonIndex = i;
+                break;
+            }
+        }
+        
+        if(Memory->MenuEntity->DevMode)
+        {
+            if(Memory->MenuEntity->IsShowingDelete)
+            {
+                if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Memory->MenuEntity->ConfirmButtons[0].ButtonQuad))
+                {
+                    Memory->MenuEntity->IsToBeDeleted = true;
+                    Memory->MenuEntity->IsToBeSaved = true;
+                    Memory->MenuEntity->IsToBeLoaded = true;
+                }
+                
+                Memory->MenuEntity->IsShowingDelete = false;
+            }
+            if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Memory->MenuEntity->SaveAndLoadButtons[0].ButtonQuad))
+            {
+                Memory->MenuEntity->IsToBeSaved = false;
+                SaveLevelMemoryToFile(Memory);
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Memory->MenuEntity->SaveAndLoadButtons[1].ButtonQuad))
+            {
+                Memory->MenuEntity->IsToBeLoaded = false;
+            }
+        }
+        
+    }
+    else if(Input->MouseButtons[0].EndedUp)
+    {
+        Memory->MenuEntity->IsMoving    = false;
+        Memory->MenuEntity->IsAnimating = true;
+        Memory->MenuEntity->ScrollingTicks = SDL_GetTicks() - Memory->MenuEntity->ScrollingTicks;
+        Memory->MenuEntity->MaxVelocity = 20.0f;
+        //Memory->MenuEntity->ButtonIndex = -1;
+        
+        u32 ButtonsAreaAmount = (Memory->MenuEntity->ButtonsAmount / 20) + 1;
+        
+        if(abs(Memory->MenuEntity->TargetPosition) >= Memory->MenuEntity->ButtonSizeWidth * 0.5f)
+        {
+            s32 Center_x = 0;
+            s32 Center_y = 0;
+            s32 CenterOffset = 0;
+            
+            if(Memory->MenuEntity->ScrollingTicks < 500)
+            {
+                bool ShouldJump = false;
+                
+                s32 LeftBorder  = Memory->MenuEntity->ButtonsArea[0].x;
+                s32 RightBorder = Memory->MenuEntity->ButtonsArea[ButtonsAreaAmount-1].x + Memory->MenuEntity->ButtonsArea[ButtonsAreaAmount-1].w;
+                
+                ShouldJump = (LeftBorder >= Buffer->Width / 2) || (RightBorder <= Buffer->Width / 2);
+                
+                if(!ShouldJump)
+                {
+                    s32 TargetOffset = Memory->MenuEntity->TargetPosition;
+                    if(abs(TargetOffset) < Memory->MenuEntity->ButtonsArea[0].w)
+                    {
+                        TargetOffset = TargetOffset > 0
+                            ? Buffer->Width
+                            : -Buffer->Width;
+                        
+                        Memory->MenuEntity->MaxVelocity   *= 2;
+                        Memory->MenuEntity->TargetPosition = TargetOffset;
+                        Memory->MenuEntity->ButtonIndex    = -1;
+                    }
+                }
+            }
+            
+            if(Memory->MenuEntity->TargetPosition > 0)
+            {
+                Center_x = Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x + (Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].w * 0.2f);
             }
             else
             {
-                printf("Dev mode is on\n");
-                Memory->MenuEntity->DevMode = true;
+                Center_x = Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x + (Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].w * 0.8f);
             }
             
-            Input->BackQuote.IsDown = false;
+            CenterOffset = Center_x - Memory->MenuEntity->TargetPosition;
+            
+            for(u32 i = 0; i < ButtonsAreaAmount; ++i)
+            {
+                game_rect TargetArea;
+                TargetArea.x = Memory->MenuEntity->ButtonsArea[i].x + (Memory->MenuEntity->ButtonsArea[i].w / 2) - (Buffer->Width / 2);
+                TargetArea.y = 0;
+                TargetArea.w = Buffer->Width;
+                TargetArea.h = Buffer->Height;
+                
+                if(IsPointInsideRect(CenterOffset, Center_y, &TargetArea))
+                {
+                    Memory->MenuEntity->TargetIndex = i;
+                    break;
+                }
+            }
+            
+            Memory->MenuEntity->TargetPosition = Buffer->Width / 2;
+        }
+        else
+        {
+            Memory->MenuEntity->TargetPosition = Buffer->Width / 2;
+            
+            s32 Index = Memory->MenuEntity->ButtonIndex;
+            if(Index == Memory->MenuEntity->NewButtonIndex)
+            {
+                if(Memory->MenuEntity->DevMode)
+                {
+                    u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
+                    u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
+                    
+                    LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity,
+                                                           Index, false,
+                                                           Memory, Buffer);
+                    
+                    LevelEditorChangeGridCounters(Memory->LevelEditor, 
+                                                  Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
+                                                  RowAmount, ColAmount,
+                                                  Buffer);
+                    SDL_DestroyTexture(Memory->MenuEntity->Buttons[Index].LevelNumberTexture);
+                    
+                    Memory->MenuEntity->ButtonsAmount += 1;
+                    
+                    char LevelNumber[3] = {0};
+                    sprintf(LevelNumber, "%d", Index + 1);
+                    
+                    MenuChangeButtonText(Memory->LevelNumberFont, LevelNumber, 
+                                         Memory->MenuEntity, 
+                                         &Memory->MenuEntity->Buttons[Index], 
+                                         {255, 255 ,255}, 
+                                         Buffer);
+                    
+                    MenuChangeButtonText(Memory->LevelNumberFont, "+", 
+                                         Memory->MenuEntity, 
+                                         &Memory->MenuEntity->Buttons[Index+1], 
+                                         {255, 255 ,255}, 
+                                         Buffer);
+                    Memory->MenuEntity->NewButtonIndex = Index+1;
+                    
+                    MenuEntityAlignButtons(Memory->MenuEntity, Buffer->Width, Buffer->Height);
+                    
+                    Memory->LevelMemoryAmount += 1;
+                }
+                
+            }
+            else if(Index >= 0)
+            {
+                if(Memory->MenuEntity->DevMode)
+                {
+                    if(Memory->MenuEntity->IsToBeDeleted)
+                    {
+                        MenuDeleteLevel(Buffer, Memory, Memory->MenuEntity->ButtonIndex);
+                        Memory->MenuEntity->IsToBeDeleted = false;
+                    }
+                }
+                else
+                {
+                    u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
+                    u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
+                    
+                    LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
+                                                           Index, false,
+                                                           Memory, Buffer);
+                    LevelEditorChangeGridCounters(Memory->LevelEditor, 
+                                                  Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
+                                                  RowAmount, ColAmount,
+                                                  Buffer);
+                    Memory->ToggleMenu = false;
+                    Memory->LevelEntity.LevelNumber = Index;
+                    
+                }
+            }
+            
+            Memory->MenuEntity->ButtonIndex = -1;
         }
         
-        if(Input->LeftClick.IsDown)
+    }
+    else if(Input->MouseButtons[1].EndedUp)
+    {
+        printf("Right mouse click\n");
+        
+        if(Memory->MenuEntity->DevMode)
         {
-            Memory->MenuEntity->IsMoving    = true;
-            Memory->MenuEntity->IsAnimating = false;
-            
-            Memory->MenuEntity->OldMouseX      = Input->MouseX;
-            Memory->MenuEntity->ScrollingTicks = SDL_GetTicks();
-            
-            Memory->MenuEntity->TargetPosition  = 0;
-            Memory->MenuEntity->Velocity.x      = 0;
+            s32 Index = -1;
             
             u32 BeginIndex = Memory->MenuEntity->TargetIndex * 20;
             u32 EndIndex   = BeginIndex + 20;
@@ -129,227 +319,34 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             {
                 if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Memory->MenuEntity->Buttons[i].ButtonQuad))
                 {
-                    Memory->MenuEntity->ButtonIndex = i;
+                    Index = i;
                     break;
                 }
             }
             
-            if(Memory->MenuEntity->DevMode)
+            if(Index >= 0 && Index != Memory->MenuEntity->NewButtonIndex)
             {
-                if(Memory->MenuEntity->IsShowingDelete)
-                {
-                    if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Memory->MenuEntity->ConfirmButtons[0].ButtonQuad))
-                    {
-                        Memory->MenuEntity->IsToBeDeleted = true;
-                        Memory->MenuEntity->IsToBeSaved = true;
-                        Memory->MenuEntity->IsToBeLoaded = true;
-                    }
-                    
-                    Memory->MenuEntity->IsShowingDelete = false;
-                }
-                if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Memory->MenuEntity->SaveAndLoadButtons[0].ButtonQuad))
-                {
-                    Memory->MenuEntity->IsToBeSaved = false;
-                    SaveLevelMemoryToFile(Memory);
-                }
-                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Memory->MenuEntity->SaveAndLoadButtons[1].ButtonQuad))
-                {
-                    Memory->MenuEntity->IsToBeLoaded = false;
-                }
+                Memory->MenuEntity->IsShowingDelete = true;
+                
+                Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.x = Memory->MenuEntity->Buttons[Index].ButtonQuad.x + Memory->MenuEntity->Buttons[Index].ButtonQuad.w - (Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.w * 2);
+                Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.y = Memory->MenuEntity->Buttons[Index].ButtonQuad.y;
+                
+                Memory->MenuEntity->ConfirmButtons[0].LevelNumberTextureQuad.x = Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.x + (Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.w / 2) - (Memory->MenuEntity->ConfirmButtons[0].LevelNumberTextureQuad.w / 2);
+                
+                Memory->MenuEntity->ConfirmButtons[0].LevelNumberTextureQuad.y = Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.y + (Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.h / 2) - (Memory->MenuEntity->ConfirmButtons[0].LevelNumberTextureQuad.h / 2);
+                
+                Memory->MenuEntity->ConfirmButtons[1].ButtonQuad.x = Memory->MenuEntity->Buttons[Index].ButtonQuad.x + Memory->MenuEntity->Buttons[Index].ButtonQuad.w - (Memory->MenuEntity->ConfirmButtons[1].ButtonQuad.w);
+                Memory->MenuEntity->ConfirmButtons[1].ButtonQuad.y = Memory->MenuEntity->Buttons[Index].ButtonQuad.y;
+                
+                Memory->MenuEntity->ConfirmButtons[1].LevelNumberTextureQuad.x = Memory->MenuEntity->ConfirmButtons[1].ButtonQuad.x + (Memory->MenuEntity->ConfirmButtons[1].ButtonQuad.w / 2) - (Memory->MenuEntity->ConfirmButtons[1].LevelNumberTextureQuad.w / 2);
+                
+                Memory->MenuEntity->ConfirmButtons[1].LevelNumberTextureQuad.y = Memory->MenuEntity->ConfirmButtons[1].ButtonQuad.y + (Memory->MenuEntity->ConfirmButtons[1].ButtonQuad.h / 2) - (Memory->MenuEntity->ConfirmButtons[1].LevelNumberTextureQuad.h / 2);
             }
             
-        }
-        else if(Input->LeftClick.WasDown)
-        {
-            Memory->MenuEntity->IsMoving    = false;
-            Memory->MenuEntity->IsAnimating = true;
-            Memory->MenuEntity->ScrollingTicks = SDL_GetTicks() - Memory->MenuEntity->ScrollingTicks;
-            Memory->MenuEntity->MaxVelocity = 20.0f;
-            //Memory->MenuEntity->ButtonIndex = -1;
-            
-            u32 ButtonsAreaAmount = (Memory->MenuEntity->ButtonsAmount / 20) + 1;
-            
-            if(abs(Memory->MenuEntity->TargetPosition) >= Memory->MenuEntity->ButtonSizeWidth * 0.5f)
-            {
-                s32 Center_x = 0;
-                s32 Center_y = 0;
-                s32 CenterOffset = 0;
-                
-                if(Memory->MenuEntity->ScrollingTicks < 500)
-                {
-                    bool ShouldJump = false;
-                    
-                    s32 LeftBorder  = Memory->MenuEntity->ButtonsArea[0].x;
-                    s32 RightBorder = Memory->MenuEntity->ButtonsArea[ButtonsAreaAmount-1].x + Memory->MenuEntity->ButtonsArea[ButtonsAreaAmount-1].w;
-                    
-                    ShouldJump = (LeftBorder >= Buffer->Width / 2) || (RightBorder <= Buffer->Width / 2);
-                    
-                    if(!ShouldJump)
-                    {
-                        s32 TargetOffset = Memory->MenuEntity->TargetPosition;
-                        if(abs(TargetOffset) < Memory->MenuEntity->ButtonsArea[0].w)
-                        {
-                            TargetOffset = TargetOffset > 0
-                                ? Buffer->Width
-                                : -Buffer->Width;
-                            
-                            Memory->MenuEntity->MaxVelocity   *= 2;
-                            Memory->MenuEntity->TargetPosition = TargetOffset;
-                            Memory->MenuEntity->ButtonIndex    = -1;
-                        }
-                    }
-                }
-                
-                if(Memory->MenuEntity->TargetPosition > 0)
-                {
-                    Center_x = Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x + (Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].w * 0.2f);
-                }
-                else
-                {
-                    Center_x = Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].x + (Memory->MenuEntity->ButtonsArea[Memory->MenuEntity->TargetIndex].w * 0.8f);
-                }
-                
-                CenterOffset = Center_x - Memory->MenuEntity->TargetPosition;
-                
-                for(u32 i = 0; i < ButtonsAreaAmount; ++i)
-                {
-                    game_rect TargetArea;
-                    TargetArea.x = Memory->MenuEntity->ButtonsArea[i].x + (Memory->MenuEntity->ButtonsArea[i].w / 2) - (Buffer->Width / 2);
-                    TargetArea.y = 0;
-                    TargetArea.w = Buffer->Width;
-                    TargetArea.h = Buffer->Height;
-                    
-                    if(IsPointInsideRect(CenterOffset, Center_y, &TargetArea))
-                    {
-                        Memory->MenuEntity->TargetIndex = i;
-                        break;
-                    }
-                }
-                
-                Memory->MenuEntity->TargetPosition = Buffer->Width / 2;
-            }
-            else
-            {
-                Memory->MenuEntity->TargetPosition = Buffer->Width / 2;
-                
-                s32 Index = Memory->MenuEntity->ButtonIndex;
-                if(Index == Memory->MenuEntity->NewButtonIndex)
-                {
-                    if(Memory->MenuEntity->DevMode)
-                    {
-                        u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
-                        u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
-                        
-                        LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity,
-                                                               Index, false,
-                                                               Memory, Buffer);
-                        
-                        LevelEditorChangeGridCounters(Memory->LevelEditor, 
-                                                      Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
-                                                      RowAmount, ColAmount,
-                                                      Buffer);
-                        SDL_DestroyTexture(Memory->MenuEntity->Buttons[Index].LevelNumberTexture);
-                        
-                        Memory->MenuEntity->ButtonsAmount += 1;
-                        
-                        char LevelNumber[3] = {0};
-                        sprintf(LevelNumber, "%d", Index + 1);
-                        
-                        MenuChangeButtonText(Memory->LevelNumberFont, LevelNumber, 
-                                             Memory->MenuEntity, 
-                                             &Memory->MenuEntity->Buttons[Index], 
-                                             {255, 255 ,255}, 
-                                             Buffer);
-                        
-                        MenuChangeButtonText(Memory->LevelNumberFont, "+", 
-                                             Memory->MenuEntity, 
-                                             &Memory->MenuEntity->Buttons[Index+1], 
-                                             {255, 255 ,255}, 
-                                             Buffer);
-                        Memory->MenuEntity->NewButtonIndex = Index+1;
-                        
-                        MenuEntityAlignButtons(Memory->MenuEntity, Buffer->Width, Buffer->Height);
-                        
-                        Memory->LevelMemoryAmount += 1;
-                    }
-                    
-                }
-                else if(Index >= 0)
-                {
-                    if(Memory->MenuEntity->DevMode)
-                    {
-                        if(Memory->MenuEntity->IsToBeDeleted)
-                        {
-                            MenuDeleteLevel(Buffer, Memory, Memory->MenuEntity->ButtonIndex);
-                            Memory->MenuEntity->IsToBeDeleted = false;
-                        }
-                    }
-                    else
-                    {
-                        u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
-                        u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
-                        
-                        LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
-                                                               Index, false,
-                                                               Memory, Buffer);
-                        LevelEditorChangeGridCounters(Memory->LevelEditor, 
-                                                      Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
-                                                      RowAmount, ColAmount,
-                                                      Buffer);
-                        Memory->ToggleMenu = false;
-                        Memory->LevelEntity.LevelNumber = Index;
-                        
-                    }
-                }
-                
-                Memory->MenuEntity->ButtonIndex = -1;
-            }
-            
-        }
-        else if(Input->RightClick.IsDown)
-        {
-            printf("Right mouse click\n");
-            
-            if(Memory->MenuEntity->DevMode)
-            {
-                s32 Index = -1;
-                
-                u32 BeginIndex = Memory->MenuEntity->TargetIndex * 20;
-                u32 EndIndex   = BeginIndex + 20;
-                
-                for(u32 i = BeginIndex; i < EndIndex; ++i)
-                {
-                    if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Memory->MenuEntity->Buttons[i].ButtonQuad))
-                    {
-                        Index = i;
-                        break;
-                    }
-                }
-                
-                if(Index >= 0 && Index != Memory->MenuEntity->NewButtonIndex)
-                {
-                    Memory->MenuEntity->IsShowingDelete = true;
-                    
-                    Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.x = Memory->MenuEntity->Buttons[Index].ButtonQuad.x + Memory->MenuEntity->Buttons[Index].ButtonQuad.w - (Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.w * 2);
-                    Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.y = Memory->MenuEntity->Buttons[Index].ButtonQuad.y;
-                    
-                    Memory->MenuEntity->ConfirmButtons[0].LevelNumberTextureQuad.x = Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.x + (Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.w / 2) - (Memory->MenuEntity->ConfirmButtons[0].LevelNumberTextureQuad.w / 2);
-                    
-                    Memory->MenuEntity->ConfirmButtons[0].LevelNumberTextureQuad.y = Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.y + (Memory->MenuEntity->ConfirmButtons[0].ButtonQuad.h / 2) - (Memory->MenuEntity->ConfirmButtons[0].LevelNumberTextureQuad.h / 2);
-                    
-                    Memory->MenuEntity->ConfirmButtons[1].ButtonQuad.x = Memory->MenuEntity->Buttons[Index].ButtonQuad.x + Memory->MenuEntity->Buttons[Index].ButtonQuad.w - (Memory->MenuEntity->ConfirmButtons[1].ButtonQuad.w);
-                    Memory->MenuEntity->ConfirmButtons[1].ButtonQuad.y = Memory->MenuEntity->Buttons[Index].ButtonQuad.y;
-                    
-                    Memory->MenuEntity->ConfirmButtons[1].LevelNumberTextureQuad.x = Memory->MenuEntity->ConfirmButtons[1].ButtonQuad.x + (Memory->MenuEntity->ConfirmButtons[1].ButtonQuad.w / 2) - (Memory->MenuEntity->ConfirmButtons[1].LevelNumberTextureQuad.w / 2);
-                    
-                    Memory->MenuEntity->ConfirmButtons[1].LevelNumberTextureQuad.y = Memory->MenuEntity->ConfirmButtons[1].ButtonQuad.y + (Memory->MenuEntity->ConfirmButtons[1].ButtonQuad.h / 2) - (Memory->MenuEntity->ConfirmButtons[1].LevelNumberTextureQuad.h / 2);
-                }
-                
-            }
         }
     }
     
-    if(Input->MouseMotion && Memory->MenuEntity->IsMoving)
+    if(Memory->MenuEntity->IsMoving)
     {
         OffsetX += Input->MouseRelX;
         Memory->MenuEntity->TargetPosition += OffsetX;

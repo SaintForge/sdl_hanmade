@@ -1168,151 +1168,145 @@ GameUpdateEvent(game_input *Input, level_entity *GameState,
     r32 BlockRatio  = 0;
     u32 ActiveIndex = FigureEntity->FigureActive;
     
-    if(Input->WasPressed)
+    if(Input->Keyboard.BackQuote.EndedDown)
     {
-        if(Input->BackQuote.IsDown)
+        if(!GameState->LevelPaused)
         {
-            if(!GameState->LevelPaused)
-            {
-                GameState->LevelPaused = true;
-                RestartLevelEntity(GameState);
-                Input->BackQuote.IsDown = false;
-            }
+            GameState->LevelPaused = true;
+            RestartLevelEntity(GameState);
+            Input->Keyboard.BackQuote.EndedDown = false;
         }
-        else if(Input->LeftClick.IsDown)
+    }
+    else if(Input->Keyboard.LeftClick.EndedDown)
+    {
+        if(!FigureEntity->IsGrabbed)
         {
-            if(!FigureEntity->IsGrabbed)
+            for (s32 i = Size-1; i >= 0; --i)
             {
-                for (s32 i = Size-1; i >= 0; --i)
+                ActiveIndex = FigureEntity->FigureOrder[i];
+                game_rect AreaQuad = FigureUnitGetArea(&FigureUnit[ActiveIndex]);
+                if(IsPointInsideRect(MouseX, MouseY, &AreaQuad))
                 {
-                    ActiveIndex = FigureEntity->FigureOrder[i];
-                    game_rect AreaQuad = FigureUnitGetArea(&FigureUnit[ActiveIndex]);
-                    if(IsPointInsideRect(MouseX, MouseY, &AreaQuad))
+                    game_rect ShellQuad = {0};
+                    ShellQuad.w = FigureUnit[ActiveIndex].IsEnlarged ? ActiveBlockSize : DefaultBlockSize;
+                    ShellQuad.h = FigureUnit[ActiveIndex].IsEnlarged ? ActiveBlockSize : DefaultBlockSize;
+                    for(u32 j = 0; j < 4; ++j)
                     {
-                        game_rect ShellQuad = {0};
-                        ShellQuad.w = FigureUnit[ActiveIndex].IsEnlarged ? ActiveBlockSize : DefaultBlockSize;
-                        ShellQuad.h = FigureUnit[ActiveIndex].IsEnlarged ? ActiveBlockSize : DefaultBlockSize;
-                        for(u32 j = 0; j < 4; ++j)
+                        ShellQuad.x = FigureUnit[ActiveIndex].Shell[j].x - (ShellQuad.w / 2);
+                        ShellQuad.y = FigureUnit[ActiveIndex].Shell[j].y - (ShellQuad.h / 2);
+                        if(IsPointInsideRect(MouseX, MouseY, &ShellQuad))
                         {
-                            ShellQuad.x = FigureUnit[ActiveIndex].Shell[j].x - (ShellQuad.w / 2);
-                            ShellQuad.y = FigureUnit[ActiveIndex].Shell[j].y - (ShellQuad.h / 2);
-                            if(IsPointInsideRect(MouseX, MouseY, &ShellQuad))
+                            FigureEntity->IsGrabbed = true;
+                            
+                            if(!FigureUnit[ActiveIndex].IsEnlarged)
                             {
-                                FigureEntity->IsGrabbed = true;
-                                
-                                if(!FigureUnit[ActiveIndex].IsEnlarged)
-                                {
-                                    BlockRatio = ActiveBlockSize / DefaultBlockSize;
-                                    FigureUnit[ActiveIndex].IsIdle = false;
-                                    FigureUnit[ActiveIndex].IsEnlarged = true;
-                                    FigureUnitResizeBy(&FigureUnit[ActiveIndex], BlockRatio);
-                                }
-                                
-                                FigureEntity->FigureActive = ActiveIndex;
-                                FigureEntityHighOrderFigure(FigureEntity, ActiveIndex);
-                                SDL_ShowCursor(SDL_DISABLE);
-                                //DEBUGPrintEntityOrder(Group);
-                                
-                                return;
+                                BlockRatio = ActiveBlockSize / DefaultBlockSize;
+                                FigureUnit[ActiveIndex].IsIdle = false;
+                                FigureUnit[ActiveIndex].IsEnlarged = true;
+                                FigureUnitResizeBy(&FigureUnit[ActiveIndex], BlockRatio);
                             }
-                        }
-                    }
-                }
-                
-                if(IsPointInsideRect(MouseX, MouseY, &GridEntity->GridArea))
-                {
-                    for(u32 i = 0; i < GridEntity->MovingBlocksAmount; i++)
-                    {
-                        if(IsPointInsideRect(MouseX, MouseY, &GridEntity->MovingBlocks[i].AreaQuad))
-                        {
-                            if(!GridEntity->MovingBlocks[i].IsVertical) 
-                            {
-                                GridEntityMoveBlockHorizontally(GridEntity, &GridEntity->MovingBlocks[i]);
-                                printf("index of moving block = %d\n", i);
-                            }
-                            else
-                            {
-                                GridEntityMoveBlockVertically(GridEntity, &GridEntity->MovingBlocks[i]);
-                            }
+                            
+                            FigureEntity->FigureActive = ActiveIndex;
+                            FigureEntityHighOrderFigure(FigureEntity, ActiveIndex);
+                            SDL_ShowCursor(SDL_DISABLE);
+                            //DEBUGPrintEntityOrder(Group);
                             
                             return;
                         }
                     }
                 }
             }
-            else
+            
+            if(IsPointInsideRect(MouseX, MouseY, &GridEntity->GridArea))
             {
-                if(!FigureEntity->IsRotating && !FigureEntity->IsFlipping)
+                for(u32 i = 0; i < GridEntity->MovingBlocksAmount; i++)
                 {
-                    game_rect ScreenArea = {0};
-                    ScreenArea.w = ScreenWidth;
-                    ScreenArea.h = ScreenHeight;
-                    
-                    if(IsFigureUnitInsideRect(&FigureUnit[ActiveIndex], &FigureEntity->FigureArea) || 
-                       (!IsPointInsideRect(FigureUnit[ActiveIndex].Center.x,FigureUnit[ActiveIndex].Center.y, &ScreenArea)))
+                    if(IsPointInsideRect(MouseX, MouseY, &GridEntity->MovingBlocks[i].AreaQuad))
                     {
-                        FigureUnit[ActiveIndex].IsIdle = true;
-                        BlockRatio = DefaultBlockSize / ActiveBlockSize;
-                        FigureUnitSetToDefaultArea(&FigureUnit[ActiveIndex], BlockRatio);
+                        if(!GridEntity->MovingBlocks[i].IsVertical) 
+                        {
+                            GridEntityMoveBlockHorizontally(GridEntity, &GridEntity->MovingBlocks[i]);
+                            printf("index of moving block = %d\n", i);
+                        }
+                        else
+                        {
+                            GridEntityMoveBlockVertically(GridEntity, &GridEntity->MovingBlocks[i]);
+                        }
                         
-                        FigureEntity->IsReturning = true;
-                        FigureEntity->ReturnIndex = ActiveIndex;
-                        
-                        FigureUnitMoveToDefaultArea(&FigureUnit[ActiveIndex], ActiveBlockSize);
+                        return;
                     }
-                    
-                    SDL_ShowCursor(SDL_ENABLE);
-                    FigureEntity->IsGrabbed = false;
-                    FigureEntity->FigureActive = -1;
                 }
             }
         }
-        if(Input->RightClick.IsDown)
+        else
         {
-            if(FigureEntity->IsGrabbed)
+            if(!FigureEntity->IsRotating && !FigureEntity->IsFlipping)
             {
-                figure_type Type = FigureUnit[ActiveIndex].Type;
-                switch(Type)
+                game_rect ScreenArea = {0};
+                ScreenArea.w = ScreenWidth;
+                ScreenArea.h = ScreenHeight;
+                
+                if(IsFigureUnitInsideRect(&FigureUnit[ActiveIndex], &FigureEntity->FigureArea) || 
+                   (!IsPointInsideRect(FigureUnit[ActiveIndex].Center.x,FigureUnit[ActiveIndex].Center.y, &ScreenArea)))
                 {
-                    case classic:
-                    {
-                        if (!FigureEntity->IsRotating)
-                        {
-                            FigureEntity->IsRotating = true;
-                            FigureUnitRotateShellBy(&FigureUnit[ActiveIndex], 90);
-                        }
-                    } break;
-                    case mirror:
-                    {
-                        if (!FigureEntity->IsFlipping)
-                        {
-                            
-                            SDL_SetTextureBlendMode(FigureUnit[ActiveIndex].Texture, SDL_BLENDMODE_BLEND);
-                            
-                            FigureEntity->IsFlipping = true;
-                            FigureEntity->FigureAlpha= 255;
-                            FigureEntity->FadeInSum  = 255;
-                            FigureEntity->FadeOutSum = 0;
-                        }
-                    } break;
+                    FigureUnit[ActiveIndex].IsIdle = true;
+                    BlockRatio = DefaultBlockSize / ActiveBlockSize;
+                    FigureUnitSetToDefaultArea(&FigureUnit[ActiveIndex], BlockRatio);
                     
-                    case stone:
-                    {
-                        
-                    } break;
+                    FigureEntity->IsReturning = true;
+                    FigureEntity->ReturnIndex = ActiveIndex;
+                    
+                    FigureUnitMoveToDefaultArea(&FigureUnit[ActiveIndex], ActiveBlockSize);
                 }
+                
+                SDL_ShowCursor(SDL_ENABLE);
+                FigureEntity->IsGrabbed = false;
+                FigureEntity->FigureActive = -1;
             }
-        } 
+        }
     }
-    if(Input->MouseMotion)
+    if(Input->Keyboard.RightClick.EndedDown)
     {
         if(FigureEntity->IsGrabbed)
         {
-            s32 x = Input->MouseRelX;
-            s32 y = Input->MouseRelY;
-            FigureUnitMove(&FigureUnit[ActiveIndex], x, y);
-            
-        }           
+            figure_type Type = FigureUnit[ActiveIndex].Type;
+            switch(Type)
+            {
+                case classic:
+                {
+                    if (!FigureEntity->IsRotating)
+                    {
+                        FigureEntity->IsRotating = true;
+                        FigureUnitRotateShellBy(&FigureUnit[ActiveIndex], 90);
+                    }
+                } break;
+                case mirror:
+                {
+                    if (!FigureEntity->IsFlipping)
+                    {
+                        
+                        SDL_SetTextureBlendMode(FigureUnit[ActiveIndex].Texture, SDL_BLENDMODE_BLEND);
+                        
+                        FigureEntity->IsFlipping = true;
+                        FigureEntity->FigureAlpha= 255;
+                        FigureEntity->FadeInSum  = 255;
+                        FigureEntity->FadeOutSum = 0;
+                    }
+                } break;
+                
+                case stone:
+                {
+                    
+                } break;
+            }
+        }
+    } 
+    if(FigureEntity->IsGrabbed)
+    {
+        s32 x = Input->MouseRelX;
+        s32 y = Input->MouseRelY;
+        FigureUnitMove(&FigureUnit[ActiveIndex], x, y);
+        
     }
 }
 
@@ -2668,379 +2662,376 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     s32 NewIndex      = LevelEditor->SelectedFigure;
     s32 CurrentLevel  = LevelEntity->LevelNumber;
     
-    if(Input->WasPressed)
+    if(Input->Keyboard.Up.EndedDown)
     {
-        if(Input->Up.IsDown)
+        NewIndex -= 1;
+    }
+    else if(Input->Keyboard.Down.EndedDown)
+    {
+        NewIndex += 1;
+    }
+    else if(Input->Keyboard.Left.EndedDown)
+    {
+        NewIndex -= 2;
+    }
+    else if(Input->Keyboard.Right.EndedDown)
+    {
+        NewIndex += 2;
+    }
+    
+    if(Input->Keyboard.Q_Button.EndedDown)
+    {
+        //printf("Q_Button is down\n");
+        
+        s32 PrevLevelNumber = CurrentLevel - 1;
+        if(PrevLevelNumber >= 0)
         {
-            NewIndex -= 1;
-        }
-        else if(Input->Down.IsDown)
-        {
-            NewIndex += 1;
-        }
-        else if(Input->Left.IsDown)
-        {
-            NewIndex -= 2;
-        }
-        else if(Input->Right.IsDown)
-        {
-            NewIndex += 2;
+            u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
+            u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
+            
+            LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
+                                                   PrevLevelNumber, true,
+                                                   Memory, Buffer);
+            
+            LevelEditorChangeGridCounters(Memory->LevelEditor, 
+                                          Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
+                                          RowAmount, ColAmount,
+                                          Buffer);
+            
         }
         
-        if(Input->Q_Button.IsDown)
+        LevelEditor->PrevLevelQuad.x -= LevelEditor->PrevLevelQuad.w/2;
+        LevelEditor->PrevLevelQuad.y -= LevelEditor->PrevLevelQuad.h/2;
+        LevelEditor->PrevLevelQuad.w *= 2;
+        LevelEditor->PrevLevelQuad.h *= 2;
+        
+        LevelEditor->Q_Pressed += 1;
+    }
+    if(Input->Keyboard.E_Button.EndedDown)
+    {
+        //printf("E_Button is down\n");
+        s32 NextLevelNumber = CurrentLevel + 1;
+        if(NextLevelNumber < Memory->LevelMemoryAmount)
         {
-            //printf("Q_Button is down\n");
+            u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
+            u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
             
-            s32 PrevLevelNumber = CurrentLevel - 1;
-            if(PrevLevelNumber >= 0)
-            {
-                u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
-                u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
-                
-                LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
-                                                       PrevLevelNumber, true,
-                                                       Memory, Buffer);
-                
-                LevelEditorChangeGridCounters(Memory->LevelEditor, 
-                                              Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
-                                              RowAmount, ColAmount,
-                                              Buffer);
-                
-            }
-            
-            LevelEditor->PrevLevelQuad.x -= LevelEditor->PrevLevelQuad.w/2;
-            LevelEditor->PrevLevelQuad.y -= LevelEditor->PrevLevelQuad.h/2;
-            LevelEditor->PrevLevelQuad.w *= 2;
-            LevelEditor->PrevLevelQuad.h *= 2;
-            
-            LevelEditor->Q_Pressed += 1;
+            LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
+                                                   NextLevelNumber,true,
+                                                   Memory, Buffer);
+            LevelEditorChangeGridCounters(Memory->LevelEditor, 
+                                          Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
+                                          RowAmount, ColAmount,
+                                          Buffer);
         }
-        if(Input->E_Button.IsDown)
+        
+        LevelEditor->NextLevelQuad.x -= LevelEditor->NextLevelQuad.w/2;
+        LevelEditor->NextLevelQuad.y -= LevelEditor->NextLevelQuad.h/2;
+        LevelEditor->NextLevelQuad.w *= 2;
+        LevelEditor->NextLevelQuad.h *= 2;
+        
+        LevelEditor->E_Pressed += 1;
+    }
+    else if(Input->Keyboard.BackQuote.EndedDown)
+    {
+        LevelEntity->LevelPaused = false;
+        Input->Keyboard.BackQuote.EndedDown  = false;
+    }
+    else if(Input->Keyboard.LeftClick.EndedDown)
+    {
+        LevelEditor->ButtonPressed = true;
+        
+        if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->GridButtonLayer))
         {
-            //printf("E_Button is down\n");
-            s32 NextLevelNumber = CurrentLevel + 1;
-            if(NextLevelNumber < Memory->LevelMemoryAmount)
-            {
-                u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
-                u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
-                
-                LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
-                                                       NextLevelNumber,true,
-                                                       Memory, Buffer);
-                LevelEditorChangeGridCounters(Memory->LevelEditor, 
-                                              Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
-                                              RowAmount, ColAmount,
-                                              Buffer);
-            }
+            /* Grid layer*/
             
-            LevelEditor->NextLevelQuad.x -= LevelEditor->NextLevelQuad.w/2;
-            LevelEditor->NextLevelQuad.y -= LevelEditor->NextLevelQuad.h/2;
-            LevelEditor->NextLevelQuad.w *= 2;
-            LevelEditor->NextLevelQuad.h *= 2;
-            
-            LevelEditor->E_Pressed += 1;
-        }
-        else if(Input->BackQuote.IsDown)
-        {
-            LevelEntity->LevelPaused = false;
-            Input->BackQuote.IsDown  = false;
-        }
-        else if(Input->LeftClick.IsDown)
-        {
-            LevelEditor->ButtonPressed = true;
-            
-            if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->GridButtonLayer))
+            /* Plus row */
+            if (IsPointInsideRect(Input->MouseX, Input->MouseY,
+                                  &LevelEditor->GridButton[0]))
             {
-                /* Grid layer*/
+                printf("Plus row!\n");
+                GridEntityNewGrid(Buffer, LevelEntity, RowAmount+1, ColAmount, LevelEditor);
                 
-                /* Plus row */
-                if (IsPointInsideRect(Input->MouseX, Input->MouseY,
-                                      &LevelEditor->GridButton[0]))
-                {
-                    printf("Plus row!\n");
-                    GridEntityNewGrid(Buffer, LevelEntity, RowAmount+1, ColAmount, LevelEditor);
-                    
-                    LevelEditor->ActiveButton = LevelEditor->GridButton[0];
-                }
-                /* Minus row */
-                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                                          &LevelEditor->GridButton[2]))
-                {
-                    printf("Minus row!\n");
-                    GridEntityNewGrid(Buffer, LevelEntity, RowAmount-1, ColAmount, LevelEditor);
-                    LevelEditor->ActiveButton = LevelEditor->GridButton[2];
-                }
-                /* Plus column */
-                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                                          &LevelEditor->GridButton[3]))
-                {
-                    printf("Plus column!\n");
-                    GridEntityNewGrid(Buffer, LevelEntity, RowAmount, ColAmount+1, LevelEditor);
-                    LevelEditor->ActiveButton = LevelEditor->GridButton[3];
-                }
-                /* Minus column */
-                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                                          &LevelEditor->GridButton[5]))
-                {
-                    printf("Minus column!\n");
-                    GridEntityNewGrid(Buffer, LevelEntity, RowAmount, ColAmount-1, LevelEditor);
-                    
-                    LevelEditor->ActiveButton = LevelEditor->GridButton[5];
-                }
+                LevelEditor->ActiveButton = LevelEditor->GridButton[0];
             }
-            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->FigureButtonLayer))
-            {
-                /* Figure Layer*/ 
-                
-                /* Add figure*/ 
-                if (IsPointInsideRect(Input->MouseX, Input->MouseY,
-                                      &LevelEditor->FigureButton[0]))
-                {
-                    FigureUnitAddNewFigure(LevelEntity->FigureEntity, O_figure, classic, 0.0f, Memory, Buffer);
-                    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
-                    GridEntityUpdateStickUnits(LevelEntity->GridEntity, LevelEntity->FigureEntity->FigureAmount);
-                    
-                    LevelEditor->ActiveButton = LevelEditor->FigureButton[0];
-                }
-                /* Delete figure */
-                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                                          &LevelEditor->FigureButton[1]))
-                {
-                    FigureUnitDeleteFigure(LevelEntity->FigureEntity, LevelEntity->FigureEntity->FigureAmount - 1);
-                    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
-                    GridEntityUpdateStickUnits(LevelEntity->GridEntity, LevelEntity->FigureEntity->FigureAmount);
-                    
-                    LevelEditor->ActiveButton = LevelEditor->FigureButton[1];
-                }
-                /* Rotate figure */
-                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                                          &LevelEditor->FigureButton[2]))
-                {
-                    FigureUnitRotateShellBy(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], 90);
-                    LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Angle += 90.0f;
-                    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
-                    
-                    LevelEditor->ActiveButton = LevelEditor->FigureButton[2];
-                }
-                /* Flip figure */
-                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                                          &LevelEditor->FigureButton[3]))
-                {
-                    FigureUnitFlipHorizontally(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure]);
-                    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
-                    
-                    LevelEditor->ActiveButton = LevelEditor->FigureButton[3];
-                }
-                /* Change figure form */
-                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                                          &LevelEditor->FigureButton[4]))
-                {
-                    if(LevelEditor->SelectedFigure >= 0)
-                    {
-                        FreeTexture(LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Texture);
-                        
-                        figure_form Form = LevelEditorGetNextFigureForm(LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Form);
-                        
-                        figure_type Type = LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Type;
-                        
-                        FigureUnitInitFigure(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], Form,Type, 0.0f,  Memory, Buffer);
-                        
-                        FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
-                    }
-                    
-                    LevelEditor->ActiveButton = LevelEditor->FigureButton[4];
-                }
-                /* Change figure type */
-                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                                          &LevelEditor->FigureButton[5]))
-                {
-                    if(LevelEditor->SelectedFigure >= 0)
-                    {
-                        FreeTexture(LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Texture);
-                        
-                        figure_type Type = LevelEditorGetNextFigureType(LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Type);
-                        
-                        figure_form Form = LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Form;
-                        
-                        FigureUnitInitFigure(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], Form,Type, 0.0f, Memory, Buffer);
-                        
-                        FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
-                    }
-                    
-                    LevelEditor->ActiveButton = LevelEditor->FigureButton[5];
-                }
-            }
-            else if(IsPointInsideRect(Input->MouseX, Input->MouseY,
-                                      &LevelEditor->SaveButtonLayer))
-            {
-                printf("Save!\n");
-                printf("LevelNumber = %d\n", LevelEntity->LevelNumber);
-                
-                SaveLevelToMemory(Memory, LevelEntity, LevelEntity->LevelNumber);
-                LevelEditor->ActiveButton = LevelEditor->SaveButtonLayer;
-            }
+            /* Minus row */
             else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                                      &LevelEditor->LoadButtonLayer))
+                                      &LevelEditor->GridButton[2]))
             {
-                printf("Load!\n");
-                LevelEntityUpdateLevelEntityFromMemory(LevelEntity, 
-                                                       LevelEntity->LevelNumber,
-                                                       false, Memory, Buffer);
-                LevelEditorChangeGridCounters(LevelEditor, 
-                                              LevelEntity->GridEntity->RowAmount, LevelEntity->GridEntity->ColumnAmount, 
-                                              RowAmount, ColAmount,
-                                              Buffer);
-                
-                LevelEditor->ActiveButton = LevelEditor->LoadButtonLayer;
+                printf("Minus row!\n");
+                GridEntityNewGrid(Buffer, LevelEntity, RowAmount-1, ColAmount, LevelEditor);
+                LevelEditor->ActiveButton = LevelEditor->GridButton[2];
             }
-            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &FigureArea))
+            /* Plus column */
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                                      &LevelEditor->GridButton[3]))
             {
-                for(u32 i = 0; i < FigureAmount; ++i)
-                {
-                    game_rect AreaQuad = FigureUnitGetArea(&LevelEntity->FigureEntity->FigureUnit[i]);
-                    if(IsPointInsideRect(Input->MouseX, Input->MouseY, &AreaQuad))
-                    {
-                        NewIndex = i;
-                    }
-                }
-                
-                if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->PrevLevelQuad))
-                {
-                    s32 PrevLevelNumber = LevelEntity->LevelNumber - 1;
-                    if(PrevLevelNumber >= 0)
-                    {
-                        LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
-                                                               PrevLevelNumber,
-                                                               true, Memory, Buffer);
-                        
-                        u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
-                        u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
-                        
-                        LevelEditorChangeGridCounters(Memory->LevelEditor, 
-                                                      Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
-                                                      RowAmount, ColAmount,
-                                                      Buffer);
-                    }
-                    
-                    LevelEditor->ActiveButton = LevelEditor->PrevLevelQuad;
-                }
-                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->NextLevelQuad))
-                {
-                    s32 NextLevelNumber = LevelEntity->LevelNumber + 1;
-                    if(NextLevelNumber < Memory->LevelMemoryAmount)
-                    {
-                        LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
-                                                               NextLevelNumber,
-                                                               true, Memory, Buffer);
-                        
-                        u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
-                        u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
-                        
-                        LevelEditorChangeGridCounters(Memory->LevelEditor, 
-                                                      Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
-                                                      RowAmount, ColAmount,
-                                                      Buffer);
-                    }
-                    
-                    LevelEditor->ActiveButton = LevelEditor->NextLevelQuad;
-                }
-                
+                printf("Plus column!\n");
+                GridEntityNewGrid(Buffer, LevelEntity, RowAmount, ColAmount+1, LevelEditor);
+                LevelEditor->ActiveButton = LevelEditor->GridButton[3];
             }
-            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &GridArea))
+            /* Minus column */
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                                      &LevelEditor->GridButton[5]))
             {
-                printf("GridArea click !\n");
+                printf("Minus column!\n");
+                GridEntityNewGrid(Buffer, LevelEntity, RowAmount, ColAmount-1, LevelEditor);
                 
-                game_rect AreaQuad = { 0, 0, (s32)LevelEntity->ActiveBlockSize, (s32)LevelEntity->ActiveBlockSize };
+                LevelEditor->ActiveButton = LevelEditor->GridButton[5];
+            }
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->FigureButtonLayer))
+        {
+            /* Figure Layer*/ 
+            
+            /* Add figure*/ 
+            if (IsPointInsideRect(Input->MouseX, Input->MouseY,
+                                  &LevelEditor->FigureButton[0]))
+            {
+                FigureUnitAddNewFigure(LevelEntity->FigureEntity, O_figure, classic, 0.0f, Memory, Buffer);
+                FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
+                GridEntityUpdateStickUnits(LevelEntity->GridEntity, LevelEntity->FigureEntity->FigureAmount);
                 
-                u32 StartX = 0;
-                u32 StartY = 0;
+                LevelEditor->ActiveButton = LevelEditor->FigureButton[0];
+            }
+            /* Delete figure */
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                                      &LevelEditor->FigureButton[1]))
+            {
+                FigureUnitDeleteFigure(LevelEntity->FigureEntity, LevelEntity->FigureEntity->FigureAmount - 1);
+                FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
+                GridEntityUpdateStickUnits(LevelEntity->GridEntity, LevelEntity->FigureEntity->FigureAmount);
                 
-                for(u32 i = 0; i < RowAmount; ++i)
+                LevelEditor->ActiveButton = LevelEditor->FigureButton[1];
+            }
+            /* Rotate figure */
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                                      &LevelEditor->FigureButton[2]))
+            {
+                FigureUnitRotateShellBy(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], 90);
+                LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Angle += 90.0f;
+                FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
+                
+                LevelEditor->ActiveButton = LevelEditor->FigureButton[2];
+            }
+            /* Flip figure */
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                                      &LevelEditor->FigureButton[3]))
+            {
+                FigureUnitFlipHorizontally(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure]);
+                FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
+                
+                LevelEditor->ActiveButton = LevelEditor->FigureButton[3];
+            }
+            /* Change figure form */
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                                      &LevelEditor->FigureButton[4]))
+            {
+                if(LevelEditor->SelectedFigure >= 0)
                 {
-                    StartY = GridArea.y + (LevelEntity->ActiveBlockSize * i);
+                    FreeTexture(LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Texture);
                     
-                    for(u32 j = 0; j < ColAmount; ++j)
+                    figure_form Form = LevelEditorGetNextFigureForm(LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Form);
+                    
+                    figure_type Type = LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Type;
+                    
+                    FigureUnitInitFigure(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], Form,Type, 0.0f,  Memory, Buffer);
+                    
+                    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
+                }
+                
+                LevelEditor->ActiveButton = LevelEditor->FigureButton[4];
+            }
+            /* Change figure type */
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                                      &LevelEditor->FigureButton[5]))
+            {
+                if(LevelEditor->SelectedFigure >= 0)
+                {
+                    FreeTexture(LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Texture);
+                    
+                    figure_type Type = LevelEditorGetNextFigureType(LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Type);
+                    
+                    figure_form Form = LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Form;
+                    
+                    FigureUnitInitFigure(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], Form,Type, 0.0f, Memory, Buffer);
+                    
+                    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
+                }
+                
+                LevelEditor->ActiveButton = LevelEditor->FigureButton[5];
+            }
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY,
+                                  &LevelEditor->SaveButtonLayer))
+        {
+            printf("Save!\n");
+            printf("LevelNumber = %d\n", LevelEntity->LevelNumber);
+            
+            SaveLevelToMemory(Memory, LevelEntity, LevelEntity->LevelNumber);
+            LevelEditor->ActiveButton = LevelEditor->SaveButtonLayer;
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                                  &LevelEditor->LoadButtonLayer))
+        {
+            printf("Load!\n");
+            LevelEntityUpdateLevelEntityFromMemory(LevelEntity, 
+                                                   LevelEntity->LevelNumber,
+                                                   false, Memory, Buffer);
+            LevelEditorChangeGridCounters(LevelEditor, 
+                                          LevelEntity->GridEntity->RowAmount, LevelEntity->GridEntity->ColumnAmount, 
+                                          RowAmount, ColAmount,
+                                          Buffer);
+            
+            LevelEditor->ActiveButton = LevelEditor->LoadButtonLayer;
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &FigureArea))
+        {
+            for(u32 i = 0; i < FigureAmount; ++i)
+            {
+                game_rect AreaQuad = FigureUnitGetArea(&LevelEntity->FigureEntity->FigureUnit[i]);
+                if(IsPointInsideRect(Input->MouseX, Input->MouseY, &AreaQuad))
+                {
+                    NewIndex = i;
+                }
+            }
+            
+            if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->PrevLevelQuad))
+            {
+                s32 PrevLevelNumber = LevelEntity->LevelNumber - 1;
+                if(PrevLevelNumber >= 0)
+                {
+                    LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
+                                                           PrevLevelNumber,
+                                                           true, Memory, Buffer);
+                    
+                    u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
+                    u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
+                    
+                    LevelEditorChangeGridCounters(Memory->LevelEditor, 
+                                                  Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
+                                                  RowAmount, ColAmount,
+                                                  Buffer);
+                }
+                
+                LevelEditor->ActiveButton = LevelEditor->PrevLevelQuad;
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->NextLevelQuad))
+            {
+                s32 NextLevelNumber = LevelEntity->LevelNumber + 1;
+                if(NextLevelNumber < Memory->LevelMemoryAmount)
+                {
+                    LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
+                                                           NextLevelNumber,
+                                                           true, Memory, Buffer);
+                    
+                    u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
+                    u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
+                    
+                    LevelEditorChangeGridCounters(Memory->LevelEditor, 
+                                                  Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
+                                                  RowAmount, ColAmount,
+                                                  Buffer);
+                }
+                
+                LevelEditor->ActiveButton = LevelEditor->NextLevelQuad;
+            }
+            
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &GridArea))
+        {
+            printf("GridArea click !\n");
+            
+            game_rect AreaQuad = { 0, 0, (s32)LevelEntity->ActiveBlockSize, (s32)LevelEntity->ActiveBlockSize };
+            
+            u32 StartX = 0;
+            u32 StartY = 0;
+            
+            for(u32 i = 0; i < RowAmount; ++i)
+            {
+                StartY = GridArea.y + (LevelEntity->ActiveBlockSize * i);
+                
+                for(u32 j = 0; j < ColAmount; ++j)
+                {
+                    StartX = GridArea.x + (LevelEntity->ActiveBlockSize * j);
+                    
+                    AreaQuad.x = StartX;
+                    AreaQuad.y = StartY;
+                    
+                    if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                                         &AreaQuad))
                     {
-                        StartX = GridArea.x + (LevelEntity->ActiveBlockSize * j);
-                        
-                        AreaQuad.x = StartX;
-                        AreaQuad.y = StartY;
-                        
-                        if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                                             &AreaQuad))
+                        u32 GridUnit = LevelEntity->GridEntity->UnitField[i][j];
+                        if(GridUnit == 0)
                         {
-                            u32 GridUnit = LevelEntity->GridEntity->UnitField[i][j];
-                            if(GridUnit == 0)
+                            LevelEntity->GridEntity->UnitField[i][j] = 1;
+                        }
+                        else
+                        {
+                            s32 Index = -1;
+                            for(u32 m = 0; m < LevelEntity->GridEntity->MovingBlocksAmount; ++m)
                             {
-                                LevelEntity->GridEntity->UnitField[i][j] = 1;
-                            }
-                            else
-                            {
-                                s32 Index = -1;
-                                for(u32 m = 0; m < LevelEntity->GridEntity->MovingBlocksAmount; ++m)
-                                {
-                                    u32 RowNumber = LevelEntity->GridEntity->MovingBlocks[m].RowNumber;
-                                    u32 ColNumber = LevelEntity->GridEntity->MovingBlocks[m].ColNumber;
-                                    
-                                    if((i == RowNumber) && (j == ColNumber))
-                                    {
-                                        Index = m;
-                                        break;
-                                    }
-                                }
+                                u32 RowNumber = LevelEntity->GridEntity->MovingBlocks[m].RowNumber;
+                                u32 ColNumber = LevelEntity->GridEntity->MovingBlocks[m].ColNumber;
                                 
-                                if(Index >= 0)
+                                if((i == RowNumber) && (j == ColNumber))
                                 {
-                                    
-                                    if(!LevelEntity->GridEntity->MovingBlocks[Index].MoveSwitch)
-                                    {
-                                        LevelEntity->GridEntity->MovingBlocks[Index].MoveSwitch = true;
-                                    }
-                                    else if(!LevelEntity->GridEntity->MovingBlocks[Index].IsVertical)
-                                    {
-                                        LevelEntity->GridEntity->MovingBlocks[Index].IsVertical = true;
-                                        LevelEntity->GridEntity->MovingBlocks[Index].MoveSwitch = false;
-                                    }
-                                    else
-                                    {
-                                        GridEntityDeleteMovingBlock(LevelEntity->GridEntity, Index);
-                                        LevelEntity->GridEntity->UnitField[i][j] = 0;
-                                    }
+                                    Index = m;
+                                    break;
+                                }
+                            }
+                            
+                            if(Index >= 0)
+                            {
+                                
+                                if(!LevelEntity->GridEntity->MovingBlocks[Index].MoveSwitch)
+                                {
+                                    LevelEntity->GridEntity->MovingBlocks[Index].MoveSwitch = true;
+                                }
+                                else if(!LevelEntity->GridEntity->MovingBlocks[Index].IsVertical)
+                                {
+                                    LevelEntity->GridEntity->MovingBlocks[Index].IsVertical = true;
+                                    LevelEntity->GridEntity->MovingBlocks[Index].MoveSwitch = false;
                                 }
                                 else
                                 {
-                                    GridEntityAddMovingBlock(LevelEntity->GridEntity, i, j, false, false, LevelEntity->ActiveBlockSize);
+                                    GridEntityDeleteMovingBlock(LevelEntity->GridEntity, Index);
+                                    LevelEntity->GridEntity->UnitField[i][j] = 0;
                                 }
+                            }
+                            else
+                            {
+                                GridEntityAddMovingBlock(LevelEntity->GridEntity, i, j, false, false, LevelEntity->ActiveBlockSize);
                             }
                         }
                     }
                 }
             }
         }
-        else if(Input->LeftClick.WasDown)
-        {
-            LevelEditor->ButtonPressed = false;
-            LevelEditor->ActiveButton.y = -100;
-        }
+    }
+    else if(Input->MouseButtons[0].EndedUp)
+    {
+        LevelEditor->ButtonPressed = false;
+        LevelEditor->ActiveButton.y = -100;
+    }
+    
+    if(Input->Keyboard.Q_Button.EndedUp)
+    {
+        LevelEditor->PrevLevelQuad.w /= 2;
+        LevelEditor->PrevLevelQuad.h /= 2;
+        LevelEditor->PrevLevelQuad.x += LevelEditor->PrevLevelQuad.w/2;
+        LevelEditor->PrevLevelQuad.y += LevelEditor->PrevLevelQuad.h/2;
         
-        if(Input->Q_Button.WasDown)
-        {
-            LevelEditor->PrevLevelQuad.w /= 2;
-            LevelEditor->PrevLevelQuad.h /= 2;
-            LevelEditor->PrevLevelQuad.x += LevelEditor->PrevLevelQuad.w/2;
-            LevelEditor->PrevLevelQuad.y += LevelEditor->PrevLevelQuad.h/2;
-            
-            LevelEditor->Q_Pressed -= 1;
-        }
-        if(Input->E_Button.WasDown)
-        {
-            LevelEditor->NextLevelQuad.w /= 2;
-            LevelEditor->NextLevelQuad.h /= 2;
-            LevelEditor->NextLevelQuad.x += LevelEditor->NextLevelQuad.w/2;
-            LevelEditor->NextLevelQuad.y += LevelEditor->NextLevelQuad.h/2;
-            
-            LevelEditor->E_Pressed -= 1;
-        }
+        LevelEditor->Q_Pressed -= 1;
+    }
+    if(Input->Keyboard.E_Button.EndedUp)
+    {
+        LevelEditor->NextLevelQuad.w /= 2;
+        LevelEditor->NextLevelQuad.h /= 2;
+        LevelEditor->NextLevelQuad.x += LevelEditor->NextLevelQuad.w/2;
+        LevelEditor->NextLevelQuad.y += LevelEditor->NextLevelQuad.h/2;
+        
+        LevelEditor->E_Pressed -= 1;
     }
     
     if(NewIndex < 0)
@@ -3567,13 +3558,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     r32 TimeElapsed = (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
     
-    if(Input->WasPressed)
+    if(Input->Keyboard.Escape.EndedDown)
     {
-        if(Input->Escape.IsDown)
-        {
-            if (!Memory->ToggleMenu) Memory->ToggleMenu = true;
-            else Memory->ToggleMenu = false;
-        }
+        if (!Memory->ToggleMenu) Memory->ToggleMenu = true;
+        else Memory->ToggleMenu = false;
     }
     
     if(Memory->ToggleMenu)
