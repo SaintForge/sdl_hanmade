@@ -210,6 +210,10 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input)
                     {
                         SDLProcessKeyPress(&Input->Keyboard.Escape, IsDown, WasDown);
                     }
+                    else if(KeyCode == SDLK_BACKQUOTE)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.BackQuote, IsDown, WasDown);
+                    }
                 }										 
                 
             } break;
@@ -304,13 +308,6 @@ int main(int argc, char **argv)
                 {
                     IsRunning = false;
                 }
-                
-                if(Input.Keyboard.Escape.EndedDown)
-                {
-                    printf("EXIT\n");
-                    IsRunning = false;
-                }
-                
                 
                 game_offscreen_buffer Buffer = {};
                 Buffer.Renderer = Renderer;

@@ -1156,7 +1156,6 @@ GameUpdateEvent(game_input *Input, level_entity *GameState,
                 u32 ScreenWidth, u32 ScreenHeight)
 {
     if(!GameState->LevelStarted) return;
-    if(GameState->LevelPaused)   return;
     
     grid_entity   *&GridEntity   = GameState->GridEntity;
     figure_entity *&FigureEntity = GameState->FigureEntity;
@@ -1168,16 +1167,26 @@ GameUpdateEvent(game_input *Input, level_entity *GameState,
     r32 BlockRatio  = 0;
     u32 ActiveIndex = FigureEntity->FigureActive;
     
+    //NOTE(Max): This is for the switch between editor and the game
     if(Input->Keyboard.BackQuote.EndedDown)
     {
         if(!GameState->LevelPaused)
         {
-            //GameState->LevelPaused = true;
-            //RestartLevelEntity(GameState);
-            //Input->Keyboard.BackQuote.EndedDown = false;
+            GameState->LevelPaused = true;
+            RestartLevelEntity(GameState);
+        }
+        else
+        {
+            GameState->LevelPaused = false;
         }
     }
-    else if(Input->MouseButtons[0].EndedDown)
+    
+    if(GameState->LevelPaused)
+    {
+        return;
+    }
+    
+    if(Input->MouseButtons[0].EndedDown)
     {
         if(!FigureEntity->IsGrabbed)
         {
@@ -2224,10 +2233,10 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
         u32 Index = FigureEntity->FigureOrder[i];
         
         FigureUnitRenderBitmap(Buffer, &FigureUnit[Index]);
-        DEBUGRenderQuad(Buffer, &FigureUnit[Index].AreaQuad, {255, 0, 0}, 255);
+        //DEBUGRenderQuad(Buffer, &FigureUnit[Index].AreaQuad, {255, 0, 0}, 255);
         
-        u32 BlockSize = FigureUnit[Index].IsEnlarged ? ActiveBlockSize : InActiveBlockSize;
-        DEBUGRenderFigureShell(Buffer, &FigureUnit[Index], 10, {255, 255, 0}, 255);
+        //u32 BlockSize = FigureUnit[Index].IsEnlarged ? ActiveBlockSize : InActiveBlockSize;
+        //DEBUGRenderFigureShell(Buffer, &FigureUnit[Index], 10, {255, 255, 0}, 255);
     }
     
     GameRenderBitmapToBuffer(Buffer, State->LevelNumberShadowTexture,   &State->LevelNumberShadowQuad);
@@ -2728,7 +2737,6 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         {
             u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
             u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
-            
             LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
                                                    NextLevelNumber,true,
                                                    Memory, Buffer);
@@ -2747,8 +2755,8 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     }
     else if(Input->Keyboard.BackQuote.EndedDown)
     {
-        LevelEntity->LevelPaused = false;
-        Input->Keyboard.BackQuote.EndedDown  = false;
+        //LevelEntity->LevelPaused = false;
+        //Input->Keyboard.BackQuote.EndedDown  = false;
     }
     else if(Input->MouseButtons[0].EndedDown)
     {
@@ -3063,7 +3071,8 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     {
         for(u32 i = 0; i < LevelEntity->FigureEntity->FigureAmount; ++i)
         {
-            DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[i], LevelEntity->InActiveBlockSize / 4, {0, 0, 0}, 255);
+            DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[i], LevelEntity->InActiveBlockSize / 4, {0, 0, 255}, 255);
+            DEBUGRenderQuad(Buffer, &LevelEntity->FigureEntity->FigureUnit[i].AreaQuad, {255, 0, 0}, 255);
         }
         
         DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], LevelEntity->InActiveBlockSize, {255, 255, 255}, 100);
@@ -3573,8 +3582,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     if(Input->Keyboard.Escape.EndedDown)
     {
-        //if (!Memory->ToggleMenu) Memory->ToggleMenu = true;
-        //else Memory->ToggleMenu = false;
+        if (!Memory->ToggleMenu) Memory->ToggleMenu = true;
+        else Memory->ToggleMenu = false;
     }
     
     if(Memory->ToggleMenu)
