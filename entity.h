@@ -249,3 +249,5 @@ struct menu_entity
     menu_button  *ConfirmButtons;
     menu_button  *SaveAndLoadButtons;
 };
+
+

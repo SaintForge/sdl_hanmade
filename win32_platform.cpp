@@ -51,8 +51,7 @@ static const char* SpritePath = "..\\data\\sprites\\";
 static const char* SoundPath  = "..\\data\\sound\\";
 
 #include "game.cpp"
-#include "asset_game.cpp"
-#include "menu_game.cpp"
+
 
 static void
 SDLChangeBufferColor(sdl_offscreen_buffer *Buffer, u8 Red, u8 Green, u8 Blue, u8 Alpha)

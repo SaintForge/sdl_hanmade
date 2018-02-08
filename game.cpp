@@ -9,71 +9,18 @@
 
 #include "game_math.h"
 #include "game.h"
-
 #include "asset_game.h"
 #include "menu_game.h"
 
 static void
-DEBUGRenderLine(game_offscreen_buffer *Buffer, 
-                s32 x1, s32 y1, s32 x2, s32 y2,
-                SDL_Color color, u8 Alpha)
+GameRenderBitmapToBuffer(game_offscreen_buffer *Buffer, game_texture *&Texture, game_rect *Quad)
 {
-    u8 r, g, b, a;
-    SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, &a);
-    
-    SDL_SetRenderDrawColor(Buffer->Renderer, color.r, color.g, color.b, Alpha);
-    SDL_RenderDrawLine(Buffer->Renderer, x1, y1, x2, y2);
-    SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
+    SDL_RenderCopy(Buffer->Renderer, Texture, 0, Quad);
 }
 
-static void
-DEBUGRenderQuad(game_offscreen_buffer *Buffer, game_rect *AreaQuad, SDL_Color color, u8 Alpha)
-{
-    u8 r, g, b, a;
-    SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, &a);
-    
-    SDL_SetRenderDrawColor(Buffer->Renderer, color.r, color.g, color.b, Alpha);
-    SDL_RenderDrawRect(Buffer->Renderer, AreaQuad);
-    SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
-}
 
-static void
-DEBUGRenderQuadFill(game_offscreen_buffer *Buffer, game_rect *AreaQuad, SDL_Color color, u8 Alpha)
-{
-    u8 r, g, b, a;
-    SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, &a);
-    
-    SDL_SetRenderDrawColor(Buffer->Renderer, color.r, color.g, color.b, Alpha);
-    SDL_RenderFillRect(Buffer->Renderer, AreaQuad);
-    SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
-}
-
-static void
-DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, u32 BlockSize, SDL_Color color, u8 Alpha)
-{
-    u8 r, g, b, a;
-    SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, &a);
-    SDL_SetRenderDrawColor(Buffer->Renderer, color.r, color.g, color.b, Alpha);
-    
-    game_rect Rect = {};
-    
-    for (u32 i = 0; i < 4; ++i)
-    {
-        Rect.w = BlockSize;
-        Rect.h = BlockSize;
-        Rect.x = Entity->Shell[i].x - (Rect.w / 2);
-        Rect.y = Entity->Shell[i].y - (Rect.h / 2);
-        
-        SDL_RenderFillRect(Buffer->Renderer, &Rect);
-    }
-    
-    //SDL_SetRenderDrawColor(Buffer->Renderer, 255, 255, 255, 255);
-    Rect.x = Entity->Center.x - (Rect.w / 2);
-    Rect.y = Entity->Center.y - (Rect.h / 2);
-    //SDL_RenderDrawRect(Buffer->Renderer, &Rect);
-    
-    SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
-}
+#include "asset_game.cpp"
+#include "menu_game.cpp"
 
 static void 
 FigureEntityHighlightFigureArea(figure_entity *FigureEntity, 
@@ -135,12 +82,6 @@ GameResizeInActiveBlock(u32 FigureAreaWidth,
     ResultBlockSize = ResultBlockSize - (ResultBlockSize % 2);
     
     return(ResultBlockSize);
-}
-
-static void
-GameRenderBitmapToBuffer(game_offscreen_buffer *Buffer, game_texture *&Texture, game_rect *Quad)
-{
-    SDL_RenderCopy(Buffer->Renderer, Texture, 0, Quad);
 }
 
 #if 0
@@ -2921,65 +2862,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     }
 }
 
-static void
-MenuEntityAlignButtons(menu_entity *MenuEntity, 
-                       u32 ScreenWidth, 
-                       u32 ScreenHeight)
-{
-    u32 ButtonsPerRow       = 4;
-    u32 ButtonsPerColumn    = 5;
-    u32 SpaceBetweenButtons = 10;
-    
-    s32 XOffset = 0;
-    s32 YOffset = 0;
-    
-    s32 XPosition = 0;
-    s32 YPosition = 0;
-    
-    u32 ButtonWidth  = MenuEntity->ButtonSizeWidth;
-    u32 ButtonHeight = MenuEntity->ButtonSizeHeight;
-    
-    s32 StartX = (ScreenWidth / 2)  - (((ButtonWidth * ButtonsPerRow) + ((ButtonsPerRow - 1) * SpaceBetweenButtons)) / 2);
-    s32 StartY = (ScreenHeight / 2) - ((ButtonHeight * ButtonsPerColumn) / 2)- ((ButtonsPerColumn * SpaceBetweenButtons) / 2);
-    
-    u32 ButtonsAreaAmount = MenuEntity->ButtonsAmountReserved / 20;
-    for(u32 i = 0; i < ButtonsAreaAmount; ++i)
-    {
-        MenuEntity->ButtonsArea[i].x = StartX + (i * ScreenWidth);
-        MenuEntity->ButtonsArea[i].y = StartY;;
-        MenuEntity->ButtonsArea[i].w = (ButtonWidth * ButtonsPerRow) + ((ButtonsPerRow - 1) * SpaceBetweenButtons);
-        MenuEntity->ButtonsArea[i].h = (ButtonHeight * ButtonsPerColumn) + ((ButtonsPerColumn - 1) * SpaceBetweenButtons);
-    }
-    
-    for(u32 i = 0; i < MenuEntity->ButtonsAmount; ++i)
-    {
-        XOffset = i % ButtonsPerRow;
-        
-        if((i % 20 == 0) && i != 0)
-        {
-            StartX += ScreenWidth;
-        }
-        
-        if(i % ButtonsPerRow == 0 && i != 0)
-        {
-            YOffset += 1;
-        }
-        
-        if(YOffset >= ButtonsPerColumn)
-        {
-            YOffset = 0;
-        }
-        
-        XPosition = StartX + (XOffset * ButtonWidth) + (XOffset * SpaceBetweenButtons);
-        YPosition = StartY + (YOffset * ButtonHeight) + (YOffset * SpaceBetweenButtons);
-        MenuEntity->Buttons[i].ButtonQuad.x = XPosition;
-        MenuEntity->Buttons[i].ButtonQuad.y = YPosition;
-        
-        MenuEntity->Buttons[i].LevelNumberTextureQuad.x = XPosition + (MenuEntity->Buttons[i].ButtonQuad.w / 2) - (MenuEntity->Buttons[i].LevelNumberTextureQuad.w / 2);
-        
-        MenuEntity->Buttons[i].LevelNumberTextureQuad.y = YPosition + (MenuEntity->Buttons[i].ButtonQuad.h / 2) - (MenuEntity->Buttons[i].LevelNumberTextureQuad.h / 2);
-    }
-}
+
 
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)

@@ -11,34 +11,12 @@
 
 #include "entity.h"
 
+#define Assert(Expression) if(!(Expression)) { LogErrorLine( __FILE__, __LINE__); *(int *)0 = 0;  }
+
 void LogErrorLine(const char* Message, int Line)
 {
     fprintf(stderr, "Assert fail in %s: %d\n",Message, Line);
 }
-
-static void
-DEBUGPrintArray1D(u32 *Array, u32 Size)
-{
-    for (u32 i = 0; i < Size; ++i)
-    {
-        printf("%d ", Array[i]);
-    }
-    
-    printf("\n");
-}
-
-static void
-DEBUGPrintArray2D(s32 **Array, u32 RowAmount, u32 ColumnAmount)
-{
-    for (u32 i = 0; i < RowAmount; ++i) {
-        for (u32 j = 0; j < ColumnAmount; ++j) {
-            printf("%d ", Array[i][j]);
-        }
-        printf("\n");
-    }
-}
-
-#define Assert(Expression) if(!(Expression)) { LogErrorLine( __FILE__, __LINE__); *(int *)0 = 0;  }
 
 struct game_offscreen_buffer
 {
@@ -108,8 +86,104 @@ struct game_memory
     bool ToggleMenu;
 };
 
-static bool GameUpdateAndRender(game_memory *Memory, game_input *Input,
-                                game_offscreen_buffer *Buffer);
+static bool 
+GameUpdateAndRender(game_memory *Memory, game_input *Input,
+                    game_offscreen_buffer *Buffer);
+
+static void 
+LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity, s32 Index, bool IsStarted,
+                                       game_memory *Memory, game_offscreen_buffer *Buffer);
+
+static void 
+LevelEditorChangeGridCounters(level_editor *LevelEditor,
+                              u32 NewRowAmount, u32 NewColumnAmount, 
+                              u32 OldRowAmount, u32 OldColumnAmount,
+                              game_offscreen_buffer *Buffer);
+
+static void
+DEBUGPrintArray1D(u32 *Array, u32 Size)
+{
+    for (u32 i = 0; i < Size; ++i)
+    {
+        printf("%d ", Array[i]);
+    }
+    
+    printf("\n");
+}
+
+static void
+DEBUGPrintArray2D(s32 **Array, u32 RowAmount, u32 ColumnAmount)
+{
+    for (u32 i = 0; i < RowAmount; ++i) {
+        for (u32 j = 0; j < ColumnAmount; ++j) {
+            printf("%d ", Array[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+
+static void
+DEBUGRenderLine(game_offscreen_buffer *Buffer, 
+                s32 x1, s32 y1, s32 x2, s32 y2,
+                SDL_Color color, u8 Alpha)
+{
+    u8 r, g, b, a;
+    SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, &a);
+    
+    SDL_SetRenderDrawColor(Buffer->Renderer, color.r, color.g, color.b, Alpha);
+    SDL_RenderDrawLine(Buffer->Renderer, x1, y1, x2, y2);
+    SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
+}
+
+static void
+DEBUGRenderQuad(game_offscreen_buffer *Buffer, game_rect *AreaQuad, SDL_Color color, u8 Alpha)
+{
+    u8 r, g, b, a;
+    SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, &a);
+    
+    SDL_SetRenderDrawColor(Buffer->Renderer, color.r, color.g, color.b, Alpha);
+    SDL_RenderDrawRect(Buffer->Renderer, AreaQuad);
+    SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
+}
+
+static void
+DEBUGRenderQuadFill(game_offscreen_buffer *Buffer, game_rect *AreaQuad, SDL_Color color, u8 Alpha)
+{
+    u8 r, g, b, a;
+    SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, &a);
+    
+    SDL_SetRenderDrawColor(Buffer->Renderer, color.r, color.g, color.b, Alpha);
+    SDL_RenderFillRect(Buffer->Renderer, AreaQuad);
+    SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
+}
+
+static void
+DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, u32 BlockSize, SDL_Color color, u8 Alpha)
+{
+    u8 r, g, b, a;
+    SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, &a);
+    SDL_SetRenderDrawColor(Buffer->Renderer, color.r, color.g, color.b, Alpha);
+    
+    game_rect Rect = {};
+    
+    for (u32 i = 0; i < 4; ++i)
+    {
+        Rect.w = BlockSize;
+        Rect.h = BlockSize;
+        Rect.x = Entity->Shell[i].x - (Rect.w / 2);
+        Rect.y = Entity->Shell[i].y - (Rect.h / 2);
+        
+        SDL_RenderFillRect(Buffer->Renderer, &Rect);
+    }
+    
+    //SDL_SetRenderDrawColor(Buffer->Renderer, 255, 255, 255, 255);
+    Rect.x = Entity->Center.x - (Rect.w / 2);
+    Rect.y = Entity->Center.y - (Rect.h / 2);
+    //SDL_RenderDrawRect(Buffer->Renderer, &Rect);
+    
+    SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
+}
 
 #define GAME_H
 #endif
