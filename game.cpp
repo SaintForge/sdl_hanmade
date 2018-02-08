@@ -1172,12 +1172,12 @@ GameUpdateEvent(game_input *Input, level_entity *GameState,
     {
         if(!GameState->LevelPaused)
         {
-            GameState->LevelPaused = true;
-            RestartLevelEntity(GameState);
-            Input->Keyboard.BackQuote.EndedDown = false;
+            //GameState->LevelPaused = true;
+            //RestartLevelEntity(GameState);
+            //Input->Keyboard.BackQuote.EndedDown = false;
         }
     }
-    else if(Input->Keyboard.LeftClick.EndedDown)
+    else if(Input->MouseButtons[0].EndedDown)
     {
         if(!FigureEntity->IsGrabbed)
         {
@@ -1265,7 +1265,7 @@ GameUpdateEvent(game_input *Input, level_entity *GameState,
             }
         }
     }
-    if(Input->Keyboard.RightClick.EndedDown)
+    if(Input->MouseButtons[1].EndedDown)
     {
         if(FigureEntity->IsGrabbed)
         {
@@ -1882,11 +1882,16 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
                                 RowIndex[l] = i;
                                 ColIndex[l] = j;
                                 Count = Count + 1;
+                                
+                                printf("%d ", l);
+                                
                                 break;
                             }    
                         }
                     }
                 }
+                
+                printf("\n");
                 
                 if(Count == 4)
                 {
@@ -1920,6 +1925,9 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
                                 {
                                     GridEntity->StickUnits[i].Row[j] = RowIndex[j];
                                     GridEntity->StickUnits[i].Col[j] = ColIndex[j];
+                                    
+                                    
+                                    
                                 }
                                 
                                 break;
@@ -2207,14 +2215,19 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
         SDL_SetTextureAlphaMod(FigureUnit[ActiveIndex].Texture, FigureEntity->FigureAlpha);
     }
     
+    //
+    // Figure Rendering
+    //
+    
     for(u32 i = 0; i < FigureAmount; ++i)
     {
         u32 Index = FigureEntity->FigureOrder[i];
-        //u32 BlockSize = FigureUnit[Index].IsEnlarged ? ActiveBlockSize : InActiveBlockSize;
-        //DEBUGRenderFigureShell(Buffer, &FigureUnit[Index], InActiveBlockSize, {255, 255, 0});
-        FigureUnitRenderBitmap(Buffer, &FigureUnit[Index]);
         
-        //DEBUGRenderQuad(Buffer, &FigureUnit[Index].AreaQuad, {255, 0, 0}, 255);
+        FigureUnitRenderBitmap(Buffer, &FigureUnit[Index]);
+        DEBUGRenderQuad(Buffer, &FigureUnit[Index].AreaQuad, {255, 0, 0}, 255);
+        
+        u32 BlockSize = FigureUnit[Index].IsEnlarged ? ActiveBlockSize : InActiveBlockSize;
+        DEBUGRenderFigureShell(Buffer, &FigureUnit[Index], 10, {255, 255, 0}, 255);
     }
     
     GameRenderBitmapToBuffer(Buffer, State->LevelNumberShadowTexture,   &State->LevelNumberShadowQuad);
@@ -2737,7 +2750,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         LevelEntity->LevelPaused = false;
         Input->Keyboard.BackQuote.EndedDown  = false;
     }
-    else if(Input->Keyboard.LeftClick.EndedDown)
+    else if(Input->MouseButtons[0].EndedDown)
     {
         LevelEditor->ButtonPressed = true;
         
@@ -3560,8 +3573,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     if(Input->Keyboard.Escape.EndedDown)
     {
-        if (!Memory->ToggleMenu) Memory->ToggleMenu = true;
-        else Memory->ToggleMenu = false;
+        //if (!Memory->ToggleMenu) Memory->ToggleMenu = true;
+        //else Memory->ToggleMenu = false;
     }
     
     if(Memory->ToggleMenu)

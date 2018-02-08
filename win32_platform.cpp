@@ -17,6 +17,7 @@
 #include <string.h>
 #include <string>
 #include <vector>
+#include <windows.h>
 
 using namespace std;
 
@@ -44,7 +45,7 @@ typedef uint64_t u64;
 typedef float r32;
 typedef double r64;
 
-#include "win32_game.h"
+#include "win32_platform.h"
 
 static const char* SpritePath = "..\\data\\sprites\\";
 static const char* SoundPath  = "..\\data\\sound\\";
@@ -138,17 +139,24 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input)
     
     while(SDL_PollEvent(Event))
     {
+        Input->MouseX = Event->motion.x;
+        Input->MouseY = Event->motion.y;
+        
         switch(Event->type)
         {
             case SDL_MOUSEMOTION:
             {
                 
+                
+                Input->MouseRelX += Event->motion.xrel;
+                Input->MouseRelY += Event->motion.yrel;
             } break;
             
             case SDL_QUIT:
             {
                 printf("SDL_QUIT\n");
                 ShouldQuit = true;
+                break;
             } break;
             
             case SDL_MOUSEBUTTONDOWN: 
@@ -285,18 +293,24 @@ int main(int argc, char **argv)
             u64 TotalAssetSize = SDLSizeOfBinaryFile("package1.bin");
             SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread",
                                                        (void*)&Memory);
-            game_input Input = {};
+            
             
             while(IsRunning)
             {
                 SDL_Event Event;
-                while(SDL_PollEvent(&Event))
+                game_input Input = {};
+                
+                if(SDLHandleEvent(&Event, &Input))
                 {
-                    if(SDLHandleEvent(&Event, &Input))
-                    {
-                        IsRunning = false;
-                    }
+                    IsRunning = false;
                 }
+                
+                if(Input.Keyboard.Escape.EndedDown)
+                {
+                    printf("EXIT\n");
+                    IsRunning = false;
+                }
+                
                 
                 game_offscreen_buffer Buffer = {};
                 Buffer.Renderer = Renderer;
