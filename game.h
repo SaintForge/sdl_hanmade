@@ -9,9 +9,33 @@
 
 #if !defined(GAME_H)
 
+#include "entity.h"
+
 void LogErrorLine(const char* Message, int Line)
 {
     fprintf(stderr, "Assert fail in %s: %d\n",Message, Line);
+}
+
+static void
+DEBUGPrintArray1D(u32 *Array, u32 Size)
+{
+    for (u32 i = 0; i < Size; ++i)
+    {
+        printf("%d ", Array[i]);
+    }
+    
+    printf("\n");
+}
+
+static void
+DEBUGPrintArray2D(s32 **Array, u32 RowAmount, u32 ColumnAmount)
+{
+    for (u32 i = 0; i < RowAmount; ++i) {
+        for (u32 j = 0; j < ColumnAmount; ++j) {
+            printf("%d ", Array[i][j]);
+        }
+        printf("\n");
+    }
 }
 
 #define Assert(Expression) if(!(Expression)) { LogErrorLine( __FILE__, __LINE__); *(int *)0 = 0;  }
