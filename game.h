@@ -89,6 +89,8 @@ struct game_memory
 static bool 
 GameUpdateAndRender(game_memory *Memory, game_input *Input,
                     game_offscreen_buffer *Buffer);
+static void 
+GameRenderBitmapToBuffer(game_offscreen_buffer *Buffer, game_texture *&Texture, game_rect *Quad);
 
 static void 
 LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity, s32 Index, bool IsStarted,

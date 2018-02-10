@@ -12,15 +12,14 @@
 #include "asset_game.h"
 #include "menu_game.h"
 
+#include "asset_game.cpp"
+#include "menu_game.cpp"
+
 static void
 GameRenderBitmapToBuffer(game_offscreen_buffer *Buffer, game_texture *&Texture, game_rect *Quad)
 {
     SDL_RenderCopy(Buffer->Renderer, Texture, 0, Quad);
 }
-
-
-#include "asset_game.cpp"
-#include "menu_game.cpp"
 
 static void 
 FigureEntityHighlightFigureArea(figure_entity *FigureEntity, 
@@ -1568,9 +1567,6 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
                                 RowIndex[l] = i;
                                 ColIndex[l] = j;
                                 Count = Count + 1;
-                                
-                                printf("%d ", l);
-                                
                                 break;
                             }    
                         }
@@ -1611,9 +1607,6 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
                                 {
                                     GridEntity->StickUnits[i].Row[j] = RowIndex[j];
                                     GridEntity->StickUnits[i].Col[j] = ColIndex[j];
-                                    
-                                    
-                                    
                                 }
                                 
                                 break;
@@ -1650,7 +1643,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
     // Stick units
     //
     
-    bool IsAllSticked = true;
+    bool IsAllSticked = GridEntity->StickUnitsAmount > 0;
     
     for(u32 i = 0; i < GridEntity->StickUnitsAmount; ++i)
     {
