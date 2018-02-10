@@ -7,7 +7,8 @@
 //           By: Sierra
 //
 
-#include "menu_game.h"
+#include "menu.h"
+#include "editor.h"
 
 static void
 MenuChangeButtonText(game_font *&Font, char *Text, 
@@ -21,6 +22,8 @@ MenuChangeButtonText(game_font *&Font, char *Text,
     
     Button->LevelNumberTextureQuad.w = Surface->w;
     Button->LevelNumberTextureQuad.h = Surface->h;
+    Button->LevelNumberTextureQuad.x = Button->ButtonQuad.x + (Button->ButtonQuad.w / 2) - (Surface->w / 2);
+    Button->LevelNumberTextureQuad.y = Button->ButtonQuad.y + (Button->ButtonQuad.h / 2) - (Surface->h / 2);
     
     Button->LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
     Assert(Button->LevelNumberTexture);
@@ -77,6 +80,7 @@ MenuDeleteLevel(game_offscreen_buffer *Buffer,
                          &Memory->MenuEntity->Buttons[Memory->MenuEntity->NewButtonIndex], 
                          {255, 255 ,255}, 
                          Buffer);
+    
     
     Memory->LevelMemory[Memory->LevelMemoryAmount].RowAmount          = 0;
     Memory->LevelMemory[Memory->LevelMemoryAmount].ColumnAmount       = 0;

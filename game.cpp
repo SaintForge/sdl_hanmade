@@ -10,10 +10,10 @@
 #include "game_math.h"
 #include "game.h"
 #include "assets.h"
-#include "menu_game.h"
+#include "menu.h"
 
 #include "assets.cpp"
-#include "menu_game.cpp"
+#include "menu.cpp"
 
 static void
 GameRenderBitmapToBuffer(game_offscreen_buffer *Buffer, game_texture *&Texture, game_rect *Quad)
