@@ -9,10 +9,10 @@
 
 #include "game_math.h"
 #include "game.h"
-#include "asset_game.h"
+#include "assets.h"
 #include "menu_game.h"
 
-#include "asset_game.cpp"
+#include "assets.cpp"
 #include "menu_game.cpp"
 
 static void

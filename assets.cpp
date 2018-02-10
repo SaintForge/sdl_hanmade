@@ -7,7 +7,7 @@
  *           By: Sierra
  */
 
-#include "asset_game.h"
+#include "assets.h"
 
 static u64
 SDLSizeOfSDL_RWops(SDL_RWops *&BinaryFile)
