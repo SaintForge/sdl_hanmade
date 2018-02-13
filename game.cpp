@@ -1347,7 +1347,7 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     //
     
     char LevelNumberString[3] = {0};
-    sprintf(LevelNumberString, "%d", Index+1);
+    sprintf(LevelNumberString, "%d", LevelEntity->LevelNumber);
     
     game_surface *Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, LevelNumberString, {255, 255, 255});
     Assert(Surface);
@@ -1684,8 +1684,9 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
     
     if(IsAllSticked)
     {
-        u32 NextLevelNumber = State->LevelNumber < Memory->LevelMemoryAmount - 1 ? State->LevelNumber + 1 : State->LevelNumber;
-        LevelEntityUpdateLevelEntityFromMemory(State, NextLevelNumber,false, Memory, Buffer);
+        Memory->CurrentLevelIndex = Memory->CurrentLevelIndex < Memory->LevelMemoryAmount ? Memory->CurrentLevelIndex + 1 : Memory->CurrentLevelIndex;
+        
+        LevelEntityUpdateLevelEntityFromMemory(State, Memory->CurrentLevelIndex, false, Memory, Buffer);
         
         // Level is completed.
         return;
@@ -1945,6 +1946,9 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     LevelEditor->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", ButtonSize);
     Assert(LevelEditor->Font);
     
+    LevelEditor->StatsFont = TTF_OpenFont("..\\data\\Karmina-Bold.otf", ButtonSize / 3);
+    Assert(LevelEditor->StatsFont);
+    
     game_surface *Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, "+", {0, 0, 0});
     LevelEditor->PlusTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
     SDL_QueryTexture(LevelEditor->PlusTexture, 0, 0, &LevelEditor->GridButtonQuad[0].w, &LevelEditor->GridButtonQuad[0].h);
@@ -2116,14 +2120,17 @@ LevelEditorChangeGridCounters(level_editor *LevelEditor,
                               u32 OldRowAmount, u32 OldColumnAmount,
                               game_offscreen_buffer *Buffer)
 {
-    char RowString[3] = {0};
-    char ColString[3] = {0};
+    game_surface *Surface = 0;
+    
+    char RowString[3]   = {};
+    char ColString[3]   = {};
+    
     sprintf(RowString, "%d", NewRowAmount);
     sprintf(ColString, "%d", NewColumnAmount);
     
+    
     if(NewRowAmount != OldRowAmount)
     {
-        game_surface *Surface = 0;
         FreeTexture(LevelEditor->RowTexture);
         
         Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, RowString, { 0, 0, 0 });
@@ -2139,7 +2146,6 @@ LevelEditorChangeGridCounters(level_editor *LevelEditor,
     
     if(NewColumnAmount != OldColumnAmount)
     {
-        game_surface *Surface = 0;
         FreeTexture(LevelEditor->ColumnTexture);
         
         Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, ColString, { 0, 0, 0 });
@@ -2151,6 +2157,78 @@ LevelEditorChangeGridCounters(level_editor *LevelEditor,
         
         SDL_FreeSurface(Surface);
     }
+    
+    
+    
+}
+
+static void 
+LevelEditorUpdateLevelStats(level_editor *LevelEditor, 
+                            s32 LevelNumber, s32 LevelIndex, game_offscreen_buffer *Buffer)
+{
+    game_surface *Surface = {};
+    
+    char LevelNumberString[3] = {};
+    char LevelIndexString[3]  = {};
+    
+    sprintf(LevelNumberString, "%d", LevelNumber);
+    sprintf(LevelIndexString, "%d", LevelIndex);
+    
+    //
+    // level index texture init
+    //
+    {
+        char TmpBuffer[128] = {};
+        strcpy(TmpBuffer, "level index      = ");
+        strcat(TmpBuffer, LevelIndexString);
+        
+        if(LevelEditor->CurrentLevelIndexTexture)
+        {
+            SDL_DestroyTexture(LevelEditor->CurrentLevelIndexTexture);
+        }
+        
+        Surface = TTF_RenderUTF8_Blended(LevelEditor->StatsFont, TmpBuffer, {255, 255, 255});
+        Assert(Surface);
+        
+        LevelEditor->CurrentLevelIndexQuad.w = Surface->w;
+        LevelEditor->CurrentLevelIndexQuad.h = Surface->h;
+        LevelEditor->CurrentLevelIndexQuad.x = Buffer->Width - LevelEditor->CurrentLevelIndexQuad.w;
+        LevelEditor->CurrentLevelIndexQuad.y = (Buffer->Height / 2) - (LevelEditor->CurrentLevelIndexQuad.h / 2);
+        
+        LevelEditor->CurrentLevelIndexTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+        Assert(LevelEditor->CurrentLevelIndexTexture);
+        
+        SDL_FreeSurface(Surface);
+        
+    }
+    
+    //
+    // level number texture init
+    //
+    {
+        char TmpBuffer[128] = {};
+        strcpy(TmpBuffer, "level number = ");
+        strcat(TmpBuffer, LevelNumberString);
+        
+        if(LevelEditor->CurrentLevelNumberTexture)
+        {
+            SDL_DestroyTexture(LevelEditor->CurrentLevelNumberTexture);
+        }
+        
+        Surface = TTF_RenderUTF8_Blended(LevelEditor->StatsFont, TmpBuffer, {255, 255, 255});
+        Assert(Surface);
+        
+        LevelEditor->CurrentLevelNumberQuad.w = Surface->w;
+        LevelEditor->CurrentLevelNumberQuad.h = Surface->h;
+        LevelEditor->CurrentLevelNumberQuad.x = Buffer->Width - LevelEditor->CurrentLevelNumberQuad.w;
+        LevelEditor->CurrentLevelNumberQuad.y = LevelEditor->CurrentLevelIndexQuad.y + LevelEditor->CurrentLevelIndexQuad.h;
+        
+        LevelEditor->CurrentLevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+        Assert(LevelEditor->CurrentLevelNumberTexture);
+        
+        SDL_FreeSurface(Surface);
+    }
+    
 }
 
 static void
@@ -2352,7 +2430,8 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     u32 RowAmount     = LevelEntity->GridEntity->RowAmount;
     u32 ColAmount     = LevelEntity->GridEntity->ColumnAmount;
     s32 NewIndex      = LevelEditor->SelectedFigure;
-    s32 CurrentLevel  = LevelEntity->LevelNumber;
+    //s32 CurrentLevel  = LevelEntity->LevelNumber;
+    s32 CurrentLevelIndex = Memory->CurrentLevelIndex;
     
     if(Input->Keyboard.Up.EndedDown)
     {
@@ -2373,23 +2452,26 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     
     if(Input->Keyboard.Q_Button.EndedDown)
     {
-        //printf("Q_Button is down\n");
-        
-        s32 PrevLevelNumber = CurrentLevel - 1;
+        //s32 PrevLevelNumber = CurrentLevel - 1;
+        s32 PrevLevelNumber = CurrentLevelIndex - 1;
         if(PrevLevelNumber >= 0)
         {
+            Memory->CurrentLevelIndex = PrevLevelNumber;
+            
             u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
             u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
             
             LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
-                                                   PrevLevelNumber, true,
+                                                   Memory->CurrentLevelIndex, true,
                                                    Memory, Buffer);
             
             LevelEditorChangeGridCounters(Memory->LevelEditor, 
-                                          Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
+                                          Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount,
                                           RowAmount, ColAmount,
                                           Buffer);
             
+            LevelEditorUpdateLevelStats(Memory->LevelEditor, 
+                                        Memory->LevelEntity.LevelNumber, Memory->CurrentLevelIndex, Buffer);
         }
         
         LevelEditor->PrevLevelQuad.x -= LevelEditor->PrevLevelQuad.w/2;
@@ -2399,21 +2481,28 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         
         LevelEditor->Q_Pressed += 1;
     }
-    if(Input->Keyboard.E_Button.EndedDown)
+    else if(Input->Keyboard.E_Button.EndedDown)
     {
-        //printf("E_Button is down\n");
-        s32 NextLevelNumber = CurrentLevel + 1;
+        //s32 NextLevelNumber = CurrentLevel + 1;
+        s32 NextLevelNumber = CurrentLevelIndex + 1;
         if(NextLevelNumber < Memory->LevelMemoryAmount)
         {
+            Memory->CurrentLevelIndex = NextLevelNumber;
+            
             u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
             u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
+            
             LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
-                                                   NextLevelNumber,true,
+                                                   Memory->CurrentLevelIndex,true,
                                                    Memory, Buffer);
+            
             LevelEditorChangeGridCounters(Memory->LevelEditor, 
-                                          Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
+                                          Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount,
                                           RowAmount, ColAmount,
                                           Buffer);
+            
+            LevelEditorUpdateLevelStats(Memory->LevelEditor, 
+                                        Memory->LevelEntity.LevelNumber, Memory->CurrentLevelIndex, Buffer);
         }
         
         LevelEditor->NextLevelQuad.x -= LevelEditor->NextLevelQuad.w/2;
@@ -2836,23 +2925,23 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     // Prev/Next level buttons rendering
     //
     
-    CurrentLevel = LevelEntity->LevelNumber;
-    
-    if(CurrentLevel > 0)
+    if(CurrentLevelIndex > 0)
     {
         GameRenderBitmapToBuffer(Buffer, LevelEditor->PrevLevelTexture, &LevelEditor->PrevLevelQuad);
     }
     
-    if(CurrentLevel < Memory->LevelMemoryAmount-1)
+    if(CurrentLevelIndex < Memory->LevelMemoryAmount-1)
     {
         GameRenderBitmapToBuffer(Buffer, LevelEditor->NextLevelTexture, &LevelEditor->NextLevelQuad);
     }
-    
     
     if(LevelEditor->ButtonPressed)
     {
         DEBUGRenderQuadFill(Buffer, &LevelEditor->ActiveButton, {255, 0, 0}, 150);
     }
+    
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->CurrentLevelIndexTexture, &LevelEditor->CurrentLevelIndexQuad);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->CurrentLevelNumberTexture, &LevelEditor->CurrentLevelNumberQuad);
 }
 
 
@@ -2872,6 +2961,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     if(!Memory->IsInitialized)
     {
         // Memory initialization
+        
+        Memory->CurrentLevelIndex = 0;
         
         //Memory->LevelMemoryAmount = 1;
         GameState->LevelNumber = 0;
@@ -2917,7 +3008,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             if(i == Memory->MenuEntity->ButtonsAmountReserved - 1) continue;
             
             char LevelNumber[3] = {0};
-            sprintf(LevelNumber, "%d", i + 1);
+            sprintf(LevelNumber, "%d", Memory->LevelMemory->LevelNumber);
             
             Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, LevelNumber, {255, 255, 255});
             Assert(Surface);
@@ -3220,7 +3311,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         //PrintArray2D(GameState->GridEntity->UnitField, GameState->GridEntity->RowAmount, GameState->GridEntity->ColumnAmount);
     }
     
-    
+    printf("Memory->CurrentLevelIndex = %d\n", Memory->CurrentLevelIndex);
     
     return(ShouldQuit);
 }

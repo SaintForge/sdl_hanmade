@@ -306,27 +306,29 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                                                            Index, false,
                                                            Memory, Buffer);
                     
-                    LevelEditorChangeGridCounters(Memory->LevelEditor, 
-                                                  Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
-                                                  RowAmount, ColAmount,
-                                                  Buffer);
+                    LevelEditorChangeGridCounters(Memory->LevelEditor,
+                                                  Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, RowAmount, ColAmount, Buffer);
+                    
+                    LevelEditorUpdateLevelStats(Memory->LevelEditor, 
+                                                Memory->LevelEntity.LevelNumber, Index, Buffer);
+                    
                     SDL_DestroyTexture(Memory->MenuEntity->Buttons[Index].LevelNumberTexture);
                     
                     Memory->MenuEntity->ButtonsAmount += 1;
                     
                     char LevelNumber[3] = {0};
-                    sprintf(LevelNumber, "%d", Index + 1);
+                    sprintf(LevelNumber, "%d", Memory->LevelEntity.LevelNumber);
                     
                     MenuChangeButtonText(Memory->LevelNumberFont, LevelNumber, 
                                          Memory->MenuEntity, 
                                          &Memory->MenuEntity->Buttons[Index], 
-                                         {255, 255 ,255}, 
+                                         {255, 255, 255}, 
                                          Buffer);
                     
                     MenuChangeButtonText(Memory->LevelNumberFont, "+", 
                                          Memory->MenuEntity, 
                                          &Memory->MenuEntity->Buttons[Index+1], 
-                                         {255, 255 ,255}, 
+                                         {255, 255, 255}, 
                                          Buffer);
                     Memory->MenuEntity->NewButtonIndex = Index+1;
                     
@@ -344,6 +346,7 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                     {
                         MenuDeleteLevel(Buffer, Memory, Memory->MenuEntity->ButtonIndex);
                         Memory->MenuEntity->IsToBeDeleted = false;
+                        Memory->CurrentLevelIndex -= 1;
                     }
                 }
                 else
@@ -355,12 +358,13 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                                                            Index, false,
                                                            Memory, Buffer);
                     LevelEditorChangeGridCounters(Memory->LevelEditor, 
-                                                  Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
-                                                  RowAmount, ColAmount,
+                                                  Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount ,RowAmount, ColAmount,
                                                   Buffer);
-                    Memory->ToggleMenu = false;
-                    Memory->LevelEntity.LevelNumber = Index;
                     
+                    LevelEditorUpdateLevelStats(Memory->LevelEditor, 
+                                                Memory->LevelEntity.LevelNumber, Index, Buffer);
+                    Memory->ToggleMenu = false;
+                    Memory->CurrentLevelIndex = Index;
                 }
             }
             

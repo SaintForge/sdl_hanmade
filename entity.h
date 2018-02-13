@@ -164,6 +164,11 @@ struct level_editor
     game_rect LoadButtonQuad;
     game_rect LoadButtonLayer;
     
+    game_rect CurrentLevelIndexQuad;
+    game_rect CurrentLevelNumberQuad;
+    game_texture *CurrentLevelIndexTexture;
+    game_texture *CurrentLevelNumberTexture;
+    
     game_texture *PrevLevelTexture;
     game_texture *NextLevelTexture;
     
@@ -179,6 +184,7 @@ struct level_editor
     game_texture *LoadTexture;
     
     game_font *Font;
+    game_font *StatsFont;
 };
 
 struct figure_memory

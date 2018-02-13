@@ -74,9 +74,11 @@ struct game_memory
     u32 AssetsSpaceAmount;
     
     level_memory* LevelMemory;
+    u32 CurrentLevelIndex;
     u32 LevelMemoryAmount;
     u32 LevelMemoryReserved;
     
+    // TODO(Max): This should not be here!!!
     game_music *Music;
     game_font *LevelNumberFont;
     
@@ -96,11 +98,15 @@ static void
 LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity, s32 Index, bool IsStarted,
                                        game_memory *Memory, game_offscreen_buffer *Buffer);
 
-static void 
-LevelEditorChangeGridCounters(level_editor *LevelEditor,
+static void
+LevelEditorChangeGridCounters(level_editor *LevelEditor, 
                               u32 NewRowAmount, u32 NewColumnAmount, 
                               u32 OldRowAmount, u32 OldColumnAmount,
                               game_offscreen_buffer *Buffer);
+
+static void 
+LevelEditorUpdateLevelStats(level_editor *LevelEditor, 
+                            s32 LevelNumber, s32 LevelIndex, game_offscreen_buffer *Buffer);
 
 static void
 DEBUGPrintArray1D(u32 *Array, u32 Size)
