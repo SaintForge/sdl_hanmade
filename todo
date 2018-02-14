@@ -25,7 +25,7 @@
 +	8. Find or implement a math vector!
 -    9. Change unit field memory allocation to be just one block of memory instead 
 		allocating memory for every row!
--	10. Need to think about the default size of active block size
+-	10. Need to think about the maximum size of active block
 
 
 ---Data serialization---
@@ -43,12 +43,17 @@
 ---Misc---
 +	1. Think about a better way to handle input events
 
+---Editor---
+-	1. Change the size of the editor menu
+-	2. Move level information near the editor
+-	3. Add more information about the level
+-	4. Set hotkeys for accessing the editor
 
 BUGS:
 	+ 1. When I want to pick the figure that lies on top of the figure that is sticked
 	somehow I pick the one that is sticked instead of one that is on top of that
 	- 2. There is something wrong with timer after loading another level
 	+ 3. Pressing multiple keys on keyboard gives the weird result
-	- 4. When pulling off the figure on the grid sometimes the wrong cell of the grid
+	+ 4. When pulling off the figure on the grid sometimes the wrong cell of the grid
 		 gets disappeared
 

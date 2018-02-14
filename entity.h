@@ -164,10 +164,12 @@ struct level_editor
     game_rect LoadButtonQuad;
     game_rect LoadButtonLayer;
     
-    game_rect CurrentLevelIndexQuad;
-    game_rect CurrentLevelNumberQuad;
-    game_texture *CurrentLevelIndexTexture;
-    game_texture *CurrentLevelNumberTexture;
+    game_rect LevelIndexQuad;
+    game_rect LevelNumberQuad;
+    game_rect LevelInfoQuad;
+    
+    game_texture *LevelIndexTexture;
+    game_texture *LevelNumberTexture;
     
     game_texture *PrevLevelTexture;
     game_texture *NextLevelTexture;

@@ -1926,6 +1926,7 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     Memory->LevelEditor->E_Pressed = 0;
     
     s32 ButtonSize   = LevelEntity->InActiveBlockSize * 2;
+    s32 FontSize     = LevelEntity->InActiveBlockSize * 2;
     u32 RowAmount    = LevelEntity->GridEntity->RowAmount;
     u32 ColumnAmount = LevelEntity->GridEntity->ColumnAmount;
     
@@ -1943,7 +1944,7 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     LevelEditor->GridButtonLayer.x = 0;
     LevelEditor->GridButtonLayer.y = 0;
     
-    LevelEditor->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", ButtonSize);
+    LevelEditor->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
     Assert(LevelEditor->Font);
     
     LevelEditor->StatsFont = TTF_OpenFont("..\\data\\Karmina-Bold.otf", ButtonSize / 3);
@@ -2182,21 +2183,21 @@ LevelEditorUpdateLevelStats(level_editor *LevelEditor,
         strcpy(TmpBuffer, "level index      = ");
         strcat(TmpBuffer, LevelIndexString);
         
-        if(LevelEditor->CurrentLevelIndexTexture)
+        if(LevelEditor->LevelIndexTexture)
         {
-            SDL_DestroyTexture(LevelEditor->CurrentLevelIndexTexture);
+            SDL_DestroyTexture(LevelEditor->LevelIndexTexture);
         }
         
         Surface = TTF_RenderUTF8_Blended(LevelEditor->StatsFont, TmpBuffer, {255, 255, 255});
         Assert(Surface);
         
-        LevelEditor->CurrentLevelIndexQuad.w = Surface->w;
-        LevelEditor->CurrentLevelIndexQuad.h = Surface->h;
-        LevelEditor->CurrentLevelIndexQuad.x = Buffer->Width - LevelEditor->CurrentLevelIndexQuad.w;
-        LevelEditor->CurrentLevelIndexQuad.y = (Buffer->Height / 2) - (LevelEditor->CurrentLevelIndexQuad.h / 2);
+        LevelEditor->LevelIndexQuad.w = Surface->w;
+        LevelEditor->LevelIndexQuad.h = Surface->h;
+        LevelEditor->LevelIndexQuad.x = 0;
+        LevelEditor->LevelIndexQuad.y = (LevelEditor->LoadButtonQuad.y + LevelEditor->LoadButtonQuad.h) + (LevelEditor->LevelIndexQuad.h / 2);
         
-        LevelEditor->CurrentLevelIndexTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
-        Assert(LevelEditor->CurrentLevelIndexTexture);
+        LevelEditor->LevelIndexTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+        Assert(LevelEditor->LevelIndexTexture);
         
         SDL_FreeSurface(Surface);
         
@@ -2210,21 +2211,21 @@ LevelEditorUpdateLevelStats(level_editor *LevelEditor,
         strcpy(TmpBuffer, "level number = ");
         strcat(TmpBuffer, LevelNumberString);
         
-        if(LevelEditor->CurrentLevelNumberTexture)
+        if(LevelEditor->LevelNumberTexture)
         {
-            SDL_DestroyTexture(LevelEditor->CurrentLevelNumberTexture);
+            SDL_DestroyTexture(LevelEditor->LevelNumberTexture);
         }
         
         Surface = TTF_RenderUTF8_Blended(LevelEditor->StatsFont, TmpBuffer, {255, 255, 255});
         Assert(Surface);
         
-        LevelEditor->CurrentLevelNumberQuad.w = Surface->w;
-        LevelEditor->CurrentLevelNumberQuad.h = Surface->h;
-        LevelEditor->CurrentLevelNumberQuad.x = Buffer->Width - LevelEditor->CurrentLevelNumberQuad.w;
-        LevelEditor->CurrentLevelNumberQuad.y = LevelEditor->CurrentLevelIndexQuad.y + LevelEditor->CurrentLevelIndexQuad.h;
+        LevelEditor->LevelNumberQuad.w = Surface->w;
+        LevelEditor->LevelNumberQuad.h = Surface->h;
+        LevelEditor->LevelNumberQuad.x = 0;
+        LevelEditor->LevelNumberQuad.y = LevelEditor->LevelIndexQuad.y + LevelEditor->LevelIndexQuad.h;
         
-        LevelEditor->CurrentLevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
-        Assert(LevelEditor->CurrentLevelNumberTexture);
+        LevelEditor->LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+        Assert(LevelEditor->LevelNumberTexture);
         
         SDL_FreeSurface(Surface);
     }
@@ -2417,6 +2418,20 @@ LevelEntityInitParameters(game_memory *Memory,
     LevelEntity->FigureEntity->FigureArea.x  = 0;
 }
 
+inline void
+LevelEditorRenderButton(game_rect *ButtonQuad, game_rect *ImageQuad,
+                        game_color ButtonColor, u8 Alpha, game_texture *ImageTexture,
+                        s32 *Accumulator, s32 Offset,  game_offscreen_buffer *Buffer)
+{
+    DEBUGRenderQuad(Buffer, ButtonQuad, ButtonColor, Alpha);
+    GameRenderBitmapToBuffer(Buffer, ImageTexture, ImageQuad);
+    
+    if(Accumulator)
+    {
+        *Accumulator += Offset;
+    }
+}
+
 static void
 LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity, 
                            game_memory *Memory, game_offscreen_buffer *Buffer, game_input *Input)
@@ -2449,8 +2464,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     {
         NewIndex += 2;
     }
-    
-    if(Input->Keyboard.Q_Button.EndedDown)
+    else if(Input->Keyboard.Q_Button.EndedDown)
     {
         //s32 PrevLevelNumber = CurrentLevel - 1;
         s32 PrevLevelNumber = CurrentLevelIndex - 1;
@@ -2473,13 +2487,6 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             LevelEditorUpdateLevelStats(Memory->LevelEditor, 
                                         Memory->LevelEntity.LevelNumber, Memory->CurrentLevelIndex, Buffer);
         }
-        
-        LevelEditor->PrevLevelQuad.x -= LevelEditor->PrevLevelQuad.w/2;
-        LevelEditor->PrevLevelQuad.y -= LevelEditor->PrevLevelQuad.h/2;
-        LevelEditor->PrevLevelQuad.w *= 2;
-        LevelEditor->PrevLevelQuad.h *= 2;
-        
-        LevelEditor->Q_Pressed += 1;
     }
     else if(Input->Keyboard.E_Button.EndedDown)
     {
@@ -2504,13 +2511,6 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             LevelEditorUpdateLevelStats(Memory->LevelEditor, 
                                         Memory->LevelEntity.LevelNumber, Memory->CurrentLevelIndex, Buffer);
         }
-        
-        LevelEditor->NextLevelQuad.x -= LevelEditor->NextLevelQuad.w/2;
-        LevelEditor->NextLevelQuad.y -= LevelEditor->NextLevelQuad.h/2;
-        LevelEditor->NextLevelQuad.w *= 2;
-        LevelEditor->NextLevelQuad.h *= 2;
-        
-        LevelEditor->E_Pressed += 1;
     }
     else if(Input->Keyboard.BackQuote.EndedDown)
     {
@@ -2795,25 +2795,6 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         LevelEditor->ActiveButton.y = -100;
     }
     
-    if(Input->Keyboard.Q_Button.EndedUp)
-    {
-        LevelEditor->PrevLevelQuad.w /= 2;
-        LevelEditor->PrevLevelQuad.h /= 2;
-        LevelEditor->PrevLevelQuad.x += LevelEditor->PrevLevelQuad.w/2;
-        LevelEditor->PrevLevelQuad.y += LevelEditor->PrevLevelQuad.h/2;
-        
-        LevelEditor->Q_Pressed -= 1;
-    }
-    if(Input->Keyboard.E_Button.EndedUp)
-    {
-        LevelEditor->NextLevelQuad.w /= 2;
-        LevelEditor->NextLevelQuad.h /= 2;
-        LevelEditor->NextLevelQuad.x += LevelEditor->NextLevelQuad.w/2;
-        LevelEditor->NextLevelQuad.y += LevelEditor->NextLevelQuad.h/2;
-        
-        LevelEditor->E_Pressed -= 1;
-    }
-    
     if(NewIndex < 0)
     {
         NewIndex = LevelEntity->FigureEntity->FigureAmount - 1;
@@ -2845,78 +2826,49 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         ButtonQuad.h = LevelEntity->InActiveBlockSize * 2
     };
     
+    
+    /* Grid buttons rendering*/ 
+    
     DEBUGRenderQuadFill(Buffer, &LevelEditor->GridButtonLayer, {0, 0, 255}, 100);
     
-    DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->PlusTexture, &LevelEditor->GridButtonQuad[0]);
+    LevelEditorRenderButton(&ButtonQuad, &LevelEditor->GridButtonQuad[0], {0, 0, 0}, 255, LevelEditor->PlusTexture, &ButtonQuad.y, ButtonQuad.h, Buffer);
     
-    ButtonQuad.y += ButtonQuad.h;
+    LevelEditorRenderButton(&ButtonQuad, &LevelEditor->GridButtonQuad[1], {0, 0, 0}, 255, LevelEditor->RowTexture, &ButtonQuad.y, ButtonQuad.h, Buffer);
     
-    DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->RowTexture, &LevelEditor->GridButtonQuad[1]);
+    LevelEditorRenderButton(&ButtonQuad, &LevelEditor->GridButtonQuad[2], {0, 0, 0}, 255, LevelEditor->MinusTexture, &ButtonQuad.y, ButtonQuad.h, Buffer);
     
-    ButtonQuad.y += ButtonQuad.h;
+    LevelEditorRenderButton(&ButtonQuad, &LevelEditor->GridButtonQuad[3], {0, 0, 0}, 255, LevelEditor->PlusTexture, &ButtonQuad.y, ButtonQuad.h, Buffer);
     
-    DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->MinusTexture,  &LevelEditor->GridButtonQuad[2]);
+    LevelEditorRenderButton(&ButtonQuad, &LevelEditor->GridButtonQuad[4], {0, 0, 0}, 255, LevelEditor->ColumnTexture, &ButtonQuad.y, ButtonQuad.h, Buffer);
     
-    ButtonQuad.y += ButtonQuad.h;
-    
-    DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->PlusTexture, &LevelEditor->GridButtonQuad[3]);
-    
-    ButtonQuad.y += ButtonQuad.h;
-    
-    DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->ColumnTexture, &LevelEditor->GridButtonQuad[4]);
-    
-    ButtonQuad.y += ButtonQuad.h;
-    
-    DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->MinusTexture, &LevelEditor->GridButtonQuad[5]);
+    LevelEditorRenderButton(&ButtonQuad, &LevelEditor->GridButtonQuad[5], {0, 0, 0}, 255, LevelEditor->MinusTexture, 0, 0, Buffer);
     
     ButtonQuad.x = LevelEditor->FigureButtonLayer.x;
     ButtonQuad.y = LevelEditor->FigureButtonLayer.y;
     
+    /* Figure buttons rendering*/ 
+    
     DEBUGRenderQuadFill(Buffer, &LevelEditor->FigureButtonLayer, {0, 255, 0}, 100);
     
-    DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->PlusTexture, 
-                             &LevelEditor->FigureButtonQuad[0]);
+    LevelEditorRenderButton(&ButtonQuad, &LevelEditor->FigureButtonQuad[0], {0, 0, 0}, 255, LevelEditor->PlusTexture, &ButtonQuad.y, ButtonQuad.h, Buffer);
     
-    ButtonQuad.y += ButtonQuad.h;
+    LevelEditorRenderButton(&ButtonQuad, &LevelEditor->FigureButtonQuad[1], {0, 0, 0}, 255, LevelEditor->MinusTexture, &ButtonQuad.y, ButtonQuad.h, Buffer);
     
-    DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->MinusTexture, 
-                             &LevelEditor->FigureButtonQuad[1]);
+    LevelEditorRenderButton(&ButtonQuad, &LevelEditor->FigureButtonQuad[2], {0, 0, 0}, 255, LevelEditor->RotateTexture, &ButtonQuad.y, ButtonQuad.h, Buffer);
     
-    ButtonQuad.y += ButtonQuad.h;
+    LevelEditorRenderButton(&ButtonQuad, &LevelEditor->FigureButtonQuad[3], {0, 0, 0}, 255, LevelEditor->FlipTexture, &ButtonQuad.y, ButtonQuad.h, Buffer);
     
-    DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->RotateTexture, 
-                             &LevelEditor->FigureButtonQuad[2]);
+    LevelEditorRenderButton(&ButtonQuad, &LevelEditor->FigureButtonQuad[4], {0, 0, 0}, 255, LevelEditor->FormTexture, &ButtonQuad.y, ButtonQuad.h, Buffer);
     
-    ButtonQuad.y += ButtonQuad.h;
+    LevelEditorRenderButton(&ButtonQuad, &LevelEditor->FigureButtonQuad[5], {0, 0, 0}, 255, LevelEditor->TypeTexture, 0, 0, Buffer);
     
-    DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->FlipTexture, 
-                             &LevelEditor->FigureButtonQuad[3]);
-    
-    ButtonQuad.y += ButtonQuad.h;
-    
-    DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->FormTexture, 
-                             &LevelEditor->FigureButtonQuad[4]);
-    
-    ButtonQuad.y += ButtonQuad.h;
-    
-    DEBUGRenderQuad(Buffer, &ButtonQuad, {0, 0, 0}, 255);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->TypeTexture, 
-                             &LevelEditor->FigureButtonQuad[5]);
+    /* Save button rendering*/ 
     
     DEBUGRenderQuadFill(Buffer, &LevelEditor->SaveButtonLayer, {255, 0, 0}, 100);
     DEBUGRenderQuad(Buffer, &LevelEditor->SaveButtonLayer, {0, 0, 0}, 255);
     GameRenderBitmapToBuffer(Buffer, LevelEditor->SaveTexture, &LevelEditor->SaveButtonQuad);
+    
+    /* Load buttons rendering*/ 
     
     DEBUGRenderQuadFill(Buffer, &LevelEditor->LoadButtonLayer, {255, 0, 0}, 100);
     DEBUGRenderQuad(Buffer, &LevelEditor->LoadButtonLayer, {0, 0, 0}, 255);
@@ -2940,8 +2892,8 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         DEBUGRenderQuadFill(Buffer, &LevelEditor->ActiveButton, {255, 0, 0}, 150);
     }
     
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->CurrentLevelIndexTexture, &LevelEditor->CurrentLevelIndexQuad);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->CurrentLevelNumberTexture, &LevelEditor->CurrentLevelNumberQuad);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->LevelIndexTexture, &LevelEditor->LevelIndexQuad);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->LevelNumberTexture, &LevelEditor->LevelNumberQuad);
 }
 
 
