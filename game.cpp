@@ -1346,18 +1346,18 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     // level number texture loading
     //
     
+    //TODO(Max): Elaborate on where exactly should I draw level number
+    
     char LevelNumberString[3] = {0};
     sprintf(LevelNumberString, "%d", LevelEntity->LevelNumber);
     
     game_surface *Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, LevelNumberString, {255, 255, 255});
     Assert(Surface);
     
-    s32 ButtonSize = LevelEntity->InActiveBlockSize * 2;
-    
     LevelEntity->LevelNumberQuad.w = Surface->w;
     LevelEntity->LevelNumberQuad.h = Surface->h;
-    LevelEntity->LevelNumberQuad.x = Buffer->Width - ButtonSize;
-    LevelEntity->LevelNumberQuad.y = ButtonSize - Surface->h;
+    LevelEntity->LevelNumberQuad.x = (Buffer->Width - Surface->w) - (Surface->w /2);
+    LevelEntity->LevelNumberQuad.y = 0;
     
     LevelEntity->LevelNumberShadowQuad = LevelEntity->LevelNumberQuad;
     LevelEntity->LevelNumberShadowQuad.x += 3;
@@ -1920,10 +1920,15 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     Memory->LevelEditor = (level_editor*)malloc(sizeof(level_editor));
     Assert(Memory->LevelEditor);
     
+    Memory->LevelEditor->LevelNumberSelected = false;
+    
+    Memory->LevelEditor->ActiveButton.x = 0;
+    Memory->LevelEditor->ActiveButton.y = 0;
+    Memory->LevelEditor->ActiveButton.w = 0;
+    Memory->LevelEditor->ActiveButton.h = 0;
+    
     Memory->LevelEditor->SelectedFigure = 0;
     Memory->LevelEditor->ButtonPressed  = false;
-    Memory->LevelEditor->Q_Pressed = 0;
-    Memory->LevelEditor->E_Pressed = 0;
     
     s32 ButtonSize   = LevelEntity->InActiveBlockSize * 2;
     s32 FontSize     = LevelEntity->InActiveBlockSize * 2;
@@ -1938,8 +1943,6 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     level_editor *&LevelEditor = Memory->LevelEditor;
     LevelEditor->GridButtonLayer.w = ButtonSize;
     LevelEditor->GridButtonLayer.h = ButtonSize * 6;
-    //LevelEditor->GridButtonLayer.x = (Buffer->Width / 2) - (LevelEditor->GridButtonLayer.w / 2);
-    //LevelEditor->GridButtonLayer.y = LevelEntity->FigureEntity->FigureArea.y - ButtonSize;
     
     LevelEditor->GridButtonLayer.x = 0;
     LevelEditor->GridButtonLayer.y = 0;
@@ -2418,6 +2421,36 @@ LevelEntityInitParameters(game_memory *Memory,
     LevelEntity->FigureEntity->FigureArea.x  = 0;
 }
 
+static void
+GameMakeTextureFromString(game_texture *&Texture, 
+                          char* Text, 
+                          game_rect *TextureQuad, 
+                          game_font *&Font, 
+                          game_color Color, 
+                          game_offscreen_buffer *Buffer)
+{
+    if(!Text || !Font) return;
+    
+    if(Texture)
+    {
+        SDL_DestroyTexture(Texture);
+    }
+    
+    game_surface *Surface = TTF_RenderUTF8_Blended(Font, Text, Color);
+    Assert(Surface);
+    
+    if(TextureQuad)
+    {
+        TextureQuad->w = Surface->w;
+        TextureQuad->h = Surface->h;
+    }
+    
+    Texture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+    Assert(Texture);
+    
+    SDL_FreeSurface(Surface);
+}
+
 inline void
 LevelEditorRenderButton(game_rect *ButtonQuad, game_rect *ImageQuad,
                         game_color ButtonColor, u8 Alpha, game_texture *ImageTexture,
@@ -2445,8 +2478,85 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     u32 RowAmount     = LevelEntity->GridEntity->RowAmount;
     u32 ColAmount     = LevelEntity->GridEntity->ColumnAmount;
     s32 NewIndex      = LevelEditor->SelectedFigure;
-    //s32 CurrentLevel  = LevelEntity->LevelNumber;
     s32 CurrentLevelIndex = Memory->CurrentLevelIndex;
+    
+    if(LevelEditor->LevelNumberSelected)
+    {
+        char NextDigit  = '\n';
+        s32  DigitIndex = LevelEditor->LevelNumberBufferIndex;
+        
+        if(Input->Keyboard.Zero.EndedDown)
+        {
+            NextDigit = '0';
+        }
+        else if(Input->Keyboard.One.EndedDown)
+        {
+            NextDigit = '1';
+        }
+        else if(Input->Keyboard.Two.EndedDown)
+        {
+            NextDigit = '2';
+        }
+        else if(Input->Keyboard.Three.EndedDown)
+        {
+            NextDigit = '3';
+        }
+        else if(Input->Keyboard.Four.EndedDown)
+        {
+            NextDigit = '4';
+        }
+        else if(Input->Keyboard.Five.EndedDown)
+        {
+            NextDigit = '5';
+        }
+        else if(Input->Keyboard.Six.EndedDown)
+        {
+            NextDigit = '6';
+        }
+        else if(Input->Keyboard.Seven.EndedDown)
+        {
+            NextDigit = '7';
+        }
+        else if(Input->Keyboard.Eight.EndedDown)
+        {
+            NextDigit = '8';
+        }
+        else if(Input->Keyboard.Nine.EndedDown)
+        {
+            NextDigit = '9';
+        }
+        
+        if(DigitIndex <= 2 && NextDigit != '\n')
+        {
+            LevelEditor->LevelNumberBuffer[DigitIndex] = NextDigit;
+            LevelEditor->LevelNumberBufferIndex = ++DigitIndex;
+            
+            GameMakeTextureFromString(LevelEntity->LevelNumberTexture, 
+                                      LevelEditor->LevelNumberBuffer, 
+                                      &LevelEntity->LevelNumberQuad, 
+                                      Memory->LevelNumberFont, 
+                                      {255, 255, 255}, 
+                                      Buffer);
+            
+            GameMakeTextureFromString(LevelEntity->LevelNumberShadowTexture, 
+                                      LevelEditor->LevelNumberBuffer, 
+                                      &LevelEntity->LevelNumberShadowQuad, 
+                                      Memory->LevelNumberFont, 
+                                      {0, 0, 0}, 
+                                      Buffer);
+            
+            LevelEntity->LevelNumberQuad.x = (Buffer->Width - LevelEntity->LevelNumberQuad.w) - (LevelEntity->LevelNumberQuad.w / 2);
+            LevelEntity->LevelNumberQuad.y = 0;
+            
+            LevelEntity->LevelNumberShadowQuad.x = LevelEntity->LevelNumberQuad.x + 3;
+            LevelEntity->LevelNumberShadowQuad.y = LevelEntity->LevelNumberQuad.y + 3;
+            
+            printf("LevelNumberBufferIndex = %d\n", LevelEditor->LevelNumberBufferIndex);
+            
+            printf("LevelNumberBuffer = %s\n", LevelEditor->LevelNumberBuffer);
+        }
+        
+    }
     
     if(Input->Keyboard.Up.EndedDown)
     {
@@ -2512,14 +2622,61 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                         Memory->LevelEntity.LevelNumber, Memory->CurrentLevelIndex, Buffer);
         }
     }
-    else if(Input->Keyboard.BackQuote.EndedDown)
+    else if(Input->Keyboard.Enter.EndedDown)
     {
-        //LevelEntity->LevelPaused = false;
-        //Input->Keyboard.BackQuote.EndedDown  = false;
+        if(LevelEditor->LevelNumberSelected)
+        {
+            LevelEntity->LevelNumber = strtol(LevelEditor->LevelNumberBuffer, 0, 10);
+            LevelEditor->LevelNumberSelected = false;
+        }
     }
-    else if(Input->MouseButtons[0].EndedDown)
+    
+    if(Input->MouseButtons[0].EndedDown)
     {
         LevelEditor->ButtonPressed = true;
+        
+        if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEntity->LevelNumberQuad))
+        {
+            LevelEditor->LevelNumberSelected = true;
+            LevelEditor->LevelNumberBufferIndex = 0;
+            LevelEditor->OldLevelNumber = LevelEntity->LevelNumber;
+            
+            LevelEditor->LevelNumberBuffer[0] = '\0';
+            LevelEditor->LevelNumberBuffer[1] = '\0';
+            LevelEditor->LevelNumberBuffer[2] = '\0';
+            LevelEditor->LevelNumberBuffer[3] = '\0';
+        }
+        else
+        {
+            if(LevelEditor->LevelNumberSelected)
+            {
+                LevelEditor->LevelNumberSelected = false;
+                
+                char StringBuffer[4] = {};
+                sprintf(StringBuffer, "%d", LevelEntity->LevelNumber);
+                
+                GameMakeTextureFromString(LevelEntity->LevelNumberTexture, 
+                                          StringBuffer, 
+                                          &LevelEntity->LevelNumberQuad, 
+                                          Memory->LevelNumberFont, 
+                                          {255, 255, 255}, 
+                                          Buffer);
+                
+                GameMakeTextureFromString(LevelEntity->LevelNumberShadowTexture, 
+                                          StringBuffer, 
+                                          &LevelEntity->LevelNumberShadowQuad, 
+                                          Memory->LevelNumberFont, 
+                                          {0, 0, 0}, 
+                                          Buffer);
+                
+                
+                LevelEntity->LevelNumberQuad.x = (Buffer->Width - LevelEntity->LevelNumberQuad.w) - (LevelEntity->LevelNumberQuad.w / 2);
+                LevelEntity->LevelNumberQuad.y = 0;
+                
+                LevelEntity->LevelNumberShadowQuad.x = LevelEntity->LevelNumberQuad.x + 3;
+                LevelEntity->LevelNumberShadowQuad.y = LevelEntity->LevelNumberQuad.y + 3;
+            }
+        }
         
         if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->GridButtonLayer))
         {
@@ -2894,6 +3051,12 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     
     GameRenderBitmapToBuffer(Buffer, LevelEditor->LevelIndexTexture, &LevelEditor->LevelIndexQuad);
     GameRenderBitmapToBuffer(Buffer, LevelEditor->LevelNumberTexture, &LevelEditor->LevelNumberQuad);
+    
+    /* Level number is selected */ 
+    if(LevelEditor->LevelNumberSelected)
+    {
+        DEBUGRenderQuadFill(Buffer, &LevelEntity->LevelNumberQuad, {255, 0, 0}, 150);
+    }
 }
 
 
@@ -3263,7 +3426,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         //PrintArray2D(GameState->GridEntity->UnitField, GameState->GridEntity->RowAmount, GameState->GridEntity->ColumnAmount);
     }
     
-    printf("Memory->CurrentLevelIndex = %d\n", Memory->CurrentLevelIndex);
+    //printf("Memory->CurrentLevelIndex = %d\n", Memory->CurrentLevelIndex);
     
     return(ShouldQuit);
 }

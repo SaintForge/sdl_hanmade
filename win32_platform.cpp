@@ -213,6 +213,67 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input)
                     {
                         SDLProcessKeyPress(&Input->Keyboard.BackQuote, IsDown, WasDown);
                     }
+                    else if(KeyCode == SDLK_w)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.Up, IsDown, WasDown);
+                    }
+                    else if(KeyCode == SDLK_a)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.Left, IsDown, WasDown);
+                    }
+                    else if(KeyCode == SDLK_s)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.Down, IsDown, WasDown);
+                    }
+                    else if(KeyCode == SDLK_d)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.Right, IsDown, WasDown);
+                    }
+                    else if(KeyCode == SDLK_0)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.Zero, IsDown, WasDown);
+                    }
+                    else if(KeyCode == SDLK_1)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.One, IsDown, WasDown);
+                    }
+                    else if(KeyCode == SDLK_2)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.Two, IsDown, WasDown);
+                    }
+                    else if(KeyCode == SDLK_3)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.Three, IsDown, WasDown);
+                    }
+                    else if(KeyCode == SDLK_4)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.Four, IsDown, WasDown);
+                    }
+                    else if(KeyCode == SDLK_5)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.Five, IsDown, WasDown);
+                    }
+                    else if(KeyCode == SDLK_6)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.Six, IsDown, WasDown);
+                    }
+                    else if(KeyCode == SDLK_7)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.Seven, IsDown, WasDown);
+                    }
+                    else if(KeyCode == SDLK_8)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.Eight, IsDown, WasDown);
+                    }
+                    else if(KeyCode == SDLK_9)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.Nine, IsDown, WasDown);
+                    }
+                    else if(KeyCode == SDLK_RETURN)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.Enter, IsDown, WasDown);
+                    }
+                    
                 }										 
                 
             } break;

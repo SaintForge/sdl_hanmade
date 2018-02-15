@@ -144,8 +144,12 @@ struct level_editor
 {
     u32 SelectedFigure;
     bool ButtonPressed;
-    s32 Q_Pressed;
-    s32 E_Pressed;
+    
+    s32 OldLevelNumber;
+    s32 LevelNumberBufferIndex;
+    char LevelNumberBuffer[4];
+    bool LevelNumberSelected;
+    
     game_rect ActiveButton;
     
     game_rect PrevLevelQuad;
