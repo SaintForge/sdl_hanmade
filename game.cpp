@@ -2628,6 +2628,8 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         {
             LevelEntity->LevelNumber = strtol(LevelEditor->LevelNumberBuffer, 0, 10);
             LevelEditor->LevelNumberSelected = false;
+            MenuChangeButtonText(Memory->LevelNumberFont, LevelEditor->LevelNumberBuffer, Memory->MenuEntity, 
+                                 &Memory->MenuEntity->Buttons[Memory->CurrentLevelIndex], {255, 255, 255}, Buffer);
         }
     }
     
@@ -2805,7 +2807,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             printf("Save!\n");
             printf("LevelNumber = %d\n", LevelEntity->LevelNumber);
             
-            SaveLevelToMemory(Memory, LevelEntity, LevelEntity->LevelNumber);
+            SaveLevelToMemory(Memory, LevelEntity, Memory->CurrentLevelIndex);
             LevelEditor->ActiveButton = LevelEditor->SaveButtonLayer;
         }
         else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
@@ -2813,7 +2815,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         {
             printf("Load!\n");
             LevelEntityUpdateLevelEntityFromMemory(LevelEntity, 
-                                                   LevelEntity->LevelNumber,
+                                                   Memory->CurrentLevelIndex,
                                                    false, Memory, Buffer);
             LevelEditorChangeGridCounters(LevelEditor, 
                                           LevelEntity->GridEntity->RowAmount, LevelEntity->GridEntity->ColumnAmount, 
@@ -2821,6 +2823,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                           Buffer);
             
             LevelEditor->ActiveButton = LevelEditor->LoadButtonLayer;
+            printf("LevelNumber = %d\n", LevelEntity->LevelNumber);
         }
         else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &FigureArea))
         {
@@ -3123,7 +3126,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             if(i == Memory->MenuEntity->ButtonsAmountReserved - 1) continue;
             
             char LevelNumber[3] = {0};
-            sprintf(LevelNumber, "%d", Memory->LevelMemory->LevelNumber);
+            sprintf(LevelNumber, "%d", Memory->LevelMemory[i].LevelNumber);
             
             Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, LevelNumber, {255, 255, 255});
             Assert(Surface);

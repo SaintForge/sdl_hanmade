@@ -17,6 +17,11 @@ MenuChangeButtonText(game_font *&Font, char *Text,
                      game_color Color, 
                      game_offscreen_buffer *Buffer)
 {
+    if(Button->LevelNumberTexture)
+    {
+        SDL_DestroyTexture(Button->LevelNumberTexture);
+    }
+    
     game_surface *Surface = TTF_RenderUTF8_Blended(Font, Text, Color);
     Assert(Surface);
     
