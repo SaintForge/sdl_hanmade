@@ -56,5 +56,5 @@ BUGS:
 	+ 3. Pressing multiple keys on keyboard gives the weird result
 	+ 4. When pulling off the figure on the grid sometimes the wrong cell of the grid
 		 gets disappeared
-	- 5. Sometimes the game crushes whenever I press ~ on loading the level.
+	+ 5. Sometimes the game crushes whenever I press ~ on loading the level.
 
