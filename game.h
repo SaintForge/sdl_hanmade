@@ -114,7 +114,6 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity, s32 Index, boo
 static void
 LevelEditorChangeGridCounters(level_editor *LevelEditor, 
                               u32 NewRowAmount, u32 NewColumnAmount, 
-                              u32 OldRowAmount, u32 OldColumnAmount,
                               game_offscreen_buffer *Buffer);
 
 static void 

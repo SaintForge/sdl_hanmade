@@ -1268,7 +1268,10 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     u32 ActiveBlockSize   = LevelEntity->ActiveBlockSize;
     u32 InActiveBlockSize = LevelEntity->InActiveBlockSize;
     
-    LevelEntity->GridScalePerSec     = ((RowAmount * ColumnAmount)) * (ActiveBlockSize/2);
+    //LevelEntity->GridScalePerSec     = ((RowAmount * ColumnAmount)) * (ActiveBlockSize/2);
+    LevelEntity->GridScalePerSec  = (ActiveBlockSize * ((RowAmount + ColumnAmount) - 1)) / LevelEntity->LevelTimeInitMs;
+    printf("initialized GridScalePerSec = %f\n", LevelEntity->GridScalePerSec);
+    printf("ActiveBlockSize = %d\n", ActiveBlockSize);
     
     /*
     
@@ -1310,6 +1313,8 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     
     LevelEntity->GridEntity->RowAmount    = RowAmount;
     LevelEntity->GridEntity->ColumnAmount = ColumnAmount;
+    printf("RowAmount = %d\n", RowAmount);
+    printf("ColumnAmount = %d\n", ColumnAmount);
     
     LevelEntity->GridEntity->GridArea.w   = ActiveBlockSize * ColumnAmount;
     LevelEntity->GridEntity->GridArea.h   = ActiveBlockSize * RowAmount;
@@ -1347,7 +1352,6 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
             }
         }
     }
-    
     
     FigureEntityAlignHorizontally(LevelEntity->FigureEntity, InActiveBlockSize);
     
@@ -1388,9 +1392,6 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
 static void
 LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  level_entity *State, r32 TimeElapsed)
 {
-    
-    static r32 TotalElapsed = SDL_GetTicks();
-    
     grid_entity   *&GridEntity   = State->GridEntity;
     figure_entity *&FigureEntity = State->FigureEntity;
     figure_unit   *FigureUnit    = FigureEntity->FigureUnit;
@@ -1413,8 +1414,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
     if(!State->LevelStarted)
     {
         bool IsLevelReady = true;
-        r32 ScaleSpeed    = TimeElapsed * (State->GridScalePerSec);
-        
+        State->LevelTimeInitElapsedMs += TimeElapsed;
         
         for(s32 line = 1; line <=((RowAmount + ColumnAmount) - 1); ++line)
         {
@@ -1476,12 +1476,13 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
         }
         
         
-        
         if(IsLevelReady)
         {
             State->LevelStarted = IsLevelReady;
             printf("Done!\n");
-            printf("TotalElapsed = %f sec\n", (SDL_GetTicks() - TotalElapsed) / 1000.0f);
+            printf("TotalElapsed = %f sec\n", (State->LevelTimeInitElapsedMs));
+            printf("Time to Init level was = %f sec\n", State->LevelTimeInitMs);
+            printf("Pixels per sec = %f\n", State->GridScalePerSec);
             
             for(u32 i = 0; i < RowAmount; ++i)
             {
@@ -1489,7 +1490,9 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
             }
             
             free(GridEntity->UnitSize);
+            
             GridEntity->UnitSize = 0;
+            State->LevelTimeInitElapsedMs = 0;
         }
         
         return;
@@ -1694,6 +1697,10 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
         Memory->CurrentLevelIndex = Memory->CurrentLevelIndex < Memory->LevelMemoryAmount ? Memory->CurrentLevelIndex + 1 : Memory->CurrentLevelIndex;
         
         LevelEntityUpdateLevelEntityFromMemory(State, Memory->CurrentLevelIndex, false, Memory, Buffer);
+        
+        LevelEditorChangeGridCounters(Memory->LevelEditor, 
+                                      State->GridEntity->RowAmount, State->GridEntity->ColumnAmount, 
+                                      Buffer);
         
         // Level is completed.
         return;
@@ -2129,8 +2136,7 @@ GridEntityDeleteMovingBlock(grid_entity *GridEntity, u32 Index)
 
 static void
 LevelEditorChangeGridCounters(level_editor *LevelEditor, 
-                              u32 NewRowAmount, u32 NewColumnAmount, 
-                              u32 OldRowAmount, u32 OldColumnAmount,
+                              u32 NewRowAmount, u32 NewColumnAmount,
                               game_offscreen_buffer *Buffer)
 {
     game_surface *Surface = 0;
@@ -2141,35 +2147,34 @@ LevelEditorChangeGridCounters(level_editor *LevelEditor,
     sprintf(RowString, "%d", NewRowAmount);
     sprintf(ColString, "%d", NewColumnAmount);
     
-    
-    if(NewRowAmount != OldRowAmount)
+    if(LevelEditor->RowTexture)
     {
         FreeTexture(LevelEditor->RowTexture);
-        
-        Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, RowString, { 0, 0, 0 });
-        
-        LevelEditor->RowTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
-        SDL_QueryTexture(LevelEditor->RowTexture, 0, 0, &LevelEditor->GridButtonQuad[1].w, &LevelEditor->GridButtonQuad[1].h);
-        
-        LevelEditor->GridButtonQuad[1].x = LevelEditor->GridButton[1].x + (LevelEditor->GridButton[1].w /2) - (LevelEditor->GridButtonQuad[1].w / 2);
-        LevelEditor->GridButtonQuad[1].y = LevelEditor->GridButton[1].y + (LevelEditor->GridButton[4].h /2) - (LevelEditor->GridButtonQuad[1].h / 2);
-        
-        SDL_FreeSurface(Surface);
     }
     
-    if(NewColumnAmount != OldColumnAmount)
+    Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, RowString, { 0, 0, 0 });
+    
+    LevelEditor->RowTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+    SDL_QueryTexture(LevelEditor->RowTexture, 0, 0, &LevelEditor->GridButtonQuad[1].w, &LevelEditor->GridButtonQuad[1].h);
+    
+    LevelEditor->GridButtonQuad[1].x = LevelEditor->GridButton[1].x + (LevelEditor->GridButton[1].w /2) - (LevelEditor->GridButtonQuad[1].w / 2);
+    LevelEditor->GridButtonQuad[1].y = LevelEditor->GridButton[1].y + (LevelEditor->GridButton[4].h /2) - (LevelEditor->GridButtonQuad[1].h / 2);
+    
+    SDL_FreeSurface(Surface);
+    
+    if(LevelEditor->ColumnTexture)
     {
         FreeTexture(LevelEditor->ColumnTexture);
-        
-        Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, ColString, { 0, 0, 0 });
-        LevelEditor->ColumnTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
-        SDL_QueryTexture(LevelEditor->ColumnTexture, 0, 0, &LevelEditor->GridButtonQuad[4].w, &LevelEditor->GridButtonQuad[4].h);
-        
-        LevelEditor->GridButtonQuad[4].x = LevelEditor->GridButton[4].x + (LevelEditor->GridButton[4].w /2) - (LevelEditor->GridButtonQuad[4].w / 2);
-        LevelEditor->GridButtonQuad[4].y = LevelEditor->GridButton[4].y + (LevelEditor->GridButton[4].h /2) - (LevelEditor->GridButtonQuad[4].h / 2);
-        
-        SDL_FreeSurface(Surface);
     }
+    
+    Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, ColString, { 0, 0, 0 });
+    LevelEditor->ColumnTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+    SDL_QueryTexture(LevelEditor->ColumnTexture, 0, 0, &LevelEditor->GridButtonQuad[4].w, &LevelEditor->GridButtonQuad[4].h);
+    
+    LevelEditor->GridButtonQuad[4].x = LevelEditor->GridButton[4].x + (LevelEditor->GridButton[4].w /2) - (LevelEditor->GridButtonQuad[4].w / 2);
+    LevelEditor->GridButtonQuad[4].y = LevelEditor->GridButton[4].y + (LevelEditor->GridButton[4].h /2) - (LevelEditor->GridButtonQuad[4].h / 2);
+    
+    SDL_FreeSurface(Surface);
 }
 
 static void 
@@ -2275,7 +2280,6 @@ GridEntityNewGrid(game_offscreen_buffer *Buffer, level_entity *LevelEntity,
     
     LevelEditorChangeGridCounters(LevelEditor, 
                                   NewRowAmount, NewColumnAmount, 
-                                  GridEntity->RowAmount, GridEntity->ColumnAmount,
                                   Buffer);
     
     u32 DefaultBlocksInRow = 12;
@@ -2365,6 +2369,8 @@ LevelEntityInitParameters(game_memory *Memory,
     LevelEntity->ActiveBlockSize    = 0;
     LevelEntity->InActiveBlockSize  = 0;
     
+    LevelEntity->LevelTimeInitMs         = 0;
+    LevelEntity->LevelTimeInitElapsedMs  = 0;
     LevelEntity->RotationVel         = 600.0f;
     LevelEntity->StartAlphaPerSec    = 500.0f;
     LevelEntity->FlippingAlphaPerSec = 1000.0f;
@@ -2588,16 +2594,12 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         {
             Memory->CurrentLevelIndex = PrevLevelNumber;
             
-            u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
-            u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
-            
             LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
                                                    Memory->CurrentLevelIndex, true,
                                                    Memory, Buffer);
             
             LevelEditorChangeGridCounters(Memory->LevelEditor, 
                                           Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount,
-                                          RowAmount, ColAmount,
                                           Buffer);
             
             LevelEditorUpdateLevelStats(Memory->LevelEditor, 
@@ -2612,16 +2614,12 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         {
             Memory->CurrentLevelIndex = NextLevelNumber;
             
-            u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
-            u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
-            
             LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
                                                    Memory->CurrentLevelIndex,true,
                                                    Memory, Buffer);
             
             LevelEditorChangeGridCounters(Memory->LevelEditor, 
                                           Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount,
-                                          RowAmount, ColAmount,
                                           Buffer);
             
             LevelEditorUpdateLevelStats(Memory->LevelEditor, 
@@ -2824,7 +2822,6 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                                    false, Memory, Buffer);
             LevelEditorChangeGridCounters(LevelEditor, 
                                           LevelEntity->GridEntity->RowAmount, LevelEntity->GridEntity->ColumnAmount, 
-                                          RowAmount, ColAmount,
                                           Buffer);
             
             LevelEditor->ActiveButton = LevelEditor->LoadButtonLayer;
@@ -2849,12 +2846,9 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                                            PrevLevelNumber,
                                                            true, Memory, Buffer);
                     
-                    u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
-                    u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
                     
                     LevelEditorChangeGridCounters(Memory->LevelEditor, 
                                                   Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
-                                                  RowAmount, ColAmount,
                                                   Buffer);
                 }
                 
@@ -2869,13 +2863,9 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                                            NextLevelNumber,
                                                            true, Memory, Buffer);
                     
-                    u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
-                    u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
-                    
                     LevelEditorChangeGridCounters(Memory->LevelEditor, 
-                                                  Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, 
-                                                  RowAmount, ColAmount,
-                                                  Buffer);
+                                                  Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, Buffer);
+                    
                 }
                 
                 LevelEditor->ActiveButton = LevelEditor->NextLevelQuad;
@@ -2977,7 +2967,11 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             DEBUGRenderQuad(Buffer, &LevelEntity->FigureEntity->FigureUnit[i].AreaQuad, {255, 0, 0}, 255);
         }
         
-        DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], LevelEntity->InActiveBlockSize, {255, 255, 255}, 100);
+        if(LevelEntity->FigureEntity->FigureAmount > 0)
+        {
+            DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], LevelEntity->InActiveBlockSize, {255, 255, 255}, 100);
+        }
+        
     }
     
     game_rect ButtonQuad = 
@@ -3067,8 +3061,6 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     }
     
 }
-
-
 
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
@@ -3195,10 +3187,18 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             }
         }
         
+        LevelEntity->LevelTimeInitMs = 2.0f;
         LevelEntity->RotationVel         = 600.0f;
         LevelEntity->StartAlphaPerSec    = 500.0f;
         LevelEntity->FlippingAlphaPerSec = 1000.0f;
-        LevelEntity->GridScalePerSec     = ((RowAmount * ColumnAmount)) * (ActiveBlockSize/2);
+        //LevelEntity->GridScalePerSec     = ((RowAmount * ColumnAmount)) * (ActiveBlockSize/2);
+        LevelEntity->GridScalePerSec     = (ActiveBlockSize * ((RowAmount + ColumnAmount) - 1)) / LevelEntity->LevelTimeInitMs;
+        
+        
+        //time = 2.0s;
+        //distance = ActiveBlockSize * ((RowAmount + ColumnAmount) - 1);
+        //velocity = distance / time;
+        
         
         FigureEntityAlignHorizontally(FigureEntity, InActiveBlockSize);
         
@@ -3245,10 +3245,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         printf("memory init!\n");
     }
     
+    r32 TimeElapsed = (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
     PreviousTimeTick = CurrentTimeTick;
     CurrentTimeTick  = SDL_GetTicks();
-    
-    r32 TimeElapsed = (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
     
     if(Input->Keyboard.Escape.EndedDown)
     {
@@ -3279,6 +3278,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     }
     
     //printf("Memory->CurrentLevelIndex = %d\n", Memory->CurrentLevelIndex);
+    
+    
     
     return(ShouldQuit);
 }

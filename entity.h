@@ -129,6 +129,9 @@ struct level_entity
     u32 ActiveBlockSize;
     u32 InActiveBlockSize;
     
+    r32 LevelTimeInitMs;
+    r32 LevelTimeInitElapsedMs;
+    
     r32 RotationVel;
     r32 StartAlphaPerSec;
     r32 FlippingAlphaPerSec;

@@ -99,7 +99,7 @@ MenuInit(menu_entity* MenuEntity, game_memory *Memory, game_offscreen_buffer *Bu
     Memory->MenuEntity->ButtonsArea = (game_rect *) malloc(sizeof(game_rect) * (Memory->MenuEntity->ButtonsAmountReserved / 20));
     Assert(Memory->MenuEntity->ButtonsArea);
     
-    Memory->MenuEntity->Buttons = (menu_button *) malloc(sizeof(menu_button) * Memory->MenuEntity->ButtonsAmountReserved);
+    Memory->MenuEntity->Buttons = (menu_button *) calloc (Memory->MenuEntity->ButtonsAmountReserved, sizeof(menu_button));
     Assert(Memory->MenuEntity->Buttons);
     
     game_surface *Surface = 0; 
@@ -237,6 +237,7 @@ MenuChangeButtonText(game_font *&Font, char *Text,
                      game_color Color, 
                      game_offscreen_buffer *Buffer)
 {
+    
     if(Button->LevelNumberTexture)
     {
         SDL_DestroyTexture(Button->LevelNumberTexture);
@@ -257,6 +258,7 @@ MenuChangeButtonText(game_font *&Font, char *Text,
     
     Button->ButtonQuad.w = MenuEntity->ButtonSizeWidth;
     Button->ButtonQuad.h = MenuEntity->ButtonSizeHeight;
+    
 }
 
 static void 
@@ -328,12 +330,10 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
     {
         if(Memory->MenuEntity->DevMode)
         {
-            printf("Dev mode is off\n");
             Memory->MenuEntity->DevMode = false;
         }
         else
         {
-            printf("Dev mode is on\n");
             Memory->MenuEntity->DevMode = true;
         }
         
@@ -466,20 +466,15 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
             {
                 if(Memory->MenuEntity->DevMode)
                 {
-                    u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
-                    u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
-                    
                     LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity,
                                                            Index, false,
                                                            Memory, Buffer);
                     
                     LevelEditorChangeGridCounters(Memory->LevelEditor,
-                                                  Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, RowAmount, ColAmount, Buffer);
+                                                  Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount, Buffer);
                     
                     LevelEditorUpdateLevelStats(Memory->LevelEditor, 
                                                 Memory->LevelEntity.LevelNumber, Index, Buffer);
-                    
-                    SDL_DestroyTexture(Memory->MenuEntity->Buttons[Index].LevelNumberTexture);
                     
                     Memory->MenuEntity->ButtonsAmount += 1;
                     
@@ -491,7 +486,6 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                                          &Memory->MenuEntity->Buttons[Index], 
                                          {255, 255, 255}, 
                                          Buffer);
-                    
                     MenuChangeButtonText(Memory->LevelNumberFont, "+", 
                                          Memory->MenuEntity, 
                                          &Memory->MenuEntity->Buttons[Index+1], 
@@ -518,15 +512,12 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                 }
                 else
                 {
-                    u32 RowAmount = Memory->LevelEntity.GridEntity->RowAmount;
-                    u32 ColAmount = Memory->LevelEntity.GridEntity->ColumnAmount;
-                    
                     LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
                                                            Index, false,
                                                            Memory, Buffer);
                     LevelEditorChangeGridCounters(Memory->LevelEditor, 
-                                                  Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount ,RowAmount, ColAmount,
-                                                  Buffer);
+                                                  Memory->LevelEntity.GridEntity->RowAmount, Memory->LevelEntity.GridEntity->ColumnAmount,Buffer);
+                    
                     
                     LevelEditorUpdateLevelStats(Memory->LevelEditor, 
                                                 Memory->LevelEntity.LevelNumber, Index, Buffer);
