@@ -18,6 +18,7 @@
 static void
 GameRenderBitmapToBuffer(game_offscreen_buffer *Buffer, game_texture *&Texture, game_rect *Quad)
 {
+    Assert(Texture);
     SDL_RenderCopy(Buffer->Renderer, Texture, 0, Quad);
 }
 
@@ -1148,6 +1149,41 @@ RescaleGameField(game_offscreen_buffer *Buffer,
 }
 
 static void
+LevelEntityUpdateLevelNumber(level_entity *LevelEntity, game_memory *Memory, game_offscreen_buffer *Buffer)
+{
+    //TODO(Max): Elaborate on where exactly should I draw level number
+    
+    char LevelNumberString[3] = {0};
+    sprintf(LevelNumberString, "%d", LevelEntity->LevelNumber);
+    
+    game_surface *Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, LevelNumberString, {255, 255, 255});
+    Assert(Surface);
+    
+    LevelEntity->LevelNumberQuad.w = Surface->w;
+    LevelEntity->LevelNumberQuad.h = Surface->h;
+    LevelEntity->LevelNumberQuad.x = (Buffer->Width - Surface->w) - (Surface->w /2);
+    LevelEntity->LevelNumberQuad.y = 0;
+    
+    LevelEntity->LevelNumberShadowQuad = LevelEntity->LevelNumberQuad;
+    LevelEntity->LevelNumberShadowQuad.x += 3;
+    LevelEntity->LevelNumberShadowQuad.y += 3;
+    
+    LevelEntity->LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+    Assert(LevelEntity->LevelNumberTexture);
+    
+    SDL_FreeSurface(Surface);
+    
+    Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, LevelNumberString, {0, 0, 0});
+    Assert(Surface);
+    
+    LevelEntity->LevelNumberShadowTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+    Assert(LevelEntity->LevelNumberShadowTexture);
+    
+    SDL_FreeSurface(Surface);
+    
+}
+
+static void
 LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity, 
                                        s32 Index, bool IsStarted,
                                        game_memory *Memory, game_offscreen_buffer *Buffer)
@@ -1346,41 +1382,13 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     // level number texture loading
     //
     
-    //TODO(Max): Elaborate on where exactly should I draw level number
-    
-    char LevelNumberString[3] = {0};
-    sprintf(LevelNumberString, "%d", LevelEntity->LevelNumber);
-    
-    game_surface *Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, LevelNumberString, {255, 255, 255});
-    Assert(Surface);
-    
-    LevelEntity->LevelNumberQuad.w = Surface->w;
-    LevelEntity->LevelNumberQuad.h = Surface->h;
-    LevelEntity->LevelNumberQuad.x = (Buffer->Width - Surface->w) - (Surface->w /2);
-    LevelEntity->LevelNumberQuad.y = 0;
-    
-    LevelEntity->LevelNumberShadowQuad = LevelEntity->LevelNumberQuad;
-    LevelEntity->LevelNumberShadowQuad.x += 3;
-    LevelEntity->LevelNumberShadowQuad.y += 3;
-    
-    LevelEntity->LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
-    Assert(LevelEntity->LevelNumberTexture);
-    
-    SDL_FreeSurface(Surface);
-    
-    Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, LevelNumberString, {0, 0, 0});
-    Assert(Surface);
-    
-    LevelEntity->LevelNumberShadowTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
-    Assert(LevelEntity->LevelNumberShadowTexture);
-    
-    SDL_FreeSurface(Surface);
-    
+    LevelEntityUpdateLevelNumber(LevelEntity, Memory, Buffer);
 }
 
 static void
 LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  level_entity *State, r32 TimeElapsed)
 {
+    
     static r32 TotalElapsed = SDL_GetTicks();
     
     grid_entity   *&GridEntity   = State->GridEntity;
@@ -1573,7 +1581,6 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
                     }
                 }
                 
-                printf("\n");
                 
                 if(Count == 4)
                 {
@@ -1910,8 +1917,9 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
         //DEBUGRenderFigureShell(Buffer, &FigureUnit[Index], 10, {255, 255, 0}, 255);
     }
     
-    GameRenderBitmapToBuffer(Buffer, State->LevelNumberShadowTexture,   &State->LevelNumberShadowQuad);
+    GameRenderBitmapToBuffer(Buffer, State->LevelNumberShadowTexture, &State->LevelNumberShadowQuad);
     GameRenderBitmapToBuffer(Buffer, State->LevelNumberTexture,   &State->LevelNumberQuad);
+    
 }
 
 static void
@@ -1919,6 +1927,8 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
 {
     Memory->LevelEditor = (level_editor*)malloc(sizeof(level_editor));
     Assert(Memory->LevelEditor);
+    
+    *Memory->LevelEditor = {};
     
     Memory->LevelEditor->LevelNumberSelected = false;
     
@@ -2097,7 +2107,6 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
 static void
 GridEntityDeleteMovingBlock(grid_entity *GridEntity, u32 Index)
 {
-    printf("GridEntityDeleteMovingBlock\n");
     u32 Amount = GridEntity->MovingBlocksAmount;
     
     if(Index < 0 || Index >= Amount) return;
@@ -2161,9 +2170,6 @@ LevelEditorChangeGridCounters(level_editor *LevelEditor,
         
         SDL_FreeSurface(Surface);
     }
-    
-    
-    
 }
 
 static void 
@@ -2205,7 +2211,6 @@ LevelEditorUpdateLevelStats(level_editor *LevelEditor,
         SDL_FreeSurface(Surface);
         
     }
-    
     //
     // level number texture init
     //
@@ -2470,6 +2475,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                            game_memory *Memory, game_offscreen_buffer *Buffer, game_input *Input)
 {
     if(!LevelEntity->LevelPaused) return;
+    
     
     game_rect GridArea   = LevelEntity->GridEntity->GridArea;
     game_rect FigureArea = LevelEntity->FigureEntity->FigureArea;
@@ -2813,7 +2819,6 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         else if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
                                   &LevelEditor->LoadButtonLayer))
         {
-            printf("Load!\n");
             LevelEntityUpdateLevelEntityFromMemory(LevelEntity, 
                                                    Memory->CurrentLevelIndex,
                                                    false, Memory, Buffer);
@@ -2823,7 +2828,6 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                           Buffer);
             
             LevelEditor->ActiveButton = LevelEditor->LoadButtonLayer;
-            printf("LevelNumber = %d\n", LevelEntity->LevelNumber);
         }
         else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &FigureArea))
         {
@@ -2880,8 +2884,6 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         }
         else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &GridArea))
         {
-            printf("GridArea click !\n");
-            
             game_rect AreaQuad = { 0, 0, (s32)LevelEntity->ActiveBlockSize, (s32)LevelEntity->ActiveBlockSize };
             
             u32 StartX = 0;
@@ -3006,6 +3008,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     ButtonQuad.x = LevelEditor->FigureButtonLayer.x;
     ButtonQuad.y = LevelEditor->FigureButtonLayer.y;
     
+    
     /* Figure buttons rendering*/ 
     
     DEBUGRenderQuadFill(Buffer, &LevelEditor->FigureButtonLayer, {0, 255, 0}, 100);
@@ -3022,11 +3025,13 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     
     LevelEditorRenderButton(&ButtonQuad, &LevelEditor->FigureButtonQuad[5], {0, 0, 0}, 255, LevelEditor->TypeTexture, 0, 0, Buffer);
     
+    
     /* Save button rendering*/ 
     
     DEBUGRenderQuadFill(Buffer, &LevelEditor->SaveButtonLayer, {255, 0, 0}, 100);
     DEBUGRenderQuad(Buffer, &LevelEditor->SaveButtonLayer, {0, 0, 0}, 255);
     GameRenderBitmapToBuffer(Buffer, LevelEditor->SaveTexture, &LevelEditor->SaveButtonQuad);
+    
     
     /* Load buttons rendering*/ 
     
@@ -3060,6 +3065,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     {
         DEBUGRenderQuadFill(Buffer, &LevelEntity->LevelNumberQuad, {255, 0, 0}, 150);
     }
+    
 }
 
 
@@ -3072,24 +3078,21 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     bool ShouldQuit       = false;
     
-    level_entity  *GameState     = &Memory->LevelEntity;
-    grid_entity   *&GridEntity   = GameState->GridEntity;
-    figure_entity *&FigureEntity = GameState->FigureEntity;
+    level_entity  *LevelEntity     = &Memory->LevelEntity;
+    grid_entity   *&GridEntity   = LevelEntity->GridEntity;
+    figure_entity *&FigureEntity = LevelEntity->FigureEntity;
     
     if(!Memory->IsInitialized)
     {
         // Memory initialization
-        
-        Memory->CurrentLevelIndex = 0;
-        
-        //Memory->LevelMemoryAmount = 1;
-        GameState->LevelNumber = 0;
+        LevelEntity->LevelNumber = 0;
         
         Memory->ToggleMenu = false;
         
         Memory->MenuEntity = (menu_entity *) malloc(sizeof(menu_entity));
         Assert(Memory->MenuEntity);
         
+        Memory->CurrentLevelIndex = 0;
         Memory->MenuEntity->IsMoving         = false;
         Memory->MenuEntity->IsAnimating      = false;
         Memory->MenuEntity->DevMode          = false;
@@ -3146,7 +3149,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         if(Memory->MenuEntity->ButtonsAmount < Memory->MenuEntity->ButtonsAmountReserved)
         {
-            printf("+\n");
             u32 Index = Memory->MenuEntity->ButtonsAmount - 1;
             
             Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, "+", {255, 255, 255 });
@@ -3249,22 +3251,22 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         // temporal level_entity initialization
         
-        GameState->DefaultBlocksInRow = 12;
-        GameState->DefaultBlocksInCol = 9;
+        LevelEntity->DefaultBlocksInRow = 12;
+        LevelEntity->DefaultBlocksInCol = 9;
         
         u32 RowAmount           = 5;
         u32 ColumnAmount        = 5;
         u32 FigureAmountReserve = 20;
         u32 MovingBlocksAmountReserved  = 10;
         
-        GameState->LevelStarted  = false;
-        GameState->LevelFinished = false;
+        LevelEntity->LevelStarted  = false;
+        LevelEntity->LevelFinished = false;
         
         RescaleGameField(Buffer, RowAmount, ColumnAmount,
-                         FigureAmountReserve, GameState->DefaultBlocksInRow, GameState->DefaultBlocksInCol, GameState);
+                         FigureAmountReserve, LevelEntity->DefaultBlocksInRow, LevelEntity->DefaultBlocksInCol, LevelEntity);
         
-        u32 ActiveBlockSize   = GameState->ActiveBlockSize;
-        u32 InActiveBlockSize = GameState->InActiveBlockSize;
+        u32 ActiveBlockSize   = LevelEntity->ActiveBlockSize;
+        u32 InActiveBlockSize = LevelEntity->InActiveBlockSize;
         
         //
         // Figure initialization
@@ -3291,7 +3293,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->FadeOutSum    = 0;
         
         FigureEntity->FigureArea.w  = Buffer->Width;
-        FigureEntity->FigureArea.h  = InActiveBlockSize * GameState->DefaultBlocksInCol;
+        FigureEntity->FigureArea.h  = InActiveBlockSize * LevelEntity->DefaultBlocksInCol;
         FigureEntity->FigureArea.y  = Buffer->Height - (FigureEntity->FigureArea.h);
         FigureEntity->FigureArea.x  = 0;
         
@@ -3348,10 +3350,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             }
         }
         
-        GameState->RotationVel         = 600.0f;
-        GameState->StartAlphaPerSec    = 500.0f;
-        GameState->FlippingAlphaPerSec = 1000.0f;
-        GameState->GridScalePerSec     = ((RowAmount * ColumnAmount)) * (ActiveBlockSize/2);
+        LevelEntity->RotationVel         = 600.0f;
+        LevelEntity->StartAlphaPerSec    = 500.0f;
+        LevelEntity->FlippingAlphaPerSec = 1000.0f;
+        LevelEntity->GridScalePerSec     = ((RowAmount * ColumnAmount)) * (ActiveBlockSize/2);
         
         FigureEntityAlignHorizontally(FigureEntity, InActiveBlockSize);
         
@@ -3384,9 +3386,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->VerticalSquareTexture   = GetTexture(Memory, "o_s.png", Buffer->Renderer);
         GridEntity->HorizontlaSquareTexture = GetTexture(Memory, "o_m.png", Buffer->Renderer);
         
+        LevelEntityUpdateLevelNumber(LevelEntity, Memory, Buffer);
         
         // Level Editor initialization
-        LevelEditorInit(GameState, Memory, Buffer);
+        LevelEditorInit(LevelEntity, Memory, Buffer);
+        LevelEditorUpdateLevelStats(Memory->LevelEditor, LevelEntity->LevelNumber, Memory->CurrentLevelIndex, Buffer);
         
         //Memory->Music = GetMusic(Memory, "amb_ending_water.ogg");
         //Assert(Memory->Music);
@@ -3413,20 +3417,20 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     }
     else
     {
-        GameUpdateEvent(Input, GameState, GameState->ActiveBlockSize, GameState->InActiveBlockSize, Buffer->Width, Buffer->Height);
+        GameUpdateEvent(Input, LevelEntity, LevelEntity->ActiveBlockSize, LevelEntity->InActiveBlockSize, Buffer->Width, Buffer->Height);
         
         //PrintArray2D(GridEntity->UnitField, GridEntity->RowAmount, GridEntity->ColumnAmount);
         
         game_rect ScreenArea = { 0, 0, Buffer->Width, Buffer->Height};
         DEBUGRenderQuadFill(Buffer, &ScreenArea, { 42, 6, 21 }, 255);
         
-        LevelEntityUpdateAndRender(Buffer, Memory, GameState, TimeElapsed);
-        LevelEditorUpdateAndRender(Memory->LevelEditor, GameState, Memory, Buffer, Input);
+        LevelEntityUpdateAndRender(Buffer, Memory, LevelEntity, TimeElapsed);
+        LevelEditorUpdateAndRender(Memory->LevelEditor, LevelEntity, Memory, Buffer, Input);
         
         //printf("TimeElapsed = %f\n", TimeElapsed);
-        //printf("GameState->LevelNumber = %d\n", GameState->LevelNumber);
+        //printf("LevelEntity->LevelNumber = %d\n", LevelEntity->LevelNumber);
         
-        //PrintArray2D(GameState->GridEntity->UnitField, GameState->GridEntity->RowAmount, GameState->GridEntity->ColumnAmount);
+        //PrintArray2D(LevelEntity->GridEntity->UnitField, LevelEntity->GridEntity->RowAmount, LevelEntity->GridEntity->ColumnAmount);
     }
     
     //printf("Memory->CurrentLevelIndex = %d\n", Memory->CurrentLevelIndex);
