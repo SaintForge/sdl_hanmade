@@ -3307,7 +3307,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     if(Memory->ToggleMenu)
     {
-        MenuUpdateAndRender(Buffer, Memory, Input);
+        MenuUpdateAndRender(Memory->MenuEntity, Memory, Input, Buffer);
     }
     else
     {
