@@ -135,7 +135,8 @@ struct level_entity
     grid_entity   *GridEntity;
     figure_entity *FigureEntity;
     
-    game_texture *LevelNumberTexture;
+    game_texture *
+        LevelNumberTexture;
     game_texture *LevelNumberShadowTexture;
     
     game_rect LevelNumberQuad;
@@ -268,6 +269,7 @@ struct menu_entity
     menu_button  *Buttons;
     menu_button  *ConfirmButtons;
     menu_button  *SaveAndLoadButtons;
+    menu_button  *SortButton;
 };
 
 
