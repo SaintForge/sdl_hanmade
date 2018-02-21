@@ -3239,6 +3239,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         }
         
         LevelEntity->Configuration.StartUpTimeToFinish = 2.0f;
+        
         /* Change values below to be time configured*/
         LevelEntity->Configuration.RotationVel         = 600.0f;
         LevelEntity->Configuration.StartAlphaPerSec    = 500.0f;
