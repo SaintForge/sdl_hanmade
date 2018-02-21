@@ -1188,6 +1188,8 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
                                        s32 Index, bool IsStarted,
                                        game_memory *Memory, game_offscreen_buffer *Buffer)
 {
+    /* level_entity deallocating memory */
+    
     if(LevelEntity->LevelNumberTexture)
     {
         SDL_DestroyTexture(LevelEntity->LevelNumberTexture);
@@ -1255,8 +1257,14 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
         LevelEntity->GridEntity->MovingBlocks = 0;
     }
     
+    
     u32 RowAmount    = Memory->LevelMemory[Index].RowAmount;
     u32 ColumnAmount = Memory->LevelMemory[Index].ColumnAmount;
+    
+    LevelEntity->Configuration.PixelsDrawn  = 0;
+    LevelEntity->Configuration.PixelsToDraw = 0;
+    LevelEntity->Configuration.StartUpTimeElapsed  = 0.0f;
+    LevelEntity->Configuration.StartUpTimeToFinish = 1.0f;
     
     LevelEntity->LevelNumber   = Memory->LevelMemory[Index].LevelNumber;
     LevelEntity->LevelStarted  = IsStarted;
@@ -1268,10 +1276,8 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     u32 ActiveBlockSize   = LevelEntity->Configuration.ActiveBlockSize;
     u32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
     
-    LevelEntity->Configuration.PixelsDrawn  = 0;
-    LevelEntity->Configuration.PixelsToDraw = 0;
-    LevelEntity->Configuration.StartUpTimeElapsed  = 0.0f;
-    LevelEntity->Configuration.StartUpTimeToFinish = 2.0f;
+    LevelEntity->Configuration.GridScalePerSec  = (ActiveBlockSize * ((RowAmount + ColumnAmount) - 1)) / (LevelEntity->Configuration.StartUpTimeToFinish * 0.5f);
+    LevelEntity->Configuration.StartAlphaPerSec = 255.0f / (LevelEntity->Configuration.StartUpTimeToFinish * 0.5f);
     
     /*
     
@@ -1313,8 +1319,6 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     
     LevelEntity->GridEntity->RowAmount    = RowAmount;
     LevelEntity->GridEntity->ColumnAmount = ColumnAmount;
-    printf("RowAmount = %d\n", RowAmount);
-    printf("ColumnAmount = %d\n", ColumnAmount);
     
     LevelEntity->GridEntity->GridArea.w   = ActiveBlockSize * ColumnAmount;
     LevelEntity->GridEntity->GridArea.h   = ActiveBlockSize * RowAmount;
@@ -1416,7 +1420,7 @@ LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
     s32 GridAreaY = GridEntity->GridArea.y;
     
     s32 AmountOfPixels = (MaximumBlockSize * (RowAmount + ColAmount - 1));
-    s32 PixelScalePerSec = (AmountOfPixels / StartUpTimeToFinish);
+    s32 PixelScalePerSec = (AmountOfPixels / (StartUpTimeToFinish * 0.5f));
     
     //todo: change it to 1d array!!!
     //r32 **UnitSize  = GridEntity->UnitSize;
@@ -1449,6 +1453,7 @@ LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
             s32 *CellField = &GridEntity->UnitField[RowIndex][ColIndex];
             if(*CellSize < MaximumBlockSize)
             {
+                IsGridReady = false;
                 r32 ScaleDt = TimeElapsed * PixelScalePerSec;
                 *CellSize += ScaleDt;
                 
@@ -1459,7 +1464,7 @@ LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
                     if(i == (Count - 1))
                     {
                         PixelsDrawn += MaximumBlockSize;
-                        PixelsToDraw = ((StartUpTimeElapsed - TimeElapsed) * PixelScalePerSec);
+                        PixelsToDraw = (((StartUpTimeElapsed) - TimeElapsed) * PixelScalePerSec);
                         
                         if(PixelsToDraw > AmountOfPixels)
                         {
@@ -1544,6 +1549,7 @@ LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
         
     }
     
+#if 0
     for(s32 i = 0; i < RowAmount; ++i)
     {
         for(s32 j = 0; j < ColAmount; ++j)
@@ -1555,13 +1561,35 @@ LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
         }
     }
     
-    IsLevelReady = IsGridReady;// && IsFigureReady
+#endif
+    
+    if(IsGridReady)
+    {
+        FigureEntity->FigureAlpha += TimeElapsed * StartAlphaPerSec;
+        if(FigureEntity->FigureAlpha < 255)
+        {
+            IsFiguresReady = false;
+        }
+        else
+        {
+            FigureEntity->FigureAlpha = 255.0f;
+        }
+        
+        for(s32 i = 0; i < FigureAmount; ++i)
+        {
+            SDL_SetTextureAlphaMod(FigureEntity->FigureUnit[i].Texture, FigureEntity->FigureAlpha);
+            FigureUnitRenderBitmap(Buffer, &FigureEntity->FigureUnit[i]);
+        }
+    }
+    
+    IsLevelReady = IsGridReady && IsFiguresReady;// && IsFigureReady;
     
     if(IsLevelReady)
     {
         printf("TimeElapsed = %f\n", StartUpTimeElapsed);
         printf("PixelsToDraw = %f\n", PixelsToDraw);
         printf("PixelsDrawn  = %f\n", PixelsDrawn);
+        printf("FigureEntity->FigureAlpha = %f\n", FigureEntity->FigureAlpha);
     }
     
     LevelEntity->Configuration.StartUpTimeElapsed = StartUpTimeElapsed;
@@ -1594,118 +1622,6 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
     
     if(!LevelEntity->LevelStarted)
     {
-#if 0 
-        bool IsLevelReady = true;
-        LevelEntity->Configuration.StartUpTimeElapsed += TimeElapsed;
-        
-        for(s32 line = 1; line <=((RowAmount + ColumnAmount) - 1); ++line)
-        {
-            bool ShouldBreak = true;
-            s32 StartColumn  = Max2(0, line - RowAmount);
-            s32 Count        = Min3(line, (ColumnAmount - StartColumn), RowAmount);
-            
-            for(u32 i = 0; i < Count; ++i) 
-            {
-                u32 RowIndex  = Min2(RowAmount, line) - i - 1;
-                u32 ColIndex  = StartColumn + i;
-                r32 *UnitSize  = &GridEntity->UnitSize[RowIndex][ColIndex];
-                s32 *UnitField = &GridEntity->UnitField[RowIndex][ColIndex];
-                
-                
-                if(Change1DUnitPerSec(UnitSize, ActiveBlockSize, LevelEntity->GridScalePerSec, TimeElapsed))
-                {
-                    if(ShouldBreak) 
-                    {
-                        ShouldBreak = false;
-                    }
-                }
-                else
-                {
-                    if(IsLevelReady) 
-                    {
-                        IsLevelReady = false;
-                    }
-                }
-                
-                if(*UnitSize < ActiveBlockSize)
-                {
-                    *UnitSize += TimeElapsed * LevelEntity->Configuration.GridScalePerSec;
-                    if(*UnitSize >= ActiveBlockSize)
-                    {
-                        *UnitSize = ActiveBlockSize;
-                    }
-                    
-                    /*
-                        if(IsLevelReady)
-                        {
-                            IsLevelReady = false;
-                        }
-                    */
-                }
-                else
-                {
-                    if(ShouldBreak)
-                    {
-                        ShouldBreak = false;
-                    }
-                }
-                
-                StartY = GridEntity->GridArea.y + (ActiveBlockSize * RowIndex) + (ActiveBlockSize / 2);
-                StartX = GridEntity->GridArea.x + (ActiveBlockSize * ColIndex) + (ActiveBlockSize / 2);
-                
-                AreaQuad.w = roundf(*UnitSize);
-                AreaQuad.h = roundf(*UnitSize);
-                AreaQuad.x = StartX - (*UnitSize / 2);
-                AreaQuad.y = StartY - (*UnitSize / 2);
-                
-                if(*UnitField == 0)      GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture,     &AreaQuad);
-                else if(*UnitField == 2) GameRenderBitmapToBuffer(Buffer, GridEntity->HorizontlaSquareTexture, &AreaQuad);
-                else if(*UnitField == 3) GameRenderBitmapToBuffer(Buffer, GridEntity->VerticalSquareTexture,   &AreaQuad);
-            }
-            
-            
-            if(ShouldBreak)
-            {
-                break;
-            }
-        }
-        
-        if(LevelEntity->Configuration.StartUpTimeElapsed > LevelEntity->Configuration.StartUpTimeToFinish)
-        {
-            //printf("LevelTime elapsed: %f ms\n", LevelEntity->StartUpTimeElapsed);
-        }
-        for(u32 i = 0; i < RowAmount; ++i)
-        {
-            for(u32 j = 0; j < ColumnAmount; ++j)
-            {
-                if(GridEntity->UnitSize[i][j] < ActiveBlockSize)
-                {
-                    IsLevelReady = false;
-                }
-            }
-        }
-        
-        
-        if(!IsLevelReady) 
-        {
-            return;
-        }
-        else
-        {
-            /*
-            if(!Change1DUnitPerSec(&FigureEntity->FigureAlpha, 255, LevelEntity->StartAlphaPerSec, TimeElapsed))
-            {
-                if(IsLevelReady) IsLevelReady = false;
-            }
-            
-            for(u32 i = 0; i < FigureAmount; ++i)
-            {
-                SDL_SetTextureAlphaMod(FigureUnit[i].Texture, FigureEntity->FigureAlpha);
-                FigureUnitRenderBitmap(Buffer, &FigureUnit[i]);
-            }
-        */
-        }
-#endif
         LevelEntityUpdateStartUpAnimation(LevelEntity,
                                           Buffer, TimeElapsed);
         if(LevelEntity->LevelStarted)
@@ -1716,10 +1632,11 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
             }
             
             free(GridEntity->UnitSize);
-            
             GridEntity->UnitSize = 0;
-            LevelEntity->Configuration.StartUpTimeElapsed = 0;
             
+            LevelEntity->Configuration.StartUpTimeElapsed = 0;
+            LevelEntity->Configuration.PixelsDrawn  = 0;
+            LevelEntity->Configuration.PixelsToDraw = 0;
         }
         
         return;
@@ -1735,11 +1652,6 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
         bool IsIdle     = FigureUnit[FigureIndex].IsIdle;
         bool IsSticked  = FigureUnit[FigureIndex].IsStick;
         bool IsAttached = FigureIndex == ActiveIndex;
-        
-        //printf("----------\n");
-        //printf("IsIdle = %d\n", IsIdle);
-        //printf("IsSticked = %d\n", IsSticked);
-        //printf("IsAttached = %d\n", IsAttached);
         
         if(IsIdle)
         {
@@ -3337,18 +3249,13 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             }
         }
         
-        LevelEntity->Configuration.StartUpTimeToFinish     = 2.0f;
+        LevelEntity->Configuration.StartUpTimeToFinish = 2.0f;
+        /* Change values below to be time configured*/
         LevelEntity->Configuration.RotationVel         = 600.0f;
         LevelEntity->Configuration.StartAlphaPerSec    = 500.0f;
         LevelEntity->Configuration.FlippingAlphaPerSec = 1000.0f;
-        //LevelEntity->GridScalePerSec     = ((RowAmount * ColumnAmount)) * (ActiveBlockSize/2);
+        
         LevelEntity->Configuration.GridScalePerSec     = (ActiveBlockSize * ((RowAmount + ColumnAmount) - 1)) / LevelEntity->Configuration.StartUpTimeToFinish;
-        
-        
-        //time = 2.0s;
-        //distance = ActiveBlockSize * ((RowAmount + ColumnAmount) - 1);
-        //velocity = distance / time;
-        
         
         FigureEntityAlignHorizontally(FigureEntity, InActiveBlockSize);
         
