@@ -245,8 +245,6 @@ struct menu_entity
     bool IsAnimating;
     bool IsShowingDelete;
     bool IsToBeDeleted;
-    bool IsToBeSaved;
-    bool IsToBeLoaded;
     bool DevMode;
     
     u32 ButtonSizeWidth;

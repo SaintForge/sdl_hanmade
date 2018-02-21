@@ -70,43 +70,34 @@ MenuEntityAlignButtons(menu_entity *MenuEntity,
     }
 }
 
-static void 
-MenuInit(menu_entity* MenuEntity, game_memory *Memory, game_offscreen_buffer *Buffer)
+static void
+MenuLoadButtonsFromMemory(menu_entity *MenuEntity, game_memory *Memory, 
+                          game_offscreen_buffer *Buffer)
 {
+    MenuEntity->ButtonsAmountReserved = Memory->LevelMemoryReserved;
+    MenuEntity->ButtonsAmount  = Memory->LevelMemoryAmount + 1;
+    MenuEntity->NewButtonIndex = Memory->MenuEntity->ButtonsAmount - 1;
     
-    Memory->MenuEntity = (menu_entity *) malloc(sizeof(menu_entity));
-    Assert(Memory->MenuEntity);
+    if(MenuEntity->ButtonsArea)
+    {
+        free(MenuEntity->ButtonsArea);
+    }
+    if(MenuEntity->Buttons)
+    {
+        free(MenuEntity->Buttons);
+    }
     
-    Memory->MenuEntity->IsMoving         = false;
-    Memory->MenuEntity->IsAnimating      = false;
-    Memory->MenuEntity->DevMode          = false;
-    Memory->MenuEntity->IsShowingDelete  = false;
-    Memory->MenuEntity->IsToBeDeleted    = false;
-    Memory->MenuEntity->IsToBeSaved      = false;
-    Memory->MenuEntity->IsToBeLoaded     = false;
-    Memory->MenuEntity->MaxVelocity      = 20.0f;
-    Memory->MenuEntity->OldMouseX        = 0;
-    Memory->MenuEntity->TargetIndex      = 0;
-    Memory->MenuEntity->ButtonIndex      = -1;
-    Memory->MenuEntity->TargetPosition   = 0;
-    Memory->MenuEntity->ButtonSizeWidth  = 100;
-    Memory->MenuEntity->ButtonSizeHeight = 100;
+    MenuEntity->ButtonsArea = (game_rect *) malloc(sizeof(game_rect) * (MenuEntity->ButtonsAmountReserved / 20));
+    Assert(MenuEntity->ButtonsArea);
     
-    Memory->MenuEntity->ButtonsAmountReserved = Memory->LevelMemoryReserved;
-    Memory->MenuEntity->ButtonsAmount  = Memory->LevelMemoryAmount + 1;
-    Memory->MenuEntity->NewButtonIndex = Memory->MenuEntity->ButtonsAmount - 1;
-    
-    Memory->MenuEntity->ButtonsArea = (game_rect *) malloc(sizeof(game_rect) * (Memory->MenuEntity->ButtonsAmountReserved / 20));
-    Assert(Memory->MenuEntity->ButtonsArea);
-    
-    Memory->MenuEntity->Buttons = (menu_button *) calloc (Memory->MenuEntity->ButtonsAmountReserved, sizeof(menu_button));
-    Assert(Memory->MenuEntity->Buttons);
+    MenuEntity->Buttons = (menu_button *) calloc (MenuEntity->ButtonsAmountReserved, sizeof(menu_button));
+    Assert(MenuEntity->Buttons);
     
     game_surface *Surface = 0; 
     
-    for(u32 i = 0; i < Memory->MenuEntity->ButtonsAmount; ++i)
+    for(u32 i = 0; i < MenuEntity->ButtonsAmount; ++i)
     {
-        if(i == Memory->MenuEntity->ButtonsAmountReserved - 1) continue;
+        if(i == MenuEntity->ButtonsAmountReserved - 1) continue;
         
         char LevelNumber[3] = {0};
         sprintf(LevelNumber, "%d", Memory->LevelMemory[i].LevelNumber);
@@ -114,45 +105,76 @@ MenuInit(menu_entity* MenuEntity, game_memory *Memory, game_offscreen_buffer *Bu
         Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, LevelNumber, {255, 255, 255});
         Assert(Surface);
         
-        Memory->MenuEntity->Buttons[i].LevelNumberTextureQuad.w = Surface->w;
-        Memory->MenuEntity->Buttons[i].LevelNumberTextureQuad.h = Surface->h;
+        MenuEntity->Buttons[i].LevelNumberTextureQuad.w = Surface->w;
+        MenuEntity->Buttons[i].LevelNumberTextureQuad.h = Surface->h;
         
-        Memory->MenuEntity->Buttons[i].LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
-        Assert(Memory->MenuEntity->Buttons[i].LevelNumberTexture);
+        if(MenuEntity->Buttons[i].LevelNumberTexture)
+        {
+            FreeTexture(MenuEntity->Buttons[i].LevelNumberTexture);
+        }
+        
+        MenuEntity->Buttons[i].LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+        Assert(MenuEntity->Buttons[i].LevelNumberTexture);
         
         SDL_FreeSurface(Surface);
         
-        Memory->MenuEntity->Buttons[i].ButtonQuad.w = Memory->MenuEntity->ButtonSizeWidth;
-        Memory->MenuEntity->Buttons[i].ButtonQuad.h = Memory->MenuEntity->ButtonSizeHeight; 
-        
+        MenuEntity->Buttons[i].ButtonQuad.w = Memory->MenuEntity->ButtonSizeWidth;
+        MenuEntity->Buttons[i].ButtonQuad.h = Memory->MenuEntity->ButtonSizeHeight; 
     }
     
-    if(Memory->MenuEntity->ButtonsAmount < Memory->MenuEntity->ButtonsAmountReserved)
+    if(MenuEntity->ButtonsAmount < MenuEntity->ButtonsAmountReserved)
     {
-        u32 Index = Memory->MenuEntity->ButtonsAmount - 1;
+        u32 Index = MenuEntity->ButtonsAmount - 1;
         
         Surface = TTF_RenderUTF8_Blended(Memory->LevelNumberFont, "+", {255, 255, 255 });
         Assert(Surface);
         
-        Memory->MenuEntity->Buttons[Index].LevelNumberTextureQuad.w = Surface->w;
-        Memory->MenuEntity->Buttons[Index].LevelNumberTextureQuad.h = Surface->h;
+        MenuEntity->Buttons[Index].LevelNumberTextureQuad.w = Surface->w;
+        MenuEntity->Buttons[Index].LevelNumberTextureQuad.h = Surface->h;
         
-        Memory->MenuEntity->Buttons[Index].LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
-        Assert(Memory->MenuEntity->Buttons[Index].LevelNumberTexture);
+        if(MenuEntity->Buttons[Index].LevelNumberTexture)
+        {
+            FreeTexture(MenuEntity->Buttons[Index].LevelNumberTexture);
+        }
+        
+        MenuEntity->Buttons[Index].LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+        Assert(MenuEntity->Buttons[Index].LevelNumberTexture);
         
         SDL_FreeSurface(Surface);
         
-        Memory->MenuEntity->Buttons[Index].ButtonQuad.w = Memory->MenuEntity->ButtonSizeWidth;
-        Memory->MenuEntity->Buttons[Index].ButtonQuad.h = Memory->MenuEntity->ButtonSizeHeight; 
+        MenuEntity->Buttons[Index].ButtonQuad.w = Memory->MenuEntity->ButtonSizeWidth;
+        MenuEntity->Buttons[Index].ButtonQuad.h = Memory->MenuEntity->ButtonSizeHeight;
     }
     
-    MenuEntityAlignButtons(Memory->MenuEntity, Buffer->Width, Buffer->Height);
+    MenuEntityAlignButtons(MenuEntity, Buffer->Width, Buffer->Height);
+}
+
+static void 
+MenuInit(menu_entity* MenuEntity, game_memory *Memory, game_offscreen_buffer *Buffer)
+{
+    Memory->MenuEntity = (menu_entity *) calloc(1, sizeof(menu_entity));
+    Assert(Memory->MenuEntity);
     
-    Memory->MenuEntity->BackTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
+    MenuEntity = Memory->MenuEntity;
+    MenuEntity->IsMoving         = false;
+    MenuEntity->IsAnimating      = false;
+    MenuEntity->DevMode          = false;
+    MenuEntity->IsShowingDelete  = false;
+    MenuEntity->IsToBeDeleted    = false;
+    MenuEntity->MaxVelocity      = 20.0f;
+    MenuEntity->ButtonIndex      = -1;
+    MenuEntity->ButtonSizeWidth  = 100;
+    MenuEntity->ButtonSizeHeight = 100;
+    
+    MenuLoadButtonsFromMemory(MenuEntity, Memory, Buffer);
+    
+    MenuEntity->BackTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
     
     //
     // Additional buttons for confirming deletion of a level
     //
+    
+    game_surface *Surface = {};
     
     Memory->MenuEntity->ConfirmButtons = (menu_button *) malloc(sizeof(menu_button) * 2);
     Assert(Memory->MenuEntity->ConfirmButtons);
@@ -370,20 +392,22 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
                 if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Memory->MenuEntity->ConfirmButtons[0].ButtonQuad))
                 {
                     Memory->MenuEntity->IsToBeDeleted = true;
-                    Memory->MenuEntity->IsToBeSaved = true;
-                    Memory->MenuEntity->IsToBeLoaded = true;
                 }
                 
                 Memory->MenuEntity->IsShowingDelete = false;
             }
             if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Memory->MenuEntity->SaveAndLoadButtons[0].ButtonQuad))
             {
-                Memory->MenuEntity->IsToBeSaved = false;
+                /* Saving levels to the file */ 
+                
                 SaveLevelMemoryToFile(Memory);
             }
             else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Memory->MenuEntity->SaveAndLoadButtons[1].ButtonQuad))
             {
-                Memory->MenuEntity->IsToBeLoaded = false;
+                /* Loading levels from the file */ 
+                
+                LoadLevelMemoryFromFile("package2.bin", Memory);
+                MenuLoadButtonsFromMemory(Memory->MenuEntity, Memory, Buffer);
             }
         }
         
@@ -756,19 +780,14 @@ MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_inp
         
         // Save and load buttons
         
-        if(Memory->MenuEntity->IsToBeSaved)
-        {
-            DEBUGRenderQuadFill(Buffer, &Memory->MenuEntity->SaveAndLoadButtons[0].ButtonQuad, {100, 0, 0}, 255);
-            DEBUGRenderQuad(Buffer, &Memory->MenuEntity->SaveAndLoadButtons[0].ButtonQuad, {0, 0, 255}, 255);
-            GameRenderBitmapToBuffer(Buffer, Memory->MenuEntity->SaveAndLoadButtons[0].LevelNumberTexture, &Memory->MenuEntity->SaveAndLoadButtons[0].LevelNumberTextureQuad);
-        }
+        DEBUGRenderQuadFill(Buffer, &Memory->MenuEntity->SaveAndLoadButtons[0].ButtonQuad, {0, 255, 0}, 100);
+        DEBUGRenderQuad(Buffer, &Memory->MenuEntity->SaveAndLoadButtons[0].ButtonQuad, {0, 0, 255}, 255);
+        GameRenderBitmapToBuffer(Buffer, Memory->MenuEntity->SaveAndLoadButtons[0].LevelNumberTexture, &Memory->MenuEntity->SaveAndLoadButtons[0].LevelNumberTextureQuad);
         
-        if(Memory->MenuEntity->IsToBeLoaded)
-        {
-            DEBUGRenderQuadFill(Buffer, &Memory->MenuEntity->SaveAndLoadButtons[1].ButtonQuad, {100, 0, 0}, 255);
-            DEBUGRenderQuad(Buffer, &Memory->MenuEntity->SaveAndLoadButtons[1].ButtonQuad, {0, 0, 255}, 255);
-            GameRenderBitmapToBuffer(Buffer, Memory->MenuEntity->SaveAndLoadButtons[1].LevelNumberTexture, &Memory->MenuEntity->SaveAndLoadButtons[1].LevelNumberTextureQuad);
-        }
+        DEBUGRenderQuadFill(Buffer, &Memory->MenuEntity->SaveAndLoadButtons[1].ButtonQuad, {0, 255, 0}, 100);
+        DEBUGRenderQuad(Buffer, &Memory->MenuEntity->SaveAndLoadButtons[1].ButtonQuad, {0, 0, 255}, 255);
+        GameRenderBitmapToBuffer(Buffer, Memory->MenuEntity->SaveAndLoadButtons[1].LevelNumberTexture, &Memory->MenuEntity->SaveAndLoadButtons[1].LevelNumberTextureQuad);
+        
     }
 }
 

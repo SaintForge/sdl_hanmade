@@ -524,8 +524,14 @@ ConvertLevelMemoryFromRaw(game_memory *&Memory, void *&RawMemory, u32 RawMemoryS
 static void
 LoadLevelMemoryFromFile(char* FileName, game_memory *Memory)
 {
+    if(Memory->LevelMemory)
+    {
+        free(Memory->LevelMemory);
+    }
+    
     Memory->LevelMemoryAmount = 0;
     Memory->LevelMemoryReserved = 100;
+    
     Memory->LevelMemory = (level_memory *)calloc(sizeof(level_memory), Memory->LevelMemoryReserved);
     Assert(Memory->LevelMemory);
     

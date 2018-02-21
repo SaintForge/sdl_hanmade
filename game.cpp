@@ -1453,7 +1453,6 @@ LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
             s32 *CellField = &GridEntity->UnitField[RowIndex][ColIndex];
             if(*CellSize < MaximumBlockSize)
             {
-                IsGridReady = false;
                 r32 ScaleDt = TimeElapsed * PixelScalePerSec;
                 *CellSize += ScaleDt;
                 
@@ -1549,7 +1548,6 @@ LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
         
     }
     
-#if 0
     for(s32 i = 0; i < RowAmount; ++i)
     {
         for(s32 j = 0; j < ColAmount; ++j)
@@ -1560,8 +1558,6 @@ LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
             }
         }
     }
-    
-#endif
     
     if(IsGridReady)
     {
@@ -1978,8 +1974,6 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
     //
     // Figure returning to the idle zone
     //
-    
-    
     
     if(FigureEntity->IsReturning)
     {
@@ -3125,12 +3119,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
-    /*
-    static r32 PreviousTimeTick = 0;
-    static r32 CurrentTimeTick  = SDL_GetTicks();
-    */
-    
-    bool ShouldQuit       = false;
+    bool ShouldQuit = false;
     
     level_entity  *LevelEntity     = &Memory->LevelEntity;
     grid_entity   *&GridEntity   = LevelEntity->GridEntity;
