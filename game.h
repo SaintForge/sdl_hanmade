@@ -68,10 +68,12 @@ struct game_keyboard_input
 
 struct game_input
 {
+    r32 TimeElapsedMs;
+    
     s32 MouseX, MouseY;
     s32 MouseRelX, MouseRelY;
-    game_button_state MouseButtons[2];
     
+    game_button_state MouseButtons[2];
     game_keyboard_input Keyboard;
 };
 

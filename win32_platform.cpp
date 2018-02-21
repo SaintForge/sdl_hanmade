@@ -358,12 +358,18 @@ int main(int argc, char **argv)
             SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread",
                                                        (void*)&Memory);
             
+            r32 PreviousTimeTick = SDL_GetTicks();
             
             while(IsRunning)
             {
-                SDL_Event Event;
-                game_input Input = {};
+                r32 CurrentTimeTick = SDL_GetTicks();
+                r32 TimeElapsed = (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
+                PreviousTimeTick = CurrentTimeTick;
                 
+                game_input Input = {};
+                Input.TimeElapsedMs = TimeElapsed;
+                
+                SDL_Event Event;
                 if(SDLHandleEvent(&Event, &Input))
                 {
                     IsRunning = false;
@@ -387,6 +393,8 @@ int main(int argc, char **argv)
                 
                 // draw loading screen
                 SDLUpdateWindow(Window, Renderer, &BackBuffer);
+                
+                
             }
             
         }

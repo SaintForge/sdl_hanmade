@@ -284,8 +284,8 @@ FigureUnitInitFigure(figure_unit *FigureUnit,
                      game_memory *Memory, 
                      game_offscreen_buffer *Buffer)
 {
-    u32 ActiveBlockSize   = Memory->LevelEntity.ActiveBlockSize;
-    u32 InActiveBlockSize = Memory->LevelEntity.InActiveBlockSize;
+    u32 ActiveBlockSize   = Memory->LevelEntity.Configuration.ActiveBlockSize;
+    u32 InActiveBlockSize = Memory->LevelEntity.Configuration.InActiveBlockSize;
     
     FigureUnit->IsIdle       = true;
     FigureUnit->IsStick      = false;
@@ -789,8 +789,8 @@ RestartLevelEntity(level_entity *LevelEntity)
     u32 RowAmount         = 0;
     u32 ColumnAmount      = 0;
     u32 FigureAmount      = FigureEntity->FigureAmount;
-    r32 ActiveBlockSize   = LevelEntity->ActiveBlockSize;
-    r32 InActiveBlockSize = LevelEntity->InActiveBlockSize;
+    r32 ActiveBlockSize   = LevelEntity->Configuration.ActiveBlockSize;
+    r32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
     
     FigureEntity->IsRestarting = true;
     
@@ -1144,8 +1144,8 @@ RescaleGameField(game_offscreen_buffer *Buffer,
     
     ActiveBlockSize = GameResizeActiveBlock(GridAreaWidth, GridAreaHeight, RowAmount, ColumnAmount);
     
-    LevelEntity->ActiveBlockSize   = ActiveBlockSize;
-    LevelEntity->InActiveBlockSize = InActiveBlockSize;
+    LevelEntity->Configuration.ActiveBlockSize   = ActiveBlockSize;
+    LevelEntity->Configuration.InActiveBlockSize = InActiveBlockSize;
 }
 
 static void
@@ -1263,15 +1263,15 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     LevelEntity->LevelFinished = false;
     
     RescaleGameField(Buffer, RowAmount, ColumnAmount,
-                     LevelEntity->FigureEntity->FigureAmountReserved, LevelEntity->DefaultBlocksInRow, LevelEntity->DefaultBlocksInCol, LevelEntity);
+                     LevelEntity->FigureEntity->FigureAmountReserved, LevelEntity->Configuration.DefaultBlocksInRow, LevelEntity->Configuration.DefaultBlocksInCol, LevelEntity);
     
-    u32 ActiveBlockSize   = LevelEntity->ActiveBlockSize;
-    u32 InActiveBlockSize = LevelEntity->InActiveBlockSize;
+    u32 ActiveBlockSize   = LevelEntity->Configuration.ActiveBlockSize;
+    u32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
     
-    //LevelEntity->GridScalePerSec     = ((RowAmount * ColumnAmount)) * (ActiveBlockSize/2);
-    LevelEntity->GridScalePerSec  = (ActiveBlockSize * ((RowAmount + ColumnAmount) - 1)) / LevelEntity->LevelTimeInitMs;
-    printf("initialized GridScalePerSec = %f\n", LevelEntity->GridScalePerSec);
-    printf("ActiveBlockSize = %d\n", ActiveBlockSize);
+    LevelEntity->Configuration.PixelsDrawn  = 0;
+    LevelEntity->Configuration.PixelsToDraw = 0;
+    LevelEntity->Configuration.StartUpTimeElapsed  = 0.0f;
+    LevelEntity->Configuration.StartUpTimeToFinish = 2.0f;
     
     /*
     
@@ -1282,7 +1282,7 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     LevelEntity->FigureEntity->FigureAlpha = 0;
     
     LevelEntity->FigureEntity->FigureArea.w = Buffer->Width;
-    LevelEntity->FigureEntity->FigureArea.h = InActiveBlockSize * LevelEntity->DefaultBlocksInCol;
+    LevelEntity->FigureEntity->FigureArea.h = InActiveBlockSize * LevelEntity->Configuration.DefaultBlocksInCol;
     LevelEntity->FigureEntity->FigureArea.y = Buffer->Height - (LevelEntity->FigureEntity->FigureArea.h);
     LevelEntity->FigureEntity->FigureArea.x = 0;
     
@@ -1390,14 +1390,195 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
 }
 
 static void
-LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  level_entity *State, r32 TimeElapsed)
+LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
+                                  game_offscreen_buffer *Buffer, r32 TimeElapsed)
+
 {
-    grid_entity   *&GridEntity   = State->GridEntity;
-    figure_entity *&FigureEntity = State->FigureEntity;
+    if(LevelEntity->LevelStarted) 
+    {
+        return;
+    }
+    
+    r32 PixelsDrawn = LevelEntity->Configuration.PixelsDrawn;
+    r32 PixelsToDraw = LevelEntity->Configuration.PixelsToDraw;
+    s32 MaximumBlockSize = LevelEntity->Configuration.ActiveBlockSize;
+    r32 StartAlphaPerSec = LevelEntity->Configuration.StartAlphaPerSec;
+    r32 StartUpTimeElapsed = LevelEntity->Configuration.StartUpTimeElapsed;
+    r32 StartUpTimeToFinish = LevelEntity->Configuration.StartUpTimeToFinish;
+    
+    grid_entity   *&GridEntity   = LevelEntity->GridEntity;
+    figure_entity *&FigureEntity = LevelEntity->FigureEntity;
+    
+    s32 RowAmount = GridEntity->RowAmount;
+    s32 ColAmount = GridEntity->ColumnAmount;
+    s32 FigureAmount = FigureEntity->FigureAmount;
+    s32 GridAreaX = GridEntity->GridArea.x;
+    s32 GridAreaY = GridEntity->GridArea.y;
+    
+    s32 AmountOfPixels = (MaximumBlockSize * (RowAmount + ColAmount - 1));
+    s32 PixelScalePerSec = (AmountOfPixels / StartUpTimeToFinish);
+    
+    //todo: change it to 1d array!!!
+    //r32 **UnitSize  = GridEntity->UnitSize;
+    //s32 **UnitField = GridEntity->UnitField;
+    
+    bool IsGridReady    = true;
+    bool IsFiguresReady = true;
+    bool IsLevelReady   = true;
+    
+    StartUpTimeElapsed += TimeElapsed;
+    
+    /* 
+    
+    Grid Start up animation
+    
+    */
+    for(s32 Line = 1; Line <= ((RowAmount + ColAmount) - 1); ++Line)
+    {
+        bool ShouldBreak = true;
+        
+        s32 StartColumn  = Max2(0, Line - RowAmount);
+        s32 Count        = Min3(Line, (ColAmount - StartColumn), RowAmount);
+        
+        for(u32 i = 0; i < Count; ++i)
+        {
+            u32 RowIndex = Min2(RowAmount, Line) - i - 1;
+            u32 ColIndex = StartColumn + i;
+            
+            r32 *CellSize = &GridEntity->UnitSize[RowIndex][ColIndex];
+            s32 *CellField = &GridEntity->UnitField[RowIndex][ColIndex];
+            if(*CellSize < MaximumBlockSize)
+            {
+                r32 ScaleDt = TimeElapsed * PixelScalePerSec;
+                *CellSize += ScaleDt;
+                
+                if(*CellSize >= MaximumBlockSize)
+                {
+                    *CellSize = MaximumBlockSize;
+                    
+                    if(i == (Count - 1))
+                    {
+                        PixelsDrawn += MaximumBlockSize;
+                        PixelsToDraw = ((StartUpTimeElapsed - TimeElapsed) * PixelScalePerSec);
+                        
+                        if(PixelsToDraw > AmountOfPixels)
+                        {
+                            PixelsToDraw = AmountOfPixels;
+                        }
+                        
+                        if(PixelsDrawn < PixelsToDraw)
+                        {
+                            r32 PixelsYetToDraw = PixelsToDraw - PixelsDrawn;
+                            
+                            s32 LineCount = 0;
+                            s32 LineAmount = (PixelsYetToDraw / (r32) MaximumBlockSize);
+                            
+                            for(s32 NextLine = Line + 1;
+                                NextLine <= ((RowAmount + ColAmount) - 1) && 
+                                (LineCount < LineAmount);
+                                ++NextLine)
+                            {
+                                s32 NextStartColumn = Max2(0, NextLine - RowAmount);
+                                s32 NextCount = Min3(NextLine, (ColAmount - NextStartColumn), RowAmount);
+                                
+                                for(s32 j = 0; j < NextCount; ++j)
+                                {
+                                    s32 NextRowIndex = Min2(RowAmount, NextLine) - j - 1;
+                                    s32 NextColIndex = NextStartColumn + j;
+                                    
+                                    //s32 NextIndex = (NextRowIndex * ColAmount) + NextColIndex;
+                                    GridEntity->UnitSize[NextRowIndex][NextColIndex] += PixelsYetToDraw;
+                                    if(GridEntity->UnitSize[NextRowIndex][NextColIndex] >= MaximumBlockSize)
+                                    {
+                                        GridEntity->UnitSize[NextRowIndex][NextColIndex] = MaximumBlockSize;
+                                        
+                                        if((j == NextCount - 1) && PixelsYetToDraw >= MaximumBlockSize)
+                                        {
+                                            PixelsYetToDraw -= MaximumBlockSize;
+                                            PixelsDrawn += MaximumBlockSize;
+                                        }
+                                    }
+                                }
+                                
+                                LineCount++;
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if(ShouldBreak)
+                {
+                    ShouldBreak = false;
+                }
+            }
+            
+            s32 StartY = GridAreaY + (MaximumBlockSize * RowIndex) + (MaximumBlockSize / 2);
+            s32 StartX = GridAreaX + (MaximumBlockSize * ColIndex) + (MaximumBlockSize / 2);
+            
+            game_rect AreaQuad = {};
+            AreaQuad.w = roundf(*CellSize);
+            AreaQuad.h = roundf(*CellSize);
+            AreaQuad.x = StartX - (*CellSize / 2);
+            AreaQuad.y = StartY - (*CellSize / 2);
+            
+            if(*CellField == 0)
+            {
+                GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture,     &AreaQuad);
+            }
+            else if(*CellField == 2)
+            {
+                GameRenderBitmapToBuffer(Buffer, GridEntity->HorizontlaSquareTexture, &AreaQuad);
+            }
+            else if(*CellField == 3)
+            {
+                GameRenderBitmapToBuffer(Buffer, GridEntity->VerticalSquareTexture,   &AreaQuad);
+            }
+        }
+        
+        if(ShouldBreak)
+        {
+            break;
+        }
+        
+    }
+    
+    for(s32 i = 0; i < RowAmount; ++i)
+    {
+        for(s32 j = 0; j < ColAmount; ++j)
+        {
+            if(GridEntity->UnitSize[i][j] < MaximumBlockSize)
+            {
+                IsGridReady = false;
+            }
+        }
+    }
+    
+    IsLevelReady = IsGridReady;// && IsFigureReady
+    
+    if(IsLevelReady)
+    {
+        printf("TimeElapsed = %f\n", StartUpTimeElapsed);
+        printf("PixelsToDraw = %f\n", PixelsToDraw);
+        printf("PixelsDrawn  = %f\n", PixelsDrawn);
+    }
+    
+    LevelEntity->Configuration.StartUpTimeElapsed = StartUpTimeElapsed;
+    LevelEntity->Configuration.PixelsDrawn  = PixelsDrawn;
+    LevelEntity->Configuration.PixelsToDraw = PixelsToDraw;
+    LevelEntity->LevelStarted = IsLevelReady;
+}
+
+static void
+LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  level_entity *LevelEntity, r32 TimeElapsed)
+{
+    grid_entity   *&GridEntity   = LevelEntity->GridEntity;
+    figure_entity *&FigureEntity = LevelEntity->FigureEntity;
     figure_unit   *FigureUnit    = FigureEntity->FigureUnit;
     
-    u32 ActiveBlockSize   = State->ActiveBlockSize;
-    u32 InActiveBlockSize = State->InActiveBlockSize;
+    u32 ActiveBlockSize   = LevelEntity->Configuration.ActiveBlockSize;
+    u32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
     
     game_rect AreaQuad = {};
     r32 MaxVel       = ActiveBlockSize / 6;
@@ -1411,10 +1592,11 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
     s32 StartX = 0;
     s32 StartY = 0;
     
-    if(!State->LevelStarted)
+    if(!LevelEntity->LevelStarted)
     {
+#if 0 
         bool IsLevelReady = true;
-        State->LevelTimeInitElapsedMs += TimeElapsed;
+        LevelEntity->Configuration.StartUpTimeElapsed += TimeElapsed;
         
         for(s32 line = 1; line <=((RowAmount + ColumnAmount) - 1); ++line)
         {
@@ -1422,27 +1604,57 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
             s32 StartColumn  = Max2(0, line - RowAmount);
             s32 Count        = Min3(line, (ColumnAmount - StartColumn), RowAmount);
             
-            for(u32 i = 0; i < Count; ++i)
+            for(u32 i = 0; i < Count; ++i) 
             {
                 u32 RowIndex  = Min2(RowAmount, line) - i - 1;
                 u32 ColIndex  = StartColumn + i;
                 r32 *UnitSize  = &GridEntity->UnitSize[RowIndex][ColIndex];
                 s32 *UnitField = &GridEntity->UnitField[RowIndex][ColIndex];
                 
-                if(Change1DUnitPerSec(UnitSize, ActiveBlockSize, State->GridScalePerSec, TimeElapsed))
+                
+                if(Change1DUnitPerSec(UnitSize, ActiveBlockSize, LevelEntity->GridScalePerSec, TimeElapsed))
                 {
-                    if(ShouldBreak) ShouldBreak = false;
+                    if(ShouldBreak) 
+                    {
+                        ShouldBreak = false;
+                    }
                 }
                 else
                 {
-                    if(IsLevelReady) IsLevelReady = false;
+                    if(IsLevelReady) 
+                    {
+                        IsLevelReady = false;
+                    }
+                }
+                
+                if(*UnitSize < ActiveBlockSize)
+                {
+                    *UnitSize += TimeElapsed * LevelEntity->Configuration.GridScalePerSec;
+                    if(*UnitSize >= ActiveBlockSize)
+                    {
+                        *UnitSize = ActiveBlockSize;
+                    }
+                    
+                    /*
+                        if(IsLevelReady)
+                        {
+                            IsLevelReady = false;
+                        }
+                    */
+                }
+                else
+                {
+                    if(ShouldBreak)
+                    {
+                        ShouldBreak = false;
+                    }
                 }
                 
                 StartY = GridEntity->GridArea.y + (ActiveBlockSize * RowIndex) + (ActiveBlockSize / 2);
                 StartX = GridEntity->GridArea.x + (ActiveBlockSize * ColIndex) + (ActiveBlockSize / 2);
                 
-                AreaQuad.w = *UnitSize;
-                AreaQuad.h = *UnitSize;
+                AreaQuad.w = roundf(*UnitSize);
+                AreaQuad.h = roundf(*UnitSize);
                 AreaQuad.x = StartX - (*UnitSize / 2);
                 AreaQuad.y = StartY - (*UnitSize / 2);
                 
@@ -1451,11 +1663,28 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
                 else if(*UnitField == 3) GameRenderBitmapToBuffer(Buffer, GridEntity->VerticalSquareTexture,   &AreaQuad);
             }
             
+            
             if(ShouldBreak)
             {
                 break;
             }
         }
+        
+        if(LevelEntity->Configuration.StartUpTimeElapsed > LevelEntity->Configuration.StartUpTimeToFinish)
+        {
+            //printf("LevelTime elapsed: %f ms\n", LevelEntity->StartUpTimeElapsed);
+        }
+        for(u32 i = 0; i < RowAmount; ++i)
+        {
+            for(u32 j = 0; j < ColumnAmount; ++j)
+            {
+                if(GridEntity->UnitSize[i][j] < ActiveBlockSize)
+                {
+                    IsLevelReady = false;
+                }
+            }
+        }
+        
         
         if(!IsLevelReady) 
         {
@@ -1463,7 +1692,8 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
         }
         else
         {
-            if(!Change1DUnitPerSec(&FigureEntity->FigureAlpha, 255, State->StartAlphaPerSec, TimeElapsed))
+            /*
+            if(!Change1DUnitPerSec(&FigureEntity->FigureAlpha, 255, LevelEntity->StartAlphaPerSec, TimeElapsed))
             {
                 if(IsLevelReady) IsLevelReady = false;
             }
@@ -1473,17 +1703,13 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
                 SDL_SetTextureAlphaMod(FigureUnit[i].Texture, FigureEntity->FigureAlpha);
                 FigureUnitRenderBitmap(Buffer, &FigureUnit[i]);
             }
+        */
         }
-        
-        
-        if(IsLevelReady)
+#endif
+        LevelEntityUpdateStartUpAnimation(LevelEntity,
+                                          Buffer, TimeElapsed);
+        if(LevelEntity->LevelStarted)
         {
-            State->LevelStarted = IsLevelReady;
-            printf("Done!\n");
-            printf("TotalElapsed = %f sec\n", (State->LevelTimeInitElapsedMs));
-            printf("Time to Init level was = %f sec\n", State->LevelTimeInitMs);
-            printf("Pixels per sec = %f\n", State->GridScalePerSec);
-            
             for(u32 i = 0; i < RowAmount; ++i)
             {
                 free(GridEntity->UnitSize[i]);
@@ -1492,12 +1718,12 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
             free(GridEntity->UnitSize);
             
             GridEntity->UnitSize = 0;
-            State->LevelTimeInitElapsedMs = 0;
+            LevelEntity->Configuration.StartUpTimeElapsed = 0;
+            
         }
         
         return;
     }
-    
     
     
     //
@@ -1696,10 +1922,10 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
     {
         Memory->CurrentLevelIndex = Memory->CurrentLevelIndex < Memory->LevelMemoryAmount ? Memory->CurrentLevelIndex + 1 : Memory->CurrentLevelIndex;
         
-        LevelEntityUpdateLevelEntityFromMemory(State, Memory->CurrentLevelIndex, false, Memory, Buffer);
+        LevelEntityUpdateLevelEntityFromMemory(LevelEntity, Memory->CurrentLevelIndex, false, Memory, Buffer);
         
         LevelEditorChangeGridCounters(Memory->LevelEditor, 
-                                      State->GridEntity->RowAmount, State->GridEntity->ColumnAmount, 
+                                      LevelEntity->GridEntity->RowAmount, LevelEntity->GridEntity->ColumnAmount, 
                                       Buffer);
         
         // Level is completed.
@@ -1824,12 +2050,12 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
     
     if(ShouldHighlight) 
     {
-        Change1DUnitPerSec(&FigureEntity->AreaAlpha, 255, State->FlippingAlphaPerSec, TimeElapsed);
+        Change1DUnitPerSec(&FigureEntity->AreaAlpha, 255, LevelEntity->Configuration.FlippingAlphaPerSec, TimeElapsed);
     }
     else
     {
         
-        Change1DUnitPerSec(&FigureEntity->AreaAlpha, 0, State->FlippingAlphaPerSec, TimeElapsed);
+        Change1DUnitPerSec(&FigureEntity->AreaAlpha, 0, LevelEntity->Configuration.FlippingAlphaPerSec, TimeElapsed);
     }
     
     
@@ -1867,7 +2093,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
     if(FigureEntity->IsRotating)
     {
         // TODO(max): Maybe put these values in level_entity ???
-        r32 AngleDt = TimeElapsed * State->RotationVel;
+        r32 AngleDt = TimeElapsed * LevelEntity->Configuration.RotationVel;
         if(FigureEntity->RotationSum < 90.0f && !(FigureEntity->RotationSum + AngleDt >= 90.0f))
         {
             FigureEntity->FigureUnit[ActiveIndex].Angle += AngleDt;
@@ -1889,7 +2115,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
     {
         if(FigureEntity->FadeInSum > 0)
         {
-            if(Change1DUnitPerSec(&FigureEntity->FigureAlpha, 0, State->FlippingAlphaPerSec, TimeElapsed))
+            if(Change1DUnitPerSec(&FigureEntity->FigureAlpha, 0, LevelEntity->Configuration.FlippingAlphaPerSec, TimeElapsed))
             {
                 FigureEntity->FigureAlpha = 0;
                 FigureEntity->FadeInSum   = 0;
@@ -1898,7 +2124,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
         }
         else if(FigureEntity->FadeOutSum < 255)
         {
-            if(Change1DUnitPerSec(&FigureEntity->FigureAlpha, 255, State->FlippingAlphaPerSec, TimeElapsed))
+            if(Change1DUnitPerSec(&FigureEntity->FigureAlpha, 255, LevelEntity->Configuration.FlippingAlphaPerSec, TimeElapsed))
             {
                 FigureEntity->FigureAlpha = 255;
                 FigureEntity->FadeOutSum  = 255;
@@ -1924,8 +2150,8 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
         //DEBUGRenderFigureShell(Buffer, &FigureUnit[Index], 10, {255, 255, 0}, 255);
     }
     
-    GameRenderBitmapToBuffer(Buffer, State->LevelNumberShadowTexture, &State->LevelNumberShadowQuad);
-    GameRenderBitmapToBuffer(Buffer, State->LevelNumberTexture,   &State->LevelNumberQuad);
+    GameRenderBitmapToBuffer(Buffer, LevelEntity->LevelNumberShadowTexture, &LevelEntity->LevelNumberShadowQuad);
+    GameRenderBitmapToBuffer(Buffer, LevelEntity->LevelNumberTexture,   &LevelEntity->LevelNumberQuad);
     
 }
 
@@ -1947,8 +2173,8 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     Memory->LevelEditor->SelectedFigure = 0;
     Memory->LevelEditor->ButtonPressed  = false;
     
-    s32 ButtonSize   = LevelEntity->InActiveBlockSize * 2;
-    s32 FontSize     = LevelEntity->InActiveBlockSize * 2;
+    s32 ButtonSize   = LevelEntity->Configuration.InActiveBlockSize * 2;
+    s32 FontSize     = LevelEntity->Configuration.InActiveBlockSize * 2;
     u32 RowAmount    = LevelEntity->GridEntity->RowAmount;
     u32 ColumnAmount = LevelEntity->GridEntity->ColumnAmount;
     
@@ -2292,8 +2518,8 @@ GridEntityNewGrid(game_offscreen_buffer *Buffer, level_entity *LevelEntity,
     GridEntity->RowAmount    = NewRowAmount;
     GridEntity->ColumnAmount = NewColumnAmount;
     
-    u32 ActiveBlockSize   = LevelEntity->ActiveBlockSize;
-    u32 InActiveBlockSize = LevelEntity->InActiveBlockSize;
+    u32 ActiveBlockSize   = LevelEntity->Configuration.ActiveBlockSize;
+    u32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
     
     LevelEntity->GridEntity->GridArea.w = ActiveBlockSize * NewColumnAmount;
     LevelEntity->GridEntity->GridArea.h = ActiveBlockSize * NewRowAmount;
@@ -2352,84 +2578,6 @@ LevelEditorGetNextFigureType(figure_type CurrentType)
     }
     
     return classic;
-}
-
-
-
-static void
-LevelEntityInitParameters(game_memory *Memory,
-                          game_offscreen_buffer *Buffer)
-{
-    level_entity *LevelEntity = &Memory->LevelEntity;
-    
-    LevelEntity->LevelNumber   = 0;
-    
-    LevelEntity->DefaultBlocksInRow = 12;
-    LevelEntity->DefaultBlocksInCol = 9;
-    LevelEntity->ActiveBlockSize    = 0;
-    LevelEntity->InActiveBlockSize  = 0;
-    
-    LevelEntity->LevelTimeInitMs         = 0;
-    LevelEntity->LevelTimeInitElapsedMs  = 0;
-    LevelEntity->RotationVel         = 600.0f;
-    LevelEntity->StartAlphaPerSec    = 500.0f;
-    LevelEntity->FlippingAlphaPerSec = 1000.0f;
-    LevelEntity->GridScalePerSec     = 0;
-    
-    LevelEntity->LevelStarted  = false;
-    LevelEntity->LevelPaused   = false;
-    LevelEntity->LevelFinished = false;
-    
-    LevelEntity->GridEntity = (grid_entity *) malloc(sizeof(grid_entity));
-    Assert(LevelEntity->GridEntity);
-    
-    LevelEntity->GridEntity->RowAmount    = 0;
-    LevelEntity->GridEntity->ColumnAmount = 0;
-    
-    LevelEntity->GridEntity->MovingBlocksAmount         = 0;
-    LevelEntity->GridEntity->MovingBlocksAmountReserved = 20;
-    
-    LevelEntity->GridEntity->StickUnitsAmount = 0;
-    LevelEntity->GridEntity->GridArea.x = 0;
-    LevelEntity->GridEntity->GridArea.y = 0;
-    LevelEntity->GridEntity->GridArea.w = 0;
-    LevelEntity->GridEntity->GridArea.h = 0;
-    
-    LevelEntity->GridEntity->UnitSize     = 0;
-    LevelEntity->GridEntity->UnitField    = 0;
-    
-    LevelEntity->GridEntity->StickUnits   = 0;
-    LevelEntity->GridEntity->MovingBlocks = 0;
-    
-    LevelEntity->GridEntity->NormalSquareTexture     = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
-    LevelEntity->GridEntity->VerticalSquareTexture   = GetTexture(Memory, "o_s.png", Buffer->Renderer);
-    LevelEntity->GridEntity->HorizontlaSquareTexture = GetTexture(Memory, "o_m.png", Buffer->Renderer);
-    
-    LevelEntity->FigureEntity = (figure_entity *) malloc(sizeof(figure_entity));
-    Assert(LevelEntity->FigureEntity);
-    
-    LevelEntity->FigureEntity->FigureAmount         = 0;
-    LevelEntity->FigureEntity->FigureAmountReserved = 20;
-    
-    LevelEntity->FigureEntity->ReturnIndex  = -1;
-    LevelEntity->FigureEntity->FigureActive = -1;
-    
-    LevelEntity->FigureEntity->IsGrabbed     = false;
-    LevelEntity->FigureEntity->IsRotating    = false;
-    LevelEntity->FigureEntity->IsReturning   = false;
-    LevelEntity->FigureEntity->IsRestarting  = false;
-    LevelEntity->FigureEntity->IsFlipping    = false;
-    
-    LevelEntity->FigureEntity->RotationSum   = 0;
-    LevelEntity->FigureEntity->AreaAlpha     = 0;
-    LevelEntity->FigureEntity->FigureAlpha   = 0;
-    LevelEntity->FigureEntity->FadeInSum     = 0;
-    LevelEntity->FigureEntity->FadeOutSum    = 0;
-    
-    LevelEntity->FigureEntity->FigureArea.w  = 0;
-    LevelEntity->FigureEntity->FigureArea.h  = 0;
-    LevelEntity->FigureEntity->FigureArea.y  = 0;
-    LevelEntity->FigureEntity->FigureArea.x  = 0;
 }
 
 static void
@@ -2732,7 +2880,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                   &LevelEditor->FigureButton[0]))
             {
                 FigureUnitAddNewFigure(LevelEntity->FigureEntity, O_figure, classic, 0.0f, Memory, Buffer);
-                FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
+                FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
                 GridEntityUpdateStickUnits(LevelEntity->GridEntity, LevelEntity->FigureEntity->FigureAmount);
                 
                 LevelEditor->ActiveButton = LevelEditor->FigureButton[0];
@@ -2742,7 +2890,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                       &LevelEditor->FigureButton[1]))
             {
                 FigureUnitDeleteFigure(LevelEntity->FigureEntity, LevelEntity->FigureEntity->FigureAmount - 1);
-                FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
+                FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
                 GridEntityUpdateStickUnits(LevelEntity->GridEntity, LevelEntity->FigureEntity->FigureAmount);
                 
                 LevelEditor->ActiveButton = LevelEditor->FigureButton[1];
@@ -2753,7 +2901,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             {
                 FigureUnitRotateShellBy(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], 90);
                 LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure].Angle += 90.0f;
-                FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
+                FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
                 
                 LevelEditor->ActiveButton = LevelEditor->FigureButton[2];
             }
@@ -2762,7 +2910,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                       &LevelEditor->FigureButton[3]))
             {
                 FigureUnitFlipHorizontally(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure]);
-                FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
+                FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
                 
                 LevelEditor->ActiveButton = LevelEditor->FigureButton[3];
             }
@@ -2780,7 +2928,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                     
                     FigureUnitInitFigure(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], Form,Type, 0.0f,  Memory, Buffer);
                     
-                    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
+                    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
                 }
                 
                 LevelEditor->ActiveButton = LevelEditor->FigureButton[4];
@@ -2799,7 +2947,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                     
                     FigureUnitInitFigure(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], Form,Type, 0.0f, Memory, Buffer);
                     
-                    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->InActiveBlockSize);
+                    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
                 }
                 
                 LevelEditor->ActiveButton = LevelEditor->FigureButton[5];
@@ -2874,18 +3022,18 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         }
         else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &GridArea))
         {
-            game_rect AreaQuad = { 0, 0, (s32)LevelEntity->ActiveBlockSize, (s32)LevelEntity->ActiveBlockSize };
+            game_rect AreaQuad = { 0, 0, (s32)LevelEntity->Configuration.ActiveBlockSize, (s32)LevelEntity->Configuration.ActiveBlockSize };
             
             u32 StartX = 0;
             u32 StartY = 0;
             
             for(u32 i = 0; i < RowAmount; ++i)
             {
-                StartY = GridArea.y + (LevelEntity->ActiveBlockSize * i);
+                StartY = GridArea.y + (LevelEntity->Configuration.ActiveBlockSize * i);
                 
                 for(u32 j = 0; j < ColAmount; ++j)
                 {
-                    StartX = GridArea.x + (LevelEntity->ActiveBlockSize * j);
+                    StartX = GridArea.x + (LevelEntity->Configuration.ActiveBlockSize * j);
                     
                     AreaQuad.x = StartX;
                     AreaQuad.y = StartY;
@@ -2933,7 +3081,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                             }
                             else
                             {
-                                GridEntityAddMovingBlock(LevelEntity->GridEntity, i, j, false, false, LevelEntity->ActiveBlockSize);
+                                GridEntityAddMovingBlock(LevelEntity->GridEntity, i, j, false, false, LevelEntity->Configuration.ActiveBlockSize);
                             }
                         }
                     }
@@ -2963,13 +3111,13 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     {
         for(u32 i = 0; i < LevelEntity->FigureEntity->FigureAmount; ++i)
         {
-            DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[i], LevelEntity->InActiveBlockSize / 4, {0, 0, 255}, 255);
+            DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[i], LevelEntity->Configuration.InActiveBlockSize / 4, {0, 0, 255}, 255);
             DEBUGRenderQuad(Buffer, &LevelEntity->FigureEntity->FigureUnit[i].AreaQuad, {255, 0, 0}, 255);
         }
         
         if(LevelEntity->FigureEntity->FigureAmount > 0)
         {
-            DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], LevelEntity->InActiveBlockSize, {255, 255, 255}, 100);
+            DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[LevelEditor->SelectedFigure], LevelEntity->Configuration.InActiveBlockSize, {255, 255, 255}, 100);
         }
         
     }
@@ -2978,8 +3126,8 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     {
         ButtonQuad.x = LevelEditor->GridButtonLayer.x,
         ButtonQuad.y = LevelEditor->GridButtonLayer.y,
-        ButtonQuad.w = LevelEntity->InActiveBlockSize * 2, 
-        ButtonQuad.h = LevelEntity->InActiveBlockSize * 2
+        ButtonQuad.w = LevelEntity->Configuration.InActiveBlockSize * 2, 
+        ButtonQuad.h = LevelEntity->Configuration.InActiveBlockSize * 2
     };
     
     
@@ -3065,8 +3213,10 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
+    /*
     static r32 PreviousTimeTick = 0;
-    static r32 CurrentTimeTick  = 0;
+    static r32 CurrentTimeTick  = SDL_GetTicks();
+    */
     
     bool ShouldQuit       = false;
     
@@ -3089,8 +3239,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         // temporal level_entity initialization
         
         LevelEntity->LevelNumber = 0;
-        LevelEntity->DefaultBlocksInRow = 12;
-        LevelEntity->DefaultBlocksInCol = 9;
+        LevelEntity->Configuration.DefaultBlocksInRow = 12;
+        LevelEntity->Configuration.DefaultBlocksInCol = 9;
         LevelEntity->LevelStarted  = false;
         LevelEntity->LevelFinished = false;
         
@@ -3100,10 +3250,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         u32 MovingBlocksAmountReserved  = 10;
         
         RescaleGameField(Buffer, RowAmount, ColumnAmount,
-                         FigureAmountReserve, LevelEntity->DefaultBlocksInRow, LevelEntity->DefaultBlocksInCol, LevelEntity);
+                         FigureAmountReserve, LevelEntity->Configuration.DefaultBlocksInRow, LevelEntity->Configuration.DefaultBlocksInCol, LevelEntity);
         
-        u32 ActiveBlockSize   = LevelEntity->ActiveBlockSize;
-        u32 InActiveBlockSize = LevelEntity->InActiveBlockSize;
+        u32 ActiveBlockSize   = LevelEntity->Configuration.ActiveBlockSize;
+        u32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
         
         //
         // Figure initialization
@@ -3130,7 +3280,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->FadeOutSum    = 0;
         
         FigureEntity->FigureArea.w  = Buffer->Width;
-        FigureEntity->FigureArea.h  = InActiveBlockSize * LevelEntity->DefaultBlocksInCol;
+        FigureEntity->FigureArea.h  = InActiveBlockSize * LevelEntity->Configuration.DefaultBlocksInCol;
         FigureEntity->FigureArea.y  = Buffer->Height - (FigureEntity->FigureArea.h);
         FigureEntity->FigureArea.x  = 0;
         
@@ -3187,12 +3337,12 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             }
         }
         
-        LevelEntity->LevelTimeInitMs = 2.0f;
-        LevelEntity->RotationVel         = 600.0f;
-        LevelEntity->StartAlphaPerSec    = 500.0f;
-        LevelEntity->FlippingAlphaPerSec = 1000.0f;
+        LevelEntity->Configuration.StartUpTimeToFinish     = 2.0f;
+        LevelEntity->Configuration.RotationVel         = 600.0f;
+        LevelEntity->Configuration.StartAlphaPerSec    = 500.0f;
+        LevelEntity->Configuration.FlippingAlphaPerSec = 1000.0f;
         //LevelEntity->GridScalePerSec     = ((RowAmount * ColumnAmount)) * (ActiveBlockSize/2);
-        LevelEntity->GridScalePerSec     = (ActiveBlockSize * ((RowAmount + ColumnAmount) - 1)) / LevelEntity->LevelTimeInitMs;
+        LevelEntity->Configuration.GridScalePerSec     = (ActiveBlockSize * ((RowAmount + ColumnAmount) - 1)) / LevelEntity->Configuration.StartUpTimeToFinish;
         
         
         //time = 2.0s;
@@ -3245,9 +3395,12 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         printf("memory init!\n");
     }
     
-    r32 TimeElapsed = (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
-    PreviousTimeTick = CurrentTimeTick;
-    CurrentTimeTick  = SDL_GetTicks();
+    /*
+        CurrentTimeTick  = SDL_GetTicks();
+        
+        r32 TimeElapsed = (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
+        PreviousTimeTick = CurrentTimeTick;
+        */
     
     if(Input->Keyboard.Escape.EndedDown)
     {
@@ -3261,14 +3414,14 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     }
     else
     {
-        GameUpdateEvent(Input, LevelEntity, LevelEntity->ActiveBlockSize, LevelEntity->InActiveBlockSize, Buffer->Width, Buffer->Height);
+        GameUpdateEvent(Input, LevelEntity, LevelEntity->Configuration.ActiveBlockSize, LevelEntity->Configuration.InActiveBlockSize, Buffer->Width, Buffer->Height);
         
         //PrintArray2D(GridEntity->UnitField, GridEntity->RowAmount, GridEntity->ColumnAmount);
         
         game_rect ScreenArea = { 0, 0, Buffer->Width, Buffer->Height};
         DEBUGRenderQuadFill(Buffer, &ScreenArea, { 42, 6, 21 }, 255);
         
-        LevelEntityUpdateAndRender(Buffer, Memory, LevelEntity, TimeElapsed);
+        LevelEntityUpdateAndRender(Buffer, Memory, LevelEntity, Input->TimeElapsedMs);
         LevelEditorUpdateAndRender(Memory->LevelEditor, LevelEntity, Memory, Buffer, Input);
         
         //printf("TimeElapsed = %f\n", TimeElapsed);

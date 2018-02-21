@@ -112,6 +112,24 @@ struct grid_entity
     game_texture *HorizontlaSquareTexture;
 };
 
+struct level_config
+{
+    u32 DefaultBlocksInRow;
+    u32 DefaultBlocksInCol;
+    u32 ActiveBlockSize;
+    u32 InActiveBlockSize;
+    
+    r32 StartUpTimeToFinish;
+    r32 StartUpTimeElapsed;
+    
+    r32 RotationVel;
+    r32 StartAlphaPerSec;
+    r32 FlippingAlphaPerSec;
+    r32 GridScalePerSec;
+    r32 PixelsToDraw;
+    r32 PixelsDrawn;
+};
+
 struct level_entity
 {
     grid_entity   *GridEntity;
@@ -123,20 +141,9 @@ struct level_entity
     game_rect LevelNumberQuad;
     game_rect LevelNumberShadowQuad;
     
+    level_config Configuration;
+    
     u32 LevelNumber;
-    u32 DefaultBlocksInRow;
-    u32 DefaultBlocksInCol;
-    u32 ActiveBlockSize;
-    u32 InActiveBlockSize;
-    
-    r32 LevelTimeInitMs;
-    r32 LevelTimeInitElapsedMs;
-    
-    r32 RotationVel;
-    r32 StartAlphaPerSec;
-    r32 FlippingAlphaPerSec;
-    r32 GridScalePerSec;
-    
     bool LevelStarted;
     bool LevelPaused;
     bool LevelFinished;
