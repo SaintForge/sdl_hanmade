@@ -738,17 +738,18 @@ GridEntityMoveBlockHorizontally(grid_entity *GridEntity, moving_block *MovingBlo
     u32 RowNumber = MovingBlock->RowNumber;
     u32 ColNumber = MovingBlock->ColNumber;
     u32 ActiveBlockSize = MovingBlock->AreaQuad.w;
-    s32 UnitIndex = (RowNumber * ColAmount) + ColNumber;
+    s32 OldUnitIndex = (RowNumber * ColAmount) + ColNumber;
     
     NewColNumber = MovingBlock->MoveSwitch
         ? NewColNumber = ColNumber + 1
         : NewColNumber = ColNumber - 1;
     
-    if(NewColNumber < 0 || NewColNumber >= GridEntity->ColumnAmount) return;
-    if(GridEntity->UnitField[UnitIndex] != 0) return;
+    s32 NewUnitIndex = (RowNumber * ColAmount) + NewColNumber;
+    if(NewColNumber < 0 || NewColNumber >= ColAmount) return;
+    if(GridEntity->UnitField[NewUnitIndex] != 0) return;
     
-    GridEntity->UnitField[UnitIndex]    = 0;
-    GridEntity->UnitField[UnitIndex] = 2;
+    GridEntity->UnitField[OldUnitIndex] = 0;
+    GridEntity->UnitField[NewUnitIndex] = 2;
     
     MovingBlock->ColNumber = NewColNumber;
     
@@ -764,18 +765,19 @@ GridEntityMoveBlockVertically(grid_entity *GridEntity, moving_block *MovingBlock
     u32 ColNumber = MovingBlock->ColNumber;
     s32 RowAmount = GridEntity->RowAmount;
     s32 ColAmount = GridEntity->ColumnAmount;
-    s32 UnitIndex = (RowNumber * ColAmount) + ColNumber;
     u32 ActiveBlockSize = MovingBlock->AreaQuad.w;
+    s32 OldUnitIndex = (RowNumber * ColAmount) + ColNumber;
     
     NewRowNumber = MovingBlock->MoveSwitch
         ? NewRowNumber = RowNumber + 1
         : NewRowNumber = RowNumber - 1;
     
-    if(NewRowNumber < 0 || NewRowNumber >= GridEntity->RowAmount) return;
-    if(GridEntity->UnitField[UnitIndex] != 0) return;
+    s32 NewUnitIndex = (NewRowNumber * ColAmount) + ColNumber;
+    if(NewRowNumber < 0 || NewRowNumber >= RowAmount) return;
+    if(GridEntity->UnitField[NewUnitIndex] != 0) return;
     
-    GridEntity->UnitField[UnitIndex]  = 0;
-    GridEntity->UnitField[UnitIndex]  = 3;
+    GridEntity->UnitField[OldUnitIndex]  = 0;
+    GridEntity->UnitField[NewUnitIndex]  = 3;
     
     MovingBlock->RowNumber = NewRowNumber;
     
