@@ -314,7 +314,7 @@ SDLReloadFontTexture(TTF_Font *&Font, SDL_Texture *&Texture, SDL_Rect *Quad,
 int main(int argc, char **argv)
 {
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
-    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
+    //SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
     
     SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
     Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096);
@@ -326,7 +326,7 @@ int main(int argc, char **argv)
     
     SDL_Window *Window = SDL_CreateWindow("This is window",
                                           SDL_WINDOWPOS_CENTERED,
-                                          SDL_WINDOWPOS_CENTERED,
+                                          10,
                                           800, 600,
                                           SDL_WINDOW_ALLOW_HIGHDPI);
     
@@ -348,9 +348,9 @@ int main(int argc, char **argv)
 #if ASSET_BUILD
             // NOTE: This is for packaging data to the disk
             SDLAssetBuildBinaryFile();
-            //printf("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n");
-            //printf("BUILDED!!!\n");
-            //printf("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n");
+            printf("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n");
+            printf("BUILDED!!!\n");
+            printf("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n");
 #endif
             game_memory Memory = {0};
             
@@ -368,6 +368,7 @@ int main(int argc, char **argv)
                 
                 game_input Input = {};
                 Input.TimeElapsedMs = TimeElapsed;
+                //printf("TimeElapsed = %f\n", TimeElapsed);
                 
                 SDL_Event Event;
                 if(SDLHandleEvent(&Event, &Input))
