@@ -604,13 +604,12 @@ SaveLevelToMemory(game_memory *Memory, level_entity* LevelEntity, u32 Index)
         Memory->LevelMemory[Index].UnitField = (s32*)malloc(sizeof(s32) * Memory->LevelMemory[Index].RowAmount * Memory->LevelMemory[Index].ColumnAmount);
         Assert(Memory->LevelMemory[Index].UnitField);
         
-        u32 UnitIndex = 0;
-        for(u32 i = 0; i < Memory->LevelMemory[Index].RowAmount; ++i)
+        for(u32 Row = 0; Row < Memory->LevelMemory[Index].RowAmount; ++Row)
         {
-            for(u32 j = 0; j < Memory->LevelMemory[Index].ColumnAmount; ++j)
+            for(u32 Col = 0; Col < Memory->LevelMemory[Index].ColumnAmount; ++Col)
             {
-                Memory->LevelMemory[Index].UnitField[UnitIndex] = LevelEntity->GridEntity->UnitField[i][j];
-                UnitIndex += 1;
+                s32 UnitIndex = (Row * Memory->LevelMemory[Index].ColumnAmount) + Col;
+                Memory->LevelMemory[Index].UnitField[UnitIndex] = LevelEntity->GridEntity->UnitField[UnitIndex];
             }
         }
     }
@@ -734,6 +733,7 @@ SDLAssetBuildBinaryFile()
     BinaryHeader.AudioSizeInBytes = SDL_RWtell(BinaryFile) - sizeof(binary_header);
     
     SDLWriteSoundToFile(BinaryFile, "focus.wav");
+    SDLWriteSoundToFile(BinaryFile, "chunk.wav");
     SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
     
     SDL_RWseek(BinaryFile, 0, RW_SEEK_SET);

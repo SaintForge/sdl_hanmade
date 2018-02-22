@@ -721,7 +721,10 @@ GridEntityAddMovingBlock(grid_entity *GridEntity,
     GridEntity->MovingBlocks[Index].RowNumber  = RowNumber;
     GridEntity->MovingBlocks[Index].ColNumber  = ColNumber;
     
-    GridEntity->UnitField[RowNumber][ColNumber] = IsVertical ? 3 : 2;
+    s32 RowAmount = GridEntity->RowAmount;
+    s32 ColAmount = GridEntity->ColumnAmount;
+    
+    GridEntity->UnitField[(RowNumber * ColAmount) + ColNumber] = IsVertical ? 3 : 2;
     
     GridEntity->MovingBlocksAmount += 1;
 }
@@ -730,19 +733,22 @@ static void
 GridEntityMoveBlockHorizontally(grid_entity *GridEntity, moving_block *MovingBlock)
 {
     s32 NewColNumber = 0;
+    s32 RowAmount = GridEntity->RowAmount;
+    s32 ColAmount = GridEntity->ColumnAmount;
     u32 RowNumber = MovingBlock->RowNumber;
     u32 ColNumber = MovingBlock->ColNumber;
     u32 ActiveBlockSize = MovingBlock->AreaQuad.w;
+    s32 UnitIndex = (RowNumber * ColAmount) + ColNumber;
     
     NewColNumber = MovingBlock->MoveSwitch
         ? NewColNumber = ColNumber + 1
         : NewColNumber = ColNumber - 1;
     
     if(NewColNumber < 0 || NewColNumber >= GridEntity->ColumnAmount) return;
-    if(GridEntity->UnitField[RowNumber][NewColNumber] != 0) return;
+    if(GridEntity->UnitField[UnitIndex] != 0) return;
     
-    GridEntity->UnitField[RowNumber][ColNumber]    = 0;
-    GridEntity->UnitField[RowNumber][NewColNumber] = 2;
+    GridEntity->UnitField[UnitIndex]    = 0;
+    GridEntity->UnitField[UnitIndex] = 2;
     
     MovingBlock->ColNumber = NewColNumber;
     
@@ -756,6 +762,9 @@ GridEntityMoveBlockVertically(grid_entity *GridEntity, moving_block *MovingBlock
     s32 NewRowNumber = 0;
     u32 RowNumber = MovingBlock->RowNumber;
     u32 ColNumber = MovingBlock->ColNumber;
+    s32 RowAmount = GridEntity->RowAmount;
+    s32 ColAmount = GridEntity->ColumnAmount;
+    s32 UnitIndex = (RowNumber * ColAmount) + ColNumber;
     u32 ActiveBlockSize = MovingBlock->AreaQuad.w;
     
     NewRowNumber = MovingBlock->MoveSwitch
@@ -763,10 +772,10 @@ GridEntityMoveBlockVertically(grid_entity *GridEntity, moving_block *MovingBlock
         : NewRowNumber = RowNumber - 1;
     
     if(NewRowNumber < 0 || NewRowNumber >= GridEntity->RowAmount) return;
-    if(GridEntity->UnitField[NewRowNumber][ColNumber] != 0) return;
+    if(GridEntity->UnitField[UnitIndex] != 0) return;
     
-    GridEntity->UnitField[RowNumber][ColNumber]    = 0;
-    GridEntity->UnitField[NewRowNumber][ColNumber] = 3;
+    GridEntity->UnitField[UnitIndex]  = 0;
+    GridEntity->UnitField[UnitIndex]  = 3;
     
     MovingBlock->RowNumber = NewRowNumber;
     
@@ -786,15 +795,16 @@ RestartLevelEntity(level_entity *LevelEntity)
     if(FigureEntity->IsRotating || FigureEntity->IsFlipping) return;
     
     r32 BlockRatio        = 0;
-    u32 RowAmount         = 0;
-    u32 ColumnAmount      = 0;
+    u32 RowAmount         = GridEntity->RowAmount;
+    u32 ColumnAmount      = GridEntity->ColumnAmount;
     u32 FigureAmount      = FigureEntity->FigureAmount;
     r32 ActiveBlockSize   = LevelEntity->Configuration.ActiveBlockSize;
     r32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
     
     FigureEntity->IsRestarting = true;
     
-    for(u32 i = 0; i < FigureAmount; ++i){
+    for(u32 i = 0; i < FigureAmount; ++i)
+    {
         if(!FigureEntity->FigureUnit[i].IsIdle){
             
             FigureEntity->FigureUnit[i].IsStick = false;
@@ -819,7 +829,7 @@ RestartLevelEntity(level_entity *LevelEntity)
             {
                 RowIndex = GridEntity->StickUnits[i].Row[l];
                 ColIndex = GridEntity->StickUnits[i].Col[l];
-                GridEntity->UnitField[RowIndex][ColIndex] = 0;
+                GridEntity->UnitField[(RowIndex * ColumnAmount) + ColIndex] = 0;
             }
             
             GridEntity->StickUnits[i].Index = -1;
@@ -1225,22 +1235,12 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     
     if(LevelEntity->GridEntity->UnitSize)
     {
-        for(u32 i = 0; i < LevelEntity->GridEntity->RowAmount; ++i)
-        {
-            free(LevelEntity->GridEntity->UnitSize[i]);
-        }
-        
         free(LevelEntity->GridEntity->UnitSize);
         LevelEntity->GridEntity->UnitSize = 0;
     }
     
     if(LevelEntity->GridEntity->UnitField)
     {
-        for(u32 i = 0; i < LevelEntity->GridEntity->RowAmount; ++i)
-        {
-            free(LevelEntity->GridEntity->UnitField[i]);
-        }
-        
         free(LevelEntity->GridEntity->UnitField);
         LevelEntity->GridEntity->UnitField = 0;
     }
@@ -1325,34 +1325,28 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     LevelEntity->GridEntity->GridArea.x   = (Buffer->Width / 2) - (LevelEntity->GridEntity->GridArea.w / 2);
     LevelEntity->GridEntity->GridArea.y   = (Buffer->Height - LevelEntity->FigureEntity->FigureArea.h) / 2 - (LevelEntity->GridEntity->GridArea.h / 2);
     
-    LevelEntity->GridEntity->UnitField = (s32 **) malloc(sizeof(s32 *) * RowAmount);
+    LevelEntity->GridEntity->UnitField = (s32 *) calloc(RowAmount * ColumnAmount, sizeof(s32));
     Assert(LevelEntity->GridEntity->UnitField);
     
-    u32 UnitIndex = 0;
-    for(u32 i = 0; i < RowAmount; ++i)
+    for(s32 Row = 0; Row < RowAmount; ++Row)
     {
-        LevelEntity->GridEntity->UnitField[i] = (s32 *) malloc(sizeof(s32) * ColumnAmount);
-        Assert(LevelEntity->GridEntity->UnitField[i]);
-        for(u32 j = 0; j < ColumnAmount; ++j)
+        for(s32 Col = 0; Col < ColumnAmount; ++Col)
         {
-            LevelEntity->GridEntity->UnitField[i][j] = Memory->LevelMemory[Index].UnitField[UnitIndex];
-            
-            UnitIndex += 1;
+            s32 UnitIndex = (Row * ColumnAmount) + Col;
+            LevelEntity->GridEntity->UnitField[UnitIndex] = Memory->LevelMemory[Index].UnitField[UnitIndex];
         }
     }
     
     if(!IsStarted)
     {
-        LevelEntity->GridEntity->UnitSize = (r32 **) malloc(RowAmount * sizeof(r32 *));
+        LevelEntity->GridEntity->UnitSize = (r32 *) calloc(RowAmount * ColumnAmount, sizeof(r32));
         Assert(LevelEntity->GridEntity->UnitSize);
         
-        for(u32 i = 0; i < RowAmount; ++i)
+        for(s32 Row = 0; Row < RowAmount; ++Row)
         {
-            LevelEntity->GridEntity->UnitSize[i] = (r32 *) malloc(sizeof(r32) * ColumnAmount);
-            Assert(LevelEntity->GridEntity->UnitSize[i]);
-            for(u32 j = 0; j < ColumnAmount; ++j)
+            for (s32 Col = 0; Col < ColumnAmount; ++Col)
             {
-                LevelEntity->GridEntity->UnitSize[i][j] = 0;
+                LevelEntity->GridEntity->UnitSize[(Row * ColumnAmount) + Col] = 0;
             }
         }
     }
@@ -1395,6 +1389,7 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
 
 static void
 LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
+                                  game_memory *Memory,
                                   game_offscreen_buffer *Buffer, r32 TimeElapsed)
 
 {
@@ -1448,9 +1443,10 @@ LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
         {
             u32 RowIndex = Min2(RowAmount, Line) - i - 1;
             u32 ColIndex = StartColumn + i;
+            s32 UnitIndex = (RowIndex * ColAmount) + ColIndex;
             
-            r32 *CellSize = &GridEntity->UnitSize[RowIndex][ColIndex];
-            s32 *CellField = &GridEntity->UnitField[RowIndex][ColIndex];
+            r32 *CellSize = &GridEntity->UnitSize[UnitIndex];
+            s32 *CellField = &GridEntity->UnitField[UnitIndex];
             if(*CellSize < MaximumBlockSize)
             {
                 r32 ScaleDt = TimeElapsed * PixelScalePerSec;
@@ -1462,6 +1458,9 @@ LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
                     
                     if(i == (Count - 1))
                     {
+                        Mix_PlayChannel( -1, Memory->Sound, 0);
+                        printf("Mix_PlayChannel\n");
+                        
                         PixelsDrawn += MaximumBlockSize;
                         PixelsToDraw = (((StartUpTimeElapsed) - TimeElapsed) * PixelScalePerSec);
                         
@@ -1489,13 +1488,13 @@ LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
                                 {
                                     s32 NextRowIndex = Min2(RowAmount, NextLine) - j - 1;
                                     s32 NextColIndex = NextStartColumn + j;
+                                    s32 NextUnitIndex = (NextRowIndex * RowAmount) + NextColIndex;
                                     
-                                    //s32 NextIndex = (NextRowIndex * ColAmount) + NextColIndex;
-                                    GridEntity->UnitSize[NextRowIndex][NextColIndex] += PixelsYetToDraw;
-                                    if(GridEntity->UnitSize[NextRowIndex][NextColIndex] >= MaximumBlockSize)
+                                    GridEntity->UnitSize[NextUnitIndex] += PixelsYetToDraw;
+                                    if(GridEntity->UnitSize[NextUnitIndex] >= MaximumBlockSize)
                                     {
-                                        GridEntity->UnitSize[NextRowIndex][NextColIndex] = MaximumBlockSize;
-                                        
+                                        GridEntity->UnitSize[NextUnitIndex] = MaximumBlockSize;
+                                        //Mix_PlayChannel( -1, Memory->Sound, 0);
                                         if((j == NextCount - 1) && PixelsYetToDraw >= MaximumBlockSize)
                                         {
                                             PixelsYetToDraw -= MaximumBlockSize;
@@ -1548,11 +1547,11 @@ LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
         
     }
     
-    for(s32 i = 0; i < RowAmount; ++i)
+    for(s32 Row = 0; Row < RowAmount; ++Row)
     {
-        for(s32 j = 0; j < ColAmount; ++j)
+        for(s32 Col = 0; Col < ColAmount; ++Col)
         {
-            if(GridEntity->UnitSize[i][j] < MaximumBlockSize)
+            if(GridEntity->UnitSize[(Row * ColAmount) + Col] < MaximumBlockSize)
             {
                 IsGridReady = false;
             }
@@ -1618,15 +1617,10 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
     
     if(!LevelEntity->LevelStarted)
     {
-        LevelEntityUpdateStartUpAnimation(LevelEntity,
+        LevelEntityUpdateStartUpAnimation(LevelEntity, Memory,
                                           Buffer, TimeElapsed);
         if(LevelEntity->LevelStarted)
         {
-            for(u32 i = 0; i < RowAmount; ++i)
-            {
-                free(GridEntity->UnitSize[i]);
-            }
-            
             free(GridEntity->UnitSize);
             GridEntity->UnitSize = 0;
             
@@ -1669,7 +1663,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
                     {
                         RowIndex = GridEntity->StickUnits[i].Row[j];
                         ColIndex = GridEntity->StickUnits[i].Col[j];
-                        GridEntity->UnitField[RowIndex][ColIndex] = 0;
+                        GridEntity->UnitField[(RowIndex * ColumnAmount) + ColIndex] = 0;
                     }
                     
                     break;
@@ -1726,7 +1720,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
                     
                     for (u32 i = 0; i < 4; ++i)
                     {
-                        if(GridEntity->UnitField[RowIndex[i]][ColIndex[i]] > 0)
+                        if(GridEntity->UnitField[(RowIndex[i] * ColumnAmount) + ColIndex[i]] > 0)
                         {
                             IsFree = false;
                         }
@@ -1760,11 +1754,11 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
                         
                         FigureEntityLowPriority(FigureEntity, FigureIndex);
                         
-                        for (u32 i = 0; i < RowAmount; ++i)
+                        for (u32 Row = 0; Row < RowAmount; ++Row)
                         {
-                            for (u32 j = 0; j < ColumnAmount; ++j)
+                            for (u32 Col = 0; Col < ColumnAmount; ++Col)
                             {
-                                if(GridEntity->UnitField[i][j] == 1)
+                                if(GridEntity->UnitField[(Row * ColumnAmount) + Col] == 1)
                                 {
                                     IsFull = true;
                                 }
@@ -1820,7 +1814,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
                 {
                     RowIndex = GridEntity->StickUnits[i].Row[j];
                     ColIndex = GridEntity->StickUnits[i].Col[j];
-                    GridEntity->UnitField[RowIndex][ColIndex] = 1;
+                    GridEntity->UnitField[(RowIndex * ColumnAmount) + ColIndex] = 1;
                 }
             }
         }
@@ -1844,17 +1838,17 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
     AreaQuad.w = ActiveBlockSize;
     AreaQuad.h = ActiveBlockSize;
     
-    for (u32 i = 0; i < RowAmount; ++i)
+    for (u32 Row = 0; Row < RowAmount; ++Row)
     {
-        StartY = GridEntity->GridArea.y + (ActiveBlockSize * i) + (ActiveBlockSize / 2);
-        for (u32 j = 0; j < ColumnAmount; ++j)
+        StartY = GridEntity->GridArea.y + (ActiveBlockSize * Row) + (ActiveBlockSize / 2);
+        for (u32 Col = 0; Col < ColumnAmount; ++Col)
         {
-            StartX = GridEntity->GridArea.x + (ActiveBlockSize * j) + (ActiveBlockSize / 2);
+            StartX = GridEntity->GridArea.x + (ActiveBlockSize * Col) + (ActiveBlockSize / 2);
             
             AreaQuad.x = StartX - (AreaQuad.w / 2);
             AreaQuad.y = StartY - (AreaQuad.h / 2);
             
-            u32 GridUnit = GridEntity->UnitField[i][j];
+            u32 GridUnit = GridEntity->UnitField[(Row * ColumnAmount) + Col];
             if(GridUnit == 0 || GridUnit == 2 || GridUnit == 3)
             {
                 GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture, &AreaQuad);
@@ -1894,7 +1888,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
                     = GridEntity->GridArea.x + (ColNumber * ActiveBlockSize);
                 GridEntity->MovingBlocks[i].AreaQuad.y
                     = GridEntity->GridArea.y + (RowNumber * ActiveBlockSize);
-                GridEntity->UnitField[RowNumber][ColNumber] = 1;
+                GridEntity->UnitField[(RowNumber * ColumnAmount) + ColNumber] = 1;
             }
         }
         
@@ -2145,8 +2139,6 @@ LevelEditorInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_b
     
     LevelEditor->FigureButtonLayer.w = ButtonSize;
     LevelEditor->FigureButtonLayer.h = ButtonSize * 6;
-    //LevelEditor->FigureButtonLayer.x = (Buffer->Width / 2) - (LevelEditor->FigureButtonLayer.w / 2);
-    //LevelEditor->FigureButtonLayer.y = Buffer->Height - LevelEditor->FigureButtonLayer.h;
     
     LevelEditor->FigureButtonLayer.x = LevelEditor->GridButtonLayer.x + LevelEditor->GridButtonLayer.w;
     LevelEditor->FigureButtonLayer.y = LevelEditor->GridButtonLayer.y;
@@ -2385,27 +2377,22 @@ GridEntityNewGrid(game_offscreen_buffer *Buffer, level_entity *LevelEntity,
     
     grid_entity *&GridEntity = LevelEntity->GridEntity;
     
-    s32 **UnitField = (s32**)malloc(sizeof(s32*) * NewRowAmount);
+    s32 *UnitField = (s32*)calloc(NewRowAmount * NewColumnAmount, sizeof(s32));
     Assert(UnitField);
-    for(u32 i = 0; i < NewRowAmount; ++i){
-        UnitField[i] = (s32*)malloc(sizeof(s32) * NewColumnAmount);
-        Assert(UnitField[i]);
-        for(u32 j = 0; j < NewColumnAmount; j ++){
-            UnitField[i][j] = 0;
+    for(u32 Row = 0; Row < NewRowAmount; ++Row){
+        for(u32 Col = 0; Col < NewColumnAmount; Col++){
+            UnitField[(Row * NewColumnAmount) + Col] = 0;
         }
     }
     
     u32 CurrentRowAmount = NewRowAmount < GridEntity->RowAmount ? NewRowAmount : GridEntity->RowAmount;
     u32 CurrentColumnAmount = NewColumnAmount < GridEntity->ColumnAmount ? NewColumnAmount : GridEntity->ColumnAmount;
     
-    for(u32 i = 0; i < CurrentRowAmount; ++i){
-        for(u32 j = 0; j < CurrentColumnAmount; ++j){
-            UnitField[i][j] = GridEntity->UnitField[i][j];
+    for(u32 Row = 0; Row < CurrentRowAmount; ++Row){
+        for(u32 Col = 0; Col < CurrentColumnAmount; ++Col){
+            s32 UnitIndex = (Row * CurrentColumnAmount) + Col;
+            UnitField[UnitIndex] = GridEntity->UnitField[UnitIndex];
         }
-    }
-    
-    for(u32 i = 0; i < GridEntity->RowAmount; ++i){
-        free(GridEntity->UnitField[i]);
     }
     
     free(GridEntity->UnitField);
@@ -2933,13 +2920,13 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             u32 StartX = 0;
             u32 StartY = 0;
             
-            for(u32 i = 0; i < RowAmount; ++i)
+            for(u32 Row = 0; Row < RowAmount; ++Row)
             {
-                StartY = GridArea.y + (LevelEntity->Configuration.ActiveBlockSize * i);
+                StartY = GridArea.y + (LevelEntity->Configuration.ActiveBlockSize * Row);
                 
-                for(u32 j = 0; j < ColAmount; ++j)
+                for(u32 Col = 0; Col < ColAmount; ++Col)
                 {
-                    StartX = GridArea.x + (LevelEntity->Configuration.ActiveBlockSize * j);
+                    StartX = GridArea.x + (LevelEntity->Configuration.ActiveBlockSize * Col);
                     
                     AreaQuad.x = StartX;
                     AreaQuad.y = StartY;
@@ -2947,10 +2934,11 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                     if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
                                          &AreaQuad))
                     {
-                        u32 GridUnit = LevelEntity->GridEntity->UnitField[i][j];
+                        s32 UnitIndex = (Row * ColAmount) + Col;
+                        u32 GridUnit = LevelEntity->GridEntity->UnitField[UnitIndex];
                         if(GridUnit == 0)
                         {
-                            LevelEntity->GridEntity->UnitField[i][j] = 1;
+                            LevelEntity->GridEntity->UnitField[UnitIndex] = 1;
                         }
                         else
                         {
@@ -2960,7 +2948,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                 u32 RowNumber = LevelEntity->GridEntity->MovingBlocks[m].RowNumber;
                                 u32 ColNumber = LevelEntity->GridEntity->MovingBlocks[m].ColNumber;
                                 
-                                if((i == RowNumber) && (j == ColNumber))
+                                if((Row == RowNumber) && (Col == ColNumber))
                                 {
                                     Index = m;
                                     break;
@@ -2982,12 +2970,12 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                 else
                                 {
                                     GridEntityDeleteMovingBlock(LevelEntity->GridEntity, Index);
-                                    LevelEntity->GridEntity->UnitField[i][j] = 0;
+                                    LevelEntity->GridEntity->UnitField[UnitIndex] = 0;
                                 }
                             }
                             else
                             {
-                                GridEntityAddMovingBlock(LevelEntity->GridEntity, i, j, false, false, LevelEntity->Configuration.ActiveBlockSize);
+                                GridEntityAddMovingBlock(LevelEntity->GridEntity, Row, Col, false, false, LevelEntity->Configuration.ActiveBlockSize);
                             }
                         }
                     }
@@ -3214,27 +3202,24 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         //
         // UnitField initialization
         //
-        GridEntity->UnitField = (s32**)malloc(GridEntity->RowAmount * sizeof(s32*));
+        GridEntity->UnitField = (s32*)calloc(GridEntity->ColumnAmount * GridEntity->RowAmount, sizeof(s32));
         Assert(GridEntity->UnitField);
-        for (u32 i = 0; i < GridEntity->RowAmount; ++i)
+        for (u32 Row = 0; Row < GridEntity->RowAmount; ++Row)
         {
-            GridEntity->UnitField[i] = (s32*)malloc(sizeof(s32) * GridEntity->ColumnAmount);
-            Assert(GridEntity->UnitField[i]);
-            for (u32 j = 0; j < GridEntity->ColumnAmount; ++j)
+            for (u32 Col = 0; Col < GridEntity->ColumnAmount; ++Col)
             {
-                GridEntity->UnitField[i][j] = 0;
+                GridEntity->UnitField[(Row * GridEntity->ColumnAmount) + Col] = 0;
             }
         }
         
-        GridEntity->UnitSize = (r32**)malloc(GridEntity->RowAmount * sizeof(r32*));
+        GridEntity->UnitSize = (r32*)calloc(GridEntity->ColumnAmount *GridEntity->RowAmount, sizeof(r32));
         Assert(GridEntity->UnitSize);
-        for(u32 i = 0; i < GridEntity->RowAmount; ++i)
+        for(u32 Row = 0; Row < GridEntity->RowAmount; ++Row)
         {
-            GridEntity->UnitSize[i] = (r32*)malloc(sizeof(r32) * GridEntity->ColumnAmount);
-            Assert(GridEntity->UnitSize[i]);
-            for(u32 j = 0; j < GridEntity->ColumnAmount; ++j)
+            for(u32 Col = 0; Col < GridEntity->ColumnAmount; ++Col)
             {
-                GridEntity->UnitSize[i][j] = 0;
+                s32 UnitIndex = (Row * GridEntity->ColumnAmount) + Col;
+                GridEntity->UnitSize[UnitIndex] = 0;
             }
         }
         
@@ -3287,6 +3272,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         //Memory->Music = GetMusic(Memory, "amb_ending_water.ogg");
         //Assert(Memory->Music);
         //Mix_PlayMusic(Memory->Music, -1);
+        
+        Memory->Sound = GetSound(Memory, "chunk.wav");
+        Assert(Memory->Sound);
+        
         
         Memory->IsInitialized = true;
         printf("memory init!\n");

@@ -95,6 +95,7 @@ struct game_memory
     
     // TODO(Max): This should not be here!!!
     game_music *Music;
+    game_sound *Sound;
     game_font *LevelNumberFont;
     
     bool IsInitialized;

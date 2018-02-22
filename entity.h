@@ -101,8 +101,8 @@ struct grid_entity
     u32 StickUnitsAmount;
     game_rect GridArea;
     
-    r32 **UnitSize;
-    s32 **UnitField;
+    r32 *UnitSize;
+    s32 *UnitField;
     
     sticked_unit *StickUnits;
     moving_block *MovingBlocks;
