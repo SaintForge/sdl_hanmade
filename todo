@@ -26,7 +26,7 @@
 -    9. Change unit field memory allocation to be just one block of memory instead 
 		allocating memory for every row!
 -	10. Need to think about the maximum size of active block
-
+-	11. Make game to be more resolution independent
 
 ---Data serialization---
 +	1. Distinct assets into groups of sprites, sound and music
