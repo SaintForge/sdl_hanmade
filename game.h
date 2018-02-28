@@ -104,24 +104,64 @@ struct game_memory
     bool ToggleMenu;
 };
 
-static bool 
-GameUpdateAndRender(game_memory *Memory, game_input *Input,
-                    game_offscreen_buffer *Buffer);
-static void 
-GameRenderBitmapToBuffer(game_offscreen_buffer *Buffer, game_texture *&Texture, game_rect *Quad);
+static u32
+GameResizeActiveBlock(u32 GridAreaWidth, 
+                      u32 GridAreaHeight, 
+                      u32 RowAmount, 
+                      u32 ColumnAmount)
+{
+    u32 ResultBlockSize = 0;
+    
+    u32 DefaultBlockWidth  = GridAreaWidth  / (ColumnAmount + 1);
+    u32 DefaultBlockHeight = GridAreaHeight / (RowAmount + 1);
+    u32 DefaultBlockSize   = DefaultBlockWidth < DefaultBlockHeight ? DefaultBlockWidth : DefaultBlockHeight;
+    
+    ResultBlockSize = DefaultBlockSize;
+    ResultBlockSize = ResultBlockSize - (ResultBlockSize % 2);
+    
+    return(ResultBlockSize);
+}
+
+static u32
+GameResizeInActiveBlock(u32 FigureAreaWidth, 
+                        u32 FigureAreaHeight, 
+                        u32 DefaultBlocksInRow,
+                        u32 DefaultBlocksInCol,
+                        u32 BlocksInRow)
+{
+    u32 ResultBlockSize  = 0;
+    
+    u32 DefaultBlockWidth  = FigureAreaWidth / DefaultBlocksInRow;
+    u32 DefaultBlockHeight = FigureAreaHeight / DefaultBlocksInCol;
+    u32 DefaultBlockSize   = DefaultBlockWidth < DefaultBlockHeight ? DefaultBlockWidth : DefaultBlockHeight;
+    u32 ActualBlockSize    = FigureAreaWidth / BlocksInRow;
+    
+    ResultBlockSize = ActualBlockSize < DefaultBlockSize ? ActualBlockSize : DefaultBlockSize;
+    ResultBlockSize = ResultBlockSize - (ResultBlockSize % 2);
+    
+    return(ResultBlockSize);
+}
+
 
 static void 
-LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity, s32 Index, bool IsStarted,
-                                       game_memory *Memory, game_offscreen_buffer *Buffer);
+GameRenderBitmapToBuffer(game_offscreen_buffer *Buffer, game_texture *&Texture, game_rect *Quad)
+{
+    Assert(Texture);
+    SDL_RenderCopy(Buffer->Renderer, Texture, 0, Quad);
+}
 
+
+//TODO(Max): This tow function declarations should not be here!!!
 static void
 LevelEditorChangeGridCounters(level_editor *LevelEditor, 
                               u32 NewRowAmount, u32 NewColumnAmount, 
                               game_offscreen_buffer *Buffer);
 
+
 static void 
 LevelEditorUpdateLevelStats(level_editor *LevelEditor, 
                             s32 LevelNumber, s32 LevelIndex, game_offscreen_buffer *Buffer);
+
 
 static void
 DEBUGPrintArray1D(u32 *Array, u32 Size)
@@ -178,33 +218,6 @@ DEBUGRenderQuadFill(game_offscreen_buffer *Buffer, game_rect *AreaQuad, SDL_Colo
     
     SDL_SetRenderDrawColor(Buffer->Renderer, color.r, color.g, color.b, Alpha);
     SDL_RenderFillRect(Buffer->Renderer, AreaQuad);
-    SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
-}
-
-static void
-DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, u32 BlockSize, SDL_Color color, u8 Alpha)
-{
-    u8 r, g, b, a;
-    SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, &a);
-    SDL_SetRenderDrawColor(Buffer->Renderer, color.r, color.g, color.b, Alpha);
-    
-    game_rect Rect = {};
-    
-    for (u32 i = 0; i < 4; ++i)
-    {
-        Rect.w = BlockSize;
-        Rect.h = BlockSize;
-        Rect.x = Entity->Shell[i].x - (Rect.w / 2);
-        Rect.y = Entity->Shell[i].y - (Rect.h / 2);
-        
-        SDL_RenderFillRect(Buffer->Renderer, &Rect);
-    }
-    
-    //SDL_SetRenderDrawColor(Buffer->Renderer, 255, 255, 255, 255);
-    Rect.x = Entity->Center.x - (Rect.w / 2);
-    Rect.y = Entity->Center.y - (Rect.h / 2);
-    //SDL_RenderDrawRect(Buffer->Renderer, &Rect);
-    
     SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
 }
 

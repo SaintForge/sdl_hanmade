@@ -9,6 +9,8 @@
 
 #if !defined(MENU_GAME_H)
 
+static void MenuInit(menu_entity *MenuEntity, game_memory *Memory, game_offscreen_buffer *Buffer);
+
 static void MenuUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_input *Input);
 
 #define MENU_GAME_H

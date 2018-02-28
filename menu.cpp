@@ -8,7 +8,7 @@
 //
 
 #include "menu.h"
-#include "editor.h"
+//#include "editor.h"
 
 static void
 MenuEntityAlignButtons(menu_entity *MenuEntity, 

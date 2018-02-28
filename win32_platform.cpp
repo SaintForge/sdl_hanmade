@@ -145,8 +145,6 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input)
         {
             case SDL_MOUSEMOTION:
             {
-                
-                
                 Input->MouseRelX += Event->motion.xrel;
                 Input->MouseRelY += Event->motion.yrel;
             } break;
@@ -392,10 +390,7 @@ int main(int argc, char **argv)
                     }
                 }
                 
-                // draw loading screen
                 SDLUpdateWindow(Window, Renderer, &BackBuffer);
-                
-                
             }
             
         }

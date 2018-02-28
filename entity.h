@@ -7,6 +7,7 @@
  *           By: Sierra
  */
 
+#if !defined(ENTITY_H)
 
 enum figure_form
 {
@@ -273,3 +274,5 @@ struct menu_entity
 };
 
 
+#define ENTITY_H
+#endif

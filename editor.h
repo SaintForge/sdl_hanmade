@@ -10,11 +10,5 @@
 
 #if !defined(EDITOR_H)
 
-//static void 
-//LevelEditorChangeGridCounters(level_editor *LevelEditor,
-//u32 NewRowAmount, u32 NewColumnAmount, 
-//u32 OldRowAmount, u32 OldColumnAmount,
-//game_offscreen_buffer *Buffer);
-
 #define EDITOR_H
 #endif
