@@ -48,6 +48,8 @@
 +	2. Move level information near the editor
 -	3. Add more information about the level
 -	4. Set hotkeys for accessing the editor
+-	5. Separate editor code from the game code so that no editor code will be in release
+-	6. Make separate binary file for editor assets loading
 
 BUGS:
 	+ 1. When I want to pick the figure that lies on top of the figure that is sticked
