@@ -862,32 +862,36 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             
             if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->PrevLevelQuad))
             {
-                s32 PrevLevelNumber = LevelEntity->LevelNumber - 1;
-                if(PrevLevelNumber >= 0)
+                s32 PrevLevelIndex = Memory->CurrentLevelIndex - 1;
+                if(PrevLevelIndex >= 0)
                 {
-                    LevelEntityUpdateLevelEntityFromMemory(Memory, PrevLevelNumber, true, Buffer);
+                    Memory->CurrentLevelIndex = PrevLevelIndex;
                     
-                    
-                    
+                    LevelEntityUpdateLevelEntityFromMemory(Memory, PrevLevelIndex, true, Buffer);
                     
                     LevelEditorChangeGridCounters(LevelEditor, LevelEntity->GridEntity->RowAmount,
                                                   LevelEntity->GridEntity->ColumnAmount,Buffer);
                     
+                    LevelEditorUpdateLevelStats(LevelEditor, LevelEntity->LevelNumber,
+                                                Memory->CurrentLevelIndex, Buffer);
                 }
                 
                 LevelEditor->ActiveButton = LevelEditor->PrevLevelQuad;
             }
             else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->NextLevelQuad))
             {
-                s32 NextLevelNumber = LevelEntity->LevelNumber + 1;
-                if(NextLevelNumber < Memory->LevelMemoryAmount)
+                s32 NextLevelIndex = Memory->CurrentLevelIndex + 1;
+                if(NextLevelIndex < Memory->LevelMemoryAmount)
                 {
-                    LevelEntityUpdateLevelEntityFromMemory(Memory, NextLevelNumber, true, Buffer);
+                    Memory->CurrentLevelIndex = NextLevelIndex;
                     
-                    
+                    LevelEntityUpdateLevelEntityFromMemory(Memory, NextLevelIndex, true, Buffer);
                     
                     LevelEditorChangeGridCounters(LevelEditor, 
                                                   LevelEntity->GridEntity->RowAmount, LevelEntity->GridEntity->ColumnAmount, Buffer);
+                    
+                    LevelEditorUpdateLevelStats(LevelEditor, LevelEntity->LevelNumber,
+                                                Memory->CurrentLevelIndex, Buffer);
                     
                 }
                 
@@ -1186,6 +1190,14 @@ MenuEditorInit(menu_editor *MenuEditor, menu_entity *MenuEntity,
                        MenuEditor->CancelButtonTexture,
                        Memory->LevelNumberFont,
                        {255, 255, 255}, Buffer);
+}
+
+inline void
+SwapLevelMemory(level_memory *LevelMemory, s32 IndexA, s32 IndexB)
+{
+    level_memory TempLevel = LevelMemory[IndexA];
+    LevelMemory[IndexA] = LevelMemory[IndexB];
+    LevelMemory[IndexB] = TempLevel;
 }
 
 static void

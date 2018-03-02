@@ -260,14 +260,6 @@ MenuDeleteLevel(menu_entity *MenuEntity,
     MenuLoadButtonsFromMemory(MenuEntity, Memory, Buffer);
 }
 
-inline void
-SwapLevelMemory(level_memory *LevelMemory, s32 IndexA, s32 IndexB)
-{
-    level_memory TempLevel = LevelMemory[IndexA];
-    LevelMemory[IndexA] = LevelMemory[IndexB];
-    LevelMemory[IndexB] = TempLevel;
-}
-
 static void
 MenuUpdateAndRender(menu_entity *MenuEntity, game_memory *Memory, 
                     game_input *Input, game_offscreen_buffer *Buffer)

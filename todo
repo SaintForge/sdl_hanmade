@@ -60,6 +60,6 @@ BUGS:
 	+ 4. When pulling off the figure on the grid sometimes the wrong cell of the grid
 		 gets disappeared
 	+ 5. Sometimes the game crushes whenever I press ~ on loading the level.
-	- 6. Level button switch behaviour is wrong when pressing mouse on it.
+	+ 6. Level button switch behaviour is wrong when pressing mouse on it.
 	- 7. There is some problem with grid animation when amount of row is less than amoun of columns.
 
