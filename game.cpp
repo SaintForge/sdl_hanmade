@@ -8,7 +8,6 @@
 //
 
 #include "game_math.h"
-
 #include "game.h"
 
 #include "entity.cpp"

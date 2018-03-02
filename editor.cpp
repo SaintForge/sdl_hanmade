@@ -1086,11 +1086,17 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     
 }
 
+struct selection_panel
+{
+    bool IsSelected;
+    game_rect SelectQuad;
+};
+
 struct menu_editor
 {
     /* For showing gui */
     bool EditorMode;
-    bool DeleteBarOn;
+    bool ButtonsSelected;
     
     /* Button data for adding a new level in memory */
     game_rect NewLevelButtonQuad;
@@ -1121,6 +1127,13 @@ struct menu_editor
     game_rect CancelButtonQuad;
     game_rect CancelButtonTextureQuad;
     game_texture *CancelButtonTexture;
+    
+    /* For highlightning the button whenever pressed */
+    bool ButtonIsPressed;
+    game_rect HighlightButtonQuad;
+    
+    /* For highlightning selected level buttons  */
+    selection_panel SelectionPanel[100];
 };
 
 static void
@@ -1129,42 +1142,45 @@ MenuEditorInit(menu_editor *MenuEditor, menu_entity *MenuEntity,
 {
     *MenuEditor = {};
     
-    MenuMakeTextButton("New", 0, 0, 100, 50,
+    s32 ButtonWidth  = 150;
+    s32 ButtonHeigth = 50;
+    
+    MenuMakeTextButton("New", 0, 0, ButtonWidth, ButtonHeigth,
                        &MenuEditor->NewLevelButtonQuad,
                        &MenuEditor->NewLevelTextureQuad,
                        MenuEditor->NewLevelTexture,
                        Memory->LevelNumberFont,
                        {255, 255, 255}, Buffer);
     
-    MenuMakeTextButton("Load", 0, 50, 100, 50,
+    MenuMakeTextButton("Load", 0, 50, ButtonWidth, ButtonHeigth,
                        &MenuEditor->LoadButtonQuad,
                        &MenuEditor->LoadButtonTextureQuad,
                        MenuEditor->LoadButtonTexture,
                        Memory->LevelNumberFont,
                        {255, 255, 255}, Buffer);
     
-    MenuMakeTextButton("Save", 0, 100, 100, 50,
+    MenuMakeTextButton("Save", 0, 100, ButtonWidth, ButtonHeigth,
                        &MenuEditor->SaveButtonQuad,
                        &MenuEditor->SaveButtonTextureQuad,
                        MenuEditor->SaveButtonTexture,
                        Memory->LevelNumberFont,
                        {255, 255, 255}, Buffer);
     
-    MenuMakeTextButton("Sort", 0, 150, 100, 50,
+    MenuMakeTextButton("Sort", 0, 150, ButtonWidth, ButtonHeigth,
                        &MenuEditor->SortButtonQuad,
                        &MenuEditor->SortButtonTextureQuad,
                        MenuEditor->SortButtonTexture,
                        Memory->LevelNumberFont,
                        {255, 255, 255}, Buffer);
     
-    MenuMakeTextButton("y", 0, 0, 30, 30,
+    MenuMakeTextButton("Delete", 0, 250, ButtonWidth, ButtonHeigth,
                        &MenuEditor->DeleteButtonQuad,
                        &MenuEditor->DeleteButtonTextureQuad,
                        MenuEditor->DeleteButtonTexture,
                        Memory->LevelNumberFont,
                        {255, 255, 255}, Buffer);
     
-    MenuMakeTextButton("n", 0, 0, 30, 30,
+    MenuMakeTextButton("Cancel", 0, 300, ButtonWidth, ButtonHeigth,
                        &MenuEditor->CancelButtonQuad,
                        &MenuEditor->CancelButtonTextureQuad,
                        MenuEditor->CancelButtonTexture,
@@ -1206,49 +1222,76 @@ MenuEditorUpdateAndRender(menu_editor *MenuEditor, menu_entity *MenuEntity, game
                 
                 MenuEntityAlignButtons(MenuEntity, Buffer->Width, Buffer->Height);
             }
+            
+            MenuEditor->ButtonIsPressed = true;
+            MenuEditor->HighlightButtonQuad = MenuEditor->NewLevelButtonQuad;
         }
         else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEditor->LoadButtonQuad))
         {
             LoadLevelMemoryFromFile("package2.bin", Memory);
             MenuLoadButtonsFromMemory(MenuEntity, Memory, Buffer);
+            
+            MenuEditor->ButtonIsPressed = true;
+            MenuEditor->HighlightButtonQuad = MenuEditor->LoadButtonQuad;
         }
         else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEditor->SaveButtonQuad))
         {
             SaveLevelMemoryToFile(Memory);
+            
+            MenuEditor->ButtonIsPressed = true;
+            MenuEditor->HighlightButtonQuad = MenuEditor->SaveButtonQuad;
         }
         else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEditor->SortButtonQuad))
         {
             MenuEntitySortButtons(MenuEntity, Memory);
             MenuLoadButtonsFromMemory(MenuEntity, Memory, Buffer);
+            
+            MenuEditor->ButtonIsPressed = true;
+            MenuEditor->HighlightButtonQuad = MenuEditor->SortButtonQuad;
         }
         
-        if(MenuEditor->DeleteBarOn)
+        if(IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEditor->DeleteButtonQuad))
         {
-            u32 BeginIndex = MenuEntity->TargetIndex * 20;
-            u32 EndIndex   = BeginIndex + 20;
-            
-            for(u32 i = BeginIndex; i < EndIndex; ++i)
+            if(MenuEditor->ButtonsSelected)
             {
-                if(IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEntity->Buttons[i].ButtonQuad))
+                s32 LevelCounter = 0;
+                for(s32 Index = 100; Index > 0; Index--)
                 {
-                    MenuEntity->ButtonIndex = i;
-                    break;
+                    if(MenuEditor->SelectionPanel[Index].IsSelected)
+                    {
+                        MenuEditor->SelectionPanel[Index].IsSelected = false;
+                        MenuDeleteLevel(MenuEntity, Index, Memory, Buffer);
+                        
+                        ++LevelCounter;
+                    }
+                }
+                
+                Memory->CurrentLevelIndex -= LevelCounter;
+                Memory->CurrentLevelIndex = (LevelCounter > Memory->CurrentLevelIndex)
+                    ? Memory->CurrentLevelIndex = 0
+                    : Memory->CurrentLevelIndex - LevelCounter;
+            }
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEditor->CancelButtonQuad))
+        {
+            MenuEditor->ButtonsSelected = false;
+            
+            for(s32 Index = 0; Index < 100; ++Index)
+            {
+                if(MenuEditor->SelectionPanel[Index].IsSelected)
+                {
+                    MenuEditor->SelectionPanel[Index].IsSelected = false;
                 }
             }
-            
-            if(IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEditor->DeleteButtonQuad))
-            {
-                MenuDeleteLevel(MenuEntity, MenuEntity->ButtonIndex, Memory, Buffer);
-                
-                Memory->CurrentLevelIndex -= 1;
-            }
-            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEditor->CancelButtonQuad))
-            {
-            }
-            
-            MenuEditor->DeleteBarOn = false;
         }
+        
     }
+    else if(Input->MouseButtons[0].EndedUp)
+    {
+        MenuEditor->ButtonIsPressed = false;
+        MenuEditor->HighlightButtonQuad = {};
+    }
+    
     if(Input->MouseButtons[1].EndedDown)
     {
         s32 Index = -1;
@@ -1267,19 +1310,17 @@ MenuEditorUpdateAndRender(menu_editor *MenuEditor, menu_entity *MenuEntity, game
         
         if(Index >= 0)
         {
-            MenuEditor->DeleteBarOn = true;
+            MenuEditor->ButtonsSelected = true;
             
-            MenuEditor->DeleteButtonQuad.x = MenuEntity->Buttons[Index].ButtonQuad.x;
-            MenuEditor->DeleteButtonQuad.y = MenuEntity->Buttons[Index].ButtonQuad.y;
-            
-            MenuEditor->DeleteButtonTextureQuad.x = MenuEditor->DeleteButtonQuad.x + (MenuEditor->DeleteButtonQuad.w / 2) - (MenuEditor->DeleteButtonTextureQuad.w / 2);
-            MenuEditor->DeleteButtonTextureQuad.y = MenuEditor->DeleteButtonQuad.y + (MenuEditor->DeleteButtonQuad.h / 2) - (MenuEditor->DeleteButtonTextureQuad.h / 2);
-            
-            MenuEditor->CancelButtonQuad.x = MenuEntity->Buttons[Index].ButtonQuad.x + 30;
-            MenuEditor->CancelButtonQuad.y = MenuEntity->Buttons[Index].ButtonQuad.y;
-            
-            MenuEditor->CancelButtonTextureQuad.x = MenuEditor->CancelButtonQuad.x + (MenuEditor->CancelButtonQuad.w / 2) - (MenuEditor->CancelButtonTextureQuad.w / 2);
-            MenuEditor->CancelButtonTextureQuad.y = MenuEditor->CancelButtonQuad.y + (MenuEditor->CancelButtonQuad.h / 2) - (MenuEditor->CancelButtonTextureQuad.h / 2);
+            if(!MenuEditor->SelectionPanel[Index].IsSelected)
+            {
+                MenuEditor->SelectionPanel[Index].IsSelected = true;
+                MenuEditor->SelectionPanel[Index].SelectQuad = MenuEntity->Buttons[Index].ButtonQuad;
+            }
+            else
+            {
+                MenuEditor->SelectionPanel[Index].IsSelected = false;
+            }
         }
     }
     
@@ -1299,14 +1340,28 @@ MenuEditorUpdateAndRender(menu_editor *MenuEditor, menu_entity *MenuEntity, game
     DEBUGRenderQuad(Buffer, &MenuEditor->SortButtonQuad, {255, 255, 255}, 255);
     GameRenderBitmapToBuffer(Buffer, MenuEditor->SortButtonTexture, &MenuEditor->SortButtonTextureQuad);
     
-    if(MenuEditor->DeleteBarOn)
+    DEBUGRenderQuadFill(Buffer, &MenuEditor->DeleteButtonQuad, {128, 128, 128}, 100);
+    DEBUGRenderQuad(Buffer, &MenuEditor->DeleteButtonQuad, {255, 255, 255}, 255);
+    GameRenderBitmapToBuffer(Buffer, MenuEditor->DeleteButtonTexture, &MenuEditor->DeleteButtonTextureQuad);
+    
+    DEBUGRenderQuadFill(Buffer, &MenuEditor->CancelButtonQuad, {128, 128, 128}, 100);
+    DEBUGRenderQuad(Buffer, &MenuEditor->CancelButtonQuad, {255, 255, 255}, 255);
+    GameRenderBitmapToBuffer(Buffer, MenuEditor->CancelButtonTexture, &MenuEditor->CancelButtonTextureQuad);
+    
+    if(MenuEditor->ButtonsSelected)
     {
-        DEBUGRenderQuadFill(Buffer, &MenuEditor->DeleteButtonQuad, {128, 128, 128}, 100);
-        DEBUGRenderQuad(Buffer, &MenuEditor->DeleteButtonQuad, {255, 255, 255}, 255);
-        GameRenderBitmapToBuffer(Buffer, MenuEditor->DeleteButtonTexture, &MenuEditor->DeleteButtonTextureQuad);
-        
-        DEBUGRenderQuadFill(Buffer, &MenuEditor->CancelButtonQuad, {128, 128, 128}, 100);
-        DEBUGRenderQuad(Buffer, &MenuEditor->CancelButtonQuad, {255, 255, 255}, 255);
-        GameRenderBitmapToBuffer(Buffer, MenuEditor->CancelButtonTexture, &MenuEditor->CancelButtonTextureQuad);
+        for(s32 i = 0; i < 100; ++i)
+        {
+            if(MenuEditor->SelectionPanel[i].IsSelected)
+            {
+                DEBUGRenderQuadFill(Buffer, &MenuEditor->SelectionPanel[i].SelectQuad, {0, 255, 255}, 100);
+            }
+        }
     }
+    
+    if(MenuEditor->ButtonIsPressed)
+    {
+        DEBUGRenderQuadFill(Buffer, &MenuEditor->HighlightButtonQuad, {0, 255, 255}, 200);
+    }
+    
 }
