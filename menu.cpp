@@ -122,6 +122,8 @@ static void
 MenuLoadButtonsFromMemory(menu_entity *MenuEntity, game_memory *Memory, 
                           game_offscreen_buffer *Buffer)
 {
+    level_memory *LevelMemory = (level_memory *) Memory->GlobalMemoryStorage;
+    
     MenuEntity->ButtonsAmount         = Memory->LevelMemoryAmount;
     MenuEntity->ButtonsAmountReserved = Memory->LevelMemoryReserved;
     
@@ -143,7 +145,7 @@ MenuLoadButtonsFromMemory(menu_entity *MenuEntity, game_memory *Memory,
     for(u32 i = 0; i < MenuEntity->ButtonsAmountReserved; ++i)
     {
         char LevelNumber[3] = {0};
-        sprintf(LevelNumber, "%d", Memory->LevelMemory[i].LevelNumber);
+        sprintf(LevelNumber, "%d", LevelMemory[i].LevelNumber);
         
         MenuMakeTextButton(LevelNumber, 0, 0, MenuEntity->ButtonSizeWidth, MenuEntity->ButtonSizeHeight,
                            &MenuEntity->Buttons[i].ButtonQuad, &MenuEntity->Buttons[i].LevelNumberTextureQuad,
@@ -155,12 +157,8 @@ MenuLoadButtonsFromMemory(menu_entity *MenuEntity, game_memory *Memory,
 }
 
 static void 
-MenuInit(menu_entity* MenuEntity, game_memory *Memory, game_offscreen_buffer *Buffer)
+MenuInit(menu_entity *MenuEntity, game_memory *Memory, game_offscreen_buffer *Buffer)
 {
-    Memory->MenuEntity = (menu_entity *) calloc(1, sizeof(menu_entity));
-    Assert(Memory->MenuEntity);
-    
-    MenuEntity = Memory->MenuEntity;
     MenuEntity->MaxVelocity      = 20.0f;
     MenuEntity->ButtonIndex      = -1;
     MenuEntity->ButtonSizeWidth  = 100;
@@ -204,12 +202,15 @@ MenuChangeButtonText(game_font *&Font, char *Text,
 
 static void
 MenuDeleteLevel(menu_entity *MenuEntity,
-                u32 Index, game_memory *Memory,
+                s32 Index, game_memory *Memory,
                 game_offscreen_buffer *Buffer)
 {
-    if(Index >= Memory->LevelMemoryAmount) return;
+    if(Index >= (s32)Memory->LevelMemoryAmount) 
+    {
+        return;
+    }
     
-    level_memory *LevelMemory = Memory->LevelMemory;
+    level_memory *LevelMemory = (level_memory *)Memory->GlobalMemoryStorage;
     
     if(LevelMemory[Index].UnitField)
     {
@@ -270,7 +271,7 @@ SwapLevelMemory(level_memory *LevelMemory, s32 IndexA, s32 IndexB)
 static void
 MenuEntitySortButtons(menu_entity *MenuEntity, game_memory *Memory)
 {
-    level_memory *LevelMemory = Memory->LevelMemory;
+    level_memory *LevelMemory = (level_memory*)Memory->GlobalMemoryStorage;
     s32 LevelAmount = Memory->LevelMemoryAmount;
     
     for(s32 i = 0; i < LevelAmount - 1; ++i)
@@ -395,9 +396,8 @@ MenuUpdateAndRender(menu_entity *MenuEntity, game_memory *Memory,
                 s32 Index = MenuEntity->ButtonIndex;
                 if(Index >= 0)
                 {
-                    LevelEntityUpdateLevelEntityFromMemory(&Memory->LevelEntity, 
-                                                           Index, false,
-                                                           Memory, Buffer);
+                    LevelEntityUpdateLevelEntityFromMemory(Memory, Index, false,Buffer);
+                    
                     
                     Memory->ToggleMenu        = false;
                     Memory->CurrentLevelIndex = Index;

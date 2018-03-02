@@ -12,8 +12,8 @@
 
 #include "game.h"
 
-#include "assets.cpp"
 #include "entity.cpp"
+#include "assets.cpp"
 #include "menu.cpp"
 #include "editor.cpp"
 
@@ -57,29 +57,32 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 {
     bool ShouldQuit = false;
     
-    level_entity  *LevelEntity   = &Memory->LevelEntity;
-    grid_entity   *&GridEntity   = LevelEntity->GridEntity;
-    figure_entity *&FigureEntity = LevelEntity->FigureEntity;
-    
     if(!Memory->IsInitialized)
     {
-        // Memory initialization
-        Memory->ToggleMenu = false;
+        /* game_memory initialization */
+        
+        Memory->ToggleMenu        = false;
         Memory->CurrentLevelIndex = 0;
-        printf("Memory->LevelMemoryAmount = %d\n", Memory->LevelMemoryAmount);
         
         Memory->LevelNumberFont = TTF_OpenFont("..\\data\\Karmina-Bold.otf", 50);
         Assert(Memory->LevelNumberFont);
         
-        MenuInit(Memory->MenuEntity, Memory, Buffer);
+        /* LocalMemoryStorage allocation */
+        /* level_entity initialization */
         
-        // temporal level_entity initialization
+        Memory->LocalMemoryStorage = malloc(sizeof(level_entity) + (sizeof(menu_entity)));
+        Assert(Memory->LocalMemoryStorage);
         
-        LevelEntity->LevelNumber = 0;
-        LevelEntity->Configuration.DefaultBlocksInRow = 12;
-        LevelEntity->Configuration.DefaultBlocksInCol = 9;
+        level_entity *LevelEntity  = (level_entity*) Memory->LocalMemoryStorage;
+        LevelEntity->LevelNumber   = 0;
         LevelEntity->LevelStarted  = false;
         LevelEntity->LevelFinished = false;
+        LevelEntity->LevelPaused   = false;
+        LevelEntity->LevelNumberQuad       = {};
+        LevelEntity->LevelNumberShadowQuad = {};
+        
+        LevelEntity->Configuration.DefaultBlocksInRow = 12;
+        LevelEntity->Configuration.DefaultBlocksInCol = 9;
         
         u32 RowAmount           = 5;
         u32 ColumnAmount        = 5;
@@ -92,11 +95,21 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         u32 ActiveBlockSize   = LevelEntity->Configuration.ActiveBlockSize;
         u32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
         
-        //
-        // Figure initialization
-        //
-        FigureEntity = (figure_entity*)malloc(sizeof(figure_entity));
-        Assert(FigureEntity);
+        /* Change values below to be time configured*/
+        
+        LevelEntity->Configuration.StartUpTimeToFinish = 2.0f;
+        LevelEntity->Configuration.RotationVel         = 600.0f;
+        LevelEntity->Configuration.StartAlphaPerSec    = 500.0f;
+        LevelEntity->Configuration.FlippingAlphaPerSec = 1000.0f;
+        
+        LevelEntity->Configuration.GridScalePerSec     = (ActiveBlockSize * ((RowAmount + ColumnAmount) - 1)) / LevelEntity->Configuration.StartUpTimeToFinish;
+        
+        /* figure_entity initialization */
+        
+        LevelEntity->FigureEntity= (figure_entity*)malloc(sizeof(figure_entity));
+        Assert(LevelEntity->FigureEntity);
+        
+        figure_entity* FigureEntity = LevelEntity->FigureEntity;
         
         FigureEntity->FigureAmount         = 0;
         FigureEntity->FigureAmountReserved = FigureAmountReserve;
@@ -131,12 +144,17 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->FigureOrder = (u32*)malloc(sizeof(u32) * FigureEntity->FigureAmountReserved);
         Assert(FigureEntity->FigureOrder);
         
-        for(u32 i = 0; i < FigureEntity->FigureAmountReserved; ++i) FigureEntity->FigureOrder[i] = i;
+        for(u32 i = 0; i < FigureEntity->FigureAmountReserved; ++i) 
+        {
+            FigureEntity->FigureOrder[i] = i;
+        }
         
-        // Grid initialization
-        GridEntity  = (grid_entity *) malloc(sizeof(grid_entity));
-        Assert(GridEntity);
+        /* grid_entity initialization */
         
+        LevelEntity->GridEntity  = (grid_entity *) malloc(sizeof(grid_entity));
+        Assert(LevelEntity->GridEntity);
+        
+        grid_entity *GridEntity = LevelEntity->GridEntity;
         GridEntity->RowAmount           = RowAmount;
         GridEntity->ColumnAmount        = ColumnAmount;
         GridEntity->StickUnitsAmount    = FigureEntity->FigureAmount;
@@ -147,9 +165,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->GridArea.x = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
         GridEntity->GridArea.y = (Buffer->Height - FigureEntity->FigureArea.h) / 2 - (GridEntity->GridArea.h / 2);
         
-        //
-        // UnitField initialization
-        //
+        
+        /* UnitField initialization */
+        
         GridEntity->UnitField = (s32*)calloc(GridEntity->ColumnAmount * GridEntity->RowAmount, sizeof(s32));
         Assert(GridEntity->UnitField);
         for (u32 Row = 0; Row < GridEntity->RowAmount; ++Row)
@@ -171,20 +189,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             }
         }
         
-        LevelEntity->Configuration.StartUpTimeToFinish = 2.0f;
-        
-        /* Change values below to be time configured*/
-        LevelEntity->Configuration.RotationVel         = 600.0f;
-        LevelEntity->Configuration.StartAlphaPerSec    = 500.0f;
-        LevelEntity->Configuration.FlippingAlphaPerSec = 1000.0f;
-        
-        LevelEntity->Configuration.GridScalePerSec     = (ActiveBlockSize * ((RowAmount + ColumnAmount) - 1)) / LevelEntity->Configuration.StartUpTimeToFinish;
-        
         FigureEntityAlignHorizontally(FigureEntity, InActiveBlockSize);
         
-        //
-        // StickUnits initialization
-        //
+        /* StickUnits initialization */
+        
         GridEntity->StickUnits = (sticked_unit*)calloc(sizeof(sticked_unit), FigureEntity->FigureAmountReserved);
         Assert(GridEntity->StickUnits);
         for (u32 i = 0; i < FigureEntity->FigureAmountReserved; ++i)
@@ -193,19 +201,13 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             GridEntity->StickUnits[i].IsSticked = false;
         }
         
-        //
-        // MovingBlocks initialization
-        //
+        /* MovingBlocks initialization */
         
         GridEntity->MovingBlocks = (moving_block*)malloc(sizeof(moving_block) * MovingBlocksAmountReserved);
         Assert(GridEntity->MovingBlocks);
         
-        //GridEntityAddMovingBlock(GridEntity, 1, 3, false, true, ActiveBlockSize);
-        //GridEntityAddMovingBlock(GridEntity, 3, 2, true,  false, ActiveBlockSize);
         
-        //
-        // GridEntity texture initialization
-        //
+        /* GridEntity texture initialization */
         
         GridEntity->NormalSquareTexture     = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
         GridEntity->VerticalSquareTexture   = GetTexture(Memory, "o_s.png", Buffer->Renderer);
@@ -213,59 +215,69 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         LevelEntityUpdateLevelNumber(LevelEntity, Memory, Buffer);
         
-        // Level Editor initialization
-        LevelEditorInit(LevelEntity, Memory, Buffer);
-        LevelEditorUpdateLevelStats(Memory->LevelEditor, LevelEntity->LevelNumber, Memory->CurrentLevelIndex, Buffer);
+        /* menu_entity initialization */ 
         
-        /* Menu Editor initialization */ 
-        MenuEditorInit(Memory->MenuEntity, Memory, Buffer);
+        menu_entity *MenuEntity  = (menu_entity*) (((char*)Memory->LocalMemoryStorage) + (sizeof(level_entity))); 
+        Assert(MenuEntity);
         
-        Memory->Sound = GetSound(Memory, "chunk.wav");
-        Assert(Memory->Sound);
+        MenuInit(MenuEntity, Memory, Buffer);
+        
+        /* EditorMemoryStorage allocation */
+        
+        Memory->EditorMemoryStorage = malloc(sizeof(level_editor) + sizeof(menu_editor));
+        Assert(Memory->EditorMemoryStorage);
+        
+        level_editor *LevelEditor = (level_editor *) Memory->EditorMemoryStorage;
+        menu_editor  *MenuEditor  = (menu_editor *) (((char*)Memory->EditorMemoryStorage) + (sizeof(level_editor))); 
+        
+        /* level_editor initialization */ 
+        LevelEditorInit(LevelEditor, LevelEntity, Memory, Buffer);
+        LevelEditorUpdateLevelStats(LevelEditor, LevelEntity->LevelNumber, Memory->CurrentLevelIndex, Buffer);
+        /* menu_editor initialization */ 
+        MenuEditorInit(MenuEditor, MenuEntity, Memory, Buffer);
         
         Memory->IsInitialized = true;
-        printf("memory init!\n");
+        printf("Memory has been initialized!\n");
     }
     
-    /*
-        CurrentTimeTick  = SDL_GetTicks();
-        
-        r32 TimeElapsed = (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
-        PreviousTimeTick = CurrentTimeTick;
-        */
+    level_entity *LevelEntity  = (level_entity *)Memory->LocalMemoryStorage;
+    menu_entity  *MenuEntity   = (menu_entity*) (((char*)Memory->LocalMemoryStorage) + (sizeof(level_entity))); 
+    
+    level_editor *LevelEditor = (level_editor *) Memory->EditorMemoryStorage;
+    menu_editor  *MenuEditor  = (menu_editor *) (((char*)Memory->EditorMemoryStorage) + (sizeof(level_editor))); 
+    
     
     if(Input->Keyboard.Escape.EndedDown)
     {
-        if (!Memory->ToggleMenu) Memory->ToggleMenu = true;
-        else Memory->ToggleMenu = false;
+        if (!Memory->ToggleMenu) 
+        {
+            Memory->ToggleMenu = true;
+        }
+        else
+        {
+            Memory->ToggleMenu = false;
+        }
     }
     
     if(Memory->ToggleMenu)
     {
-        MenuUpdateAndRender(Memory->MenuEntity, Memory, Input, Buffer);
-        MenuEditorUpdateAndRender(Memory, Input, Buffer);
+        MenuUpdateAndRender(MenuEntity, Memory, Input, Buffer);
+        MenuEditorUpdateAndRender(MenuEditor, MenuEntity, Memory, Input, Buffer);
     }
     else
     {
-        GameUpdateEvent(Input, LevelEntity, LevelEntity->Configuration.ActiveBlockSize, LevelEntity->Configuration.InActiveBlockSize, Buffer->Width, Buffer->Height);
-        
-        //PrintArray2D(GridEntity->UnitField, GridEntity->RowAmount, GridEntity->ColumnAmount);
+        //TODO(Max): Make events to be updated in LevelEntityUpdateAndRender
+        GameUpdateEvent(Input, LevelEntity, 
+                        LevelEntity->Configuration.ActiveBlockSize,
+                        LevelEntity->Configuration.InActiveBlockSize, 
+                        Buffer->Width, Buffer->Height);
         
         game_rect ScreenArea = { 0, 0, Buffer->Width, Buffer->Height};
         DEBUGRenderQuadFill(Buffer, &ScreenArea, { 42, 6, 21 }, 255);
         
         LevelEntityUpdateAndRender(Buffer, Memory, LevelEntity, Input->TimeElapsedMs);
-        LevelEditorUpdateAndRender(Memory->LevelEditor, LevelEntity, Memory, Buffer, Input);
-        
-        //printf("TimeElapsed = %f\n", TimeElapsed);
-        //printf("LevelEntity->LevelNumber = %d\n", LevelEntity->LevelNumber);
-        
-        //PrintArray2D(LevelEntity->GridEntity->UnitField, LevelEntity->GridEntity->RowAmount, LevelEntity->GridEntity->ColumnAmount);
+        LevelEditorUpdateAndRender(LevelEditor, LevelEntity, Memory, Buffer, Input);
     }
-    
-    //printf("Memory->CurrentLevelIndex = %d\n", Memory->CurrentLevelIndex);
-    
-    
     
     return(ShouldQuit);
 }

@@ -1,4 +1,7 @@
 
+#include "assets.h"
+#include "entity.h"
+
 static void
 DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, u32 BlockSize, SDL_Color color, u8 Alpha)
 {
@@ -18,10 +21,8 @@ DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, u32 B
         SDL_RenderFillRect(Buffer->Renderer, &Rect);
     }
     
-    //SDL_SetRenderDrawColor(Buffer->Renderer, 255, 255, 255, 255);
     Rect.x = Entity->Center.x - (Rect.w / 2);
     Rect.y = Entity->Center.y - (Rect.h / 2);
-    //SDL_RenderDrawRect(Buffer->Renderer, &Rect);
     
     SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
 }
@@ -217,8 +218,10 @@ FigureUnitInitFigure(figure_unit *FigureUnit,
                      game_memory *Memory, 
                      game_offscreen_buffer *Buffer)
 {
-    u32 ActiveBlockSize   = Memory->LevelEntity.Configuration.ActiveBlockSize;
-    u32 InActiveBlockSize = Memory->LevelEntity.Configuration.InActiveBlockSize;
+    level_entity *LevelEntity = (level_entity*)Memory->LocalMemoryStorage;
+    
+    u32 ActiveBlockSize   = LevelEntity->Configuration.ActiveBlockSize;
+    u32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
     
     FigureUnit->IsIdle       = true;
     FigureUnit->IsStick      = false;
@@ -1113,10 +1116,12 @@ LevelEntityUpdateLevelNumber(level_entity *LevelEntity, game_memory *Memory, gam
 }
 
 static void
-LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity, 
-                                       s32 Index, bool IsStarted,
-                                       game_memory *Memory, game_offscreen_buffer *Buffer)
+LevelEntityUpdateLevelEntityFromMemory(game_memory *Memory, s32 Index, bool IsStarted,
+                                       game_offscreen_buffer *Buffer)
 {
+    level_entity *LevelEntity = (level_entity *)Memory->LocalMemoryStorage;
+    level_memory *LevelMemory = (level_memory *)Memory->GlobalMemoryStorage;
+    
     /* level_entity deallocating memory */
     
     if(LevelEntity->LevelNumberTexture)
@@ -1177,15 +1182,15 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     }
     
     
-    u32 RowAmount    = Memory->LevelMemory[Index].RowAmount;
-    u32 ColumnAmount = Memory->LevelMemory[Index].ColumnAmount;
+    u32 RowAmount    = LevelMemory[Index].RowAmount;
+    u32 ColumnAmount = LevelMemory[Index].ColumnAmount;
     
     LevelEntity->Configuration.PixelsDrawn  = 0;
     LevelEntity->Configuration.PixelsToDraw = 0;
     LevelEntity->Configuration.StartUpTimeElapsed  = 0.0f;
     LevelEntity->Configuration.StartUpTimeToFinish = 1.0f;
     
-    LevelEntity->LevelNumber   = Memory->LevelMemory[Index].LevelNumber;
+    LevelEntity->LevelNumber   = LevelMemory[Index].LevelNumber;
     LevelEntity->LevelStarted  = IsStarted;
     LevelEntity->LevelFinished = false;
     
@@ -1215,9 +1220,9 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     LevelEntity->FigureEntity->FigureUnit = (figure_unit *) malloc(sizeof(figure_unit) * LevelEntity->FigureEntity->FigureAmountReserved);
     Assert(LevelEntity->FigureEntity->FigureUnit);
     
-    for(u32 i = 0; i < Memory->LevelMemory[Index].FigureAmount; ++i)
+    for(u32 i = 0; i < LevelMemory[Index].FigureAmount; ++i)
     {
-        FigureUnitAddNewFigure(LevelEntity->FigureEntity, Memory->LevelMemory[Index].Figures[i].Form, Memory->LevelMemory[Index].Figures[i].Type, Memory->LevelMemory[Index].Figures[i].Angle, Memory, Buffer);
+        FigureUnitAddNewFigure(LevelEntity->FigureEntity, LevelMemory[Index].Figures[i].Form, LevelMemory[Index].Figures[i].Type, LevelMemory[Index].Figures[i].Angle, Memory, Buffer);
     }
     
     LevelEntity->FigureEntity->FigureOrder = (u32 *) malloc(sizeof(u32) * LevelEntity->FigureEntity->FigureAmountReserved);
@@ -1252,7 +1257,7 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
         for(s32 Col = 0; Col < ColumnAmount; ++Col)
         {
             s32 UnitIndex = (Row * ColumnAmount) + Col;
-            LevelEntity->GridEntity->UnitField[UnitIndex] = Memory->LevelMemory[Index].UnitField[UnitIndex];
+            LevelEntity->GridEntity->UnitField[UnitIndex] = LevelMemory[Index].UnitField[UnitIndex];
         }
     }
     
@@ -1289,12 +1294,12 @@ LevelEntityUpdateLevelEntityFromMemory(level_entity *LevelEntity,
     LevelEntity->GridEntity->MovingBlocks = (moving_block *) malloc(sizeof(moving_block) * LevelEntity->GridEntity->MovingBlocksAmountReserved);
     Assert(LevelEntity->GridEntity->MovingBlocks);
     
-    for(u32 i = 0; i < Memory->LevelMemory[Index].MovingBlocksAmount; ++i)
+    for(u32 i = 0; i < LevelMemory[Index].MovingBlocksAmount; ++i)
     {
-        u32 RowNumber   = Memory->LevelMemory[Index].MovingBlocks[i].RowNumber;
-        u32 ColNumber   = Memory->LevelMemory[Index].MovingBlocks[i].ColNumber;
-        bool IsVertical = Memory->LevelMemory[Index].MovingBlocks[i].IsVertical;
-        bool MoveSwitch = Memory->LevelMemory[Index].MovingBlocks[i].MoveSwitch;
+        u32 RowNumber   = LevelMemory[Index].MovingBlocks[i].RowNumber;
+        u32 ColNumber   = LevelMemory[Index].MovingBlocks[i].ColNumber;
+        bool IsVertical = LevelMemory[Index].MovingBlocks[i].IsVertical;
+        bool MoveSwitch = LevelMemory[Index].MovingBlocks[i].MoveSwitch;
         
         GridEntityAddMovingBlock(LevelEntity->GridEntity, RowNumber, ColNumber, IsVertical, MoveSwitch, ActiveBlockSize);
     }
@@ -1377,9 +1382,6 @@ LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
                     
                     if(i == (Count - 1))
                     {
-                        Mix_PlayChannel( -1, Memory->Sound, 0);
-                        printf("Mix_PlayChannel\n");
-                        
                         PixelsDrawn += MaximumBlockSize;
                         PixelsToDraw = (((StartUpTimeElapsed) - TimeElapsed) * PixelScalePerSec);
                         
@@ -1751,7 +1753,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
             //TODO(Max): Do we need that LevelFinished thing???
             LevelEntity->LevelFinished = true;
             Memory->CurrentLevelIndex = NextLevelIndex;
-            LevelEntityUpdateLevelEntityFromMemory(LevelEntity, NextLevelIndex, false, Memory, Buffer);
+            LevelEntityUpdateLevelEntityFromMemory(Memory, NextLevelIndex, false, Buffer);
             
             return;
         }

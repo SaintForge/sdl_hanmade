@@ -350,7 +350,7 @@ int main(int argc, char **argv)
             printf("BUILDED!!!\n");
             printf("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n");
 #endif
-            game_memory Memory = {0};
+            game_memory Memory = {};
             
             u64 TotalAssetSize = SDLSizeOfBinaryFile("package1.bin");
             SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread",
@@ -366,7 +366,6 @@ int main(int argc, char **argv)
                 
                 game_input Input = {};
                 Input.TimeElapsedMs = TimeElapsed;
-                //printf("TimeElapsed = %f\n", TimeElapsed);
                 
                 SDL_Event Event;
                 if(SDLHandleEvent(&Event, &Input))
@@ -386,13 +385,12 @@ int main(int argc, char **argv)
                     {
                         IsRunning = false;
                         
-                        free(Memory.Assets);
+                        free(Memory.AssetStorage);
                     }
                 }
                 
                 SDLUpdateWindow(Window, Renderer, &BackBuffer);
             }
-            
         }
     }
     

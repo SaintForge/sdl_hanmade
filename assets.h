@@ -11,52 +11,52 @@
 
 enum asset_type
 {
-     AssetType_None,
-     AssetType_Bitmap,
-     AssetType_Sound,
-     AssetType_Music
+    AssetType_None,
+    AssetType_Bitmap,
+    AssetType_Sound,
+    AssetType_Music
 };
 
 struct asset_audio_header
 {
-     bool IsMusic;
+    bool IsMusic;
 };
 
 struct asset_bitmap_header
 {
-     u32 Width;
-     u32 Height;
-     u32 Pitch;
-     u32 Rmask;
-     u32 Gmask;
-     u32 Bmask;
-     u32 Amask;
-     u8 BytesPerPixel;
-     u8 BitsPerPixel;
+    u32 Width;
+    u32 Height;
+    u32 Pitch;
+    u32 Rmask;
+    u32 Gmask;
+    u32 Bmask;
+    u32 Amask;
+    u8 BytesPerPixel;
+    u8 BitsPerPixel;
 };
 
 struct asset_audio
 {
-     asset_audio_header Header;
-     u8 *Data;
+    asset_audio_header Header;
+    u8 *Data;
 };
 
 struct asset_bitmap
 {
-     asset_bitmap_header Header;
-     void *Data;
+    asset_bitmap_header Header;
+    void *Data;
 };
 
 struct asset_header
 {
-     char AssetName[32];
-     u32 AssetSize;
-     asset_type AssetType;
-     union
-     {
-          asset_audio  Audio;
-          asset_bitmap Bitmap;
-     };
+    char AssetName[32];
+    u32 AssetSize;
+    asset_type AssetType;
+    union
+    {
+        asset_audio  Audio;
+        asset_bitmap Bitmap;
+    };
 };
 
 struct binary_header
@@ -71,35 +71,28 @@ static game_texture* GetTexture(game_memory *&Memory, char* FileName, SDL_Render
 
 static void FreeSound(game_sound *&Sound)
 {
-     if(Sound)
-     {
-          Mix_FreeChunk(Sound);
-     }
+    if(Sound)
+    {
+        Mix_FreeChunk(Sound);
+    }
 }
 
 static void FreeMusic(game_music *&Music)
 {
-     if(Music)
-     {
-          Mix_FreeMusic(Music);
-     }
+    if(Music)
+    {
+        Mix_FreeMusic(Music);
+    }
 }
 
 static void FreeTexture(game_texture *&Texture)
 {
-     if(Texture)
-     {
-          SDL_DestroyTexture(Texture);
-     }
+    if(Texture)
+    {
+        SDL_DestroyTexture(Texture);
+    }
 }
 
-static void
-        SaveLevelMemoryToFile();
-    static void
-        LoadLevelMemoryFromFile();
-    
-    static void 
-        SaveLevelToMemory(game_memory *Memory, level_entity* LevelEntity, u32 Index);
-    
+
 #define ASSERT_GAME_H
 #endif

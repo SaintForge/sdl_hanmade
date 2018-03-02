@@ -9,8 +9,6 @@
 
 #if !defined(GAME_H)
 
-#include "entity.h"
-
 #define Assert(Expression) if(!(Expression)) { LogErrorLine( __FILE__, __LINE__); *(int *)0 = 0;  }
 
 void LogErrorLine(const char* Message, int Line)
@@ -77,32 +75,24 @@ struct game_input
     game_keyboard_input Keyboard;
 };
 
-
 struct game_memory
 {
-    //TODO(Max): Change to raw data
-    level_entity LevelEntity;
-    menu_entity *MenuEntity;
-    
-    level_editor *LevelEditor;
-    menu_editor *MenuEditor;
-    
-    void *Assets;
-    u32 AssetsSpaceAmount;
-    
-    level_memory* LevelMemory;
     u32 CurrentLevelIndex;
     u32 LevelMemoryAmount;
     u32 LevelMemoryReserved;
     
+    void *LocalMemoryStorage;
+    void *GlobalMemoryStorage;
+    void *EditorMemoryStorage;
+    
+    void *AssetStorage;
+    u32 AssetsSpaceAmount;
+    
     // TODO(Max): This should not be here!!!
-    game_music *Music;
-    game_sound *Sound;
     game_font *LevelNumberFont;
     
     bool IsInitialized;
     bool AssetsInitialized;
-    bool LevelMemoryInitialized;
     bool ToggleMenu;
 };
 
