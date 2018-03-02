@@ -50,6 +50,7 @@
 -	4. Set hotkeys for accessing the editor
 -	5. Separate editor code from the game code so that no editor code will be in release
 -	6. Make separate binary file for editor assets loading
++	7. Implement sorting selected buttons
 
 BUGS:
 	+ 1. When I want to pick the figure that lies on top of the figure that is sticked
@@ -59,6 +60,6 @@ BUGS:
 	+ 4. When pulling off the figure on the grid sometimes the wrong cell of the grid
 		 gets disappeared
 	+ 5. Sometimes the game crushes whenever I press ~ on loading the level.
-	- 6. Level switch buttons behaviour is wrong when pressing mouse on them
+	- 6. Level button switch behaviour is wrong when pressing mouse on it.
 	- 7. There is some problem with grid animation when amount of row is less than amoun of columns.
 
