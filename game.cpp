@@ -8,12 +8,12 @@
 //
 
 #include "game_math.h"
-#include "game.h"
-#include "assets.h"
-//#include "menu.h"
+#include "editor.h"
 
-#include "entity.cpp"
+#include "game.h"
+
 #include "assets.cpp"
+#include "entity.cpp"
 #include "menu.cpp"
 #include "editor.cpp"
 
@@ -52,14 +52,12 @@ GameCopyImageToBuffer(game_bitmap* GameBitmap, u32 X, u32 Y,
 }
 #endif
 
-
-
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
     bool ShouldQuit = false;
     
-    level_entity  *LevelEntity     = &Memory->LevelEntity;
+    level_entity  *LevelEntity   = &Memory->LevelEntity;
     grid_entity   *&GridEntity   = LevelEntity->GridEntity;
     figure_entity *&FigureEntity = LevelEntity->FigureEntity;
     
@@ -219,13 +217,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         LevelEditorInit(LevelEntity, Memory, Buffer);
         LevelEditorUpdateLevelStats(Memory->LevelEditor, LevelEntity->LevelNumber, Memory->CurrentLevelIndex, Buffer);
         
-        //Memory->Music = GetMusic(Memory, "amb_ending_water.ogg");
-        //Assert(Memory->Music);
-        //Mix_PlayMusic(Memory->Music, -1);
+        /* Menu Editor initialization */ 
+        MenuEditorInit(Memory->MenuEntity, Memory, Buffer);
         
         Memory->Sound = GetSound(Memory, "chunk.wav");
         Assert(Memory->Sound);
-        
         
         Memory->IsInitialized = true;
         printf("memory init!\n");
@@ -247,6 +243,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     if(Memory->ToggleMenu)
     {
         MenuUpdateAndRender(Memory->MenuEntity, Memory, Input, Buffer);
+        MenuEditorUpdateAndRender(Memory, Input, Buffer);
     }
     else
     {

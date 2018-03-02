@@ -787,20 +787,6 @@ GameUpdateEvent(game_input *Input, level_entity *GameState,
     r32 BlockRatio  = 0;
     u32 ActiveIndex = FigureEntity->FigureActive;
     
-    //NOTE(Max): This is for the switch between editor and the game
-    if(Input->Keyboard.BackQuote.EndedDown)
-    {
-        if(!GameState->LevelPaused)
-        {
-            GameState->LevelPaused = true;
-            RestartLevelEntity(GameState);
-        }
-        else
-        {
-            GameState->LevelPaused = false;
-        }
-    }
-    
     if(GameState->LevelPaused)
     {
         return;
@@ -1755,18 +1741,24 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
     
     if(IsAllSticked)
     {
-        Memory->CurrentLevelIndex = Memory->CurrentLevelIndex < Memory->LevelMemoryAmount ? Memory->CurrentLevelIndex + 1 : Memory->CurrentLevelIndex;
+        /* Level is completed */
         
-        LevelEntityUpdateLevelEntityFromMemory(LevelEntity, Memory->CurrentLevelIndex, false, Memory, Buffer);
-        
-        //TODO(Max): Move this call to level_editor file so that it catches this itself
-        LevelEditorChangeGridCounters(Memory->LevelEditor, 
-                                      LevelEntity->GridEntity->RowAmount, LevelEntity->GridEntity->ColumnAmount, 
-                                      Buffer);
-        
-        // Level is completed.
-        return;
-        
+        s32 NextLevelIndex = Memory->CurrentLevelIndex + 1;
+        if(NextLevelIndex < Memory->LevelMemoryAmount)
+        {
+            /* Switching to the next level*/
+            
+            //TODO(Max): Do we need that LevelFinished thing???
+            LevelEntity->LevelFinished = true;
+            Memory->CurrentLevelIndex = NextLevelIndex;
+            LevelEntityUpdateLevelEntityFromMemory(LevelEntity, NextLevelIndex, false, Memory, Buffer);
+            
+            return;
+        }
+        else
+        {
+            /* Staying at the same level */
+        }
     }
     
     AreaQuad.w = ActiveBlockSize;

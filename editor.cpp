@@ -255,6 +255,7 @@ LevelEditorChangeGridCounters(level_editor *LevelEditor,
     SDL_FreeSurface(Surface);
 }
 
+
 static void 
 LevelEditorUpdateLevelStats(level_editor *LevelEditor, 
                             s32 LevelNumber, s32 LevelIndex, game_offscreen_buffer *Buffer)
@@ -267,9 +268,8 @@ LevelEditorUpdateLevelStats(level_editor *LevelEditor,
     sprintf(LevelNumberString, "%d", LevelNumber);
     sprintf(LevelIndexString, "%d", LevelIndex);
     
-    //
-    // level index texture init
-    //
+    /* Level Index Texture initialization */
+    
     {
         char TmpBuffer[128] = {};
         strcpy(TmpBuffer, "level index      = ");
@@ -294,9 +294,9 @@ LevelEditorUpdateLevelStats(level_editor *LevelEditor,
         SDL_FreeSurface(Surface);
         
     }
-    //
-    // level number texture init
-    //
+    
+    /* Level Number Texture initialization */
+    
     {
         char TmpBuffer[128] = {};
         strcpy(TmpBuffer, "level number = ");
@@ -320,7 +320,6 @@ LevelEditorUpdateLevelStats(level_editor *LevelEditor,
         
         SDL_FreeSurface(Surface);
     }
-    
 }
 
 
@@ -367,36 +366,6 @@ LevelEditorRenderButton(game_rect *ButtonQuad, game_rect *ImageQuad,
     {
         *Accumulator += Offset;
     }
-}
-
-static void
-GameMakeTextureFromString(game_texture *&Texture, 
-                          char* Text, 
-                          game_rect *TextureQuad, 
-                          game_font *&Font, 
-                          game_color Color, 
-                          game_offscreen_buffer *Buffer)
-{
-    if(!Text || !Font) return;
-    
-    if(Texture)
-    {
-        SDL_DestroyTexture(Texture);
-    }
-    
-    game_surface *Surface = TTF_RenderUTF8_Blended(Font, Text, Color);
-    Assert(Surface);
-    
-    if(TextureQuad)
-    {
-        TextureQuad->w = Surface->w;
-        TextureQuad->h = Surface->h;
-    }
-    
-    Texture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
-    Assert(Texture);
-    
-    SDL_FreeSurface(Surface);
 }
 
 static void
@@ -473,13 +442,29 @@ GridEntityNewGrid(game_offscreen_buffer *Buffer, level_entity *LevelEntity,
     
 }
 
-
 static void
 LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity, 
                            game_memory *Memory, game_offscreen_buffer *Buffer, game_input *Input)
 {
-    if(!LevelEntity->LevelPaused) return;
+    if(Input->Keyboard.BackQuote.EndedDown)
+    {
+        if(!LevelEditor->EditorMode)
+        {
+            LevelEditor->EditorMode  = true;
+            LevelEntity->LevelPaused = true;
+            RestartLevelEntity(LevelEntity);
+        }
+        else
+        {
+            LevelEditor->EditorMode  = false;
+            LevelEntity->LevelPaused = false;
+        }
+    }
     
+    if(!LevelEditor->EditorMode) 
+    {
+        return;
+    }
     
     game_rect GridArea   = LevelEntity->GridEntity->GridArea;
     game_rect FigureArea = LevelEntity->FigureEntity->FigureArea;
@@ -489,6 +474,14 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     u32 ColAmount     = LevelEntity->GridEntity->ColumnAmount;
     s32 NewIndex      = LevelEditor->SelectedFigure;
     s32 CurrentLevelIndex = Memory->CurrentLevelIndex;
+    
+    if(LevelEditor->CurrentLevelIndex != CurrentLevelIndex)
+    {
+        LevelEditor->CurrentLevelIndex = CurrentLevelIndex;
+        LevelEditorChangeGridCounters(LevelEditor, RowAmount, ColAmount, Buffer);
+        LevelEditorUpdateLevelStats(Memory->LevelEditor, Memory->LevelEntity.LevelNumber, CurrentLevelIndex, Buffer);
+        
+    }
     
     if(LevelEditor->LevelNumberSelected)
     {
@@ -560,12 +553,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             
             LevelEntity->LevelNumberShadowQuad.x = LevelEntity->LevelNumberQuad.x + 3;
             LevelEntity->LevelNumberShadowQuad.y = LevelEntity->LevelNumberQuad.y + 3;
-            
-            printf("LevelNumberBufferIndex = %d\n", LevelEditor->LevelNumberBufferIndex);
-            
-            printf("LevelNumberBuffer = %s\n", LevelEditor->LevelNumberBuffer);
         }
-        
     }
     
     if(Input->Keyboard.Up.EndedDown)
@@ -586,7 +574,6 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     }
     else if(Input->Keyboard.Q_Button.EndedDown)
     {
-        //s32 PrevLevelNumber = CurrentLevel - 1;
         s32 PrevLevelNumber = CurrentLevelIndex - 1;
         if(PrevLevelNumber >= 0)
         {
@@ -606,7 +593,6 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     }
     else if(Input->Keyboard.E_Button.EndedDown)
     {
-        //s32 NextLevelNumber = CurrentLevel + 1;
         s32 NextLevelNumber = CurrentLevelIndex + 1;
         if(NextLevelNumber < Memory->LevelMemoryAmount)
         {
@@ -1059,4 +1045,188 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         DEBUGRenderQuadFill(Buffer, &LevelEntity->LevelNumberQuad, {255, 0, 0}, 150);
     }
     
+}
+
+
+
+static void
+MenuEditorInit(menu_entity *MenuEntity, game_memory *Memory, game_offscreen_buffer *Buffer)
+{
+    Memory->MenuEditor = (menu_editor *) malloc(sizeof(menu_editor));
+    Assert(Memory->MenuEditor);
+    
+    menu_editor *MenuEditor = Memory->MenuEditor;
+    MenuEditor->DeleteBarOn = false;
+    MenuEditor->EditorMode  = false;
+    
+    MenuMakeTextButton("New", 0, 0, 100, 50,
+                       &MenuEditor->NewLevelButtonQuad,
+                       &MenuEditor->NewLevelTextureQuad,
+                       MenuEditor->NewLevelTexture,
+                       Memory->LevelNumberFont,
+                       {255, 255, 255}, Buffer);
+    
+    MenuMakeTextButton("Load", 0, 50, 100, 50,
+                       &MenuEditor->LoadButtonQuad,
+                       &MenuEditor->LoadButtonTextureQuad,
+                       MenuEditor->LoadButtonTexture,
+                       Memory->LevelNumberFont,
+                       {255, 255, 255}, Buffer);
+    
+    MenuMakeTextButton("Save", 0, 100, 100, 50,
+                       &MenuEditor->SaveButtonQuad,
+                       &MenuEditor->SaveButtonTextureQuad,
+                       MenuEditor->SaveButtonTexture,
+                       Memory->LevelNumberFont,
+                       {255, 255, 255}, Buffer);
+    
+    MenuMakeTextButton("Sort", 0, 150, 100, 50,
+                       &MenuEditor->SortButtonQuad,
+                       &MenuEditor->SortButtonTextureQuad,
+                       MenuEditor->SortButtonTexture,
+                       Memory->LevelNumberFont,
+                       {255, 255, 255}, Buffer);
+    
+    MenuMakeTextButton("y", 0, 0, 30, 30,
+                       &MenuEditor->DeleteButtonQuad,
+                       &MenuEditor->DeleteButtonTextureQuad,
+                       MenuEditor->DeleteButtonTexture,
+                       Memory->LevelNumberFont,
+                       {255, 255, 255}, Buffer);
+    
+    MenuMakeTextButton("n", 0, 0, 30, 30,
+                       &MenuEditor->CancelButtonQuad,
+                       &MenuEditor->CancelButtonTextureQuad,
+                       MenuEditor->CancelButtonTexture,
+                       Memory->LevelNumberFont,
+                       {255, 255, 255}, Buffer);
+}
+
+static void
+MenuEditorUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
+{
+    menu_editor *&MenuEditor = Memory->MenuEditor;
+    menu_entity *&MenuEntity = Memory->MenuEntity;
+    
+    if(Input->Keyboard.BackQuote.EndedDown)
+    {
+        if(!MenuEditor->EditorMode)
+        {
+            MenuEditor->EditorMode = true;
+            MenuEntity->IsPaused = true;
+        }
+        else
+        {
+            MenuEditor->EditorMode = false;
+            MenuEntity->IsPaused = false;
+        }
+    }
+    
+    if(!MenuEditor->EditorMode)
+    {
+        return;
+    }
+    
+    if(Input->MouseButtons[0].EndedDown)
+    {
+        if(IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEditor->NewLevelButtonQuad))
+        {
+            if(MenuEntity->ButtonsAmount < MenuEntity->ButtonsAmountReserved)
+            {
+                MenuEntity->ButtonsAmount += 1;
+                Memory->LevelMemoryAmount += 1;
+                
+                MenuEntityAlignButtons(MenuEntity, Buffer->Width, Buffer->Height);
+            }
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEditor->LoadButtonQuad))
+        {
+            LoadLevelMemoryFromFile("package2.bin", Memory);
+            MenuLoadButtonsFromMemory(MenuEntity, Memory, Buffer);
+        }
+        if(IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEditor->SaveButtonQuad))
+        {
+            SaveLevelMemoryToFile(Memory);
+        }
+        if(IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEditor->SortButtonQuad))
+        {
+            MenuEntitySortButtons(MenuEntity, Memory);
+            MenuLoadButtonsFromMemory(MenuEntity, Memory, Buffer);
+        }
+        
+        if(MenuEditor->DeleteBarOn)
+        {
+            if(IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEditor->DeleteButtonQuad))
+            {
+                MenuDeleteLevel(MenuEntity, MenuEntity->ButtonIndex,
+                                Memory, Buffer);
+                Memory->CurrentLevelIndex -= 1;
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEditor->CancelButtonQuad))
+            {
+            }
+            
+            MenuEditor->DeleteBarOn = false;
+        }
+    }
+    if(Input->MouseButtons[1].EndedDown)
+    {
+        s32 Index = -1;
+        
+        u32 BeginIndex = MenuEntity->TargetIndex * 20;
+        u32 EndIndex   = BeginIndex + 20;
+        
+        for(u32 i = BeginIndex; i < EndIndex; ++i)
+        {
+            if(IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEntity->Buttons[i].ButtonQuad))
+            {
+                Index = i;
+                break;
+            }
+        }
+        
+        if(Index >= 0)
+        {
+            MenuEditor->DeleteBarOn = true;
+            
+            MenuEditor->DeleteButtonQuad.x = MenuEntity->Buttons[Index].ButtonQuad.x;
+            MenuEditor->DeleteButtonQuad.y = MenuEntity->Buttons[Index].ButtonQuad.y;
+            
+            MenuEditor->DeleteButtonTextureQuad.x = MenuEditor->DeleteButtonQuad.x + (MenuEditor->DeleteButtonQuad.w / 2) - (MenuEditor->DeleteButtonTextureQuad.w / 2);
+            MenuEditor->DeleteButtonTextureQuad.y = MenuEditor->DeleteButtonQuad.y + (MenuEditor->DeleteButtonQuad.h / 2) - (MenuEditor->DeleteButtonTextureQuad.h / 2);
+            
+            MenuEditor->CancelButtonQuad.x = MenuEntity->Buttons[Index].ButtonQuad.x + 30;
+            MenuEditor->CancelButtonQuad.y = MenuEntity->Buttons[Index].ButtonQuad.y;
+            
+            MenuEditor->CancelButtonTextureQuad.x = MenuEditor->CancelButtonQuad.x + (MenuEditor->CancelButtonQuad.w / 2) - (MenuEditor->CancelButtonTextureQuad.w / 2);
+            MenuEditor->CancelButtonTextureQuad.y = MenuEditor->CancelButtonQuad.y + (MenuEditor->CancelButtonQuad.h / 2) - (MenuEditor->CancelButtonTextureQuad.h / 2);
+        }
+    }
+    
+    DEBUGRenderQuadFill(Buffer, &MenuEditor->NewLevelButtonQuad, {128, 128, 128}, 100);
+    DEBUGRenderQuad(Buffer, &MenuEditor->NewLevelButtonQuad, {255, 255, 255}, 255);
+    GameRenderBitmapToBuffer(Buffer, MenuEditor->NewLevelTexture, &MenuEditor->NewLevelTextureQuad);
+    
+    DEBUGRenderQuadFill(Buffer, &MenuEditor->LoadButtonQuad, {128, 128, 128}, 100);
+    DEBUGRenderQuad(Buffer, &MenuEditor->LoadButtonQuad, {255, 255, 255}, 255);
+    GameRenderBitmapToBuffer(Buffer, MenuEditor->LoadButtonTexture, &MenuEditor->LoadButtonTextureQuad);
+    
+    DEBUGRenderQuadFill(Buffer, &MenuEditor->SaveButtonQuad, {128, 128, 128}, 100);
+    DEBUGRenderQuad(Buffer, &MenuEditor->SaveButtonQuad, {255, 255, 255}, 255);
+    GameRenderBitmapToBuffer(Buffer, MenuEditor->SaveButtonTexture, &MenuEditor->SaveButtonTextureQuad);
+    
+    DEBUGRenderQuadFill(Buffer, &MenuEditor->SortButtonQuad, {128, 128, 128}, 100);
+    DEBUGRenderQuad(Buffer, &MenuEditor->SortButtonQuad, {255, 255, 255}, 255);
+    GameRenderBitmapToBuffer(Buffer, MenuEditor->SortButtonTexture, &MenuEditor->SortButtonTextureQuad);
+    
+    if(MenuEditor->DeleteBarOn)
+    {
+        DEBUGRenderQuadFill(Buffer, &MenuEditor->DeleteButtonQuad, {128, 128, 128}, 100);
+        DEBUGRenderQuad(Buffer, &MenuEditor->DeleteButtonQuad, {255, 255, 255}, 255);
+        GameRenderBitmapToBuffer(Buffer, MenuEditor->DeleteButtonTexture, &MenuEditor->DeleteButtonTextureQuad);
+        
+        DEBUGRenderQuadFill(Buffer, &MenuEditor->CancelButtonQuad, {128, 128, 128}, 100);
+        DEBUGRenderQuad(Buffer, &MenuEditor->CancelButtonQuad, {255, 255, 255}, 255);
+        GameRenderBitmapToBuffer(Buffer, MenuEditor->CancelButtonTexture, &MenuEditor->CancelButtonTextureQuad);
+    }
 }

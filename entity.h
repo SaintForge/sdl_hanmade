@@ -136,8 +136,7 @@ struct level_entity
     grid_entity   *GridEntity;
     figure_entity *FigureEntity;
     
-    game_texture *
-        LevelNumberTexture;
+    game_texture *LevelNumberTexture;
     game_texture *LevelNumberShadowTexture;
     
     game_rect LevelNumberQuad;
@@ -149,60 +148,6 @@ struct level_entity
     bool LevelStarted;
     bool LevelPaused;
     bool LevelFinished;
-};
-
-
-struct level_editor
-{
-    u32 SelectedFigure;
-    bool ButtonPressed;
-    
-    s32 OldLevelNumber;
-    s32 LevelNumberBufferIndex;
-    char LevelNumberBuffer[4];
-    bool LevelNumberSelected;
-    
-    game_rect ActiveButton;
-    
-    game_rect PrevLevelQuad;
-    game_rect NextLevelQuad;
-    
-    game_rect GridButtonLayer;
-    game_rect GridButtonQuad[6];
-    game_rect GridButton[6];
-    
-    game_rect FigureButtonLayer;
-    game_rect FigureButtonQuad[6];
-    game_rect FigureButton[6];
-    
-    game_rect SaveButtonQuad;
-    game_rect SaveButtonLayer;
-    game_rect LoadButtonQuad;
-    game_rect LoadButtonLayer;
-    
-    game_rect LevelIndexQuad;
-    game_rect LevelNumberQuad;
-    game_rect LevelInfoQuad;
-    
-    game_texture *LevelIndexTexture;
-    game_texture *LevelNumberTexture;
-    
-    game_texture *PrevLevelTexture;
-    game_texture *NextLevelTexture;
-    
-    game_texture *PlusTexture;
-    game_texture *MinusTexture;
-    game_texture *RowTexture;
-    game_texture *ColumnTexture;
-    game_texture *RotateTexture;
-    game_texture *FlipTexture;
-    game_texture *FormTexture;
-    game_texture *TypeTexture;
-    game_texture *SaveTexture;
-    game_texture *LoadTexture;
-    
-    game_font *Font;
-    game_font *StatsFont;
 };
 
 struct figure_memory
@@ -243,24 +188,23 @@ struct menu_button
 
 struct menu_entity
 {
+    bool IsPaused;
     bool IsMoving;
     bool IsAnimating;
-    bool IsShowingDelete;
-    bool IsToBeDeleted;
-    bool DevMode;
     
     u32 ButtonSizeWidth;
     u32 ButtonSizeHeight;
     u32 ButtonsAmount;
     u32 ButtonsAmountReserved;
     
-    s32 OldMouseX;
     r32 MaxVelocity;
     s32 ScrollingTicks;
-    r32 TargetPosition;
+    
     u32 TargetIndex;
     s32 ButtonIndex;
-    u32 NewButtonIndex;
+    
+    s32 MouseOffsetX;
+    s32 MouseOffsetY;
     vector2 Velocity;
     
     game_texture *BackTexture;
@@ -268,9 +212,6 @@ struct menu_entity
     
     game_rect    *ButtonsArea;
     menu_button  *Buttons;
-    menu_button  *ConfirmButtons;
-    menu_button  *SaveAndLoadButtons;
-    menu_button  *SortButton;
 };
 
 

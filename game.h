@@ -80,10 +80,12 @@ struct game_input
 
 struct game_memory
 {
+    //TODO(Max): Change to raw data
     level_entity LevelEntity;
-    level_editor *LevelEditor;
-    
     menu_entity *MenuEntity;
+    
+    level_editor *LevelEditor;
+    menu_editor *MenuEditor;
     
     void *Assets;
     u32 AssetsSpaceAmount;
@@ -142,26 +144,12 @@ GameResizeInActiveBlock(u32 FigureAreaWidth,
     return(ResultBlockSize);
 }
 
-
 static void 
 GameRenderBitmapToBuffer(game_offscreen_buffer *Buffer, game_texture *&Texture, game_rect *Quad)
 {
     Assert(Texture);
     SDL_RenderCopy(Buffer->Renderer, Texture, 0, Quad);
 }
-
-
-//TODO(Max): This tow function declarations should not be here!!!
-static void
-LevelEditorChangeGridCounters(level_editor *LevelEditor, 
-                              u32 NewRowAmount, u32 NewColumnAmount, 
-                              game_offscreen_buffer *Buffer);
-
-
-static void 
-LevelEditorUpdateLevelStats(level_editor *LevelEditor, 
-                            s32 LevelNumber, s32 LevelIndex, game_offscreen_buffer *Buffer);
-
 
 static void
 DEBUGPrintArray1D(u32 *Array, u32 Size)
