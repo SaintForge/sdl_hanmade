@@ -774,157 +774,153 @@ RestartLevelEntity(level_entity *LevelEntity)
 }
 
 static void
-GameUpdateEvent(game_input *Input, level_entity *GameState,
-                r32 ActiveBlockSize, r32 DefaultBlockSize,
-                u32 ScreenWidth, u32 ScreenHeight)
+GameUpdateEvent(game_input *Input, level_entity *LevelEntity, game_offscreen_buffer *Buffer)
 {
-    if(!GameState->LevelStarted) return;
-    
-    grid_entity   *&GridEntity   = GameState->GridEntity;
-    figure_entity *&FigureEntity = GameState->FigureEntity;
+    grid_entity   *&GridEntity   = LevelEntity->GridEntity;
+    figure_entity *&FigureEntity = LevelEntity->FigureEntity;
     figure_unit   *FigureUnit    = FigureEntity->FigureUnit;
     
+    s32 ScreenWidth  = Buffer->Width;
+    s32 ScreenHeight = Buffer->Height;
     u32 Size        = FigureEntity->FigureAmount;
     s32 MouseX      = Input->MouseX;
     s32 MouseY      = Input->MouseY;
     r32 BlockRatio  = 0;
     u32 ActiveIndex = FigureEntity->FigureActive;
     
-    if(GameState->LevelPaused)
-    {
-        return;
-    }
+    r32 ActiveBlockSize   = LevelEntity->Configuration.ActiveBlockSize;
+    r32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
     
-    if(Input->MouseButtons[0].EndedDown)
+    if(!LevelEntity->LevelPaused)
     {
-        if(!FigureEntity->IsGrabbed)
+        if(Input->MouseButtons[0].EndedDown)
         {
-            for (s32 i = Size-1; i >= 0; --i)
+            if(!FigureEntity->IsGrabbed)
             {
-                ActiveIndex = FigureEntity->FigureOrder[i];
-                game_rect AreaQuad = FigureUnitGetArea(&FigureUnit[ActiveIndex]);
-                if(IsPointInsideRect(MouseX, MouseY, &AreaQuad))
+                for (s32 i = Size-1; i >= 0; --i)
                 {
-                    game_rect ShellQuad = {0};
-                    ShellQuad.w = FigureUnit[ActiveIndex].IsEnlarged ? ActiveBlockSize : DefaultBlockSize;
-                    ShellQuad.h = FigureUnit[ActiveIndex].IsEnlarged ? ActiveBlockSize : DefaultBlockSize;
-                    for(u32 j = 0; j < 4; ++j)
+                    ActiveIndex = FigureEntity->FigureOrder[i];
+                    game_rect AreaQuad = FigureUnitGetArea(&FigureUnit[ActiveIndex]);
+                    if(IsPointInsideRect(MouseX, MouseY, &AreaQuad))
                     {
-                        ShellQuad.x = FigureUnit[ActiveIndex].Shell[j].x - (ShellQuad.w / 2);
-                        ShellQuad.y = FigureUnit[ActiveIndex].Shell[j].y - (ShellQuad.h / 2);
-                        if(IsPointInsideRect(MouseX, MouseY, &ShellQuad))
+                        game_rect ShellQuad = {0};
+                        ShellQuad.w = FigureUnit[ActiveIndex].IsEnlarged ? ActiveBlockSize : InActiveBlockSize;
+                        ShellQuad.h = FigureUnit[ActiveIndex].IsEnlarged ? ActiveBlockSize : InActiveBlockSize;
+                        for(u32 j = 0; j < 4; ++j)
                         {
-                            FigureEntity->IsGrabbed = true;
-                            
-                            if(!FigureUnit[ActiveIndex].IsEnlarged)
+                            ShellQuad.x = FigureUnit[ActiveIndex].Shell[j].x - (ShellQuad.w / 2);
+                            ShellQuad.y = FigureUnit[ActiveIndex].Shell[j].y - (ShellQuad.h / 2);
+                            if(IsPointInsideRect(MouseX, MouseY, &ShellQuad))
                             {
-                                BlockRatio = ActiveBlockSize / DefaultBlockSize;
-                                FigureUnit[ActiveIndex].IsIdle = false;
-                                FigureUnit[ActiveIndex].IsEnlarged = true;
-                                FigureUnitResizeBy(&FigureUnit[ActiveIndex], BlockRatio);
+                                FigureEntity->IsGrabbed = true;
+                                
+                                if(!FigureUnit[ActiveIndex].IsEnlarged)
+                                {
+                                    BlockRatio = ActiveBlockSize / InActiveBlockSize;
+                                    FigureUnit[ActiveIndex].IsIdle = false;
+                                    FigureUnit[ActiveIndex].IsEnlarged = true;
+                                    FigureUnitResizeBy(&FigureUnit[ActiveIndex], BlockRatio);
+                                }
+                                
+                                FigureEntity->FigureActive = ActiveIndex;
+                                FigureEntityHighOrderFigure(FigureEntity, ActiveIndex);
+                                SDL_ShowCursor(SDL_DISABLE);
+                                
+                                return;
                             }
-                            
-                            FigureEntity->FigureActive = ActiveIndex;
-                            FigureEntityHighOrderFigure(FigureEntity, ActiveIndex);
-                            SDL_ShowCursor(SDL_DISABLE);
-                            //DEBUGPrintEntityOrder(Group);
+                        }
+                    }
+                }
+                
+                if(IsPointInsideRect(MouseX, MouseY, &GridEntity->GridArea))
+                {
+                    for(u32 i = 0; i < GridEntity->MovingBlocksAmount; i++)
+                    {
+                        if(IsPointInsideRect(MouseX, MouseY, &GridEntity->MovingBlocks[i].AreaQuad))
+                        {
+                            if(!GridEntity->MovingBlocks[i].IsVertical) 
+                            {
+                                GridEntityMoveBlockHorizontally(GridEntity, &GridEntity->MovingBlocks[i]);
+                            }
+                            else
+                            {
+                                GridEntityMoveBlockVertically(GridEntity, &GridEntity->MovingBlocks[i]);
+                            }
                             
                             return;
                         }
                     }
                 }
             }
-            
-            if(IsPointInsideRect(MouseX, MouseY, &GridEntity->GridArea))
+            else
             {
-                for(u32 i = 0; i < GridEntity->MovingBlocksAmount; i++)
+                if(!FigureEntity->IsRotating && !FigureEntity->IsFlipping)
                 {
-                    if(IsPointInsideRect(MouseX, MouseY, &GridEntity->MovingBlocks[i].AreaQuad))
+                    game_rect ScreenArea = {0};
+                    ScreenArea.w = ScreenWidth;
+                    ScreenArea.h = ScreenHeight;
+                    
+                    if(IsFigureUnitInsideRect(&FigureUnit[ActiveIndex], &FigureEntity->FigureArea) || 
+                       (!IsPointInsideRect(FigureUnit[ActiveIndex].Center.x,FigureUnit[ActiveIndex].Center.y, &ScreenArea)))
                     {
-                        if(!GridEntity->MovingBlocks[i].IsVertical) 
-                        {
-                            GridEntityMoveBlockHorizontally(GridEntity, &GridEntity->MovingBlocks[i]);
-                            printf("index of moving block = %d\n", i);
-                        }
-                        else
-                        {
-                            GridEntityMoveBlockVertically(GridEntity, &GridEntity->MovingBlocks[i]);
-                        }
+                        FigureUnit[ActiveIndex].IsIdle = true;
+                        BlockRatio = InActiveBlockSize / ActiveBlockSize;
+                        FigureUnitSetToDefaultArea(&FigureUnit[ActiveIndex], BlockRatio);
                         
-                        return;
+                        FigureEntity->IsReturning = true;
+                        FigureEntity->ReturnIndex = ActiveIndex;
+                        
+                        FigureUnitMoveToDefaultArea(&FigureUnit[ActiveIndex], ActiveBlockSize);
                     }
+                    
+                    SDL_ShowCursor(SDL_ENABLE);
+                    FigureEntity->IsGrabbed = false;
+                    FigureEntity->FigureActive = -1;
                 }
             }
         }
-        else
+        if(Input->MouseButtons[1].EndedDown)
         {
-            if(!FigureEntity->IsRotating && !FigureEntity->IsFlipping)
+            if(FigureEntity->IsGrabbed)
             {
-                game_rect ScreenArea = {0};
-                ScreenArea.w = ScreenWidth;
-                ScreenArea.h = ScreenHeight;
-                
-                if(IsFigureUnitInsideRect(&FigureUnit[ActiveIndex], &FigureEntity->FigureArea) || 
-                   (!IsPointInsideRect(FigureUnit[ActiveIndex].Center.x,FigureUnit[ActiveIndex].Center.y, &ScreenArea)))
+                figure_type Type = FigureUnit[ActiveIndex].Type;
+                switch(Type)
                 {
-                    FigureUnit[ActiveIndex].IsIdle = true;
-                    BlockRatio = DefaultBlockSize / ActiveBlockSize;
-                    FigureUnitSetToDefaultArea(&FigureUnit[ActiveIndex], BlockRatio);
+                    case classic:
+                    {
+                        if (!FigureEntity->IsRotating)
+                        {
+                            FigureEntity->IsRotating = true;
+                            FigureUnitRotateShellBy(&FigureUnit[ActiveIndex], 90);
+                        }
+                    } break;
+                    case mirror:
+                    {
+                        if (!FigureEntity->IsFlipping)
+                        {
+                            
+                            SDL_SetTextureBlendMode(FigureUnit[ActiveIndex].Texture, SDL_BLENDMODE_BLEND);
+                            
+                            FigureEntity->IsFlipping = true;
+                            FigureEntity->FigureAlpha= 255;
+                            FigureEntity->FadeInSum  = 255;
+                            FigureEntity->FadeOutSum = 0;
+                        }
+                    } break;
                     
-                    FigureEntity->IsReturning = true;
-                    FigureEntity->ReturnIndex = ActiveIndex;
-                    
-                    FigureUnitMoveToDefaultArea(&FigureUnit[ActiveIndex], ActiveBlockSize);
+                    case stone:
+                    {
+                        
+                    } break;
                 }
-                
-                SDL_ShowCursor(SDL_ENABLE);
-                FigureEntity->IsGrabbed = false;
-                FigureEntity->FigureActive = -1;
             }
-        }
-    }
-    if(Input->MouseButtons[1].EndedDown)
-    {
+        } 
         if(FigureEntity->IsGrabbed)
         {
-            figure_type Type = FigureUnit[ActiveIndex].Type;
-            switch(Type)
-            {
-                case classic:
-                {
-                    if (!FigureEntity->IsRotating)
-                    {
-                        FigureEntity->IsRotating = true;
-                        FigureUnitRotateShellBy(&FigureUnit[ActiveIndex], 90);
-                    }
-                } break;
-                case mirror:
-                {
-                    if (!FigureEntity->IsFlipping)
-                    {
-                        
-                        SDL_SetTextureBlendMode(FigureUnit[ActiveIndex].Texture, SDL_BLENDMODE_BLEND);
-                        
-                        FigureEntity->IsFlipping = true;
-                        FigureEntity->FigureAlpha= 255;
-                        FigureEntity->FadeInSum  = 255;
-                        FigureEntity->FadeOutSum = 0;
-                    }
-                } break;
-                
-                case stone:
-                {
-                    
-                } break;
-            }
+            s32 x = Input->MouseRelX;
+            s32 y = Input->MouseRelY;
+            FigureUnitMove(&FigureUnit[ActiveIndex], x, y);
         }
-    } 
-    if(FigureEntity->IsGrabbed)
-    {
-        s32 x = Input->MouseRelX;
-        s32 y = Input->MouseRelY;
-        FigureUnitMove(&FigureUnit[ActiveIndex], x, y);
-        
     }
 }
 
@@ -1083,8 +1079,6 @@ RescaleGameField(game_offscreen_buffer *Buffer,
 static void
 LevelEntityUpdateLevelNumber(level_entity *LevelEntity, game_memory *Memory, game_offscreen_buffer *Buffer)
 {
-    //TODO(Max): Elaborate on where exactly should I draw level number
-    
     char LevelNumberString[3] = {0};
     sprintf(LevelNumberString, "%d", LevelEntity->LevelNumber);
     
@@ -1203,11 +1197,7 @@ LevelEntityUpdateLevelEntityFromMemory(game_memory *Memory, s32 Index, bool IsSt
     LevelEntity->Configuration.GridScalePerSec  = (ActiveBlockSize * ((RowAmount + ColumnAmount) - 1)) / (LevelEntity->Configuration.StartUpTimeToFinish * 0.5f);
     LevelEntity->Configuration.StartAlphaPerSec = 255.0f / (LevelEntity->Configuration.StartUpTimeToFinish * 0.5f);
     
-    /*
-    
-    figure_entity initialization
-    
-    */
+    /* figure_entity initialization */
     
     LevelEntity->FigureEntity->FigureAlpha = 0;
     
@@ -1341,21 +1331,14 @@ LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
     s32 AmountOfPixels = (MaximumBlockSize * (RowAmount + ColAmount - 1));
     s32 PixelScalePerSec = (AmountOfPixels / (StartUpTimeToFinish * 0.5f));
     
-    //todo: change it to 1d array!!!
-    //r32 **UnitSize  = GridEntity->UnitSize;
-    //s32 **UnitField = GridEntity->UnitField;
-    
     bool IsGridReady    = true;
     bool IsFiguresReady = true;
     bool IsLevelReady   = true;
     
     StartUpTimeElapsed += TimeElapsed;
     
-    /* 
+    /* Grid Start up animation */
     
-    Grid Start up animation
-    
-    */
     for(s32 Line = 1; Line <= ((RowAmount + ColAmount) - 1); ++Line)
     {
         bool ShouldBreak = true;
@@ -1498,7 +1481,7 @@ LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
         }
     }
     
-    IsLevelReady = IsGridReady && IsFiguresReady;// && IsFigureReady;
+    IsLevelReady = IsGridReady && IsFiguresReady;
     
     if(IsLevelReady)
     {
@@ -1514,8 +1497,9 @@ LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
     LevelEntity->LevelStarted = IsLevelReady;
 }
 
+
 static void
-LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  level_entity *LevelEntity, r32 TimeElapsed)
+LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
     grid_entity   *&GridEntity   = LevelEntity->GridEntity;
     figure_entity *&FigureEntity = LevelEntity->FigureEntity;
@@ -1525,6 +1509,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
     u32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
     
     game_rect AreaQuad = {};
+    r32 TimeElapsed  = Input->TimeElapsedMs;
     r32 MaxVel       = ActiveBlockSize / 6;
     s32 RowAmount    = GridEntity->RowAmount;
     s32 ColumnAmount = GridEntity->ColumnAmount;
@@ -1549,14 +1534,18 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
             LevelEntity->Configuration.PixelsDrawn  = 0;
             LevelEntity->Configuration.PixelsToDraw = 0;
         }
+        else
+        {
+            return;
+        }
         
-        return;
     }
     
+    /* game_input checking */
+    GameUpdateEvent(Input, LevelEntity, Buffer);
     
-    //
-    // GridEntity Update and Rendering
-    //
+    
+    /* GridEntity update and render */
     for (u32 Index = 0; Index < FigureAmount; ++Index)
     {
         u32 FigureIndex = FigureEntity->FigureOrder[Index];
@@ -1571,7 +1560,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
         
         if(IsSticked && IsAttached)
         {
-            // Unstick from the grid
+            /* Unstick from the grid */
             u32 StickAmount = GridEntity->StickUnitsAmount;
             u32 RowIndex = 0;
             u32 ColIndex = 0;
@@ -1597,7 +1586,8 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
         {
             if(!FigureEntity->IsRotating && !FigureEntity->IsFlipping)
             {
-                // Check if we can stick it!
+                /* Check if we can stick it! */
+                
                 u32 Count   = 0;
                 r32 OffsetX = 0;
                 r32 OffsetY = 0;
@@ -1690,7 +1680,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
                         
                         if(IsFull == true)
                         {
-                            // the grid is full and level is complete 
+                            /* the grid is full and level is complete */
                         }
                     }
                 }
@@ -1698,9 +1688,8 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
         }
     }
     
-    //
-    // Stick units
-    //
+    
+    /* StickUnits */
     
     bool IsAllSticked = GridEntity->StickUnitsAmount > 0;
     
@@ -1784,9 +1773,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
         }
     }
     
-    //
-    // MovingBlocks Update and Rendering
-    //
+    /* MovingBlocks Update and Rendering */
     
     for(u32 i = 0; i < GridEntity->MovingBlocksAmount; ++i)
     {
@@ -1830,13 +1817,9 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
         }
     }
     
-    //
-    // FigureEntity Update and Rendering
-    //
+    /* FigureEntity Update and Rendering */
     
-    //
-    // Figure Area Highlight
-    //
+    /* Figure Area Highlight */
     
     if(FigureEntity->IsRestarting)
     {
@@ -1893,9 +1876,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
     
     if(ToggleHighlight) FigureEntityHighlightFigureArea(FigureEntity, Buffer, {255, 255, 255}, InActiveBlockSize / 6);
     
-    //
-    // Figure returning to the idle zone
-    //
+    /* Figure returning to the idle zone */
     
     if(FigureEntity->IsReturning)
     {
@@ -1914,9 +1895,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
         }
     }
     
-    //
-    // Rotation Animation
-    //
+    /* Rotation Animation */
     
     if(FigureEntity->IsRotating)
     {
@@ -1935,9 +1914,7 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
         }
     }
     
-    //
-    // Flipping Animation
-    //
+    /* Flipping Animation */
     
     if(FigureEntity->IsFlipping)
     {
@@ -1963,19 +1940,13 @@ LevelEntityUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory,  
         SDL_SetTextureAlphaMod(FigureUnit[ActiveIndex].Texture, FigureEntity->FigureAlpha);
     }
     
-    //
-    // Figure Rendering
-    //
+    /* Figure Rendering */
     
     for(u32 i = 0; i < FigureAmount; ++i)
     {
         u32 Index = FigureEntity->FigureOrder[i];
         
         FigureUnitRenderBitmap(Buffer, &FigureUnit[Index]);
-        //DEBUGRenderQuad(Buffer, &FigureUnit[Index].AreaQuad, {255, 0, 0}, 255);
-        
-        //u32 BlockSize = FigureUnit[Index].IsEnlarged ? ActiveBlockSize : InActiveBlockSize;
-        //DEBUGRenderFigureShell(Buffer, &FigureUnit[Index], 10, {255, 255, 0}, 255);
     }
     
     GameRenderBitmapToBuffer(Buffer, LevelEntity->LevelNumberShadowTexture, &LevelEntity->LevelNumberShadowQuad);

@@ -8,7 +8,6 @@
 //
 
 #include "game_math.h"
-#include "editor.h"
 
 #include "game.h"
 
@@ -266,16 +265,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     }
     else
     {
-        //TODO(Max): Make events to be updated in LevelEntityUpdateAndRender
-        GameUpdateEvent(Input, LevelEntity, 
-                        LevelEntity->Configuration.ActiveBlockSize,
-                        LevelEntity->Configuration.InActiveBlockSize, 
-                        Buffer->Width, Buffer->Height);
-        
         game_rect ScreenArea = { 0, 0, Buffer->Width, Buffer->Height};
         DEBUGRenderQuadFill(Buffer, &ScreenArea, { 42, 6, 21 }, 255);
         
-        LevelEntityUpdateAndRender(Buffer, Memory, LevelEntity, Input->TimeElapsedMs);
+        LevelEntityUpdateAndRender(LevelEntity, Memory, Input, Buffer);
         LevelEditorUpdateAndRender(LevelEditor, LevelEntity, Memory, Buffer, Input);
     }
     
