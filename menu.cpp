@@ -269,24 +269,6 @@ SwapLevelMemory(level_memory *LevelMemory, s32 IndexA, s32 IndexB)
 }
 
 static void
-MenuEntitySortButtons(menu_entity *MenuEntity, game_memory *Memory)
-{
-    level_memory *LevelMemory = (level_memory*)Memory->GlobalMemoryStorage;
-    s32 LevelAmount = Memory->LevelMemoryAmount;
-    
-    for(s32 i = 0; i < LevelAmount - 1; ++i)
-    {
-        for(s32 j = 0; j < LevelAmount - i - 1; ++j)
-        {
-            if(LevelMemory[j].LevelNumber > LevelMemory[j+1].LevelNumber)
-            {
-                SwapLevelMemory(LevelMemory, j, j+1);
-            }
-        }
-    }
-}
-
-static void
 MenuUpdateAndRender(menu_entity *MenuEntity, game_memory *Memory, 
                     game_input *Input, game_offscreen_buffer *Buffer)
 {

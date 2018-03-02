@@ -1189,6 +1189,25 @@ MenuEditorInit(menu_editor *MenuEditor, menu_entity *MenuEntity,
 }
 
 static void
+MenuEditorSortButtonsRange(s32 BeginIndex, s32 EndIndex, menu_entity *MenuEntity, game_memory *Memory)
+{
+    level_memory *LevelMemory = (level_memory*)Memory->GlobalMemoryStorage;
+    
+    s32 LevelAmount = Memory->LevelMemoryAmount;
+    
+    for(s32 i = BeginIndex; i < EndIndex - 1; ++i)
+    {
+        for(s32 j = BeginIndex; j < EndIndex - 1; ++j)
+        {
+            if(LevelMemory[j].LevelNumber > LevelMemory[j+1].LevelNumber)
+            {
+                SwapLevelMemory(LevelMemory, j, j+1);
+            }
+        }
+    }
+}
+
+static void
 MenuEditorUpdateAndRender(menu_editor *MenuEditor, menu_entity *MenuEntity, game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
     
@@ -1231,6 +1250,19 @@ MenuEditorUpdateAndRender(menu_editor *MenuEditor, menu_entity *MenuEntity, game
             LoadLevelMemoryFromFile("package2.bin", Memory);
             MenuLoadButtonsFromMemory(MenuEntity, Memory, Buffer);
             
+            if(MenuEditor->ButtonsSelected)
+            {
+                MenuEditor->ButtonsSelected = false;
+                
+                for(s32 Index = 0; Index < 100; Index++)
+                {
+                    if(MenuEditor->SelectionPanel[Index].IsSelected)
+                    {
+                        MenuEditor->SelectionPanel[Index].IsSelected = false;
+                    }
+                }
+            }
+            
             MenuEditor->ButtonIsPressed = true;
             MenuEditor->HighlightButtonQuad = MenuEditor->LoadButtonQuad;
         }
@@ -1243,7 +1275,45 @@ MenuEditorUpdateAndRender(menu_editor *MenuEditor, menu_entity *MenuEntity, game
         }
         else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEditor->SortButtonQuad))
         {
-            MenuEntitySortButtons(MenuEntity, Memory);
+            if(MenuEditor->ButtonsSelected) 
+            {
+                MenuEditor->ButtonsSelected = false;
+            }
+            
+            bool BeginFound = false;
+            
+            s32 BeginIndex = 0;
+            s32 EndIndex   = 99;
+            
+            for(s32 Index = 0; Index < 100; ++Index)
+            {
+                if(MenuEditor->SelectionPanel[Index].IsSelected)
+                {
+                    MenuEditor->SelectionPanel[Index].IsSelected = false;
+                    
+                    if(!BeginFound)
+                    {
+                        BeginFound = true;
+                        BeginIndex = Index;
+                        
+                    }
+                }
+                else
+                {
+                    if(BeginFound)
+                    {
+                        EndIndex = Index;
+                        break;
+                    }
+                }
+            }
+            
+            if(EndIndex > MenuEntity->ButtonsAmount) 
+            {
+                EndIndex = MenuEntity->ButtonsAmount;
+            }
+            
+            MenuEditorSortButtonsRange(BeginIndex, EndIndex, MenuEntity, Memory);
             MenuLoadButtonsFromMemory(MenuEntity, Memory, Buffer);
             
             MenuEditor->ButtonIsPressed = true;
