@@ -1,4 +1,4 @@
-// game.cpp --- 
+// editor.cpp --- 
 // 
 // Filename: game.cpp
 // Author: Sierra
@@ -24,6 +24,23 @@ struct label_button
     game_rect PlusQuad;
     game_rect PlusTextureQuad;
     game_texture *PlusTexture;
+};
+
+enum cursor_type
+{
+    ARROW,
+    
+    SIZE_ALL,
+    
+    SIZE_WEST,
+    SIZE_EAST,
+    SIZE_NORTH,
+    SIZE_SOUTH,
+    
+    SIZE_WN,
+    SIZE_ES,
+    SIZE_NE,
+    SIZE_WS
 };
 
 struct level_editor
@@ -113,10 +130,62 @@ struct level_editor
     game_rect LoadLevelQuad;
     game_rect LoadLevelTextureQuad;
     game_texture *LoadLevelTexture;
+    
+    
+    /* Resize/Positioning routine */
+    bool ShiftKeyPressed;
+    cursor_type CursorType;
+    
+    bool AreaIsMoving;
 };
 
+static void
+LevelEditorSetCursorType(cursor_type CursorType)
+{
+    SDL_Cursor* Cursor;
+    
+    switch(CursorType)
+    {
+        case ARROW:
+        {
+            Cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
+        } break;
+        
+        case SIZE_ALL:
+        {
+            Cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEALL);
+        } break;
+        
+        case SIZE_WEST:
+        case SIZE_EAST:
+        {
+            Cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEWE);
+        } break;
+        
+        case SIZE_NORTH:
+        case SIZE_SOUTH:
+        {
+            Cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENS);
+        } break;
+        
+        case SIZE_WN:
+        case SIZE_ES:
+        {
+            Cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENWSE);
+        } break;
+        
+        case SIZE_NE:
+        case SIZE_WS:
+        {
+            Cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENESW);
+        } break;
+    }
+    
+    SDL_SetCursor(Cursor);
+}
+
 static void 
-LevelEditorUpdateLevelStats(level_editor *LevelEditor, 
+LevelEditorUpdateLevelStats(s32 X, s32 Y, level_editor *LevelEditor, 
                             s32 LevelNumber, s32 LevelIndex, game_offscreen_buffer *Buffer)
 {
     game_surface *Surface = {};
@@ -144,8 +213,8 @@ LevelEditorUpdateLevelStats(level_editor *LevelEditor,
         
         LevelEditor->LevelIndexQuad.w = Surface->w;
         LevelEditor->LevelIndexQuad.h = Surface->h;
-        LevelEditor->LevelIndexQuad.x = 0;
-        LevelEditor->LevelIndexQuad.y = 0;
+        LevelEditor->LevelIndexQuad.x = X;
+        LevelEditor->LevelIndexQuad.y = Y;
         
         LevelEditor->LevelIndexTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
         Assert(LevelEditor->LevelIndexTexture);
@@ -171,8 +240,8 @@ LevelEditorUpdateLevelStats(level_editor *LevelEditor,
         
         LevelEditor->LevelNumberQuad.w = Surface->w;
         LevelEditor->LevelNumberQuad.h = Surface->h;
-        LevelEditor->LevelNumberQuad.x = 0;
-        LevelEditor->LevelNumberQuad.y = LevelEditor->LevelIndexQuad.y + LevelEditor->LevelIndexQuad.h;
+        LevelEditor->LevelNumberQuad.x = X;
+        LevelEditor->LevelNumberQuad.y =  LevelEditor->LevelIndexQuad.y + LevelEditor->LevelIndexQuad.h;
         
         LevelEditor->LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
         Assert(LevelEditor->LevelNumberTexture);
@@ -267,11 +336,6 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
     LevelEditor->NextLevelQuad.h = 40;
     LevelEditor->NextLevelQuad.x = Buffer->Width - (LevelEditor->NextLevelQuad.w * 2);
     LevelEditor->NextLevelQuad.y = Buffer->Height - (LevelEditor->NextLevelQuad.h * 2);
-    
-    /* Level stats initialization */
-    LevelEditorUpdateLevelStats(LevelEditor, LevelEntity->LevelNumber, 
-                                Memory->CurrentLevelIndex, Buffer);
-    
     
     s32 ButtonWidth  = 60;
     s32 ButtonHeight = 40;
@@ -400,6 +464,10 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
                        LevelEditor->Font, {255, 255, 255}, Buffer);
     
     
+    /* Level stats initialization */
+    LevelEditorUpdateLevelStats(LevelEditor->LevelPropertiesQuad.w + 10, 0, 
+                                LevelEditor, LevelEntity->LevelNumber, 
+                                Memory->CurrentLevelIndex, Buffer);
 }
 
 static void
@@ -649,7 +717,9 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     {
         LevelEditor->CurrentLevelIndex = CurrentLevelIndex;
         LevelEditorChangeGridCounters(LevelEditor, RowAmount, ColAmount, Buffer);
-        LevelEditorUpdateLevelStats(LevelEditor, LevelEntity->LevelNumber, CurrentLevelIndex, Buffer);
+        LevelEditorUpdateLevelStats(LevelEditor->LevelPropertiesQuad.w + 10, 0, 
+                                    LevelEditor, LevelEntity->LevelNumber, 
+                                    CurrentLevelIndex, Buffer);
         
     }
     
@@ -726,6 +796,104 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         }
     }
     
+    if(Input->Keyboard.LeftShift.EndedDown)
+    {
+        if(!LevelEditor->ShiftKeyPressed)
+        {
+            LevelEditor->ShiftKeyPressed = true;
+        }
+    }
+    else if(Input->Keyboard.LeftShift.EndedUp)
+    {
+        if(LevelEditor->ShiftKeyPressed)
+        {
+            LevelEditor->ShiftKeyPressed = false;
+            
+            if(LevelEditor->CursorType != ARROW)
+            {
+                LevelEditor->CursorType = ARROW;
+                LevelEditorSetCursorType(ARROW);
+                
+                if(LevelEditor->AreaIsMoving)
+                {
+                    LevelEditor->AreaIsMoving = false;
+                }
+            }
+            
+        }
+    }
+    
+    
+    if(LevelEditor->ShiftKeyPressed)
+    {
+        if(!LevelEditor->AreaIsMoving)
+        {
+            game_rect Corner[4] = {};
+            
+            Corner[0] = {GridArea.x - 10, GridArea.y - 10, 20, 20};
+            Corner[1] = {(GridArea.x + GridArea.w) - 10, GridArea.y - 10, 20, 20};
+            Corner[2] = {(GridArea.x + GridArea.w) - 10, (GridArea.y + GridArea.h) - 10, 20, 20};
+            Corner[3] = {GridArea.x - 10, (GridArea.y + GridArea.h), 20, 20};
+            
+            cursor_type CursorType = LevelEditor->CursorType;
+            
+            if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Corner[0]))
+            {
+                CursorType = SIZE_WN;
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Corner[1]))
+            {
+                CursorType = SIZE_NE;
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Corner[2]))
+            {
+                CursorType = SIZE_ES;
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Corner[3]))
+            {
+                CursorType = SIZE_WS;
+            }
+            else
+            {
+                game_rect Border[4] = {};
+                
+                Border[0] = {GridArea.x, GridArea.y - 10, GridArea.w, 20};
+                Border[1] = {(GridArea.x + GridArea.w) - 10, GridArea.y, 20, GridArea.h};
+                Border[2] = {GridArea.x, (GridArea.y + GridArea.h) - 10, GridArea.w, 20};
+                Border[3] = {GridArea.x - 10, GridArea.y, 20, GridArea.h};
+                
+                if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Border[0]))
+                {
+                    CursorType = SIZE_NORTH;
+                }
+                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Border[1]))
+                {
+                    CursorType = SIZE_EAST;
+                }
+                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Border[2]))
+                {
+                    CursorType = SIZE_SOUTH;
+                }
+                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Border[3]))
+                {
+                    CursorType = SIZE_WEST;
+                }
+                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &GridArea))
+                {
+                    CursorType = SIZE_ALL;
+                }
+            }
+            
+            if(CursorType != LevelEditor->CursorType)
+            {
+                LevelEditor->CursorType = CursorType;
+                LevelEditorSetCursorType(CursorType);
+                
+                printf("Cursor set\n");
+            }
+        }
+    }
+    
     if(Input->Keyboard.Up.EndedDown)
     {
         NewFigureIndex -= 1;
@@ -755,7 +923,8 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                           LevelEntity->GridEntity->ColumnAmount,
                                           Buffer);
             
-            LevelEditorUpdateLevelStats(LevelEditor, LevelEntity->LevelNumber,
+            LevelEditorUpdateLevelStats(LevelEditor->LevelPropertiesQuad.w + 10, 0, 
+                                        LevelEditor, LevelEntity->LevelNumber, 
                                         Memory->CurrentLevelIndex, Buffer);
             
             LevelEditorChangeFigureCounter(LevelEditor, LevelEntity->FigureEntity->FigureAmount, Buffer);
@@ -773,8 +942,10 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                           LevelEntity->GridEntity->ColumnAmount,
                                           Buffer);
             
-            LevelEditorUpdateLevelStats(LevelEditor, LevelEntity->LevelNumber,
+            LevelEditorUpdateLevelStats(LevelEditor->LevelPropertiesQuad.w + 10, 0, 
+                                        LevelEditor, LevelEntity->LevelNumber, 
                                         Memory->CurrentLevelIndex, Buffer);
+            
             LevelEditorChangeFigureCounter(LevelEditor, LevelEntity->FigureEntity->FigureAmount, Buffer);
         }
     }
@@ -795,7 +966,8 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     
     if(Input->MouseButtons[0].EndedDown)
     {
-        if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEntity->LevelNumberQuad))
+        
+        if (IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEntity->LevelNumberQuad))
         {
             LevelEditor->LevelNumberSelected = true;
             LevelEditor->LevelNumberBufferIndex = 0;
@@ -838,7 +1010,17 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             }
         }
         
-        if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->LevelPropertiesQuad))
+        if(LevelEditor->ShiftKeyPressed)
+        {
+            if(LevelEditor->CursorType != ARROW)
+            {
+                if(!LevelEditor->AreaIsMoving)
+                {
+                    LevelEditor->AreaIsMoving = true;
+                }
+            }
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->LevelPropertiesQuad))
         {
             if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->RowLabel.MinusQuad))
             {
@@ -1028,13 +1210,14 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                     LevelEditorChangeGridCounters(LevelEditor, LevelEntity->GridEntity->RowAmount,
                                                   LevelEntity->GridEntity->ColumnAmount,Buffer);
                     
-                    LevelEditorUpdateLevelStats(LevelEditor, LevelEntity->LevelNumber,
+                    LevelEditorUpdateLevelStats(LevelEditor->LevelPropertiesQuad.w + 10, 0, LevelEditor, LevelEntity->LevelNumber, 
                                                 Memory->CurrentLevelIndex, Buffer);
+                    
                     LevelEditorChangeFigureCounter(LevelEditor, LevelEntity->FigureEntity->FigureAmount, Buffer);
                 }
                 
                 LevelEditor->ButtonSelected = true;
-                LevelEditor->HighlightButtonQuad = LevelEditor->SaveLevelQuad;
+                LevelEditor->HighlightButtonQuad = LevelEditor->PrevLevelQuad;
             }
             else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->NextLevelQuad))
             {
@@ -1048,14 +1231,15 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                     LevelEditorChangeGridCounters(LevelEditor, 
                                                   LevelEntity->GridEntity->RowAmount, LevelEntity->GridEntity->ColumnAmount, Buffer);
                     
-                    LevelEditorUpdateLevelStats(LevelEditor, LevelEntity->LevelNumber,
+                    LevelEditorUpdateLevelStats(LevelEditor->LevelPropertiesQuad.w + 10, 0, LevelEditor, LevelEntity->LevelNumber, 
                                                 Memory->CurrentLevelIndex, Buffer);
+                    
                     
                     LevelEditorChangeFigureCounter(LevelEditor, LevelEntity->FigureEntity->FigureAmount, Buffer);
                 }
                 
                 LevelEditor->ButtonSelected = true;
-                LevelEditor->HighlightButtonQuad = LevelEditor->SaveLevelQuad;
+                LevelEditor->HighlightButtonQuad = LevelEditor->NextLevelQuad;
             }
             
         }
@@ -1133,15 +1317,89 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     {
         LevelEditor->ButtonSelected      = true;
         LevelEditor->HighlightButtonQuad = {};
+        
+        if(LevelEditor->AreaIsMoving)
+        {
+            LevelEditor->AreaIsMoving = false;
+        }
     }
     
+    if(LevelEditor->AreaIsMoving)
+    {
+        s32 OffsetX = Input->MouseRelX;
+        s32 OffsetY = Input->MouseRelY;
+        
+        math_rect AreaQuad = ConvertGameRectToMathRect(GridArea);
+        
+        switch(LevelEditor->CursorType)
+        {
+            case SIZE_ALL:
+            {
+                AreaQuad.Left   += OffsetX;
+                AreaQuad.Top    += OffsetY;
+                AreaQuad.Right  += OffsetX;
+                AreaQuad.Bottom += OffsetY;
+            } break;
+            
+            case SIZE_WEST:
+            {
+                AreaQuad.Left += OffsetX;
+            } break;
+            
+            case SIZE_EAST:
+            {
+                AreaQuad.Right += OffsetX;
+            } break;
+            
+            case SIZE_NORTH:
+            {
+                AreaQuad.Top += OffsetY;
+            } break;
+            
+            case SIZE_SOUTH:
+            {
+                AreaQuad.Bottom += OffsetY;
+            } break;
+            
+            case SIZE_WN:
+            {
+                AreaQuad.Left += OffsetX;
+                AreaQuad.Top  += OffsetY;
+            } break;
+            
+            case SIZE_ES:
+            {
+                AreaQuad.Right  += OffsetX;
+                AreaQuad.Bottom += OffsetY;
+            } break;
+            
+            case SIZE_NE:
+            {
+                AreaQuad.Right += OffsetX;
+                AreaQuad.Top   += OffsetY;
+            } break;
+            
+            case SIZE_WS:
+            {
+                AreaQuad.Left   += OffsetX;
+                AreaQuad.Bottom += OffsetY;
+            } break;
+        }
+        
+        LevelEntity->GridEntity->GridArea = ConvertMathRectToGameRect(AreaQuad);
+        
+        LevelEntity->Configuration.GridBlockSize = CalculateGridBlockSize(RowAmount, ColAmount, LevelEntity->GridEntity->GridArea.w, 
+                                                                          LevelEntity->GridEntity->GridArea.h,
+                                                                          LevelEntity->Configuration.DefaultBlocksInRow, LevelEntity->Configuration.DefaultBlocksInCol);
+        
+    }
     
     if(NewFigureIndex < 0)
     {
         NewFigureIndex = FigureAmount - 1;
     }
     
-    if(NewFigureIndex > FigureAmount)
+    if(NewFigureIndex > FigureAmount - 1)
     {
         NewFigureIndex = 0;
     }
@@ -1602,5 +1860,5 @@ MenuEditorUpdateAndRender(menu_editor *MenuEditor, menu_entity *MenuEntity, game
     {
         DEBUGRenderQuadFill(Buffer, &MenuEditor->HighlightButtonQuad, {0, 255, 255}, 200);
     }
-    
 }
+
