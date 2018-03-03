@@ -1,4 +1,3 @@
-
 #include "assets.h"
 #include "entity.h"
 
@@ -1054,8 +1053,8 @@ RescaleGameField(game_offscreen_buffer *Buffer,
                  u32 DefaultBlocksInRow, u32 DefaultBlocksInCol,
                  level_entity *LevelEntity)
 {
-    u32 InActiveBlockSize  = 0;
-    u32 ActiveBlockSize    = 0;
+    u32 InActiveBlockSize = 0;
+    u32 ActiveBlockSize   = 0;
     
     u32 FigureAreaWidth  = Buffer->Width;
     u32 FigureAreaHeight = Buffer->Height * 0.4f;
@@ -1065,6 +1064,7 @@ RescaleGameField(game_offscreen_buffer *Buffer,
     
     InActiveBlockSize = GameResizeInActiveBlock(FigureAreaWidth, FigureAreaHeight,
                                                 DefaultBlocksInRow, DefaultBlocksInCol,BlocksInRow);
+    
     FigureAreaHeight = InActiveBlockSize * DefaultBlocksInCol;
     
     u32 GridAreaWidth  = Buffer->Width;
@@ -1505,10 +1505,13 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
     figure_entity *&FigureEntity = LevelEntity->FigureEntity;
     figure_unit   *FigureUnit    = FigureEntity->FigureUnit;
     
+    s32 GridBlockSize     = LevelEntity->Configuration.GridBlockSize;
     u32 ActiveBlockSize   = LevelEntity->Configuration.ActiveBlockSize;
     u32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
     
     game_rect AreaQuad = {};
+    game_rect GridArea = GridEntity->GridArea;
+    
     r32 TimeElapsed  = Input->TimeElapsedMs;
     r32 MaxVel       = ActiveBlockSize / 6;
     s32 RowAmount    = GridEntity->RowAmount;
@@ -1599,8 +1602,8 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
                 {
                     for (u32 j = 0; j < ColumnAmount && Count != 4; ++j)
                     {
-                        Rect.x = GridEntity->GridArea.x + (j*ActiveBlockSize);
-                        Rect.y = GridEntity->GridArea.y + (i*ActiveBlockSize);
+                        Rect.x = GridArea.x + (j*ActiveBlockSize);
+                        Rect.y = GridArea.y + (i*ActiveBlockSize);
                         
                         for (u32 l = 0; l < 4; ++l)
                         {
@@ -1755,20 +1758,29 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
     AreaQuad.w = ActiveBlockSize;
     AreaQuad.h = ActiveBlockSize;
     
+    game_rect GridQuad = {0, 0, GridBlockSize, GridBlockSize};
+    
+    game_point GridCenter = {};
+    GridCenter.x = GridArea.x + roundf((r32)GridArea.w / 2.0f);
+    GridCenter.y = GridArea.y + roundf((r32)GridArea.h / 2.0f);
+    
+    r32 ActualGridWidth  = ColumnAmount * GridBlockSize;
+    r32 ActualGridHeight = RowAmount * GridBlockSize;
+    
     for (u32 Row = 0; Row < RowAmount; ++Row)
     {
-        StartY = GridEntity->GridArea.y + (ActiveBlockSize * Row) + (ActiveBlockSize / 2);
+        StartY = GridCenter.y + (GridBlockSize * Row) - roundf(ActualGridHeight / 2.0f);
         for (u32 Col = 0; Col < ColumnAmount; ++Col)
         {
-            StartX = GridEntity->GridArea.x + (ActiveBlockSize * Col) + (ActiveBlockSize / 2);
+            StartX = GridCenter.x + (GridBlockSize * Col) - roundf(ActualGridWidth / 2.0f);
             
-            AreaQuad.x = StartX - (AreaQuad.w / 2);
-            AreaQuad.y = StartY - (AreaQuad.h / 2);
+            GridQuad.x = StartX;
+            GridQuad.y = StartY;
             
             u32 GridUnit = GridEntity->UnitField[(Row * ColumnAmount) + Col];
             if(GridUnit == 0 || GridUnit == 2 || GridUnit == 3)
             {
-                GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture, &AreaQuad);
+                GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture, &GridQuad);
             }
         }
     }
@@ -1788,8 +1800,8 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
             };
             
             game_point TargetCenter;
-            TargetCenter.x = GridEntity->GridArea.x + (ColNumber * ActiveBlockSize);
-            TargetCenter.y = GridEntity->GridArea.y + (RowNumber * ActiveBlockSize);
+            TargetCenter.x = GridArea.x + (ColNumber * ActiveBlockSize);
+            TargetCenter.y = GridArea.y + (RowNumber * ActiveBlockSize);
             
             vector2 Velocity = Move2DPointPerSec(&Center, &TargetCenter, MaxVel, TimeElapsed);
             
@@ -1800,9 +1812,9 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
             {
                 GridEntity->MovingBlocks[i].IsMoving = false;
                 GridEntity->MovingBlocks[i].AreaQuad.x
-                    = GridEntity->GridArea.x + (ColNumber * ActiveBlockSize);
+                    = GridArea.x + (ColNumber * ActiveBlockSize);
                 GridEntity->MovingBlocks[i].AreaQuad.y
-                    = GridEntity->GridArea.y + (RowNumber * ActiveBlockSize);
+                    = GridArea.y + (RowNumber * ActiveBlockSize);
                 GridEntity->UnitField[(RowNumber * ColumnAmount) + ColNumber] = 1;
             }
         }
@@ -1952,4 +1964,27 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
     GameRenderBitmapToBuffer(Buffer, LevelEntity->LevelNumberShadowTexture, &LevelEntity->LevelNumberShadowQuad);
     GameRenderBitmapToBuffer(Buffer, LevelEntity->LevelNumberTexture,   &LevelEntity->LevelNumberQuad);
     
+}
+
+static s32
+CalculateGridBlockSize(s32 RowAmount, s32 ColumnAmount, 
+                       r32 GridWidth, r32 GridHeight,
+                       s32 DefaultRowAmount, s32 DefaultColumnAmount)
+{
+    s32 Result = 0;
+    
+    RowAmount = RowAmount > DefaultRowAmount
+        ? RowAmount
+        : DefaultRowAmount;
+    
+    ColumnAmount = ColumnAmount > DefaultColumnAmount
+        ? ColumnAmount
+        : DefaultColumnAmount;
+    
+    s32 MinColSize = roundf(GridWidth / (r32)ColumnAmount);
+    s32 MinRowSize = roundf(GridHeight / (r32)RowAmount);
+    
+    Result = (MinRowSize < MinColSize) ? MinRowSize : MinColSize;
+    
+    return(Result);
 }

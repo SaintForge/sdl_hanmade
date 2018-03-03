@@ -129,6 +129,8 @@ struct level_config
     r32 GridScalePerSec;
     r32 PixelsToDraw;
     r32 PixelsDrawn;
+    
+    s32 GridBlockSize;
 };
 
 struct level_entity

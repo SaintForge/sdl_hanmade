@@ -50,6 +50,7 @@ GameCopyImageToBuffer(game_bitmap* GameBitmap, u32 X, u32 Y,
 }
 #endif
 
+
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
@@ -57,13 +58,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     if(!Memory->IsInitialized)
     {
-        
         math_rect ScreenArea = {0.0f, 0.0f, (r32)Buffer->Width, (r32)Buffer->Height};
         
         math_rect GameArea   = CreateMathRect(0.05f, 0.95f, 0.95f, 0.05f, ScreenArea);
         math_rect GridArea   = CreateMathRect(0.0f, 1.0f, 1.0f, 0.5f, GameArea);
         math_rect FigureArea = CreateMathRect(0.0f, 0.5f, 1.0f, 0.0f, GameArea);
-        
         
         /* game_memory initialization */
         
@@ -87,8 +86,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         LevelEntity->LevelNumberQuad       = {};
         LevelEntity->LevelNumberShadowQuad = {};
         
-        LevelEntity->Configuration.DefaultBlocksInRow = 12;
-        LevelEntity->Configuration.DefaultBlocksInCol = 9;
+        LevelEntity->Configuration.DefaultBlocksInRow = 5;
+        LevelEntity->Configuration.DefaultBlocksInCol = 5;
         
         u32 RowAmount           = 5;
         u32 ColumnAmount        = 5;
@@ -98,10 +97,15 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         RescaleGameField(Buffer, RowAmount, ColumnAmount,
                          FigureAmountReserve, LevelEntity->Configuration.DefaultBlocksInRow, LevelEntity->Configuration.DefaultBlocksInCol, LevelEntity);
         
+        //DEBUG
+        //LevelEntity->Configuration.ActiveBlockSize   = 20;
+        //LevelEntity->Configuration.InActiveBlockSize = 10;
+        
         u32 ActiveBlockSize   = LevelEntity->Configuration.ActiveBlockSize;
         u32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
         
-        /* Change values below to be time configured*/
+        
+        /* Change values below to be time configured */
         
         LevelEntity->Configuration.StartUpTimeToFinish = 2.0f;
         LevelEntity->Configuration.RotationVel         = 600.0f;
@@ -175,6 +179,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->GridArea.x = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
         GridEntity->GridArea.y = (Buffer->Height - FigureEntity->FigureArea.h) / 2 - (GridEntity->GridArea.h / 2);
         
+        LevelEntity->Configuration.GridBlockSize = CalculateGridBlockSize(RowAmount, ColumnAmount, 
+                                                                          GridEntity->GridArea.w, GridEntity->GridArea.h,
+                                                                          LevelEntity->Configuration.DefaultBlocksInRow, LevelEntity->Configuration.DefaultBlocksInCol);
+        printf("GridBlockSize = %d\n", LevelEntity->Configuration.GridBlockSize);
+        
         //GridEntity->GridArea = ConvertMathRectToGameRect(GridArea);
         
         /* UnitField initialization */
@@ -243,7 +252,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         /* level_editor initialization */ 
         LevelEditorInit(LevelEditor, LevelEntity, Memory, Buffer);
-        LevelEditorUpdateLevelStats(LevelEditor, LevelEntity->LevelNumber, Memory->CurrentLevelIndex, Buffer);
+        
         /* menu_editor initialization */ 
         MenuEditorInit(MenuEditor, MenuEntity, Memory, Buffer);
         

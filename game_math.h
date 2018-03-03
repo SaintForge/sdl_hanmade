@@ -171,10 +171,23 @@ IsPointInsideRect(s32 X, s32 Y, math_rect Rectangle)
     else                             return true;
 }
 
+static math_rect
+ConvertGameRectToMathRect(game_rect Rectangle)
+{
+    math_rect Result = {};
+    
+    Result.Left   = Rectangle.x;
+    Result.Top    = Rectangle.y;
+    Result.Right  = Rectangle.x + Rectangle.w;
+    Result.Bottom = Rectangle.y + Rectangle.h;
+    
+    return(Result);
+}
+
 static game_rect
 ConvertMathRectToGameRect(math_rect Rectangle)
 {
-    game_rect Result;
+    game_rect Result = {};
     
     Result.x = roundf(Rectangle.Left);
     Result.y = roundf(Rectangle.Top);

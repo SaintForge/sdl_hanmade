@@ -138,13 +138,13 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input)
     
     while(SDL_PollEvent(Event))
     {
-        Input->MouseX = Event->motion.x;
-        Input->MouseY = Event->motion.y;
-        
         switch(Event->type)
         {
             case SDL_MOUSEMOTION:
             {
+                Input->MouseX = Event->motion.x;
+                Input->MouseY = Event->motion.y;
+                
                 Input->MouseRelX += Event->motion.xrel;
                 Input->MouseRelY += Event->motion.yrel;
             } break;
@@ -271,6 +271,10 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input)
                     {
                         SDLProcessKeyPress(&Input->Keyboard.Enter, IsDown, WasDown);
                     }
+                    else if(KeyCode == SDLK_LSHIFT)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.LeftShift, IsDown, WasDown);
+                    }
                     
                 }										 
                 
@@ -325,7 +329,7 @@ int main(int argc, char **argv)
     SDL_Window *Window = SDL_CreateWindow("This is window",
                                           0,
                                           20,
-                                          1366, 768,
+                                          800, 600,
                                           SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
     
     if(Window)
@@ -366,6 +370,7 @@ int main(int argc, char **argv)
                 
                 game_input Input = {};
                 Input.TimeElapsedMs = TimeElapsed;
+                SDL_GetMouseState(&Input.MouseX, &Input.MouseY);
                 
                 SDL_Event Event;
                 if(SDLHandleEvent(&Event, &Input))

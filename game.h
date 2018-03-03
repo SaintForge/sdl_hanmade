@@ -34,7 +34,7 @@ struct game_keyboard_input
 {
     union
     {
-        game_button_state Buttons[22];
+        game_button_state Buttons[23];
         struct
         {
             game_button_state Up;
@@ -60,6 +60,7 @@ struct game_keyboard_input
             game_button_state Nine;
             game_button_state BackSpace;
             game_button_state Enter;
+            game_button_state LeftShift;
         };
     };
 };
