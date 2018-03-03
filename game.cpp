@@ -57,6 +57,14 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     if(!Memory->IsInitialized)
     {
+        
+        math_rect ScreenArea = {0.0f, 0.0f, (r32)Buffer->Width, (r32)Buffer->Height};
+        
+        math_rect GameArea   = CreateMathRect(0.05f, 0.95f, 0.95f, 0.05f, ScreenArea);
+        math_rect GridArea   = CreateMathRect(0.0f, 1.0f, 1.0f, 0.5f, GameArea);
+        math_rect FigureArea = CreateMathRect(0.0f, 0.5f, 1.0f, 0.0f, GameArea);
+        
+        
         /* game_memory initialization */
         
         Memory->ToggleMenu        = false;
@@ -132,6 +140,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->FigureArea.y  = Buffer->Height - (FigureEntity->FigureArea.h);
         FigureEntity->FigureArea.x  = 0;
         
+        //FigureEntity->FigureArea = ConvertMathRectToGameRect(FigureArea);
+        
         FigureEntity->FigureUnit = (figure_unit*)malloc(sizeof(figure_unit)*FigureEntity->FigureAmountReserved);
         Assert(FigureEntity->FigureUnit);
         
@@ -158,11 +168,14 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->StickUnitsAmount    = FigureEntity->FigureAmount;
         GridEntity->MovingBlocksAmount  = 0;
         GridEntity->MovingBlocksAmountReserved  = MovingBlocksAmountReserved;
+        
+        
         GridEntity->GridArea.w = ActiveBlockSize * ColumnAmount;
         GridEntity->GridArea.h = ActiveBlockSize * RowAmount;
         GridEntity->GridArea.x = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
         GridEntity->GridArea.y = (Buffer->Height - FigureEntity->FigureArea.h) / 2 - (GridEntity->GridArea.h / 2);
         
+        //GridEntity->GridArea = ConvertMathRectToGameRect(GridArea);
         
         /* UnitField initialization */
         
@@ -269,6 +282,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         LevelEntityUpdateAndRender(LevelEntity, Memory, Input, Buffer);
         LevelEditorUpdateAndRender(LevelEditor, LevelEntity, Memory, Buffer, Input);
+        
+        DEBUGRenderQuad(Buffer, &LevelEntity->GridEntity->GridArea, { 0, 255, 255 }, 255);
     }
     
     return(ShouldQuit);

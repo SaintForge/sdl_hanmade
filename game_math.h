@@ -9,12 +9,53 @@
 
 #if !defined(GAME_MATH_H)
 
+struct math_rect
+{
+    r32 Left;
+    r32 Top;
+    r32 Right;
+    r32 Bottom;
+};
+
+struct math_point
+{
+    r32 x;
+    r32 y;
+};
+
 struct vector2
 {
     r32 x;
     r32 y;
 };
 
+enum anchor_presets
+{
+    TopLeft = 0,
+    TopCenter,
+    TopRight,
+    
+    MiddleLeft,
+    MiddleCenter,
+    MiddleRight,
+    
+    BottomLeft,
+    BottonCenter,
+    BottomRight,
+    
+    VertStretchLeft,
+    VertStretchCenter,
+    VertStretchRight,
+    VertStretchObject,
+    
+    HorStretchTop,
+    HorStretchMiddle,
+    HorStretchBottom,
+    HorStretchObject,
+    
+    StretchObject,
+    StretchAll
+};
 
 static void 
 Vector2Add(vector2 *Vector, r32 x, r32 y)
@@ -82,6 +123,14 @@ Vector2Limit(vector2 *Vector, r32 MaxValue)
     }
 }
 
+inline void
+Swap(r32 *A, r32 *B)
+{
+    r32 C = *A;
+    *A = *B;
+    *B = C;
+}
+
 inline static s32
 Max2(s32 a, s32 b)
 {
@@ -111,6 +160,225 @@ IsPointInsideRect(s32 X, s32 Y, game_rect *Quad)
     else if(Y >= (Quad->y + Quad->h)) return false;
     else                              return true;
 }
+
+inline static bool
+IsPointInsideRect(s32 X, s32 Y, math_rect Rectangle)
+{
+    if(X < Rectangle.Left)           return false;
+    else if(Y < Rectangle.Top)       return false;
+    else if(X >= (Rectangle.Right))  return false;
+    else if(Y >= (Rectangle.Bottom)) return false;
+    else                             return true;
+}
+
+static game_rect
+ConvertMathRectToGameRect(math_rect Rectangle)
+{
+    game_rect Result;
+    
+    Result.x = roundf(Rectangle.Left);
+    Result.y = roundf(Rectangle.Top);
+    Result.w = roundf(Rectangle.Right  - Rectangle.Left);
+    Result.h = roundf(Rectangle.Bottom - Rectangle.Top);
+    
+    return(Result);
+}
+
+static game_point
+ConvertNormPointToPixel(game_point Point, math_rect RelQuad)
+{
+    game_point Result;
+    
+    r32 RelWidth  = RelQuad.Right - RelQuad.Left;
+    r32 RelHeight = RelQuad.Bottom - RelQuad.Top;
+    
+    Result.x = RelQuad.Left + (Point.x * RelWidth);
+    Result.y = RelQuad.Top +  RelHeight - (Point.y * RelHeight);
+    
+    return(Result);
+}
+
+static game_point
+ConvertPixelPointToNormal(game_point Point, math_rect RelQuad)
+{
+    game_point Result;
+    
+    r32 Width  = RelQuad.Right - RelQuad.Left;
+    r32 Heigth = RelQuad.Bottom - RelQuad.Top;
+    
+    Result.x = (Point.x - RelQuad.Left) / Width;
+    Result.y = 1.0f - ((Point.y - RelQuad.Top) / Heigth);
+    
+    return(Result);
+}
+
+static math_rect
+CreateMathRect(r32 Left, r32 Top, r32 Right, r32 Bottom,
+               math_rect RelQuad)
+{
+    math_rect Result;
+    
+    if(Left > Right)
+    {
+        Swap(&Left, &Right);
+    }
+    
+    if(Top < Bottom)
+    {
+        Swap(&Top, &Bottom);
+    }
+    
+    r32 RelWidth  = RelQuad.Right  - RelQuad.Left;
+    r32 RelHeight = RelQuad.Bottom - RelQuad.Top;
+    
+    Result.Left = RelQuad.Left + roundf(Left * RelWidth);
+    Result.Top  = RelQuad.Top +  roundf(RelHeight - (Top * RelHeight));
+    Result.Right = RelQuad.Left + roundf(Right * RelWidth);
+    Result.Bottom = RelQuad.Top + roundf(RelHeight - (Bottom * RelHeight));
+    
+    return(Result);
+}
+
+
+
+static math_rect
+NormalizeRectangle(math_rect Rectangle,
+                   math_rect RelativeRectangle)
+{
+    math_rect Result = {};
+    
+    s32 RelWidth  = RelativeRectangle.Right - RelativeRectangle.Left;
+    s32 RelHeight = RelativeRectangle.Bottom - RelativeRectangle.Top;
+    
+    Result.Left   = (Rectangle.Left - RelativeRectangle.Left) / RelWidth;
+    Result.Top    = 1.0f - ((Rectangle.Top - RelativeRectangle.Top) / RelHeight);
+    Result.Right  = (Rectangle.Right - RelativeRectangle.Left) / RelWidth;
+    Result.Bottom = 1.0f - ((Rectangle.Bottom - RelativeRectangle.Top) / RelHeight);
+    
+    return(Result);
+}
+
+
+static math_rect
+GetAnchorPreset(anchor_presets Preset, math_rect RectQuad,
+                math_rect RelativeQuad)
+{
+    math_rect Result = {};
+    
+    math_point MinAnchor = {}, MaxAnchor = {};
+    math_rect RectNorm = NormalizeRectangle(RectQuad, RelativeQuad);
+    
+    switch(Preset)
+    {
+        case TopLeft: 
+        {
+            MinAnchor = {0.0f, 1.0f};
+            MaxAnchor = {0.0f, 1.0f};
+        } break;
+        case TopCenter:
+        {
+            MinAnchor = {0.5f, 1.0f};
+            MaxAnchor = {0.5f, 1.0f};
+        } break;
+        case TopRight:
+        {
+            MinAnchor = {1.0f, 1.0f};
+            MaxAnchor = {1.0f, 1.0f};
+        } break;
+        
+        case MiddleLeft:
+        { 
+            MinAnchor = {0.0f, 0.5f};
+            MaxAnchor = {0.0f, 0.5f};
+        } break;
+        case MiddleCenter:
+        {
+            MinAnchor = {0.5f, 0.5f};
+            MaxAnchor = {0.5f, 0.5f};
+        } break;
+        case MiddleRight:
+        { 
+            MinAnchor = {1.0f, 0.5f};
+            MaxAnchor = {1.0f, 0.5f};
+        } break;
+        
+        case BottomLeft:
+        {
+            MinAnchor = {0.0f, 0.0f};
+            MaxAnchor = {0.0f, 0.0f};
+        } break;
+        case BottonCenter:
+        {
+            MinAnchor = {0.5f, 0.0f};
+            MaxAnchor = {0.5f, 0.0f};
+        } break;
+        case BottomRight:
+        {
+            MinAnchor = {1.0f, 0.0f};
+            MaxAnchor = {1.0f, 0.0f};
+        } break;
+        
+        case VertStretchLeft:
+        {
+            MinAnchor = {0.0f, 0.0f};
+            MaxAnchor = {0.0f, 1.0f};
+        } break;
+        case VertStretchRight:
+        { 
+            MinAnchor = {1.0f, 0.0f};
+            MaxAnchor = {1.0f, 1.0f};
+        } break;
+        case VertStretchCenter:
+        { 
+            MinAnchor = {0.5f, 0.0f};
+            MaxAnchor = {0.5f, 1.0f};
+        } break;
+        
+        case HorStretchTop:
+        {
+            MinAnchor = {0.0f, 1.0f};
+            MaxAnchor = {1.0f, 1.0f};
+        } break;
+        case HorStretchMiddle:
+        { 
+            MinAnchor = {0.0f, 0.5f};
+            MaxAnchor = {1.0f, 0.5f};
+        } break;
+        case HorStretchBottom:
+        {
+            MinAnchor = {0.0f, 0.0f};
+            MaxAnchor = {1.0f, 0.0f};
+        } break;
+        case StretchAll:
+        {
+            MinAnchor = {0.0f, 0.0f};
+            MaxAnchor = {1.0f, 1.0f};
+        } break;
+        
+        case HorStretchObject:
+        {
+            MinAnchor = {0.0f, RectNorm.Bottom};
+            MaxAnchor = {1.0f, RectNorm.Top};
+        } break;
+        
+        case VertStretchObject:
+        {
+            MinAnchor = {RectNorm.Left, 0.0f};
+            MaxAnchor = {RectNorm.Right, 1.0f};
+        } break;
+        
+        case StretchObject:
+        {
+            MinAnchor = {RectNorm.Left, RectNorm.Bottom};
+            MaxAnchor = {RectNorm.Right, RectNorm.Top};
+        } break;
+    }
+    
+    Result = CreateMathRect(MinAnchor.x, MaxAnchor.y, MaxAnchor.x, MinAnchor.y, RelativeQuad);
+    
+    return(Result);
+}
+
 
 #define GAME_MATH_H
 #endif 

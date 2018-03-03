@@ -199,5 +199,31 @@ DEBUGRenderQuadFill(game_offscreen_buffer *Buffer, game_rect *AreaQuad, SDL_Colo
     SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
 }
 
+static void
+DEBUGRenderMathRect(game_offscreen_buffer *Buffer, math_rect *Rectangle, u8 Red, u8 Green, u8 Blue, u8 Alpha)
+{
+    SDL_Rect AreaQuad = {};
+    AreaQuad.x = Rectangle->Left;
+    AreaQuad.y = Rectangle->Top;
+    AreaQuad.w = Rectangle->Right - Rectangle->Left;
+    AreaQuad.h = Rectangle->Bottom - Rectangle->Top;
+    
+    DEBUGRenderQuad(Buffer, &AreaQuad, {Red, Green, Blue}, Alpha);
+}
+
+static void
+DEBUGRenderMathRectFill(game_offscreen_buffer *Buffer, math_rect *Rectangle, u8 Red, u8 Green, u8 Blue, u8 Alpha)
+
+{
+    
+    SDL_Rect AreaQuad = {};
+    AreaQuad.x = Rectangle->Left;
+    AreaQuad.y = Rectangle->Top;
+    AreaQuad.w = Rectangle->Right - Rectangle->Left;
+    AreaQuad.h = Rectangle->Bottom - Rectangle->Top;
+    
+    DEBUGRenderQuadFill(Buffer, &AreaQuad, {Red, Green, Blue}, Alpha);
+}
+
 #define GAME_H
 #endif

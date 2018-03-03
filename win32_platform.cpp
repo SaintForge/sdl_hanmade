@@ -323,10 +323,10 @@ int main(int argc, char **argv)
     SDL_GetDesktopDisplayMode(0, &Display);
     
     SDL_Window *Window = SDL_CreateWindow("This is window",
-                                          SDL_WINDOWPOS_CENTERED,
-                                          10,
-                                          800, 600,
-                                          SDL_WINDOW_ALLOW_HIGHDPI);
+                                          0,
+                                          20,
+                                          1366, 768,
+                                          SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
     
     if(Window)
     {
