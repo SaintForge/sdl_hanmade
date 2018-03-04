@@ -252,8 +252,6 @@ CreateMathRect(r32 Left, r32 Top, r32 Right, r32 Bottom,
     return(Result);
 }
 
-
-
 static math_rect
 NormalizeRectangle(math_rect Rectangle,
                    math_rect RelativeRectangle)

@@ -78,6 +78,8 @@ struct game_input
 
 struct game_memory
 {
+    game_rect PadRect;
+    
     u32 CurrentLevelIndex;
     u32 LevelMemoryAmount;
     u32 LevelMemoryReserved;

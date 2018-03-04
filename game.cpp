@@ -60,6 +60,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     {
         math_rect ScreenArea = {0.0f, 0.0f, (r32)Buffer->Width, (r32)Buffer->Height};
         
+        math_rect PadNorm = CreateMathRect(0.05f, 0.95f, 0.95f, 0.0f, ScreenArea);
+        Memory->PadRect = ConvertMathRectToGameRect(PadNorm);
+        
+        
         math_rect GameArea   = CreateMathRect(0.05f, 0.95f, 0.95f, 0.05f, ScreenArea);
         math_rect GridArea   = CreateMathRect(0.0f, 1.0f, 1.0f, 0.5f, GameArea);
         math_rect FigureArea = CreateMathRect(0.0f, 0.5f, 1.0f, 0.0f, GameArea);
@@ -134,7 +138,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->IsFlipping    = false;
         
         FigureEntity->RotationSum   = 0;
-        FigureEntity->AreaAlpha     = 0;
+        
         FigureEntity->FigureAlpha   = 0;
         FigureEntity->FadeInSum     = 0;
         FigureEntity->FadeOutSum    = 0;
@@ -182,6 +186,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         LevelEntity->Configuration.GridBlockSize = CalculateGridBlockSize(RowAmount, ColumnAmount, 
                                                                           GridEntity->GridArea.w, GridEntity->GridArea.h,
                                                                           LevelEntity->Configuration.DefaultBlocksInRow, LevelEntity->Configuration.DefaultBlocksInCol);
+        //LevelEntity->Configuration.GridBlockSize = ActiveBlockSize;
         printf("GridBlockSize = %d\n", LevelEntity->Configuration.GridBlockSize);
         
         //GridEntity->GridArea = ConvertMathRectToGameRect(GridArea);
@@ -277,6 +282,12 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         {
             Memory->ToggleMenu = false;
         }
+        
+    }
+    
+    if(Input->Keyboard.One.EndedDown)
+    {
+        ShouldQuit = true;
     }
     
     if(Memory->ToggleMenu)
@@ -288,11 +299,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     {
         game_rect ScreenArea = { 0, 0, Buffer->Width, Buffer->Height};
         DEBUGRenderQuadFill(Buffer, &ScreenArea, { 42, 6, 21 }, 255);
+        DEBUGRenderQuad(Buffer, &Memory->PadRect, { 255, 255, 255 }, 255);
         
         LevelEntityUpdateAndRender(LevelEntity, Memory, Input, Buffer);
         LevelEditorUpdateAndRender(LevelEditor, LevelEntity, Memory, Buffer, Input);
-        
-        DEBUGRenderQuad(Buffer, &LevelEntity->GridEntity->GridArea, { 0, 255, 255 }, 255);
     }
     
     return(ShouldQuit);

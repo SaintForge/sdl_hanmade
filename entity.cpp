@@ -1981,7 +1981,7 @@ CalculateGridBlockSize(s32 RowAmount, s32 ColumnAmount,
         ? ColumnAmount
         : DefaultColumnAmount;
     
-    s32 MinColSize = roundf(GridWidth / (r32)ColumnAmount);
+    s32 MinColSize = roundf(GridWidth  / (r32)ColumnAmount);
     s32 MinRowSize = roundf(GridHeight / (r32)RowAmount);
     
     Result = (MinRowSize < MinColSize) ? MinRowSize : MinColSize;

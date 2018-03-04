@@ -326,8 +326,23 @@ int main(int argc, char **argv)
     SDL_DisplayMode Display = {};
     SDL_GetDesktopDisplayMode(0, &Display);
     
+    /*
+    
+    320 x 480	Alcatel pixi 3, LG Wine Smart
+    240 x 320	Nokia 230, Nokia 215, Samsung Xcover 550, LG G350
+    480 x 800	Samsung Galaxy J1 (2016), Samsung Z1, Samsung Z2, Lumia 435, Alcatel Pixi 4, LG Joy, ZTE Blade G
+    480 x 854	Huawei Y635, Nokia Lumia 635, Sony Xperia E3
+    540 x 960	Samsung Galaxy J2, Moto E 2nd Gen, Sony Xperia E4, HTC Desire 526
+    640 x 960	iPhone 4, iPhone 4S
+    640 x 1136	iPhone 5, iPhone 5S, iPhone 5C, iPhone SE
+    720 x 1280	Samsung Galaxy J5, Samsung Galaxy J3, Moto G4 Play, Xiaomi Redmi 3, Moto G 3rd Gen, Sony Xperia M4 Aqua
+    750 x 1334	iPhone 6, iPhone 6S, iPhone 7
+    1080 x 1920	iPhone 6S Plus, iPhone 6 Plus, iPhone 7 Plus, Huawei P9, Sony Xperia Z5, Samsung Galaxy A5, Samsung Galaxy A7, Samsung Galaxy S5, Samsung Galaxy A9, HTC One M9, Sony Xperia M5
+    
+    */
+    
     SDL_Window *Window = SDL_CreateWindow("This is window",
-                                          0,
+                                          5,
                                           20,
                                           800, 600,
                                           SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);

@@ -43,6 +43,66 @@ enum cursor_type
     SIZE_WS
 };
 
+enum coordinate_type
+{
+    PIXEL_AREA,
+    GAME_AREA,
+    SCREEN_AREA
+};
+
+struct position_panel
+{
+    coordinate_type CoordType;
+    
+    game_rect HeaderQuad;
+    game_rect HeaderTextureQuad;
+    game_texture *HeaderTexture;
+    
+    game_rect SwitchNameQuad;
+    game_rect SwitchNameTextureQuad;
+    game_texture *SwitchNameTexture;
+    
+    game_rect LeftArrowQuad;
+    game_rect LeftArrowTextureQuad;
+    game_texture *LeftArrowTexture;
+    
+    game_rect RightArrowQuad;
+    game_rect RightArrowTextureQuad;
+    game_texture *RightArrowTexture;
+    
+    game_rect FirstNumberNameQuad;
+    game_rect FirstNumberNameTextureQuad;
+    game_texture *FirstNumberNameTexture;
+    
+    game_rect FirstNumberQuad;
+    game_rect FirstNumberTextureQuad;
+    game_texture *FirstNumberTexture;
+    
+    game_rect SecondNumberNameQuad;
+    game_rect SecondNumberNameTextureQuad;
+    game_texture *SecondNumberNameTexture;
+    
+    game_rect SecondNumberQuad;
+    game_rect SecondNumberTextureQuad;
+    game_texture *SecondNumberTexture;
+    
+    game_rect ThirdNumberNameQuad;
+    game_rect ThirdNumberNameTextureQuad;
+    game_texture *ThirdNumberNameTexture;
+    
+    game_rect ThirdNumberQuad;
+    game_rect ThirdNumberTextureQuad;
+    game_texture *ThirdNumberTexture;
+    
+    game_rect FourthNumberNameQuad;
+    game_rect FourthNumberNameTextureQuad;
+    game_texture *FourthNumberNameTexture;
+    
+    game_rect FourthNumberQuad;
+    game_rect FourthNumberTextureQuad;
+    game_texture *FourthNumberTexture;
+};
+
 struct level_editor
 {
     /* For switching to editor mode*/
@@ -137,7 +197,119 @@ struct level_editor
     cursor_type CursorType;
     
     bool AreaIsMoving;
+    
+    /* Position panel routine*/
+    
+    game_rect PosPanelQuad;
+    position_panel PosPanel;
 };
+
+static void
+LevelEditorUpdateTextOnButton(game_offscreen_buffer *Buffer, game_font *&Font, char *TextBuffer, game_texture *&Texture, game_rect *TextureQuad, game_rect *AreaQuad, game_color Color)
+{
+    GameMakeTextureFromString(Texture, TextBuffer, TextureQuad, Font, Color, Buffer);
+    
+    TextureQuad->x = AreaQuad->x + (AreaQuad->w / 2) - (TextureQuad->w / 2);
+    TextureQuad->y = AreaQuad->y + (AreaQuad->h / 2) - (TextureQuad->h / 2);
+}
+
+
+static void
+LevelEditorUpdateCoordinates(game_offscreen_buffer *Buffer, game_font *Font, position_panel *PosPanel, game_rect Rectangle, 
+                             game_rect GameArea, game_rect ScreenArea)
+{
+    char FirstNumberBuffer[8]  = {};
+    char SecondNumberBuffer[8] = {};
+    char ThirdNumberBuffer[8]  = {};
+    char FourthNumberBuffer[8] = {};
+    
+    if(PosPanel->CoordType == PIXEL_AREA)
+    {
+        sprintf(FirstNumberBuffer,  "%d", Rectangle.x);
+        sprintf(SecondNumberBuffer, "%d", Rectangle.y);
+        sprintf(ThirdNumberBuffer,  "%d", Rectangle.w);
+        sprintf(FourthNumberBuffer, "%d", Rectangle.h);
+        
+    }
+    else if(PosPanel->CoordType == GAME_AREA)
+    {
+        math_rect MathRect = {
+            (r32)Rectangle.x, (r32)Rectangle.y, 
+            (r32)Rectangle.x + (r32)Rectangle.w, (r32)Rectangle.y + (r32)Rectangle.h};
+        
+        math_rect RelMathRect = {(r32)GameArea.x, (r32)GameArea.y, (r32)GameArea.x + (r32)GameArea.w, (r32)GameArea.y + (r32)GameArea.h};
+        
+        MathRect = NormalizeRectangle(MathRect, RelMathRect);
+        
+        sprintf(FirstNumberBuffer,  "%.3f", MathRect.Left);
+        sprintf(SecondNumberBuffer, "%.3f", MathRect.Top);
+        sprintf(ThirdNumberBuffer,  "%.3f", MathRect.Right);
+        sprintf(FourthNumberBuffer, "%.3f", MathRect.Bottom);
+    }
+    else if(PosPanel->CoordType == SCREEN_AREA)
+    {
+        math_rect MathRect = {
+            (r32)Rectangle.x, (r32)Rectangle.y, 
+            (r32)Rectangle.x + (r32)Rectangle.w, (r32)Rectangle.y + (r32)Rectangle.h};
+        
+        math_rect RelMathRect = {(r32)ScreenArea.x, (r32)ScreenArea.y, (r32)ScreenArea.x + (r32)ScreenArea.w, (r32)ScreenArea.y + (r32)ScreenArea.h};
+        
+        MathRect = NormalizeRectangle(MathRect, RelMathRect);
+        
+        sprintf(FirstNumberBuffer,  "%.3f", MathRect.Left);
+        sprintf(SecondNumberBuffer, "%.3f", MathRect.Top);
+        sprintf(ThirdNumberBuffer,  "%.3f", MathRect.Right);
+        sprintf(FourthNumberBuffer, "%.3f", MathRect.Bottom);
+    }
+    
+    LevelEditorUpdateTextOnButton(Buffer, Font, FirstNumberBuffer, PosPanel->FirstNumberTexture, &PosPanel->FirstNumberTextureQuad, &PosPanel->FirstNumberQuad, {255, 255, 255});
+    
+    LevelEditorUpdateTextOnButton(Buffer, Font, SecondNumberBuffer, PosPanel->SecondNumberTexture, &PosPanel->SecondNumberTextureQuad, &PosPanel->SecondNumberQuad, {255, 255, 255});
+    
+    LevelEditorUpdateTextOnButton(Buffer, Font, ThirdNumberBuffer, PosPanel->ThirdNumberTexture, &PosPanel->ThirdNumberTextureQuad, &PosPanel->ThirdNumberQuad, {255, 255, 255});
+    
+    LevelEditorUpdateTextOnButton(Buffer, Font, FourthNumberBuffer, PosPanel->FourthNumberTexture, &PosPanel->FourthNumberTextureQuad, &PosPanel->FourthNumberQuad, {255, 255, 255});
+}
+
+static void
+LevelEditorUpdateCoordinateSwitch(level_editor *LevelEditor, position_panel *PosPanel, game_offscreen_buffer *Buffer)
+{
+    coordinate_type CoordType = PosPanel->CoordType;
+    if(CoordType == PIXEL_AREA)
+    {
+        LevelEditorUpdateTextOnButton(Buffer, LevelEditor->Font, "Pixels", LevelEditor->PosPanel.SwitchNameTexture, &LevelEditor->PosPanel.SwitchNameTextureQuad, &LevelEditor->PosPanel.SwitchNameQuad, {255, 255, 255});
+        
+        LevelEditorUpdateTextOnButton(Buffer, LevelEditor->Font, "X", LevelEditor->PosPanel.FirstNumberNameTexture, &LevelEditor->PosPanel.FirstNumberNameTextureQuad, &LevelEditor->PosPanel.FirstNumberNameQuad, {255, 255, 255});
+        
+        LevelEditorUpdateTextOnButton(Buffer, LevelEditor->Font, "Y", LevelEditor->PosPanel.SecondNumberNameTexture, &LevelEditor->PosPanel.SecondNumberNameTextureQuad, &LevelEditor->PosPanel.SecondNumberNameQuad, {255, 255, 255});
+        
+        LevelEditorUpdateTextOnButton(Buffer, LevelEditor->Font, "Width", LevelEditor->PosPanel.ThirdNumberNameTexture, &LevelEditor->PosPanel.ThirdNumberNameTextureQuad, &LevelEditor->PosPanel.ThirdNumberNameQuad, {255, 255, 255});
+        
+        LevelEditorUpdateTextOnButton(Buffer, LevelEditor->Font, "Height", LevelEditor->PosPanel.FourthNumberNameTexture, &LevelEditor->PosPanel.FourthNumberNameTextureQuad, &LevelEditor->PosPanel.FourthNumberNameQuad, {255, 255, 255});
+    }
+    else if(CoordType == GAME_AREA || CoordType == SCREEN_AREA)
+    {
+        if(CoordType == GAME_AREA)
+        {
+            LevelEditorUpdateTextOnButton(Buffer, LevelEditor->Font, "% game_area", LevelEditor->PosPanel.SwitchNameTexture, &LevelEditor->PosPanel.SwitchNameTextureQuad, &LevelEditor->PosPanel.SwitchNameQuad, {255, 255, 255});
+        }
+        else
+        {
+            LevelEditorUpdateTextOnButton(Buffer, LevelEditor->Font, "% screen_area", LevelEditor->PosPanel.SwitchNameTexture, &LevelEditor->PosPanel.SwitchNameTextureQuad, &LevelEditor->PosPanel.SwitchNameQuad, {255, 255, 255});
+        }
+        
+        
+        LevelEditorUpdateTextOnButton(Buffer, LevelEditor->Font, "Left", LevelEditor->PosPanel.FirstNumberNameTexture, &LevelEditor->PosPanel.FirstNumberNameTextureQuad, &LevelEditor->PosPanel.FirstNumberNameQuad, {255, 255, 255});
+        
+        LevelEditorUpdateTextOnButton(Buffer, LevelEditor->Font, "Top", LevelEditor->PosPanel.SecondNumberNameTexture, &LevelEditor->PosPanel.SecondNumberNameTextureQuad, &LevelEditor->PosPanel.SecondNumberNameQuad, {255, 255, 255});
+        
+        LevelEditorUpdateTextOnButton(Buffer, LevelEditor->Font, "Right", LevelEditor->PosPanel.ThirdNumberNameTexture, &LevelEditor->PosPanel.ThirdNumberNameTextureQuad, &LevelEditor->PosPanel.ThirdNumberNameQuad, {255, 255, 255});
+        
+        LevelEditorUpdateTextOnButton(Buffer, LevelEditor->Font, "Bottom", LevelEditor->PosPanel.FourthNumberNameTexture, &LevelEditor->PosPanel.FourthNumberNameTextureQuad, &LevelEditor->PosPanel.FourthNumberNameQuad, {255, 255, 255});
+    }
+    
+}
+
 
 static void
 LevelEditorSetCursorType(cursor_type CursorType)
@@ -314,7 +486,8 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
 {
     *LevelEditor = {};
     
-    s32 FontSize = 20;
+    r32 FontRatio = 0.0146f;
+    s32 FontSize  = roundf(FontRatio * Buffer->Width);
     
     LevelEditor->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
     Assert(LevelEditor->Font);
@@ -337,15 +510,24 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
     LevelEditor->NextLevelQuad.x = Buffer->Width - (LevelEditor->NextLevelQuad.w * 2);
     LevelEditor->NextLevelQuad.y = Buffer->Height - (LevelEditor->NextLevelQuad.h * 2);
     
-    s32 ButtonWidth  = 60;
-    s32 ButtonHeight = 40;
+    //0.053333, 0.043924
+    //s32 ButtonWidth  = 60;
+    //s32 ButtonHeight = 40;
+    
+    r32 ButtonNormHeight = 0.053333f;
+    r32 ButtonNormWidth  = 0.045;
+    s32 ButtonWidth  = roundf(ButtonNormWidth * (r32)Buffer->Width);
+    s32 ButtonHeight = roundf(ButtonNormHeight * (r32)Buffer->Height);
     
     math_rect ScreenArea = {0.0f, 0.0f, (r32)Buffer->Width, (r32)Buffer->Height};
     
     r32 NormalX = 0.0f;
     r32 NormalY = 1.0f;
-    r32 NormalHeight = 1.0f - ((r32)(ButtonHeight * 4) / (r32)(Buffer->Height));
-    r32 NormalWidth  = ((r32)(ButtonWidth * 4) / (r32)(Buffer->Width));
+    
+    //r32 NormalHeight = 1.0f - ((r32)(ButtonHeight * 4) / (r32)(Buffer->Height));
+    //r32 NormalWidth  = ((r32)(ButtonWidth * 4) / (r32)(Buffer->Width));
+    r32 NormalHeight   = 1.0f - (ButtonNormHeight * 4.0f);
+    r32 NormalWidth    = ButtonNormWidth * 4.0f;
     
     math_rect PropertiesQuad = CreateMathRect(NormalX, NormalY, NormalWidth, NormalHeight, ScreenArea);
     
@@ -381,7 +563,9 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
     
     /* Figure header name initialization */
     
-    ButtonHeight = 30;
+    ButtonNormHeight = 0.05f;
+    //ButtonHeight = 30;
+    ButtonHeight = roundf(ButtonNormHeight * (r32)Buffer->Height);
     
     NormalY      = NormalHeight;
     NormalHeight = NormalY - ((r32)(ButtonHeight * 5) / (r32)(Buffer->Height));
@@ -468,6 +652,129 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
     LevelEditorUpdateLevelStats(LevelEditor->LevelPropertiesQuad.w + 10, 0, 
                                 LevelEditor, LevelEntity->LevelNumber, 
                                 Memory->CurrentLevelIndex, Buffer);
+    
+    
+    /* Position panel initialization */
+    
+    LevelEditor->PosPanel.CoordType = PIXEL_AREA;
+    
+    ButtonHeight = 20;
+    r32 PanelHeight = ButtonHeight * 6;
+    r32 PanelWidth  = 150;
+    
+    r32 NormPanelWidth  = PanelWidth / (r32) Buffer->Width;
+    r32 NormPanelHeight = PanelHeight / (r32) Buffer->Height;
+    
+    math_rect MathPanel = CreateMathRect(1.0f - NormPanelWidth, 0.5f + (NormPanelHeight / 2.0f), 1.0f, 0.5f - (NormPanelHeight / 2.0f), ScreenArea);
+    
+    LevelEditor->PosPanelQuad = ConvertMathRectToGameRect(MathPanel);
+    
+    MenuMakeTextButton("Position properties",
+                       LevelEditor->PosPanelQuad.x, LevelEditor->PosPanelQuad.y, 
+                       LevelEditor->PosPanelQuad.w, ButtonHeight,
+                       &LevelEditor->PosPanel.HeaderQuad,
+                       &LevelEditor->PosPanel.HeaderTextureQuad,
+                       LevelEditor->PosPanel.HeaderTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    s32 ArrowWidth  = roundf((r32)PanelWidth * 0.2f);
+    s32 SwitchWidth = roundf((r32)PanelWidth * 0.6f);
+    MenuMakeTextButton("<",
+                       LevelEditor->PosPanelQuad.x, LevelEditor->PosPanelQuad.y + ButtonHeight, 
+                       ArrowWidth, ButtonHeight,
+                       &LevelEditor->PosPanel.LeftArrowQuad,
+                       &LevelEditor->PosPanel.LeftArrowTextureQuad,
+                       LevelEditor->PosPanel.LeftArrowTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    MenuMakeTextButton("Pixels",
+                       LevelEditor->PosPanelQuad.x + ArrowWidth, LevelEditor->PosPanelQuad.y + ButtonHeight, 
+                       SwitchWidth, ButtonHeight,
+                       &LevelEditor->PosPanel.SwitchNameQuad,
+                       &LevelEditor->PosPanel.SwitchNameTextureQuad,
+                       LevelEditor->PosPanel.SwitchNameTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    MenuMakeTextButton(">",
+                       LevelEditor->PosPanelQuad.x + ArrowWidth + SwitchWidth, LevelEditor->PosPanelQuad.y + ButtonHeight, 
+                       ArrowWidth, ButtonHeight,
+                       &LevelEditor->PosPanel.RightArrowQuad,
+                       &LevelEditor->PosPanel.RightArrowTextureQuad,
+                       LevelEditor->PosPanel.RightArrowTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    s32 NameNumberWidth = roundf((r32)PanelWidth * 0.4f);
+    s32 NumberWidth     = PanelWidth - NameNumberWidth;
+    char NumberString[128] = {};
+    
+    MenuMakeTextButton("X",
+                       LevelEditor->PosPanelQuad.x, LevelEditor->PosPanelQuad.y + (ButtonHeight * 2), 
+                       NameNumberWidth, ButtonHeight,
+                       &LevelEditor->PosPanel.FirstNumberNameQuad,
+                       &LevelEditor->PosPanel.FirstNumberNameTextureQuad,
+                       LevelEditor->PosPanel.FirstNumberNameTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    sprintf(NumberString, "%d", LevelEntity->GridEntity->GridArea.x);
+    MenuMakeTextButton(NumberString,
+                       LevelEditor->PosPanelQuad.x + NameNumberWidth, LevelEditor->PosPanelQuad.y + (ButtonHeight * 2), 
+                       NumberWidth, ButtonHeight,
+                       &LevelEditor->PosPanel.FirstNumberQuad,
+                       &LevelEditor->PosPanel.FirstNumberTextureQuad,
+                       LevelEditor->PosPanel.FirstNumberTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    MenuMakeTextButton("Y",
+                       LevelEditor->PosPanelQuad.x, LevelEditor->PosPanelQuad.y + (ButtonHeight * 3), 
+                       NameNumberWidth, ButtonHeight,
+                       &LevelEditor->PosPanel.SecondNumberNameQuad,
+                       &LevelEditor->PosPanel.SecondNumberNameTextureQuad,
+                       LevelEditor->PosPanel.SecondNumberNameTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    sprintf(NumberString, "%d", LevelEntity->GridEntity->GridArea.y);
+    MenuMakeTextButton(NumberString,
+                       LevelEditor->PosPanelQuad.x + NameNumberWidth, LevelEditor->PosPanelQuad.y + (ButtonHeight * 3), 
+                       NumberWidth, ButtonHeight,
+                       &LevelEditor->PosPanel.SecondNumberQuad,
+                       &LevelEditor->PosPanel.SecondNumberTextureQuad,
+                       LevelEditor->PosPanel.SecondNumberTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    
+    MenuMakeTextButton("Width",
+                       LevelEditor->PosPanelQuad.x, LevelEditor->PosPanelQuad.y + (ButtonHeight * 4), 
+                       NameNumberWidth, ButtonHeight,
+                       &LevelEditor->PosPanel.ThirdNumberNameQuad,
+                       &LevelEditor->PosPanel.ThirdNumberNameTextureQuad,
+                       LevelEditor->PosPanel.ThirdNumberNameTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    sprintf(NumberString, "%d", LevelEntity->GridEntity->GridArea.w);
+    MenuMakeTextButton(NumberString,
+                       LevelEditor->PosPanelQuad.x + NameNumberWidth, LevelEditor->PosPanelQuad.y + (ButtonHeight * 4), 
+                       NumberWidth, ButtonHeight,
+                       &LevelEditor->PosPanel.ThirdNumberQuad,
+                       &LevelEditor->PosPanel.ThirdNumberTextureQuad,
+                       LevelEditor->PosPanel.ThirdNumberTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    MenuMakeTextButton("Height",
+                       LevelEditor->PosPanelQuad.x, LevelEditor->PosPanelQuad.y + (ButtonHeight * 5), 
+                       NameNumberWidth, ButtonHeight,
+                       &LevelEditor->PosPanel.FourthNumberNameQuad,
+                       &LevelEditor->PosPanel.FourthNumberNameTextureQuad,
+                       LevelEditor->PosPanel.FourthNumberNameTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    sprintf(NumberString, "%d", LevelEntity->GridEntity->GridArea.h);
+    MenuMakeTextButton(NumberString,
+                       LevelEditor->PosPanelQuad.x + NameNumberWidth, LevelEditor->PosPanelQuad.y + (ButtonHeight * 5), 
+                       NumberWidth, ButtonHeight,
+                       &LevelEditor->PosPanel.FourthNumberQuad,
+                       &LevelEditor->PosPanel.FourthNumberTextureQuad,
+                       LevelEditor->PosPanel.FourthNumberTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
 }
 
 static void
@@ -1020,6 +1327,46 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 }
             }
         }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->PosPanel.LeftArrowQuad))
+        {
+            if(LevelEditor->PosPanel.CoordType == PIXEL_AREA)
+            {
+                LevelEditor->PosPanel.CoordType = SCREEN_AREA;
+                
+            }
+            else if(LevelEditor->PosPanel.CoordType == SCREEN_AREA)
+            {
+                LevelEditor->PosPanel.CoordType = GAME_AREA;
+            }
+            else
+            {
+                LevelEditor->PosPanel.CoordType = PIXEL_AREA;
+            }
+            
+            LevelEditorUpdateCoordinates(Buffer, LevelEditor->Font, &LevelEditor->PosPanel, LevelEntity->GridEntity->GridArea, 
+                                         Memory->PadRect, {0, 0, Buffer->Width, Buffer->Height});
+            LevelEditorUpdateCoordinateSwitch(LevelEditor, &LevelEditor->PosPanel, Buffer);
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->PosPanel.RightArrowQuad))
+        {
+            if(LevelEditor->PosPanel.CoordType == PIXEL_AREA)
+            {
+                LevelEditor->PosPanel.CoordType = GAME_AREA;
+                
+            }
+            else if(LevelEditor->PosPanel.CoordType == GAME_AREA)
+            {
+                LevelEditor->PosPanel.CoordType = SCREEN_AREA;
+            }
+            else
+            {
+                LevelEditor->PosPanel.CoordType = PIXEL_AREA;
+            }
+            
+            LevelEditorUpdateCoordinates(Buffer, LevelEditor->Font, &LevelEditor->PosPanel, LevelEntity->GridEntity->GridArea, 
+                                         Memory->PadRect, {0, 0, Buffer->Width, Buffer->Height});
+            LevelEditorUpdateCoordinateSwitch(LevelEditor, &LevelEditor->PosPanel, Buffer);
+        }
         else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->LevelPropertiesQuad))
         {
             if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->RowLabel.MinusQuad))
@@ -1392,6 +1739,9 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                                                           LevelEntity->GridEntity->GridArea.h,
                                                                           LevelEntity->Configuration.DefaultBlocksInRow, LevelEntity->Configuration.DefaultBlocksInCol);
         
+        LevelEditorUpdateCoordinates(Buffer, LevelEditor->Font, &LevelEditor->PosPanel, LevelEntity->GridEntity->GridArea, 
+                                     Memory->PadRect, {0, 0, Buffer->Width, Buffer->Height});
+        
     }
     
     if(NewFigureIndex < 0)
@@ -1496,6 +1846,69 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     {
         DEBUGRenderQuadFill(Buffer, &LevelEditor->HighlightButtonQuad, {255, 255, 0}, 150);
     }
+    
+    DEBUGRenderQuad(Buffer, &LevelEntity->GridEntity->GridArea, { 0, 255, 255 }, 255);
+    
+    
+    //DEBUGRenderQuad(Buffer, &LevelEditor->PosPanelQuad, { 0, 255, 255 }, 255);
+    
+    /* Position panel rendering */
+    /* Position header rendering */
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->PosPanel.HeaderQuad, {128, 128, 128}, 255);
+    DEBUGRenderQuad(Buffer, &LevelEditor->PosPanel.HeaderQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->PosPanel.HeaderTexture, &LevelEditor->PosPanel.HeaderTextureQuad);
+    
+    /* Switch buttons rendering */
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->PosPanel.LeftArrowQuad, {0, 128, 0}, 255);
+    DEBUGRenderQuad(Buffer, &LevelEditor->PosPanel.LeftArrowQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->PosPanel.LeftArrowTexture, &LevelEditor->PosPanel.LeftArrowTextureQuad);
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->PosPanel.SwitchNameQuad, {0, 128, 0}, 255);
+    DEBUGRenderQuad(Buffer, &LevelEditor->PosPanel.SwitchNameQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->PosPanel.SwitchNameTexture, &LevelEditor->PosPanel.SwitchNameTextureQuad);
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->PosPanel.RightArrowQuad, {0, 128, 0}, 255);
+    DEBUGRenderQuad(Buffer, &LevelEditor->PosPanel.RightArrowQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->PosPanel.RightArrowTexture, &LevelEditor->PosPanel.RightArrowTextureQuad);
+    
+    /* First coordinate buttons rendering */
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->PosPanel.FirstNumberNameQuad, {0, 0, 128}, 255);
+    DEBUGRenderQuad(Buffer, &LevelEditor->PosPanel.FirstNumberNameQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->PosPanel.FirstNumberNameTexture, &LevelEditor->PosPanel.FirstNumberNameTextureQuad);
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->PosPanel.FirstNumberQuad, {0, 0, 128}, 255);
+    DEBUGRenderQuad(Buffer, &LevelEditor->PosPanel.FirstNumberQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->PosPanel.FirstNumberTexture, &LevelEditor->PosPanel.FirstNumberTextureQuad);
+    
+    /* Second coordinate buttons rendering */
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->PosPanel.SecondNumberNameQuad, {0, 0, 128}, 255);
+    DEBUGRenderQuad(Buffer, &LevelEditor->PosPanel.SecondNumberNameQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->PosPanel.SecondNumberNameTexture, &LevelEditor->PosPanel.SecondNumberNameTextureQuad);
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->PosPanel.SecondNumberQuad, {0, 0, 128}, 255);
+    DEBUGRenderQuad(Buffer, &LevelEditor->PosPanel.SecondNumberQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->PosPanel.SecondNumberTexture, &LevelEditor->PosPanel.SecondNumberTextureQuad);
+    
+    /*Third coordinate buttons rendering */
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->PosPanel.ThirdNumberNameQuad, {0, 0, 128}, 255);
+    DEBUGRenderQuad(Buffer, &LevelEditor->PosPanel.ThirdNumberNameQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->PosPanel.ThirdNumberNameTexture, &LevelEditor->PosPanel.ThirdNumberNameTextureQuad);
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->PosPanel.ThirdNumberQuad, {0, 0, 128}, 255);
+    DEBUGRenderQuad(Buffer, &LevelEditor->PosPanel.ThirdNumberQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->PosPanel.ThirdNumberTexture, &LevelEditor->PosPanel.ThirdNumberTextureQuad);
+    
+    
+    /*Fourth coordinate buttons rendering*/
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->PosPanel.FourthNumberNameQuad, {0, 0, 128}, 255);
+    DEBUGRenderQuad(Buffer, &LevelEditor->PosPanel.FourthNumberNameQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->PosPanel.FourthNumberNameTexture, &LevelEditor->PosPanel.FourthNumberNameTextureQuad);
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->PosPanel.FourthNumberQuad, {0, 0, 128}, 255);
+    DEBUGRenderQuad(Buffer, &LevelEditor->PosPanel.FourthNumberQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->PosPanel.FourthNumberTexture, &LevelEditor->PosPanel.FourthNumberTextureQuad);
     
 }
 
@@ -1860,5 +2273,7 @@ MenuEditorUpdateAndRender(menu_editor *MenuEditor, menu_entity *MenuEntity, game
     {
         DEBUGRenderQuadFill(Buffer, &MenuEditor->HighlightButtonQuad, {0, 255, 255}, 200);
     }
+    
+    
 }
 
