@@ -51,6 +51,19 @@
 -	5. Separate editor code from the game code so that no editor code will be in release
 -	6. Make separate binary file for editor assets loading
 +	7. Implement sorting selected buttons
+-	8. Panel for resolution independence testing:
+
+	   Object Scaler
+	 <	 Width	>
+
+       Target resolution
+	Width: 1366 Height 768
+	  Reference resolution
+	Width: 800  Height 600
+			Apply!
+
+
+
 
 BUGS:
 	+ 1. When I want to pick the figure that lies on top of the figure that is sticked
