@@ -79,7 +79,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         /* LocalMemoryStorage allocation */
         /* level_entity initialization */
         
-        Memory->LocalMemoryStorage = malloc(sizeof(level_entity) + (sizeof(menu_entity)));
+        Memory->LocalMemoryStorage = calloc(1, sizeof(level_entity) + (sizeof(menu_entity)));
         Assert(Memory->LocalMemoryStorage);
         
         level_entity *LevelEntity  = (level_entity*) Memory->LocalMemoryStorage;

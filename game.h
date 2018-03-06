@@ -99,6 +99,26 @@ struct game_memory
     bool ToggleMenu;
 };
 
+
+/*
+
+Things that are need to be rescaled in order to fit into the screen
+
+game_rect GameArea;
+game_rect LevelNumber;
+
+game_rect GridArea;
+game_rect ActualGridArea;
+
+game_rect FigureArea;
+game_rect ActualFigureArea;
+
+game_rect EditorPositionPanel;
+game_rect EditorLevelPanel;
+
+*/
+
+
 static u32
 GameResizeActiveBlock(u32 GridAreaWidth, 
                       u32 GridAreaHeight, 

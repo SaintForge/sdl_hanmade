@@ -103,6 +103,52 @@ struct position_panel
     game_texture *FourthNumberTexture;
 };
 
+
+struct resolution_routine
+{
+    /* Target resolution button routine */
+    game_rect TargetResolutionHeaderQuad;
+    game_rect TargetResolutionHeaderTextureQuad;
+    game_texture *TargetResolutionHeaderTexture;
+    
+    game_rect TargetWidthNameQuad;
+    game_rect TargetWidthNameTextureQuad;
+    game_texture *TargetWidthNameTexture;
+    
+    game_rect TargetHeightNameQuad;
+    game_rect TargetHeightNameTextureQuad;
+    game_texture *TargetHeigthNameTexture;
+    
+    game_rect TargetWidthNumberQuad;
+    game_rect TargetWidthNumberTextureQuad;
+    game_texture *TargetWidthNumberTexture;
+    
+    game_rect TargetHeightNumberQuad;
+    game_rect TargetHeightNumberTextureQuad;
+    game_texture *TargetHeightNumberTexture;
+    
+    /* Reference resolution button routine */
+    game_rect ReferenceResolutionHeaderQuad;
+    game_rect ReferenceResolutionHeaderTextureQuad;
+    game_texture *ReferenceResolutionHeaderTexture;
+    
+    game_rect ReferenceWidthNameQuad;
+    game_rect ReferenceWidthNameTextureQuad;
+    game_texture *ReferenceWidthNameTexture;
+    
+    game_rect ReferenceHeightNameQuad;
+    game_rect ReferenceHeightNameTextureQuad;
+    game_texture *ReferenceHeightNameTexture;
+    
+    game_rect ReferenceWidthNumberQuad;
+    game_rect ReferenceWidthNumberTextureQuad;
+    game_texture *ReferenceWidthNumberTexture;
+    
+    game_rect ReferenceHeightNumberQuad;
+    game_rect ReferenceHeightNumberTextureQuad;
+    game_texture *ReferenceHeightNumberTexture;
+};
+
 struct level_editor
 {
     /* For switching to editor mode*/
@@ -202,6 +248,32 @@ struct level_editor
     
     game_rect PosPanelQuad;
     position_panel PosPanel;
+    
+    /* Resolution panel routine */
+    
+    game_rect ResPanelQuad;
+    
+    game_rect ScalerHeaderQuad;
+    game_rect ScalerHeaderTextureQuad;
+    game_texture *ScalerHeaderTexture;
+    
+    game_rect ScalerSwitchQuad;
+    game_rect ScalerSwitchTextureQuad;
+    game_texture *ScalerSwitchTexture;
+    
+    game_rect ScalerLeftArrowQuad;
+    game_rect ScalerLeftArrowTextureQuad;
+    game_texture *ScalerLeftArrowTexture;
+    
+    game_rect ScalerRightArrowQuad;
+    game_rect ScalerRightArrowTextureQuad;
+    game_texture  *ScalerRightArrowTexture;
+    
+    resolution_routine ResRoutine;
+    
+    game_rect ApplyResolutionQuad;
+    game_rect ApplyResolutionTextureQuad;
+    game_texture  *ApplyResolutionTexture;
 };
 
 static void
@@ -658,14 +730,20 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
     
     LevelEditor->PosPanel.CoordType = PIXEL_AREA;
     
-    ButtonHeight = 20;
-    r32 PanelHeight = ButtonHeight * 6;
-    r32 PanelWidth  = 150;
+    ButtonHeight = (r32)Buffer->Height * 0.04f;
     
-    r32 NormPanelWidth  = PanelWidth / (r32) Buffer->Width;
-    r32 NormPanelHeight = PanelHeight / (r32) Buffer->Height;
+    r32 PosPanelHeight = ButtonHeight * 6;
+    r32 PosPanelWidth  = (r32)Buffer->Width * 0.1875;
     
-    math_rect MathPanel = CreateMathRect(1.0f - NormPanelWidth, 0.5f + (NormPanelHeight / 2.0f), 1.0f, 0.5f - (NormPanelHeight / 2.0f), ScreenArea);
+    r32 NormPanelWidth  = PosPanelWidth / (r32) Buffer->Width;
+    r32 NormPanelHeight = PosPanelHeight / (r32) Buffer->Height;
+    
+    r32 PosPanelLeft   = 1.0f - NormPanelWidth;
+    r32 PosPanelTop    = 1.0f;
+    r32 PosPanelRight  = 1.0f;
+    r32 PosPanelBottom = (NormPanelHeight); 
+    
+    math_rect MathPanel = CreateMathRect(PosPanelLeft, PosPanelTop, PosPanelRight, PosPanelBottom, ScreenArea);
     
     LevelEditor->PosPanelQuad = ConvertMathRectToGameRect(MathPanel);
     
@@ -677,8 +755,8 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
                        LevelEditor->PosPanel.HeaderTexture, 
                        LevelEditor->Font, {255, 255, 255}, Buffer);
     
-    s32 ArrowWidth  = roundf((r32)PanelWidth * 0.2f);
-    s32 SwitchWidth = roundf((r32)PanelWidth * 0.6f);
+    s32 ArrowWidth  = roundf((r32)PosPanelWidth * 0.2f);
+    s32 SwitchWidth = roundf((r32)PosPanelWidth * 0.6f);
     MenuMakeTextButton("<",
                        LevelEditor->PosPanelQuad.x, LevelEditor->PosPanelQuad.y + ButtonHeight, 
                        ArrowWidth, ButtonHeight,
@@ -703,8 +781,8 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
                        LevelEditor->PosPanel.RightArrowTexture, 
                        LevelEditor->Font, {255, 255, 255}, Buffer);
     
-    s32 NameNumberWidth = roundf((r32)PanelWidth * 0.4f);
-    s32 NumberWidth     = PanelWidth - NameNumberWidth;
+    s32 NameNumberWidth = roundf((r32)PosPanelWidth * 0.4f);
+    s32 NumberWidth     = PosPanelWidth - NameNumberWidth;
     char NumberString[128] = {};
     
     MenuMakeTextButton("X",
@@ -774,6 +852,186 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
                        &LevelEditor->PosPanel.FourthNumberQuad,
                        &LevelEditor->PosPanel.FourthNumberTextureQuad,
                        LevelEditor->PosPanel.FourthNumberTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    
+    r32 ResPanelWidth  = PosPanelWidth;
+    r32 ResPanelHeight = 7 * ButtonHeight;
+    
+    NormPanelWidth  = ResPanelWidth  / (r32) Buffer->Width;
+    NormPanelHeight = ResPanelHeight / (r32) Buffer->Height;
+    
+    r32 ResPanelLeft   = 1.0f - (ResPanelWidth / (r32)Buffer->Width);
+    r32 ResPanelTop    = 1.0f - PosPanelBottom;
+    r32 ResPanelRight  = 1.0f;
+    r32 ResPanelBottom = ResPanelTop - NormPanelHeight;
+    
+    math_rect ResolutionPanel = CreateMathRect(ResPanelLeft, ResPanelTop, ResPanelRight, ResPanelBottom, ScreenArea);
+    
+    LevelEditor->ResPanelQuad = ConvertMathRectToGameRect(ResolutionPanel);
+    
+    MenuMakeTextButton("Object Scaler",
+                       LevelEditor->ResPanelQuad.x, 
+                       LevelEditor->ResPanelQuad.y, 
+                       LevelEditor->ResPanelQuad.w, 
+                       ButtonHeight,
+                       &LevelEditor->ScalerHeaderQuad,
+                       &LevelEditor->ScalerHeaderTextureQuad,
+                       LevelEditor->ScalerHeaderTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    MenuMakeTextButton("<",
+                       LevelEditor->ResPanelQuad.x, 
+                       LevelEditor->ResPanelQuad.y + ButtonHeight, 
+                       ArrowWidth, ButtonHeight,
+                       &LevelEditor->ScalerLeftArrowQuad,
+                       &LevelEditor->ScalerLeftArrowTextureQuad,
+                       LevelEditor->ScalerLeftArrowTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    MenuMakeTextButton("Width",
+                       LevelEditor->ResPanelQuad.x + ArrowWidth, 
+                       LevelEditor->ResPanelQuad.y + ButtonHeight, 
+                       SwitchWidth, 
+                       ButtonHeight,
+                       &LevelEditor->ScalerSwitchQuad,
+                       &LevelEditor->ScalerSwitchTextureQuad,
+                       LevelEditor->ScalerSwitchTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    MenuMakeTextButton(">",
+                       LevelEditor->ResPanelQuad.x + ArrowWidth + SwitchWidth, 
+                       LevelEditor->ResPanelQuad.y + ButtonHeight, 
+                       ArrowWidth, 
+                       ButtonHeight,
+                       &LevelEditor->ScalerRightArrowQuad,
+                       &LevelEditor->ScalerRightArrowTextureQuad,
+                       LevelEditor->ScalerRightArrowTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    MenuMakeTextButton("Target Resolution",
+                       LevelEditor->ResPanelQuad.x,
+                       LevelEditor->ResPanelQuad.y + (ButtonHeight * 2), 
+                       LevelEditor->ResPanelQuad.w, 
+                       ButtonHeight,
+                       &LevelEditor->ResRoutine.TargetResolutionHeaderQuad,
+                       &LevelEditor->ResRoutine.TargetResolutionHeaderTextureQuad,
+                       LevelEditor->ResRoutine.TargetResolutionHeaderTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    s32 ButtonQuad = LevelEditor->ResPanelQuad.w / 4;
+    
+    MenuMakeTextButton("Width",
+                       LevelEditor->ResPanelQuad.x,
+                       LevelEditor->ResPanelQuad.y + (ButtonHeight * 3), 
+                       ButtonQuad, 
+                       ButtonHeight,
+                       &LevelEditor->ResRoutine.TargetWidthNameQuad,
+                       &LevelEditor->ResRoutine.TargetWidthNameTextureQuad,
+                       LevelEditor->ResRoutine.TargetWidthNameTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    char TargetWidthBuffer[8] = {};
+    sprintf(TargetWidthBuffer, "%d", 1920);
+    
+    char TargetHeightBuffer[8] = {};
+    sprintf(TargetHeightBuffer, "%d", 1080);
+    
+    MenuMakeTextButton(TargetWidthBuffer,
+                       LevelEditor->ResPanelQuad.x + ButtonQuad,
+                       LevelEditor->ResPanelQuad.y + (ButtonHeight * 3), 
+                       ButtonQuad, 
+                       ButtonHeight,
+                       &LevelEditor->ResRoutine.TargetWidthNumberQuad,
+                       &LevelEditor->ResRoutine.TargetWidthNumberTextureQuad,
+                       LevelEditor->ResRoutine.TargetWidthNumberTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    MenuMakeTextButton("Height",
+                       LevelEditor->ResPanelQuad.x + (ButtonQuad * 2),
+                       LevelEditor->ResPanelQuad.y + (ButtonHeight * 3), 
+                       ButtonQuad, 
+                       ButtonHeight,
+                       &LevelEditor->ResRoutine.TargetHeightNameQuad,
+                       &LevelEditor->ResRoutine.TargetHeightNameTextureQuad,
+                       LevelEditor->ResRoutine.TargetHeigthNameTexture, 
+                       
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    MenuMakeTextButton(TargetHeightBuffer,
+                       LevelEditor->ResPanelQuad.x + (ButtonQuad * 3),
+                       LevelEditor->ResPanelQuad.y + (ButtonHeight * 3), 
+                       ButtonQuad, 
+                       ButtonHeight,
+                       &LevelEditor->ResRoutine.TargetHeightNumberQuad,
+                       &LevelEditor->ResRoutine.TargetHeightNumberTextureQuad,
+                       LevelEditor->ResRoutine.TargetHeightNumberTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    MenuMakeTextButton("Reference Resolution",
+                       LevelEditor->ResPanelQuad.x,
+                       LevelEditor->ResPanelQuad.y + (ButtonHeight * 4), 
+                       LevelEditor->ResPanelQuad.w, 
+                       ButtonHeight,
+                       &LevelEditor->ResRoutine.ReferenceResolutionHeaderQuad,
+                       &LevelEditor->ResRoutine.ReferenceResolutionHeaderTextureQuad,
+                       LevelEditor->ResRoutine.ReferenceResolutionHeaderTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    MenuMakeTextButton("Width",
+                       LevelEditor->ResPanelQuad.x,
+                       LevelEditor->ResPanelQuad.y + (ButtonHeight * 5), 
+                       ButtonQuad, 
+                       ButtonHeight,
+                       &LevelEditor->ResRoutine.ReferenceWidthNameQuad,
+                       &LevelEditor->ResRoutine.ReferenceWidthNameTextureQuad,
+                       LevelEditor->ResRoutine.ReferenceWidthNameTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    char ReferenceWidthBuffer[8] = {};
+    sprintf(ReferenceWidthBuffer, "%d", 1366);
+    
+    char ReferenceHeightBuffer[8] = {};
+    sprintf(ReferenceHeightBuffer, "%d", 768);
+    
+    MenuMakeTextButton(ReferenceWidthBuffer,
+                       LevelEditor->ResPanelQuad.x + ButtonQuad,
+                       LevelEditor->ResPanelQuad.y + (ButtonHeight * 5), 
+                       ButtonQuad, 
+                       ButtonHeight,
+                       &LevelEditor->ResRoutine.ReferenceWidthNumberQuad,
+                       &LevelEditor->ResRoutine.ReferenceWidthNumberTextureQuad,
+                       LevelEditor->ResRoutine.ReferenceWidthNumberTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    MenuMakeTextButton("Height",
+                       LevelEditor->ResPanelQuad.x + (ButtonQuad * 2),
+                       LevelEditor->ResPanelQuad.y + (ButtonHeight * 5), 
+                       ButtonQuad, 
+                       ButtonHeight,
+                       &LevelEditor->ResRoutine.ReferenceHeightNameQuad,
+                       &LevelEditor->ResRoutine.ReferenceHeightNameTextureQuad,
+                       LevelEditor->ResRoutine.ReferenceHeightNameTexture, 
+                       
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    MenuMakeTextButton(ReferenceHeightBuffer,
+                       LevelEditor->ResPanelQuad.x + (ButtonQuad * 3),
+                       LevelEditor->ResPanelQuad.y + (ButtonHeight * 5), 
+                       ButtonQuad, 
+                       ButtonHeight,
+                       &LevelEditor->ResRoutine.ReferenceHeightNumberQuad,
+                       &LevelEditor->ResRoutine.ReferenceHeightNumberTextureQuad,
+                       LevelEditor->ResRoutine.ReferenceHeightNumberTexture, 
+                       LevelEditor->Font, {255, 255, 255}, Buffer);
+    
+    MenuMakeTextButton("Apply",
+                       LevelEditor->ResPanelQuad.x,
+                       LevelEditor->ResPanelQuad.y + (ButtonHeight * 6), 
+                       LevelEditor->ResPanelQuad.w, 
+                       ButtonHeight,
+                       &LevelEditor->ApplyResolutionQuad,
+                       &LevelEditor->ApplyResolutionTextureQuad,
+                       LevelEditor->ApplyResolutionTexture, 
                        LevelEditor->Font, {255, 255, 255}, Buffer);
 }
 
@@ -1346,6 +1604,9 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             LevelEditorUpdateCoordinates(Buffer, LevelEditor->Font, &LevelEditor->PosPanel, LevelEntity->GridEntity->GridArea, 
                                          Memory->PadRect, {0, 0, Buffer->Width, Buffer->Height});
             LevelEditorUpdateCoordinateSwitch(LevelEditor, &LevelEditor->PosPanel, Buffer);
+            
+            LevelEditor->ButtonSelected      = true;
+            LevelEditor->HighlightButtonQuad = LevelEditor->PosPanel.LeftArrowQuad;
         }
         else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->PosPanel.RightArrowQuad))
         {
@@ -1366,6 +1627,9 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             LevelEditorUpdateCoordinates(Buffer, LevelEditor->Font, &LevelEditor->PosPanel, LevelEntity->GridEntity->GridArea, 
                                          Memory->PadRect, {0, 0, Buffer->Width, Buffer->Height});
             LevelEditorUpdateCoordinateSwitch(LevelEditor, &LevelEditor->PosPanel, Buffer);
+            
+            LevelEditor->ButtonSelected      = true;
+            LevelEditor->HighlightButtonQuad = LevelEditor->PosPanel.RightArrowQuad;
         }
         else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->LevelPropertiesQuad))
         {
@@ -1842,10 +2106,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     GameRenderBitmapToBuffer(Buffer, LevelEditor->LevelNumberTexture, &LevelEditor->LevelNumberQuad);
     
     
-    if(LevelEditor->ButtonSelected)
-    {
-        DEBUGRenderQuadFill(Buffer, &LevelEditor->HighlightButtonQuad, {255, 255, 0}, 150);
-    }
+    
     
     DEBUGRenderQuad(Buffer, &LevelEntity->GridEntity->GridArea, { 0, 255, 255 }, 255);
     
@@ -1906,10 +2167,86 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     DEBUGRenderQuad(Buffer, &LevelEditor->PosPanel.FourthNumberNameQuad, {0, 0, 0}, 255);
     GameRenderBitmapToBuffer(Buffer, LevelEditor->PosPanel.FourthNumberNameTexture, &LevelEditor->PosPanel.FourthNumberNameTextureQuad);
     
+    
     DEBUGRenderQuadFill(Buffer, &LevelEditor->PosPanel.FourthNumberQuad, {0, 0, 128}, 255);
     DEBUGRenderQuad(Buffer, &LevelEditor->PosPanel.FourthNumberQuad, {0, 0, 0}, 255);
     GameRenderBitmapToBuffer(Buffer, LevelEditor->PosPanel.FourthNumberTexture, &LevelEditor->PosPanel.FourthNumberTextureQuad);
     
+    
+    /* Resolution panel rendering */
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->ScalerHeaderQuad, {128, 128, 128}, 100);
+    DEBUGRenderQuad(Buffer, &LevelEditor->ScalerHeaderQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->ScalerHeaderTexture, &LevelEditor->ScalerHeaderTextureQuad);
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->ScalerLeftArrowQuad, {0, 255, 0}, 100);
+    DEBUGRenderQuad(Buffer, &LevelEditor->ScalerLeftArrowQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->ScalerLeftArrowTexture, &LevelEditor->ScalerLeftArrowTextureQuad);
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->ScalerSwitchQuad, {0, 255, 0}, 100);
+    DEBUGRenderQuad(Buffer, &LevelEditor->ScalerSwitchQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->ScalerSwitchTexture, &LevelEditor->ScalerSwitchTextureQuad);
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->ScalerRightArrowQuad, {0, 255, 0}, 100);
+    DEBUGRenderQuad(Buffer, &LevelEditor->ScalerRightArrowQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->ScalerRightArrowTexture, &LevelEditor->ScalerRightArrowTextureQuad);
+    
+    /* Target resolution buttons*/
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->ResRoutine.TargetResolutionHeaderQuad, {128, 128, 128}, 100);
+    DEBUGRenderQuad(Buffer, &LevelEditor->ResRoutine.TargetResolutionHeaderQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->ResRoutine.TargetResolutionHeaderTexture, &LevelEditor->ResRoutine.TargetResolutionHeaderTextureQuad);
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->ResRoutine.TargetWidthNameQuad, {0, 0, 255}, 100);
+    DEBUGRenderQuad(Buffer, &LevelEditor->ResRoutine.TargetWidthNameQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->ResRoutine.TargetWidthNameTexture, &LevelEditor->ResRoutine.TargetWidthNameTextureQuad);
+    
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->ResRoutine.TargetWidthNumberQuad, {0, 0, 255}, 100);
+    DEBUGRenderQuad(Buffer, &LevelEditor->ResRoutine.TargetWidthNumberQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->ResRoutine.TargetWidthNumberTexture, &LevelEditor->ResRoutine.TargetWidthNumberTextureQuad);
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->ResRoutine.TargetHeightNameQuad, {0, 0, 255}, 100);
+    DEBUGRenderQuad(Buffer, &LevelEditor->ResRoutine.TargetHeightNameQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->ResRoutine.TargetHeigthNameTexture, &LevelEditor->ResRoutine.TargetHeightNameTextureQuad);
+    
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->ResRoutine.TargetHeightNumberQuad, {0, 0, 255}, 100);
+    DEBUGRenderQuad(Buffer, &LevelEditor->ResRoutine.TargetHeightNumberQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->ResRoutine.TargetHeightNumberTexture, &LevelEditor->ResRoutine.TargetHeightNumberTextureQuad);
+    
+    /* Reference resolution buttons */
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->ResRoutine.ReferenceResolutionHeaderQuad, {128, 128, 128}, 100);
+    DEBUGRenderQuad(Buffer, &LevelEditor->ResRoutine.ReferenceResolutionHeaderQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->ResRoutine.ReferenceResolutionHeaderTexture, &LevelEditor->ResRoutine.ReferenceResolutionHeaderTextureQuad);
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->ResRoutine.ReferenceWidthNameQuad, {0, 0, 255}, 100);
+    DEBUGRenderQuad(Buffer, &LevelEditor->ResRoutine.ReferenceWidthNameQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->ResRoutine.ReferenceWidthNameTexture, &LevelEditor->ResRoutine.ReferenceWidthNameTextureQuad);
+    
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->ResRoutine.ReferenceWidthNumberQuad, {0, 0, 255}, 100);
+    DEBUGRenderQuad(Buffer, &LevelEditor->ResRoutine.ReferenceWidthNumberQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->ResRoutine.ReferenceWidthNumberTexture, &LevelEditor->ResRoutine.ReferenceWidthNumberTextureQuad);
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->ResRoutine.ReferenceHeightNameQuad, {0, 0, 255}, 100);
+    DEBUGRenderQuad(Buffer, &LevelEditor->ResRoutine.ReferenceHeightNameQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->ResRoutine.ReferenceHeightNameTexture, &LevelEditor->ResRoutine.ReferenceHeightNameTextureQuad);
+    
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->ResRoutine.ReferenceHeightNumberQuad, {0, 0, 255}, 100);
+    DEBUGRenderQuad(Buffer, &LevelEditor->ResRoutine.ReferenceHeightNumberQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->ResRoutine.ReferenceHeightNumberTexture, &LevelEditor->ResRoutine.ReferenceHeightNumberTextureQuad);
+    
+    DEBUGRenderQuadFill(Buffer, &LevelEditor->ApplyResolutionQuad, {0, 255, 255}, 100);
+    DEBUGRenderQuad(Buffer, &LevelEditor->ApplyResolutionQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, LevelEditor->ApplyResolutionTexture, &LevelEditor->ApplyResolutionTextureQuad);
+    
+    if(LevelEditor->ButtonSelected)
+    {
+        DEBUGRenderQuadFill(Buffer, &LevelEditor->HighlightButtonQuad, {255, 255, 0}, 150);
+    }
 }
 
 struct selection_panel
