@@ -391,6 +391,74 @@ GetAnchorPreset(anchor_presets Preset, math_rect RectQuad,
 }
 
 
+static r32
+CalculateRatio(r32 ObjectWidth, r32 ObjectHeight)
+{
+    r32 Result = 0.0f;
+    
+    Result = ObjectHeight / ObjectWidth;
+    
+    return(Result);
+}
+
+static math_point 
+CalculateNewPosition(math_point RefPosition, 
+                     math_point RefScreenSize,
+                     math_point CurrentScreenSize)
+{
+    math_point Result = {};
+    
+    Result.x = (RefPosition.x / RefScreenSize.x) * CurrentScreenSize.x;
+    Result.y = (RefPosition.y / RefScreenSize.y) * CurrentScreenSize.y;
+    
+    return(Result);
+}
+
+static math_point
+CalculateNewSize(math_point RefSize, math_point RefScreenSize,
+                 math_point CurrentScreenSize)
+{
+    math_point Result = {};
+    
+    r32 OriginalRatio = CalculateRatio(RefSize.x, RefSize.y);
+    r32 WidthRatio    = RefSize.x * (100.0f / RefScreenSize.x);
+    
+    Result.x = (WidthRatio / 100.0f) * CurrentScreenSize.x;
+    Result.y = Result.x * OriginalRatio;
+    
+    return(Result);
+}
+
+static math_point
+CalculateNewSizeByWidth(math_point RefSize, math_point RefScreenSize,
+                        math_point CurrentScreenSize)
+{
+    math_point Result = {};
+    
+    r32 WidthRatio  = RefSize.x / RefScreenSize.x;
+    r32 HeightRatio = RefSize.y / RefScreenSize.y;
+    
+    Result.x = WidthRatio  * CurrentScreenSize.x;
+    Result.y = HeightRatio * CurrentScreenSize.x;
+    
+    return(Result);
+}
+
+static math_point
+CalculateNewSizeByHeight(math_point RefSize, math_point RefScreenSize,
+                         math_point CurrentScreenSize)
+{
+    math_point Result = {};
+    
+    r32 WidthRatio  = RefSize.x / RefScreenSize.x;
+    r32 HeightRatio = RefSize.y / RefScreenSize.y;
+    
+    Result.x = WidthRatio  * CurrentScreenSize.y;
+    Result.y = HeightRatio * CurrentScreenSize.y;
+    
+    return(Result);
+}
+
 #define GAME_MATH_H
 #endif 
 

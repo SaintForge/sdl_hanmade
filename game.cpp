@@ -58,11 +58,71 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     if(!Memory->IsInitialized)
     {
-        math_rect ScreenArea = {0.0f, 0.0f, (r32)Buffer->Width, (r32)Buffer->Height};
+        Memory->RefWidth  = 800;
+        Memory->RefHeight = 600;
         
-        math_rect PadNorm = CreateMathRect(0.05f, 0.95f, 0.95f, 0.0f, ScreenArea);
+        math_rect ScreenArea =
+        {0.0f, 0.0f, (r32)Buffer->Width, (r32)Buffer->Height};
+        
+        math_rect RefScreenArea =
+        {0.0f, 0.0f, (r32)Memory->RefWidth, (r32)Memory->RefHeight};
+        
+        math_rect PadNorm = CreateMathRect(0.05f, 0.95f, 0.95f, 0.0f, RefScreenArea);
         Memory->PadRect = ConvertMathRectToGameRect(PadNorm);
+        Memory->RefPadWidth = Memory->PadRect.w;
+        Memory->RefPadHeight = Memory->PadRect.h;
         
+        printf("Old PadRect.x = %d\n", Memory->PadRect.x);
+        printf("Old PadRect.y = %d\n", Memory->PadRect.y);
+        printf("Old PadRect.w = %d\n", Memory->PadRect.w);
+        printf("Old PadRect.h = %d\n", Memory->PadRect.h);
+        
+        math_point PadCenter = {(r32)(Memory->PadRect.x + (Memory->PadRect.w/2)), 
+            (r32)(Memory->PadRect.y + (Memory->PadRect.h / 2))};
+        
+        math_point NewPadSize = CalculateNewSizeByHeight({ (r32)Memory->RefPadWidth, (r32)Memory->RefPadHeight},
+                                                         { (r32)Memory->RefWidth, (r32)Memory->RefHeight },
+                                                         { (r32)Buffer->Width, (r32)Buffer->Height });
+        
+        Memory->PadRect.w = NewPadSize.x;
+        Memory->PadRect.h = NewPadSize.y;
+        
+        math_point NewPadCenter = 
+            CalculateNewPosition(
+        { PadCenter.x, PadCenter.y }, 
+        { (r32)Memory->RefWidth, (r32)Memory->RefHeight }, 
+        { (r32)Buffer->Width,    (r32)Buffer->Height });
+        
+        Memory->PadRect.x = NewPadCenter.x - (NewPadSize.x / 2);
+        Memory->PadRect.y = NewPadCenter.y - (NewPadSize.y / 2);
+        
+        printf("New PadRect.x = %d\n", Memory->PadRect.x);
+        printf("New PadRect.y = %d\n", Memory->PadRect.y);
+        printf("New PadRect.w = %d\n", Memory->PadRect.w);
+        printf("New PadRect.h = %d\n", Memory->PadRect.h);
+        
+        // 600
+        // 0.1 * 600  = 60
+        // 0.1 * 768  = 76.8
+        
+        
+        // 800x600
+        // x = 40
+        // y = 30
+        // w = 720
+        // h = 570
+        
+        // by height
+        // 720 / 800  = 1.2
+        // 570 / 600  = 0.95
+        // 1.2 * 768  = 921.6
+        // 0.95 * 768 = 729.6
+        
+        // by width
+        // 720 / 800   = 1.2
+        // 570 / 600   = 0.95
+        // 1.2 * 1366  = 1639.2
+        // 0.95 * 1366 = 1297.7
         
         math_rect GameArea   = CreateMathRect(0.05f, 0.95f, 0.95f, 0.05f, ScreenArea);
         math_rect GridArea   = CreateMathRect(0.0f, 1.0f, 1.0f, 0.5f, GameArea);

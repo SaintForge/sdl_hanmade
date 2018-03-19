@@ -78,7 +78,17 @@ struct game_input
 
 struct game_memory
 {
+    /* DEBUG only code */
+    
     game_rect PadRect;
+    
+    s32 RefPadWidth;
+    s32 RefPadHeight;
+    
+    s32 RefWidth;
+    s32 RefHeight;
+    
+    /*              */
     
     u32 CurrentLevelIndex;
     u32 LevelMemoryAmount;

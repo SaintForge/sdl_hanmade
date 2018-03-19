@@ -110,6 +110,36 @@ struct position_panel
     button_quad FourthNumberButton;
 };
 
+enum scale_type
+{
+    WIDTH,
+    HEIGHT,
+    BOTH
+};
+
+static scale_type
+UpdateScaleType(scale_type ScaleType)
+{
+    scale_type Result;
+    
+    switch(ScaleType) 
+    {
+        case WIDTH:
+        {
+            Result = HEIGHT;
+        } break;
+        case HEIGHT:
+        {
+            Result = BOTH;
+        } break;
+        case BOTH:
+        {
+            Result = WIDTH;
+        } break;
+    }
+    
+    return(Result);
+}
 
 struct resolution_routine
 {
@@ -142,6 +172,12 @@ struct resolution_routine
     button_quad ReferenceHeightButton;
     
     button_quad ApplyButton;
+};
+
+struct editor_object
+{
+    scale_type ScaleType;
+    game_rect AreaQuad;
 };
 
 struct level_editor
@@ -215,7 +251,6 @@ struct level_editor
     bool AreaIsMoving;
     
     /* Position panel routine*/
-    
     game_rect PosPanelQuad;
     position_panel PosPanel;
     
@@ -223,6 +258,11 @@ struct level_editor
     
     game_rect ResPanelQuad;
     resolution_routine ResPanel;
+    
+    // Objects that we actually edit
+    bool ObjectIsSelected;
+    s32 EditorObjectIndex;
+    editor_object EditorObject[2];
 };
 
 static void
@@ -507,6 +547,17 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
 {
     *LevelEditor = {};
     
+    LevelEditor->ObjectIsSelected  = false;
+    LevelEditor->EditorObjectIndex = 0;
+    
+    // Grid Area Object
+    LevelEditor->EditorObject[0].ScaleType = WIDTH;
+    LevelEditor->EditorObject[0].AreaQuad  = LevelEntity->GridEntity->GridArea;
+    
+    // Figure Area Object
+    LevelEditor->EditorObject[1].ScaleType = WIDTH;
+    LevelEditor->EditorObject[1].AreaQuad  = LevelEntity->FigureEntity->FigureArea; 
+    
     r32 FontRatio = 0.0146f;
     s32 FontSize  = roundf(FontRatio * Buffer->Width);
     
@@ -531,10 +582,6 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
     LevelEditor->NextLevelQuad.x = Buffer->Width - (LevelEditor->NextLevelQuad.w * 2);
     LevelEditor->NextLevelQuad.y = Buffer->Height - (LevelEditor->NextLevelQuad.h * 2);
     
-    //0.053333, 0.043924
-    //s32 ButtonWidth  = 60;
-    //s32 ButtonHeight = 40;
-    
     r32 ButtonNormHeight = 0.053333f;
     r32 ButtonNormWidth  = 0.045;
     s32 ButtonWidth  = roundf(ButtonNormWidth * (r32)Buffer->Width);
@@ -545,8 +592,6 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
     r32 NormalX = 0.0f;
     r32 NormalY = 1.0f;
     
-    //r32 NormalHeight = 1.0f - ((r32)(ButtonHeight * 4) / (r32)(Buffer->Height));
-    //r32 NormalWidth  = ((r32)(ButtonWidth * 4) / (r32)(Buffer->Width));
     r32 NormalHeight   = 1.0f - (ButtonNormHeight * 4.0f);
     r32 NormalWidth    = ButtonNormWidth * 4.0f;
     
@@ -584,7 +629,6 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
     /* Figure header name initialization */
     
     ButtonNormHeight = 0.05f;
-    //ButtonHeight = 30;
     ButtonHeight = roundf(ButtonNormHeight * (r32)Buffer->Height);
     
     NormalY      = NormalHeight;
@@ -670,9 +714,9 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
     r32 NormPanelHeight = PosPanelHeight / (r32) Buffer->Height;
     
     r32 PosPanelLeft   = 1.0f - NormPanelWidth;
-    r32 PosPanelTop    = 1.0f;
+    r32 PosPanelTop    = 0.7f;
     r32 PosPanelRight  = 1.0f;
-    r32 PosPanelBottom = (NormPanelHeight); 
+    r32 PosPanelBottom = PosPanelTop - (NormPanelHeight); 
     
     math_rect MathPanel = CreateMathRect(PosPanelLeft, PosPanelTop, PosPanelRight, PosPanelBottom, ScreenArea);
     
@@ -772,7 +816,7 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
     NormPanelHeight = ResPanelHeight / (r32) Buffer->Height;
     
     r32 ResPanelLeft   = 1.0f - (ResPanelWidth / (r32)Buffer->Width);
-    r32 ResPanelTop    = 1.0f - PosPanelBottom;
+    r32 ResPanelTop    = PosPanelBottom;
     r32 ResPanelRight  = 1.0f;
     r32 ResPanelBottom = ResPanelTop - NormPanelHeight;
     
@@ -780,7 +824,7 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
     
     LevelEditor->ResPanelQuad = ConvertMathRectToGameRect(ResolutionPanel);
     
-    LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Object Scaler", 
+    LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Scale Factor", 
                               LevelEditor->ResPanelQuad.x,
                               LevelEditor->ResPanelQuad.y,
                               LevelEditor->ResPanelQuad.w, ButtonHeight,
@@ -884,6 +928,7 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
                               LevelEditor->ResPanelQuad.y + (ButtonHeight * 6),
                               LevelEditor->ResPanelQuad.w, ButtonHeight,
                               &LevelEditor->ResPanel.ApplyButton, 255, 255, 255);
+    
 }
 
 static void
@@ -1217,6 +1262,7 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         if(!LevelEditor->ShiftKeyPressed)
         {
             LevelEditor->ShiftKeyPressed = true;
+            printf("Shift is pressed!\n");
         }
     }
     else if(Input->Keyboard.LeftShift.EndedUp)
@@ -1224,89 +1270,74 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         if(LevelEditor->ShiftKeyPressed)
         {
             LevelEditor->ShiftKeyPressed = false;
-            
-            if(LevelEditor->CursorType != ARROW)
-            {
-                LevelEditor->CursorType = ARROW;
-                LevelEditorSetCursorType(ARROW);
-                
-                if(LevelEditor->AreaIsMoving)
-                {
-                    LevelEditor->AreaIsMoving = false;
-                }
-            }
-            
+            printf("Shift is released!\n");
         }
     }
     
-    
-    if(LevelEditor->ShiftKeyPressed)
+    if(LevelEditor->ObjectIsSelected)
     {
-        if(!LevelEditor->AreaIsMoving)
+        game_rect Corner[4] = {};
+        
+        Corner[0] = {GridArea.x - 10, GridArea.y - 10, 20, 20};
+        Corner[1] = {(GridArea.x + GridArea.w) - 10, GridArea.y - 10, 20, 20};
+        Corner[2] = {(GridArea.x + GridArea.w) - 10, (GridArea.y + GridArea.h) - 10, 20, 20};
+        Corner[3] = {GridArea.x - 10, (GridArea.y + GridArea.h), 20, 20};
+        
+        cursor_type CursorType = ARROW;
+        
+        if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Corner[0]))
         {
-            game_rect Corner[4] = {};
+            CursorType = SIZE_WN;
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Corner[1]))
+        {
+            CursorType = SIZE_NE;
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Corner[2]))
+        {
+            CursorType = SIZE_ES;
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Corner[3]))
+        {
+            CursorType = SIZE_WS;
+        }
+        else
+        {
+            game_rect Border[4] = {};
             
-            Corner[0] = {GridArea.x - 10, GridArea.y - 10, 20, 20};
-            Corner[1] = {(GridArea.x + GridArea.w) - 10, GridArea.y - 10, 20, 20};
-            Corner[2] = {(GridArea.x + GridArea.w) - 10, (GridArea.y + GridArea.h) - 10, 20, 20};
-            Corner[3] = {GridArea.x - 10, (GridArea.y + GridArea.h), 20, 20};
+            Border[0] = {GridArea.x, GridArea.y - 10, GridArea.w, 20};
+            Border[1] = {(GridArea.x + GridArea.w) - 10, GridArea.y, 20, GridArea.h};
+            Border[2] = {GridArea.x, (GridArea.y + GridArea.h) - 10, GridArea.w, 20};
+            Border[3] = {GridArea.x - 10, GridArea.y, 20, GridArea.h};
             
-            cursor_type CursorType = LevelEditor->CursorType;
+            if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Border[0]))
+            {
+                CursorType = SIZE_NORTH;
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Border[1]))
+            {
+                CursorType = SIZE_EAST;
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Border[2]))
+            {
+                CursorType = SIZE_SOUTH;
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Border[3]))
+            {
+                CursorType = SIZE_WEST;
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &GridArea))
+            {
+                CursorType = SIZE_ALL;
+            }
+        }
+        
+        if(CursorType != LevelEditor->CursorType)
+        {
+            LevelEditor->CursorType = CursorType;
+            LevelEditorSetCursorType(CursorType);
             
-            if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Corner[0]))
-            {
-                CursorType = SIZE_WN;
-            }
-            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Corner[1]))
-            {
-                CursorType = SIZE_NE;
-            }
-            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Corner[2]))
-            {
-                CursorType = SIZE_ES;
-            }
-            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Corner[3]))
-            {
-                CursorType = SIZE_WS;
-            }
-            else
-            {
-                game_rect Border[4] = {};
-                
-                Border[0] = {GridArea.x, GridArea.y - 10, GridArea.w, 20};
-                Border[1] = {(GridArea.x + GridArea.w) - 10, GridArea.y, 20, GridArea.h};
-                Border[2] = {GridArea.x, (GridArea.y + GridArea.h) - 10, GridArea.w, 20};
-                Border[3] = {GridArea.x - 10, GridArea.y, 20, GridArea.h};
-                
-                if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Border[0]))
-                {
-                    CursorType = SIZE_NORTH;
-                }
-                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Border[1]))
-                {
-                    CursorType = SIZE_EAST;
-                }
-                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Border[2]))
-                {
-                    CursorType = SIZE_SOUTH;
-                }
-                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Border[3]))
-                {
-                    CursorType = SIZE_WEST;
-                }
-                else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &GridArea))
-                {
-                    CursorType = SIZE_ALL;
-                }
-            }
-            
-            if(CursorType != LevelEditor->CursorType)
-            {
-                LevelEditor->CursorType = CursorType;
-                LevelEditorSetCursorType(CursorType);
-                
-                printf("Cursor set\n");
-            }
+            printf("Cursor set\n");
         }
     }
     
@@ -1382,6 +1413,17 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     
     if(Input->MouseButtons[0].EndedDown)
     {
+        if(LevelEditor->CursorType != ARROW)
+        {
+            if(!LevelEditor->AreaIsMoving)
+            {
+                LevelEditor->AreaIsMoving = true;
+            }
+        }
+        else
+        {
+            printf("ohhh shit\n");
+        }
         
         if (IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEntity->LevelNumberQuad))
         {
@@ -1428,13 +1470,42 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         
         if(LevelEditor->ShiftKeyPressed)
         {
-            if(LevelEditor->CursorType != ARROW)
+            if(!LevelEditor->ObjectIsSelected)
             {
-                if(!LevelEditor->AreaIsMoving)
+                for(s32 i = 0; i < 2; ++i)
                 {
-                    LevelEditor->AreaIsMoving = true;
+                    if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->EditorObject[i].AreaQuad))
+                    {
+                        LevelEditor->ObjectIsSelected = true;
+                        LevelEditor->EditorObjectIndex = i;
+                    }
                 }
             }
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.LeftArrowButton.Quad))
+        {
+            
+            printf("Left arrow\n");
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.RightArrowButton.Quad))
+        {
+            printf("Right arrow\n");
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.TargetWidthNumberButton.Quad))
+        {
+            printf("target width\n");
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.TargetHeightNumberButton.Quad))
+        {
+            printf("target heigth\n");
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.ReferenceWidthNameButton.Quad))
+        {
+            printf("reference width\n");
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.ReferenceHeightButton.Quad))
+        {
+            printf("reference heigth\n");
         }
         else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->PosPanel.LeftArrowButton.Quad))
         {
@@ -1707,67 +1778,70 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         }
         else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &GridArea))
         {
-            game_rect AreaQuad = { 0, 0, (s32)LevelEntity->Configuration.ActiveBlockSize, (s32)LevelEntity->Configuration.ActiveBlockSize };
-            
-            u32 StartX = 0;
-            u32 StartY = 0;
-            
-            for(u32 Row = 0; Row < RowAmount; ++Row)
+            if(!LevelEditor->ObjectIsSelected)
             {
-                StartY = GridArea.y + (LevelEntity->Configuration.ActiveBlockSize * Row);
+                game_rect AreaQuad = { 0, 0, (s32)LevelEntity->Configuration.ActiveBlockSize, (s32)LevelEntity->Configuration.ActiveBlockSize };
                 
-                for(u32 Col = 0; Col < ColAmount; ++Col)
+                u32 StartX = 0;
+                u32 StartY = 0;
+                
+                for(u32 Row = 0; Row < RowAmount; ++Row)
                 {
-                    StartX = GridArea.x + (LevelEntity->Configuration.ActiveBlockSize * Col);
+                    StartY = GridArea.y + (LevelEntity->Configuration.ActiveBlockSize * Row);
                     
-                    AreaQuad.x = StartX;
-                    AreaQuad.y = StartY;
-                    
-                    if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                                         &AreaQuad))
+                    for(u32 Col = 0; Col < ColAmount; ++Col)
                     {
-                        s32 UnitIndex = (Row * ColAmount) + Col;
-                        u32 GridUnit = LevelEntity->GridEntity->UnitField[UnitIndex];
-                        if(GridUnit == 0)
+                        StartX = GridArea.x + (LevelEntity->Configuration.ActiveBlockSize * Col);
+                        
+                        AreaQuad.x = StartX;
+                        AreaQuad.y = StartY;
+                        
+                        if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                                             &AreaQuad))
                         {
-                            LevelEntity->GridEntity->UnitField[UnitIndex] = 1;
-                        }
-                        else
-                        {
-                            s32 Index = -1;
-                            for(u32 m = 0; m < LevelEntity->GridEntity->MovingBlocksAmount; ++m)
+                            s32 UnitIndex = (Row * ColAmount) + Col;
+                            u32 GridUnit = LevelEntity->GridEntity->UnitField[UnitIndex];
+                            if(GridUnit == 0)
                             {
-                                u32 RowNumber = LevelEntity->GridEntity->MovingBlocks[m].RowNumber;
-                                u32 ColNumber = LevelEntity->GridEntity->MovingBlocks[m].ColNumber;
-                                
-                                if((Row == RowNumber) && (Col == ColNumber))
-                                {
-                                    Index = m;
-                                    break;
-                                }
-                            }
-                            
-                            if(Index >= 0)
-                            {
-                                
-                                if(!LevelEntity->GridEntity->MovingBlocks[Index].MoveSwitch)
-                                {
-                                    LevelEntity->GridEntity->MovingBlocks[Index].MoveSwitch = true;
-                                }
-                                else if(!LevelEntity->GridEntity->MovingBlocks[Index].IsVertical)
-                                {
-                                    LevelEntity->GridEntity->MovingBlocks[Index].IsVertical = true;
-                                    LevelEntity->GridEntity->MovingBlocks[Index].MoveSwitch = false;
-                                }
-                                else
-                                {
-                                    GridEntityDeleteMovingBlock(LevelEntity->GridEntity, Index);
-                                    LevelEntity->GridEntity->UnitField[UnitIndex] = 0;
-                                }
+                                LevelEntity->GridEntity->UnitField[UnitIndex] = 1;
                             }
                             else
                             {
-                                GridEntityAddMovingBlock(LevelEntity->GridEntity, Row, Col, false, false, LevelEntity->Configuration.ActiveBlockSize);
+                                s32 Index = -1;
+                                for(u32 m = 0; m < LevelEntity->GridEntity->MovingBlocksAmount; ++m)
+                                {
+                                    u32 RowNumber = LevelEntity->GridEntity->MovingBlocks[m].RowNumber;
+                                    u32 ColNumber = LevelEntity->GridEntity->MovingBlocks[m].ColNumber;
+                                    
+                                    if((Row == RowNumber) && (Col == ColNumber))
+                                    {
+                                        Index = m;
+                                        break;
+                                    }
+                                }
+                                
+                                if(Index >= 0)
+                                {
+                                    
+                                    if(!LevelEntity->GridEntity->MovingBlocks[Index].MoveSwitch)
+                                    {
+                                        LevelEntity->GridEntity->MovingBlocks[Index].MoveSwitch = true;
+                                    }
+                                    else if(!LevelEntity->GridEntity->MovingBlocks[Index].IsVertical)
+                                    {
+                                        LevelEntity->GridEntity->MovingBlocks[Index].IsVertical = true;
+                                        LevelEntity->GridEntity->MovingBlocks[Index].MoveSwitch = false;
+                                    }
+                                    else
+                                    {
+                                        GridEntityDeleteMovingBlock(LevelEntity->GridEntity, Index);
+                                        LevelEntity->GridEntity->UnitField[UnitIndex] = 0;
+                                    }
+                                }
+                                else
+                                {
+                                    GridEntityAddMovingBlock(LevelEntity->GridEntity, Row, Col, false, false, LevelEntity->Configuration.ActiveBlockSize);
+                                }
                             }
                         }
                     }
