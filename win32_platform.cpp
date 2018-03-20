@@ -44,6 +44,7 @@ typedef uint64_t u64;
 
 typedef float r32;
 typedef double r64;
+typedef int32_t b32;
 
 #include "win32_platform.h"
 
@@ -344,7 +345,7 @@ int main(int argc, char **argv)
     SDL_Window *Window = SDL_CreateWindow("This is window",
                                           0,
                                           0,
-                                          1366, 768,
+                                          800, 600,
                                           SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
     
     if(Window)

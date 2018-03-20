@@ -359,7 +359,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     {
         game_rect ScreenArea = { 0, 0, Buffer->Width, Buffer->Height};
         DEBUGRenderQuadFill(Buffer, &ScreenArea, { 42, 6, 21 }, 255);
-        DEBUGRenderQuad(Buffer, &Memory->PadRect, { 255, 255, 255 }, 255);
+        //DEBUGRenderQuad(Buffer, &Memory->PadRect, { 255, 255, 255 }, 255);
         
         LevelEntityUpdateAndRender(LevelEntity, Memory, Input, Buffer);
         LevelEditorUpdateAndRender(LevelEditor, LevelEntity, Memory, Buffer, Input);

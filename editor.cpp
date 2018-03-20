@@ -180,10 +180,16 @@ struct editor_object
     game_rect AreaQuad;
 };
 
+enum editor_type
+{
+    LEVEL_EDITOR,
+    GAME_EDITOR
+};
+
 struct level_editor
 {
     /* For switching to editor mode*/
-    bool EditorMode;
+    b32 IsOn;
     
     /* For creating string textures*/
     game_font *Font;
@@ -216,6 +222,10 @@ struct level_editor
     /* For highlightning the button whenever pressed */
     bool ButtonSelected;
     game_rect HighlightButtonQuad;
+    
+    // Layer for switching between level and game confgiuration
+    button_quad SwitchConfiguration;
+    editor_type EditorType;
     
     /* Level properties layer quad */
     game_rect LevelPropertiesQuad;
@@ -255,7 +265,6 @@ struct level_editor
     position_panel PosPanel;
     
     /* Resolution panel routine */
-    
     game_rect ResPanelQuad;
     resolution_routine ResPanel;
     
@@ -547,6 +556,8 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
 {
     *LevelEditor = {};
     
+    LevelEditor->EditorType = LEVEL_EDITOR;
+    
     LevelEditor->ObjectIsSelected  = false;
     LevelEditor->EditorObjectIndex = 0;
     
@@ -605,7 +616,7 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
                               LevelEditor->LevelPropertiesQuad.x,
                               LevelEditor->LevelPropertiesQuad.y,
                               LevelEditor->LevelPropertiesQuad.w, ButtonHeight,
-                              &LevelEditor->LevelConfigButton, 255, 255, 255);
+                              &LevelEditor->SwitchConfiguration, 255, 255, 255);
     
     /* Row label initialization */
     
@@ -696,6 +707,7 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
                               &LevelEditor->LoadLevelButton, 255, 255, 255);
     
     /* Level stats initialization */
+    
     LevelEditorUpdateLevelStats(LevelEditor->LevelPropertiesQuad.w + 10, 0, 
                                 LevelEditor, LevelEntity->LevelNumber, 
                                 Memory->CurrentLevelIndex, Buffer);
@@ -708,14 +720,14 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
     ButtonHeight = (r32)Buffer->Height * 0.04f;
     
     r32 PosPanelHeight = ButtonHeight * 6;
-    r32 PosPanelWidth  = (r32)Buffer->Width * 0.19;
+    r32 PosPanelWidth  = NormalWidth * (r32)Buffer->Width;//(r32)Buffer->Width * 0.19;
     
-    r32 NormPanelWidth  = PosPanelWidth / (r32) Buffer->Width;
+    r32 NormPanelWidth  = NormalWidth;
     r32 NormPanelHeight = PosPanelHeight / (r32) Buffer->Height;
     
-    r32 PosPanelLeft   = 1.0f - NormPanelWidth;
-    r32 PosPanelTop    = 0.7f;
-    r32 PosPanelRight  = 1.0f;
+    r32 PosPanelLeft   = 0;
+    r32 PosPanelTop    = 1.0 - ButtonNormHeight;
+    r32 PosPanelRight  = NormPanelWidth;
     r32 PosPanelBottom = PosPanelTop - (NormPanelHeight); 
     
     math_rect MathPanel = CreateMathRect(PosPanelLeft, PosPanelTop, PosPanelRight, PosPanelBottom, ScreenArea);
@@ -815,9 +827,9 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
     NormPanelWidth  = ResPanelWidth  / (r32) Buffer->Width;
     NormPanelHeight = ResPanelHeight / (r32) Buffer->Height;
     
-    r32 ResPanelLeft   = 1.0f - (ResPanelWidth / (r32)Buffer->Width);
+    r32 ResPanelLeft   = 0.0f;
     r32 ResPanelTop    = PosPanelBottom;
-    r32 ResPanelRight  = 1.0f;
+    r32 ResPanelRight  = NormPanelWidth;
     r32 ResPanelBottom = ResPanelTop - NormPanelHeight;
     
     math_rect ResolutionPanel = CreateMathRect(ResPanelLeft, ResPanelTop, ResPanelRight, ResPanelBottom, ScreenArea);
@@ -1141,29 +1153,412 @@ GridEntityNewGrid(game_offscreen_buffer *Buffer, level_entity *LevelEntity,
 }
 
 static void
-LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity, 
-                           game_memory *Memory, game_offscreen_buffer *Buffer, game_input *Input)
+ResolutionConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
+                                game_memory *Memory, game_offscreen_buffer *Buffer,
+                                game_input *Input)
 {
-    if(Input->Keyboard.BackQuote.EndedDown)
+    s32 RowAmount = LevelEntity->GridEntity->RowAmount;
+    s32 ColAmount = LevelEntity->GridEntity->ColumnAmount;
+    
+    game_rect GridArea = LevelEntity->GridEntity->GridArea;
+    
+    if(Input->Keyboard.LeftShift.EndedDown)
     {
-        if(!LevelEditor->EditorMode)
+        if(!LevelEditor->ShiftKeyPressed)
         {
-            LevelEditor->EditorMode  = true;
-            LevelEntity->LevelPaused = true;
-            RestartLevelEntity(LevelEntity);
+            LevelEditor->ShiftKeyPressed = true;
+            printf("Shift is pressed!\n");
+        } 
+    }
+    else if(Input->Keyboard.LeftShift.EndedUp)
+    {
+        if(LevelEditor->ShiftKeyPressed)
+        {
+            LevelEditor->ShiftKeyPressed = false;
+            printf("Shift is released!\n");
+        }
+    }
+    
+    if(Input->MouseButtons[0].EndedDown)
+    {
+        if(LevelEditor->CursorType != ARROW)
+        {
+            if(LevelEditor->ObjectIsSelected)
+            {
+                LevelEditor->AreaIsMoving = true;
+            }
         }
         else
         {
-            LevelEditor->EditorMode  = false;
-            LevelEntity->LevelPaused = false;
+            for(s32 i = 0; i < 2; ++i)
+            {
+                if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->EditorObject[i].AreaQuad))
+                {
+                    LevelEditor->ObjectIsSelected = true;
+                    LevelEditor->EditorObjectIndex = i;
+                }
+            }
+        }
+        
+        if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->SwitchConfiguration.Quad))
+        {
+            LevelEditor->EditorType = LEVEL_EDITOR;
+            LevelEditorUpdateTextOnButton(Buffer, LevelEditor->Font, "Level configuration", LevelEditor->SwitchConfiguration.Texture, &LevelEditor->SwitchConfiguration.TextureQuad, &LevelEditor->SwitchConfiguration.Quad, {255, 255, 255});
+            
+            LevelEditor->CursorType = ARROW;
+            
+            LevelEditor->ButtonSelected = true;
+            LevelEditor->HighlightButtonQuad = LevelEditor->SwitchConfiguration.Quad;
+        }
+        
+        if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->PosPanelQuad))
+        {
+            if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->PosPanel.LeftArrowButton.Quad))
+            {
+                if(LevelEditor->PosPanel.CoordType == PIXEL_AREA)
+                {
+                    LevelEditor->PosPanel.CoordType = SCREEN_AREA;
+                }
+                else if(LevelEditor->PosPanel.CoordType == SCREEN_AREA)
+                {
+                    LevelEditor->PosPanel.CoordType = GAME_AREA;
+                }
+                else
+                {
+                    LevelEditor->PosPanel.CoordType = PIXEL_AREA;
+                }
+                
+                LevelEditorUpdateCoordinates(Buffer, LevelEditor->Font, &LevelEditor->PosPanel, LevelEntity->GridEntity->GridArea, 
+                                             Memory->PadRect, {0, 0, Buffer->Width, Buffer->Height});
+                LevelEditorUpdateCoordinateSwitch(LevelEditor, &LevelEditor->PosPanel, Buffer);
+                
+                LevelEditor->ButtonSelected      = true;
+                LevelEditor->HighlightButtonQuad = LevelEditor->PosPanel.LeftArrowButton.Quad;
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->PosPanel.RightArrowButton.Quad))
+            {
+                if(LevelEditor->PosPanel.CoordType == PIXEL_AREA)
+                {
+                    LevelEditor->PosPanel.CoordType = GAME_AREA;
+                    
+                }
+                else if(LevelEditor->PosPanel.CoordType == GAME_AREA)
+                {
+                    LevelEditor->PosPanel.CoordType = SCREEN_AREA;
+                }
+                else
+                {
+                    LevelEditor->PosPanel.CoordType = PIXEL_AREA;
+                }
+                
+                LevelEditorUpdateCoordinates(Buffer, LevelEditor->Font, &LevelEditor->PosPanel, LevelEntity->GridEntity->GridArea, 
+                                             Memory->PadRect, {0, 0, Buffer->Width, Buffer->Height});
+                LevelEditorUpdateCoordinateSwitch(LevelEditor, &LevelEditor->PosPanel, Buffer);
+                
+                LevelEditor->ButtonSelected      = true;
+                LevelEditor->HighlightButtonQuad = LevelEditor->PosPanel.RightArrowButton.Quad;
+            }
+            
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanelQuad))
+        {
+            if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.LeftArrowButton.Quad))
+            {
+                printf("Left arrow\n");
+                
+                LevelEditor->ButtonSelected = true;
+                LevelEditor->HighlightButtonQuad = LevelEditor->ResPanel.LeftArrowButton.Quad;
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.RightArrowButton.Quad))
+            {
+                printf("Right arrow\n");
+                
+                LevelEditor->ButtonSelected = true;
+                LevelEditor->HighlightButtonQuad = LevelEditor->ResPanel.RightArrowButton.Quad;
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.TargetWidthNumberButton.Quad))
+            {
+                printf("target width\n");
+                
+                LevelEditor->ButtonSelected = true;
+                LevelEditor->HighlightButtonQuad = LevelEditor->ResPanel.TargetWidthNumberButton.Quad;
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.TargetHeightNumberButton.Quad))
+            {
+                printf("target heigth\n");
+                
+                LevelEditor->ButtonSelected = true;
+                LevelEditor->HighlightButtonQuad = LevelEditor->ResPanel.TargetHeightNumberButton.Quad;
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.ReferenceWidthNameButton.Quad))
+            {
+                printf("reference width\n");
+                
+                LevelEditor->ButtonSelected = true;
+                LevelEditor->HighlightButtonQuad = LevelEditor->ResPanel.ReferenceWidthNameButton.Quad;
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.ReferenceHeightButton.Quad))
+            {
+                printf("reference heigth\n");
+                
+                LevelEditor->ButtonSelected = true;
+                LevelEditor->HighlightButtonQuad = LevelEditor->ResPanel.ReferenceHeightButton.Quad;
+            }
+            
+        }
+        
+    }
+    else if(Input->MouseButtons[0].EndedUp)
+    {
+        LevelEditor->ButtonSelected      = true;
+        LevelEditor->HighlightButtonQuad = {};
+        
+        if(LevelEditor->AreaIsMoving)
+        {
+            LevelEditor->CursorType = ARROW;
+            LevelEditor->AreaIsMoving = false;
+            printf("AreaIsMoving = false\n");
         }
     }
     
-    if(!LevelEditor->EditorMode) 
+    if(LevelEditor->ObjectIsSelected && !LevelEditor->AreaIsMoving)
     {
-        return;
+        s32 Index = LevelEditor->EditorObjectIndex;
+        game_rect AreaQuad = LevelEditor->EditorObject[Index].AreaQuad;
+        
+        game_rect Corner[4] = {};
+        
+        Corner[0] = {AreaQuad.x - 10, AreaQuad.y - 10, 20, 20};
+        Corner[1] = {(AreaQuad.x + AreaQuad.w) - 10, AreaQuad.y - 10, 20, 20};
+        Corner[2] = {(AreaQuad.x + AreaQuad.w) - 10, (AreaQuad.y + AreaQuad.h) - 10, 20, 20};
+        Corner[3] = {AreaQuad.x - 10, (AreaQuad.y + AreaQuad.h), 20, 20};
+        
+        cursor_type CursorType = ARROW;
+        
+        if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Corner[0]))
+        {
+            CursorType = SIZE_WN;
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Corner[1]))
+        {
+            CursorType = SIZE_NE;
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Corner[2]))
+        {
+            CursorType = SIZE_ES;
+        }
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Corner[3]))
+        {
+            CursorType = SIZE_WS;
+        }
+        else
+        {
+            game_rect Border[4] = {};
+            
+            Border[0] = {AreaQuad.x, AreaQuad.y - 10, AreaQuad.w, 20};
+            Border[1] = {(AreaQuad.x + AreaQuad.w) - 10, AreaQuad.y, 20, AreaQuad.h};
+            Border[2] = {AreaQuad.x, (AreaQuad.y + AreaQuad.h) - 10, AreaQuad.w, 20};
+            Border[3] = {AreaQuad.x - 10, AreaQuad.y, 20, AreaQuad.h};
+            
+            if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Border[0]))
+            {
+                CursorType = SIZE_NORTH;
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Border[1]))
+            {
+                CursorType = SIZE_EAST;
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Border[2]))
+            {
+                CursorType = SIZE_SOUTH;
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Border[3]))
+            {
+                CursorType = SIZE_WEST;
+            }
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &AreaQuad))
+            {
+                CursorType = SIZE_ALL;
+            }
+        }
+        
+        if(CursorType != LevelEditor->CursorType)
+        {
+            LevelEditor->CursorType = CursorType;
+            LevelEditorSetCursorType(CursorType);
+            
+            printf("Cursor set\n");
+        }
     }
     
+    if(LevelEditor->AreaIsMoving)
+    {
+        s32 OffsetX = Input->MouseRelX;
+        s32 OffsetY = Input->MouseRelY;
+        
+        s32 Index = LevelEditor->EditorObjectIndex;
+        
+        math_rect AreaQuad = ConvertGameRectToMathRect(LevelEditor->EditorObject[Index].AreaQuad);
+        
+        switch(LevelEditor->CursorType)
+        {
+            case SIZE_ALL:
+            {
+                AreaQuad.Left   += OffsetX;
+                AreaQuad.Top    += OffsetY;
+                AreaQuad.Right  += OffsetX;
+                AreaQuad.Bottom += OffsetY;
+            } break;
+            
+            case SIZE_WEST:
+            {
+                AreaQuad.Left += OffsetX;
+            } break;
+            
+            case SIZE_EAST:
+            {
+                AreaQuad.Right += OffsetX;
+            } break;
+            
+            case SIZE_NORTH:
+            {
+                AreaQuad.Top += OffsetY;
+            } break;
+            
+            case SIZE_SOUTH:
+            {
+                AreaQuad.Bottom += OffsetY;
+            } break;
+            
+            case SIZE_WN:
+            {
+                AreaQuad.Left += OffsetX;
+                AreaQuad.Top  += OffsetY;
+            } break;
+            
+            case SIZE_ES:
+            {
+                AreaQuad.Right  += OffsetX;
+                AreaQuad.Bottom += OffsetY;
+            } break;
+            
+            case SIZE_NE:
+            {
+                AreaQuad.Right += OffsetX;
+                AreaQuad.Top   += OffsetY;
+            } break;
+            
+            case SIZE_WS:
+            {
+                AreaQuad.Left   += OffsetX;
+                AreaQuad.Bottom += OffsetY;
+            } break;
+        }
+        
+        if(Index == 0)
+        {
+            LevelEditor->EditorObject[Index].AreaQuad = ConvertMathRectToGameRect(AreaQuad);
+            
+            LevelEntity->GridEntity->GridArea = LevelEditor->EditorObject[Index].AreaQuad;
+            
+            LevelEntity->Configuration.GridBlockSize = CalculateGridBlockSize(RowAmount, ColAmount, LevelEntity->GridEntity->GridArea.w, 
+                                                                              LevelEntity->GridEntity->GridArea.h,
+                                                                              LevelEntity->Configuration.DefaultBlocksInRow, LevelEntity->Configuration.DefaultBlocksInCol);
+            
+            LevelEditorUpdateCoordinates(Buffer, LevelEditor->Font, &LevelEditor->PosPanel, LevelEntity->GridEntity->GridArea, 
+                                         Memory->PadRect, {0, 0, Buffer->Width, Buffer->Height});
+            
+        }
+        else if(Index == 1)
+        {
+            
+        }
+        else if(Index == 2)
+        {
+            
+        }
+        
+        
+        
+    }
+    
+    if(LevelEditor->ObjectIsSelected)
+    {
+        s32 Index = LevelEditor->EditorObjectIndex;
+        DEBUGRenderQuad(Buffer, &LevelEditor->EditorObject[Index].AreaQuad, {255, 255, 0}, 255);
+    }
+    
+    RenderButtonQuad(Buffer, &LevelEditor->SwitchConfiguration, 255, 192, 203, 100);
+    
+    /* Position panel rendering */
+    
+    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.HeaderButton,  128, 128, 128, 100);
+    
+    /* Switch buttons rendering */
+    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.LeftArrowButton,   0, 255, 0, 100);
+    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.SwitchNameButton,  0, 255, 0, 100);
+    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.RightArrowButton,  0, 255, 0, 100);
+    
+    /* First coordinate buttons rendering */
+    
+    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.FirstNumberNameButton, 0, 0, 255, 100);
+    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.FirstNumberButton, 0, 0, 255, 100);
+    
+    /* Second coordinate buttons rendering */
+    
+    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.SecondNumberNameButton,  0, 0, 255, 100);
+    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.SecondNumberButton, 0, 0, 255, 100);
+    
+    /*Third coordinate buttons rendering */
+    
+    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.ThirdNumberNameButton, 0, 0, 255, 100);
+    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.ThirdNumberButton, 0, 0, 255, 100);
+    
+    /*Fourth coordinate buttons rendering*/
+    
+    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.FourthNumberNameButton,  0, 0, 255, 100);
+    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.FourthNumberButton,  0, 0, 255, 100);
+    
+    /* Resolution panel rendering */
+    
+    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.ScalerHeaderButton,  128, 128, 128, 100);
+    
+    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.LeftArrowButton,  0, 255, 0, 100);
+    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.SwitchButton,     0, 255, 0, 100);
+    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.RightArrowButton, 0, 255, 0, 100);
+    
+    /* Target resolution buttons*/
+    
+    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.TargetResolutionHeaderButton,  128, 128, 128, 100);
+    
+    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.TargetWidthNameButton,  0, 0, 255, 100);
+    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.TargetWidthNumberButton,  0, 0, 255, 100);
+    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.TargetHeightNameButton,  0, 0, 255, 100);
+    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.TargetHeightNumberButton,  0, 0, 255, 100);
+    
+    /* Reference resolution buttons */
+    
+    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.ReferenceResolutionHeaderButton,  128, 128, 128, 100);
+    
+    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.ReferenceWidthNameButton,  0, 0, 255, 100);
+    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.ReferenceWidthButton,  0, 0, 255, 100);
+    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.ReferenceHeightNameButton,  0, 0, 255, 100);
+    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.ReferenceHeightButton,  0, 0, 255, 100);
+    
+    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.ApplyButton,  0, 255, 255, 100);
+    
+    
+    if(LevelEditor->ButtonSelected)
+    {
+        DEBUGRenderQuadFill(Buffer, &LevelEditor->HighlightButtonQuad, {255, 255, 0}, 150);
+    }
+    
+}
+
+static void
+LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity, 
+                           game_memory *Memory, game_offscreen_buffer *Buffer, game_input *Input)
+{
     game_rect GridArea   = LevelEntity->GridEntity->GridArea;
     game_rect FigureArea = LevelEntity->FigureEntity->FigureArea;
     
@@ -1257,90 +1652,6 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         }
     }
     
-    if(Input->Keyboard.LeftShift.EndedDown)
-    {
-        if(!LevelEditor->ShiftKeyPressed)
-        {
-            LevelEditor->ShiftKeyPressed = true;
-            printf("Shift is pressed!\n");
-        }
-    }
-    else if(Input->Keyboard.LeftShift.EndedUp)
-    {
-        if(LevelEditor->ShiftKeyPressed)
-        {
-            LevelEditor->ShiftKeyPressed = false;
-            printf("Shift is released!\n");
-        }
-    }
-    
-    if(LevelEditor->ObjectIsSelected)
-    {
-        game_rect Corner[4] = {};
-        
-        Corner[0] = {GridArea.x - 10, GridArea.y - 10, 20, 20};
-        Corner[1] = {(GridArea.x + GridArea.w) - 10, GridArea.y - 10, 20, 20};
-        Corner[2] = {(GridArea.x + GridArea.w) - 10, (GridArea.y + GridArea.h) - 10, 20, 20};
-        Corner[3] = {GridArea.x - 10, (GridArea.y + GridArea.h), 20, 20};
-        
-        cursor_type CursorType = ARROW;
-        
-        if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Corner[0]))
-        {
-            CursorType = SIZE_WN;
-        }
-        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Corner[1]))
-        {
-            CursorType = SIZE_NE;
-        }
-        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Corner[2]))
-        {
-            CursorType = SIZE_ES;
-        }
-        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Corner[3]))
-        {
-            CursorType = SIZE_WS;
-        }
-        else
-        {
-            game_rect Border[4] = {};
-            
-            Border[0] = {GridArea.x, GridArea.y - 10, GridArea.w, 20};
-            Border[1] = {(GridArea.x + GridArea.w) - 10, GridArea.y, 20, GridArea.h};
-            Border[2] = {GridArea.x, (GridArea.y + GridArea.h) - 10, GridArea.w, 20};
-            Border[3] = {GridArea.x - 10, GridArea.y, 20, GridArea.h};
-            
-            if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Border[0]))
-            {
-                CursorType = SIZE_NORTH;
-            }
-            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Border[1]))
-            {
-                CursorType = SIZE_EAST;
-            }
-            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Border[2]))
-            {
-                CursorType = SIZE_SOUTH;
-            }
-            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &Border[3]))
-            {
-                CursorType = SIZE_WEST;
-            }
-            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &GridArea))
-            {
-                CursorType = SIZE_ALL;
-            }
-        }
-        
-        if(CursorType != LevelEditor->CursorType)
-        {
-            LevelEditor->CursorType = CursorType;
-            LevelEditorSetCursorType(CursorType);
-            
-            printf("Cursor set\n");
-        }
-    }
-    
     if(Input->Keyboard.Up.EndedDown)
     {
         NewFigureIndex -= 1;
@@ -1413,16 +1724,17 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     
     if(Input->MouseButtons[0].EndedDown)
     {
-        if(LevelEditor->CursorType != ARROW)
+        if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->SwitchConfiguration.Quad))
         {
-            if(!LevelEditor->AreaIsMoving)
+            if(LevelEditor->EditorType == LEVEL_EDITOR)
             {
-                LevelEditor->AreaIsMoving = true;
+                LevelEditor->EditorType = GAME_EDITOR;
+                LevelEditorUpdateTextOnButton(Buffer, LevelEditor->Font, "Game configuration", LevelEditor->SwitchConfiguration.Texture, &LevelEditor->SwitchConfiguration.TextureQuad, &LevelEditor->SwitchConfiguration.Quad, {255, 255, 255});
+                
+                LevelEditor->ButtonSelected = true;
+                LevelEditor->HighlightButtonQuad = LevelEditor->SwitchConfiguration.Quad;
             }
-        }
-        else
-        {
-            printf("ohhh shit\n");
+            
         }
         
         if (IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEntity->LevelNumberQuad))
@@ -1468,92 +1780,8 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             }
         }
         
-        if(LevelEditor->ShiftKeyPressed)
-        {
-            if(!LevelEditor->ObjectIsSelected)
-            {
-                for(s32 i = 0; i < 2; ++i)
-                {
-                    if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->EditorObject[i].AreaQuad))
-                    {
-                        LevelEditor->ObjectIsSelected = true;
-                        LevelEditor->EditorObjectIndex = i;
-                    }
-                }
-            }
-        }
-        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.LeftArrowButton.Quad))
-        {
-            
-            printf("Left arrow\n");
-        }
-        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.RightArrowButton.Quad))
-        {
-            printf("Right arrow\n");
-        }
-        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.TargetWidthNumberButton.Quad))
-        {
-            printf("target width\n");
-        }
-        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.TargetHeightNumberButton.Quad))
-        {
-            printf("target heigth\n");
-        }
-        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.ReferenceWidthNameButton.Quad))
-        {
-            printf("reference width\n");
-        }
-        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.ReferenceHeightButton.Quad))
-        {
-            printf("reference heigth\n");
-        }
-        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->PosPanel.LeftArrowButton.Quad))
-        {
-            if(LevelEditor->PosPanel.CoordType == PIXEL_AREA)
-            {
-                LevelEditor->PosPanel.CoordType = SCREEN_AREA;
-                
-            }
-            else if(LevelEditor->PosPanel.CoordType == SCREEN_AREA)
-            {
-                LevelEditor->PosPanel.CoordType = GAME_AREA;
-            }
-            else
-            {
-                LevelEditor->PosPanel.CoordType = PIXEL_AREA;
-            }
-            
-            LevelEditorUpdateCoordinates(Buffer, LevelEditor->Font, &LevelEditor->PosPanel, LevelEntity->GridEntity->GridArea, 
-                                         Memory->PadRect, {0, 0, Buffer->Width, Buffer->Height});
-            LevelEditorUpdateCoordinateSwitch(LevelEditor, &LevelEditor->PosPanel, Buffer);
-            
-            LevelEditor->ButtonSelected      = true;
-            LevelEditor->HighlightButtonQuad = LevelEditor->PosPanel.LeftArrowButton.Quad;
-        }
-        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->PosPanel.RightArrowButton.Quad))
-        {
-            if(LevelEditor->PosPanel.CoordType == PIXEL_AREA)
-            {
-                LevelEditor->PosPanel.CoordType = GAME_AREA;
-                
-            }
-            else if(LevelEditor->PosPanel.CoordType == GAME_AREA)
-            {
-                LevelEditor->PosPanel.CoordType = SCREEN_AREA;
-            }
-            else
-            {
-                LevelEditor->PosPanel.CoordType = PIXEL_AREA;
-            }
-            
-            LevelEditorUpdateCoordinates(Buffer, LevelEditor->Font, &LevelEditor->PosPanel, LevelEntity->GridEntity->GridArea, 
-                                         Memory->PadRect, {0, 0, Buffer->Width, Buffer->Height});
-            LevelEditorUpdateCoordinateSwitch(LevelEditor, &LevelEditor->PosPanel, Buffer);
-            
-            LevelEditor->ButtonSelected      = true;
-            LevelEditor->HighlightButtonQuad = LevelEditor->PosPanel.RightArrowButton.Quad;
-        }
-        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->LevelPropertiesQuad))
+        
+        if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->LevelPropertiesQuad))
         {
             if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->RowLabel.MinusQuad))
             {
@@ -1853,84 +2081,6 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     {
         LevelEditor->ButtonSelected      = true;
         LevelEditor->HighlightButtonQuad = {};
-        
-        if(LevelEditor->AreaIsMoving)
-        {
-            LevelEditor->AreaIsMoving = false;
-        }
-    }
-    
-    if(LevelEditor->AreaIsMoving)
-    {
-        s32 OffsetX = Input->MouseRelX;
-        s32 OffsetY = Input->MouseRelY;
-        
-        math_rect AreaQuad = ConvertGameRectToMathRect(GridArea);
-        
-        switch(LevelEditor->CursorType)
-        {
-            case SIZE_ALL:
-            {
-                AreaQuad.Left   += OffsetX;
-                AreaQuad.Top    += OffsetY;
-                AreaQuad.Right  += OffsetX;
-                AreaQuad.Bottom += OffsetY;
-            } break;
-            
-            case SIZE_WEST:
-            {
-                AreaQuad.Left += OffsetX;
-            } break;
-            
-            case SIZE_EAST:
-            {
-                AreaQuad.Right += OffsetX;
-            } break;
-            
-            case SIZE_NORTH:
-            {
-                AreaQuad.Top += OffsetY;
-            } break;
-            
-            case SIZE_SOUTH:
-            {
-                AreaQuad.Bottom += OffsetY;
-            } break;
-            
-            case SIZE_WN:
-            {
-                AreaQuad.Left += OffsetX;
-                AreaQuad.Top  += OffsetY;
-            } break;
-            
-            case SIZE_ES:
-            {
-                AreaQuad.Right  += OffsetX;
-                AreaQuad.Bottom += OffsetY;
-            } break;
-            
-            case SIZE_NE:
-            {
-                AreaQuad.Right += OffsetX;
-                AreaQuad.Top   += OffsetY;
-            } break;
-            
-            case SIZE_WS:
-            {
-                AreaQuad.Left   += OffsetX;
-                AreaQuad.Bottom += OffsetY;
-            } break;
-        }
-        
-        LevelEntity->GridEntity->GridArea = ConvertMathRectToGameRect(AreaQuad);
-        
-        LevelEntity->Configuration.GridBlockSize = CalculateGridBlockSize(RowAmount, ColAmount, LevelEntity->GridEntity->GridArea.w, 
-                                                                          LevelEntity->GridEntity->GridArea.h,
-                                                                          LevelEntity->Configuration.DefaultBlocksInRow, LevelEntity->Configuration.DefaultBlocksInCol);
-        
-        LevelEditorUpdateCoordinates(Buffer, LevelEditor->Font, &LevelEditor->PosPanel, LevelEntity->GridEntity->GridArea, 
-                                     Memory->PadRect, {0, 0, Buffer->Width, Buffer->Height});
-        
     }
     
     if(NewFigureIndex < 0)
@@ -1968,9 +2118,11 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         DEBUGRenderQuadFill(Buffer, &LevelEntity->LevelNumberQuad, {255, 0, 0}, 150);
     }
     
+    RenderButtonQuad(Buffer, &LevelEditor->SwitchConfiguration, 255, 192, 203, 100);
+    
     /* Level header name rendering */ 
     
-    RenderButtonQuad(Buffer, &LevelEditor->LevelConfigButton, 128, 128, 128, 100);
+    //RenderButtonQuad(Buffer, &LevelEditor->LevelConfigButton, 128, 128, 128, 100);
     
     LevelEditorRenderLabel(&LevelEditor->RowLabel,    Buffer);
     LevelEditorRenderLabel(&LevelEditor->ColumnLabel, Buffer);
@@ -2010,67 +2162,48 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     
     DEBUGRenderQuad(Buffer, &LevelEntity->GridEntity->GridArea, { 0, 255, 255 }, 255);
     
-    /* Position panel rendering */
-    
-    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.HeaderButton,  128, 128, 128, 100);
-    
-    /* Switch buttons rendering */
-    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.LeftArrowButton,   0, 255, 0, 100);
-    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.SwitchNameButton,  0, 255, 0, 100);
-    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.RightArrowButton,  0, 255, 0, 100);
-    
-    /* First coordinate buttons rendering */
-    
-    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.FirstNumberNameButton, 0, 0, 255, 100);
-    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.FirstNumberButton, 0, 0, 255, 100);
-    
-    /* Second coordinate buttons rendering */
-    
-    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.SecondNumberNameButton,  0, 0, 255, 100);
-    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.SecondNumberButton, 0, 0, 255, 100);
-    
-    /*Third coordinate buttons rendering */
-    
-    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.ThirdNumberNameButton, 0, 0, 255, 100);
-    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.ThirdNumberButton, 0, 0, 255, 100);
-    
-    /*Fourth coordinate buttons rendering*/
-    
-    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.FourthNumberNameButton,  0, 0, 255, 100);
-    RenderButtonQuad(Buffer, &LevelEditor->PosPanel.FourthNumberButton,  0, 0, 255, 100);
-    
-    /* Resolution panel rendering */
-    
-    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.ScalerHeaderButton,  128, 128, 128, 100);
-    
-    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.LeftArrowButton,  0, 255, 0, 100);
-    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.SwitchButton,     0, 255, 0, 100);
-    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.RightArrowButton, 0, 255, 0, 100);
-    
-    /* Target resolution buttons*/
-    
-    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.TargetResolutionHeaderButton,  128, 128, 128, 100);
-    
-    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.TargetWidthNameButton,  0, 0, 255, 100);
-    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.TargetWidthNumberButton,  0, 0, 255, 100);
-    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.TargetHeightNameButton,  0, 0, 255, 100);
-    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.TargetHeightNumberButton,  0, 0, 255, 100);
-    
-    /* Reference resolution buttons */
-    
-    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.ReferenceResolutionHeaderButton,  128, 128, 128, 100);
-    
-    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.ReferenceWidthNameButton,  0, 0, 255, 100);
-    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.ReferenceWidthButton,  0, 0, 255, 100);
-    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.ReferenceHeightNameButton,  0, 0, 255, 100);
-    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.ReferenceHeightButton,  0, 0, 255, 100);
-    
-    RenderButtonQuad(Buffer, &LevelEditor->ResPanel.ApplyButton,  0, 255, 255, 100);
     
     if(LevelEditor->ButtonSelected)
     {
         DEBUGRenderQuadFill(Buffer, &LevelEditor->HighlightButtonQuad, {255, 255, 0}, 150);
     }
+}
+
+static void
+LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity, 
+                           game_memory *Memory, game_offscreen_buffer *Buffer, game_input *Input)
+{
+    if(Input->Keyboard.BackQuote.EndedDown)
+    {
+        if(!LevelEditor->IsOn)
+        {
+            LevelEditor->IsOn  = true;
+            LevelEntity->LevelPaused = true;
+            RestartLevelEntity(LevelEntity);
+        }
+        else
+        {
+            LevelEditor->IsOn  = false;
+            LevelEntity->LevelPaused = false;
+        }
+    }
+    
+    if(!LevelEditor->IsOn) 
+    {
+        return;
+    }
+    
+    if(LevelEditor->EditorType == LEVEL_EDITOR)
+    {
+        LevelConfigUpdateAndRender(LevelEditor, LevelEntity, 
+                                   Memory, Buffer, Input);
+    }
+    else if(LevelEditor->EditorType == GAME_EDITOR)
+    {
+        ResolutionConfigUpdateAndRender(LevelEditor, LevelEntity,
+                                        Memory, Buffer, Input);
+    }
+    
 }
 
 struct selection_panel
