@@ -163,7 +163,25 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         //DEBUG
         //LevelEntity->Configuration.ActiveBlockSize   = 20;
-        //LevelEntity->Configuration.InActiveBlockSize = 10;
+        
+        s32 FigureAmount = 3;
+        game_rect FigureAreaRect = ConvertMathRectToGameRect(FigureArea);
+        s32 FigureAreaWidth = FigureAreaRect.w;
+        s32 FigureAreaHeight= FigureAreaRect.h;
+        
+        s32 BlocksInRow = (((r32)FigureAmount / 2.0) + 0.5f) * 2.0f;
+        
+        s32 ResultBlockSize = 0;
+        if(FigureAreaWidth < FigureAreaHeight)
+        {
+            ResultBlockSize = FigureAreaWidth / BlocksInRow;
+        }
+        else
+        {
+            ResultBlockSize = FigureAreaHeight / 8;
+        }
+        
+        LevelEntity->Configuration.InActiveBlockSize = ResultBlockSize;
         
         u32 ActiveBlockSize   = LevelEntity->Configuration.ActiveBlockSize;
         u32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
@@ -185,7 +203,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         figure_entity* FigureEntity = LevelEntity->FigureEntity;
         
-        FigureEntity->FigureAmount         = 0;
+        FigureEntity->FigureAmount         = 3;
         FigureEntity->FigureAmountReserved = FigureAmountReserve;
         
         FigureEntity->ReturnIndex   = -1;
@@ -203,14 +221,16 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->FadeInSum     = 0;
         FigureEntity->FadeOutSum    = 0;
         
-        FigureEntity->FigureArea.w  = Buffer->Width;
-        FigureEntity->FigureArea.h  = InActiveBlockSize * LevelEntity->Configuration.DefaultBlocksInCol;
-        FigureEntity->FigureArea.y  = Buffer->Height - (FigureEntity->FigureArea.h);
-        FigureEntity->FigureArea.x  = 0;
+        //FigureEntity->FigureArea.w  = Buffer->Width;
+        //FigureEntity->FigureArea.h  = InActiveBlockSize * //LevelEntity->Configuration.DefaultBlocksInCol;
+        //FigureEntity->FigureArea.y  = Buffer->Height - (FigureEntity->FigureArea.h);
+        //FigureEntity->FigureArea.x  = 0;
+        
+        FigureEntity->FigureArea = FigureAreaRect;
         
         //FigureEntity->FigureArea = ConvertMathRectToGameRect(FigureArea);
         
-        FigureEntity->FigureUnit = (figure_unit*)malloc(sizeof(figure_unit)*FigureEntity->FigureAmountReserved);
+        FigureEntity->FigureUnit = (figure_unit*)calloc(FigureEntity->FigureAmountReserved, sizeof(figure_unit));
         Assert(FigureEntity->FigureUnit);
         
         FigureUnitAddNewFigure(FigureEntity, Z_figure, classic, 0.0f, Memory, Buffer);

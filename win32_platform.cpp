@@ -345,7 +345,7 @@ int main(int argc, char **argv)
     SDL_Window *Window = SDL_CreateWindow("This is window",
                                           0,
                                           0,
-                                          800, 600,
+                                          1980, 1080,
                                           SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
     
     if(Window)

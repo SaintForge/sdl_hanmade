@@ -156,6 +156,7 @@ GameResizeInActiveBlock(u32 FigureAreaWidth,
 {
     u32 ResultBlockSize  = 0;
     
+    
     u32 DefaultBlockWidth  = FigureAreaWidth / DefaultBlocksInRow;
     u32 DefaultBlockHeight = FigureAreaHeight / DefaultBlocksInCol;
     u32 DefaultBlockSize   = DefaultBlockWidth < DefaultBlockHeight ? DefaultBlockWidth : DefaultBlockHeight;

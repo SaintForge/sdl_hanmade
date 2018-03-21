@@ -1471,14 +1471,15 @@ ResolutionConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEn
         }
         else if(Index == 1)
         {
+            LevelEditor->EditorObject[Index].AreaQuad = ConvertMathRectToGameRect(AreaQuad);
+            
+            LevelEntity->FigureEntity->FigureArea = LevelEditor->EditorObject[Index].AreaQuad;
             
         }
         else if(Index == 2)
         {
             
         }
-        
-        
         
     }
     

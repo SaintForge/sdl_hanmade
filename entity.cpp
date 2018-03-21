@@ -217,9 +217,11 @@ FigureUnitInitFigure(figure_unit *FigureUnit,
                      game_memory *Memory, 
                      game_offscreen_buffer *Buffer)
 {
+    if(!FigureUnit) return;
+    
     level_entity *LevelEntity = (level_entity*)Memory->LocalMemoryStorage;
     
-    u32 ActiveBlockSize   = LevelEntity->Configuration.ActiveBlockSize;
+    //u32 ActiveBlockSize   = LevelEntity->Configuration.ActiveBlockSize;
     u32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
     
     FigureUnit->IsIdle       = true;
@@ -347,6 +349,11 @@ FigureUnitInitFigure(figure_unit *FigureUnit,
         }break;
     }
     
+    if(FigureUnit->Texture) 
+    {
+        FreeTexture(FigureUnit->Texture);
+    }
+    
     FigureUnit->Texture = Texture;
     
     FigureUnit->AreaQuad.x = 0;
@@ -462,8 +469,6 @@ FigureUnitGetArea(figure_unit *Unit)
     
     return(Area);
 }
-
-
 
 static void
 FigureUnitFlipHorizontally(figure_unit *Unit)
