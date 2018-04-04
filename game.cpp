@@ -126,7 +126,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         math_rect GameArea   = CreateMathRect(0.05f, 0.95f, 0.95f, 0.05f, ScreenArea);
         math_rect GridArea   = CreateMathRect(0.0f, 1.0f, 1.0f, 0.5f, GameArea);
-        math_rect FigureArea = CreateMathRect(0.0f, 0.5f, 1.0f, 0.0f, GameArea);
+        math_rect FigureArea = CreateMathRect(0.0f, 0.3f, 1.0f, 0.0f, GameArea);
         
         /* game_memory initialization */
         
@@ -164,28 +164,12 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         //DEBUG
         //LevelEntity->Configuration.ActiveBlockSize   = 20;
         
-        s32 FigureAmount = 3;
         game_rect FigureAreaRect = ConvertMathRectToGameRect(FigureArea);
-        s32 FigureAreaWidth = FigureAreaRect.w;
-        s32 FigureAreaHeight= FigureAreaRect.h;
         
-        s32 BlocksInRow = (((r32)FigureAmount / 2.0) + 0.5f) * 2.0f;
-        
-        s32 ResultBlockSize = 0;
-        if(FigureAreaWidth < FigureAreaHeight)
-        {
-            ResultBlockSize = FigureAreaWidth / BlocksInRow;
-        }
-        else
-        {
-            ResultBlockSize = FigureAreaHeight / 8;
-        }
-        
-        LevelEntity->Configuration.InActiveBlockSize = ResultBlockSize;
+        LevelEntity->Configuration.InActiveBlockSize = CalculateFigureBlockSize(3, FigureAreaRect.w, FigureAreaRect.h);
         
         u32 ActiveBlockSize   = LevelEntity->Configuration.ActiveBlockSize;
         u32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
-        
         
         /* Change values below to be time configured */
         
@@ -203,7 +187,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         figure_entity* FigureEntity = LevelEntity->FigureEntity;
         
-        FigureEntity->FigureAmount         = 3;
+        FigureEntity->FigureAmount         = 0;
         FigureEntity->FigureAmountReserved = FigureAmountReserve;
         
         FigureEntity->ReturnIndex   = -1;
@@ -236,6 +220,12 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureUnitAddNewFigure(FigureEntity, Z_figure, classic, 0.0f, Memory, Buffer);
         FigureUnitAddNewFigure(FigureEntity, I_figure, stone,   0.0f, Memory, Buffer);
         FigureUnitAddNewFigure(FigureEntity, J_figure, mirror,  0.0f, Memory, Buffer);
+        
+        FigureEntity->FigureAmount = 0;
+        FigureUnitAddNewFigure(FigureEntity, Z_figure, classic, 0.0f, Memory, Buffer);
+        FigureUnitAddNewFigure(FigureEntity, I_figure, stone,   0.0f, Memory, Buffer);
+        FigureUnitAddNewFigure(FigureEntity, J_figure, mirror,  0.0f, Memory, Buffer);
+        
         
         FigureEntity->FigureOrder = (u32*)malloc(sizeof(u32) * FigureEntity->FigureAmountReserved);
         Assert(FigureEntity->FigureOrder);

@@ -171,6 +171,16 @@ struct resolution_routine
     button_quad ReferenceHeightNameButton;
     button_quad ReferenceHeightButton;
     
+    s32 ReferenceWidth;
+    s32 ReferenceHeight;
+    s32 TargetWidth;
+    s32 TargetHeight;
+    
+    s32 ResOldNumber;
+    s32 ResNumberBufferIndex;
+    char ResNumberBuffer[4];
+    b32 ResNumberSelected;
+    
     button_quad ApplyButton;
 };
 
@@ -1152,10 +1162,74 @@ GridEntityNewGrid(game_offscreen_buffer *Buffer, level_entity *LevelEntity,
     
 }
 
+inline static void
+CleanResolutionNumber(resolution_routine *ResPanel, s32 OldNumber)
+{
+    ResPanel->ResNumberSelected = true;
+    ResPanel->ResNumberBufferIndex = 0;
+    ResPanel->ResOldNumber = OldNumber;
+    
+    ResPanel->ResNumberBuffer[0] = '\0';
+    ResPanel->ResNumberBuffer[1] = '\0';
+    ResPanel->ResNumberBuffer[2] = '\0';
+    ResPanel->ResNumberBuffer[3] = '\0';
+}
+
+static char
+GetNumberFromInput(s32 BufferIndex, game_input *Input)
+{
+    char Result = '\n';
+    
+    s32 DigitIndex = BufferIndex;
+    
+    if(Input->Keyboard.Zero.EndedDown)
+    {
+        Result = '0';
+    }
+    else if(Input->Keyboard.One.EndedDown)
+    {
+        Result = '1';
+    }
+    else if(Input->Keyboard.Two.EndedDown)
+    {
+        Result = '2';
+    }
+    else if(Input->Keyboard.Three.EndedDown)
+    {
+        Result = '3';
+    }
+    else if(Input->Keyboard.Four.EndedDown)
+    {
+        Result = '4';
+    }
+    else if(Input->Keyboard.Five.EndedDown)
+    {
+        Result = '5';
+    }
+    else if(Input->Keyboard.Six.EndedDown)
+    {
+        Result = '6';
+    }
+    else if(Input->Keyboard.Seven.EndedDown)
+    {
+        Result = '7';
+    }
+    else if(Input->Keyboard.Eight.EndedDown)
+    {
+        Result = '8';
+    }
+    else if(Input->Keyboard.Nine.EndedDown)
+    {
+        Result = '9';
+    }
+    
+    return (Result);
+}
+
 static void
-ResolutionConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
-                                game_memory *Memory, game_offscreen_buffer *Buffer,
-                                game_input *Input)
+GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
+                          game_memory *Memory, game_offscreen_buffer *Buffer,
+                          game_input *Input)
 {
     s32 RowAmount = LevelEntity->GridEntity->RowAmount;
     s32 ColAmount = LevelEntity->GridEntity->ColumnAmount;
@@ -1280,6 +1354,8 @@ ResolutionConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEn
             {
                 printf("target width\n");
                 
+                CleanResolutionNumber(&LevelEditor->ResPanel, LevelEditor->ResPanel.TargetWidth);
+                
                 LevelEditor->ButtonSelected = true;
                 LevelEditor->HighlightButtonQuad = LevelEditor->ResPanel.TargetWidthNumberButton.Quad;
             }
@@ -1287,19 +1363,25 @@ ResolutionConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEn
             {
                 printf("target heigth\n");
                 
+                CleanResolutionNumber(&LevelEditor->ResPanel, LevelEditor->ResPanel.TargetHeight);
+                
                 LevelEditor->ButtonSelected = true;
                 LevelEditor->HighlightButtonQuad = LevelEditor->ResPanel.TargetHeightNumberButton.Quad;
             }
-            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.ReferenceWidthNameButton.Quad))
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.ReferenceWidthButton.Quad))
             {
                 printf("reference width\n");
                 
+                CleanResolutionNumber(&LevelEditor->ResPanel, LevelEditor->ResPanel.ReferenceWidth);
+                
                 LevelEditor->ButtonSelected = true;
-                LevelEditor->HighlightButtonQuad = LevelEditor->ResPanel.ReferenceWidthNameButton.Quad;
+                LevelEditor->HighlightButtonQuad = LevelEditor->ResPanel.ReferenceWidthButton.Quad;
             }
             else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.ReferenceHeightButton.Quad))
             {
                 printf("reference heigth\n");
+                
+                CleanResolutionNumber(&LevelEditor->ResPanel, LevelEditor->ResPanel.ReferenceHeight);
                 
                 LevelEditor->ButtonSelected = true;
                 LevelEditor->HighlightButtonQuad = LevelEditor->ResPanel.ReferenceHeightButton.Quad;
@@ -1317,7 +1399,6 @@ ResolutionConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEn
         {
             LevelEditor->CursorType = ARROW;
             LevelEditor->AreaIsMoving = false;
-            printf("AreaIsMoving = false\n");
         }
     }
     
@@ -1386,8 +1467,6 @@ ResolutionConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEn
         {
             LevelEditor->CursorType = CursorType;
             LevelEditorSetCursorType(CursorType);
-            
-            printf("Cursor set\n");
         }
     }
     
@@ -1582,75 +1661,38 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     
     if(LevelEditor->LevelNumberSelected)
     {
-        char NextDigit  = '\n';
-        s32  DigitIndex = LevelEditor->LevelNumberBufferIndex;
+        s32 DigitIndex = LevelEditor->LevelNumberBufferIndex;
+        char NextDigit = GetNumberFromInput(DigitIndex, Input);
         
-        if(Input->Keyboard.Zero.EndedDown)
+        if(NextDigit)
         {
-            NextDigit = '0';
-        }
-        else if(Input->Keyboard.One.EndedDown)
-        {
-            NextDigit = '1';
-        }
-        else if(Input->Keyboard.Two.EndedDown)
-        {
-            NextDigit = '2';
-        }
-        else if(Input->Keyboard.Three.EndedDown)
-        {
-            NextDigit = '3';
-        }
-        else if(Input->Keyboard.Four.EndedDown)
-        {
-            NextDigit = '4';
-        }
-        else if(Input->Keyboard.Five.EndedDown)
-        {
-            NextDigit = '5';
-        }
-        else if(Input->Keyboard.Six.EndedDown)
-        {
-            NextDigit = '6';
-        }
-        else if(Input->Keyboard.Seven.EndedDown)
-        {
-            NextDigit = '7';
-        }
-        else if(Input->Keyboard.Eight.EndedDown)
-        {
-            NextDigit = '8';
-        }
-        else if(Input->Keyboard.Nine.EndedDown)
-        {
-            NextDigit = '9';
+            if(DigitIndex <= 2 && NextDigit != '\n')
+            {
+                LevelEditor->LevelNumberBuffer[DigitIndex] = NextDigit;
+                LevelEditor->LevelNumberBufferIndex = ++DigitIndex;
+                
+                GameMakeTextureFromString(LevelEntity->LevelNumberTexture, 
+                                          LevelEditor->LevelNumberBuffer, 
+                                          &LevelEntity->LevelNumberQuad, 
+                                          Memory->LevelNumberFont, 
+                                          {255, 255, 255}, 
+                                          Buffer);
+                
+                GameMakeTextureFromString(LevelEntity->LevelNumberShadowTexture, 
+                                          LevelEditor->LevelNumberBuffer, 
+                                          &LevelEntity->LevelNumberShadowQuad, 
+                                          Memory->LevelNumberFont, 
+                                          {0, 0, 0}, 
+                                          Buffer);
+                
+                LevelEntity->LevelNumberQuad.x = (Buffer->Width - LevelEntity->LevelNumberQuad.w) - (LevelEntity->LevelNumberQuad.w / 2);
+                LevelEntity->LevelNumberQuad.y = 0;
+                
+                LevelEntity->LevelNumberShadowQuad.x = LevelEntity->LevelNumberQuad.x + 3;
+                LevelEntity->LevelNumberShadowQuad.y = LevelEntity->LevelNumberQuad.y + 3;
+            }
         }
         
-        if(DigitIndex <= 2 && NextDigit != '\n')
-        {
-            LevelEditor->LevelNumberBuffer[DigitIndex] = NextDigit;
-            LevelEditor->LevelNumberBufferIndex = ++DigitIndex;
-            
-            GameMakeTextureFromString(LevelEntity->LevelNumberTexture, 
-                                      LevelEditor->LevelNumberBuffer, 
-                                      &LevelEntity->LevelNumberQuad, 
-                                      Memory->LevelNumberFont, 
-                                      {255, 255, 255}, 
-                                      Buffer);
-            
-            GameMakeTextureFromString(LevelEntity->LevelNumberShadowTexture, 
-                                      LevelEditor->LevelNumberBuffer, 
-                                      &LevelEntity->LevelNumberShadowQuad, 
-                                      Memory->LevelNumberFont, 
-                                      {0, 0, 0}, 
-                                      Buffer);
-            
-            LevelEntity->LevelNumberQuad.x = (Buffer->Width - LevelEntity->LevelNumberQuad.w) - (LevelEntity->LevelNumberQuad.w / 2);
-            LevelEntity->LevelNumberQuad.y = 0;
-            
-            LevelEntity->LevelNumberShadowQuad.x = LevelEntity->LevelNumberQuad.x + 3;
-            LevelEntity->LevelNumberShadowQuad.y = LevelEntity->LevelNumberQuad.y + 3;
-        }
     }
     
     if(Input->Keyboard.Up.EndedDown)
@@ -2098,6 +2140,7 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     
     if(LevelEntity->LevelStarted)
     {
+        //printf("FigureAmount = %d\n", FigureAmount);
         for(u32 i = 0; i < FigureAmount; ++i)
         {
             DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[i], LevelEntity->Configuration.InActiveBlockSize / 4, {0, 0, 255}, 255);
@@ -2201,8 +2244,8 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     }
     else if(LevelEditor->EditorType == GAME_EDITOR)
     {
-        ResolutionConfigUpdateAndRender(LevelEditor, LevelEntity,
-                                        Memory, Buffer, Input);
+        GameConfigUpdateAndRender(LevelEditor, LevelEntity,
+                                  Memory, Buffer, Input);
     }
     
 }

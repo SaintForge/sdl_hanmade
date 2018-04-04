@@ -345,7 +345,7 @@ int main(int argc, char **argv)
     SDL_Window *Window = SDL_CreateWindow("This is window",
                                           0,
                                           0,
-                                          1980, 1080,
+                                          800, 600,
                                           SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
     
     if(Window)
@@ -378,7 +378,7 @@ int main(int argc, char **argv)
             
             r32 PreviousTimeTick = SDL_GetTicks();
             
-            while(IsRunning)
+            while (IsRunning)
             {
                 r32 CurrentTimeTick = SDL_GetTicks();
                 r32 TimeElapsed = (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
@@ -400,7 +400,7 @@ int main(int argc, char **argv)
                 Buffer.Width    = BackBuffer.Width;
                 Buffer.Height   = BackBuffer.Height;
                 
-                if(Memory.AssetsInitialized)
+                if (Memory.AssetsInitialized)
                 {
                     if(GameUpdateAndRender(&Memory, &Input, &Buffer))
                     {

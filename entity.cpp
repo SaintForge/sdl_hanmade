@@ -40,6 +40,27 @@ IsFigureUnitInsideRect(figure_unit *Unit, game_rect *AreaQuad)
     return false;
 }
 
+static s32 
+CalculateFigureBlockSize(s32 FigureAmount, s32 FigureAreaWidth, 
+                         s32 FigureAreaHeight)
+
+{
+    s32 Result = {};
+    
+    s32 BlocksInRow = (((r32) FigureAmount / 2.0f) + 0.5f) * 2.0f;
+    
+    if(FigureAreaWidth < FigureAreaHeight)
+    {
+        Result = FigureAreaWidth / BlocksInRow;
+    }
+    else
+    {
+        Result = FigureAreaHeight / 8;
+    }
+    
+    return(Result);
+}
+
 static void
 FigureEntityHighOrderFigure(figure_entity *FigureEntity, u32 Index)
 {
