@@ -331,6 +331,9 @@ int main(int argc, char **argv)
     SDL_DisplayMode Display = {};
     SDL_GetDesktopDisplayMode(0, &Display);
     
+    s32 ScreenWidth  = Display.w;
+    s32 ScreenHeight = Display.h;
+    
     /*
     
     320 x 480	Alcatel pixi 3, LG Wine Smart
@@ -349,8 +352,8 @@ int main(int argc, char **argv)
     SDL_Window *Window = SDL_CreateWindow("This is window",
                                           0,
                                           0,
-                                          800, 600,
-                                          SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
+                                          ScreenWidth, ScreenHeight,
+                                          SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE|SDL_WINDOW_FULLSCREEN);
     
     if(Window)
     {
@@ -400,7 +403,7 @@ int main(int argc, char **argv)
                 
                 game_offscreen_buffer Buffer = {};
                 Buffer.Renderer = Renderer;
-                Buffer.Memory   = BackBuffer.Texture;
+                //Buffer.Memory   = BackBuffer.Texture;
                 Buffer.Width    = BackBuffer.Width;
                 Buffer.Height   = BackBuffer.Height;
                 

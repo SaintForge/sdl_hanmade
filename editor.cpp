@@ -852,18 +852,12 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
     
     
     /* Resolution panel initialization */
-    //
-    //LevelEditor->ResPanel.ResOldNumber = 0;
-    //LevelEditor->ResPanel.ResNumberBufferIndex;
-    //LevelEditor->ResPanel.ResNumberBuffer[4];
-    //b32 ResNumberSelected;
     
+    LevelEditor->ResPanel.ReferenceWidth  = Buffer->Width;
+    LevelEditor->ResPanel.ReferenceHeight = Buffer->Height;
     
-    LevelEditor->ResPanel.ReferenceWidth  = 800;
-    LevelEditor->ResPanel.ReferenceHeight = 600;
-    
-    LevelEditor->ResPanel.TargetWidth  = 1366;
-    LevelEditor->ResPanel.TargetHeight = 768;
+    LevelEditor->ResPanel.TargetWidth  = Buffer->Width;
+    LevelEditor->ResPanel.TargetHeight = Buffer->Height;
     
     r32 ResPanelWidth  = PosPanelWidth;
     r32 ResPanelHeight = 7 * ButtonHeight;
@@ -919,10 +913,10 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
                               &LevelEditor->ResPanel.TargetWidthNameButton, 255, 255, 255);
     
     char TargetWidthBuffer[8] = {};
-    sprintf(TargetWidthBuffer, "%d", 1920);
+    sprintf(TargetWidthBuffer, "%d", LevelEditor->ResPanel.TargetWidth);
     
     char TargetHeightBuffer[8] = {};
-    sprintf(TargetHeightBuffer, "%d", 1080);
+    sprintf(TargetHeightBuffer, "%d", LevelEditor->ResPanel.TargetHeight);
     
     LevelEditorMakeTextButton(Buffer, LevelEditor->Font, TargetWidthBuffer, 
                               LevelEditor->ResPanelQuad.x + ButtonQuad,
@@ -956,10 +950,10 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
                               &LevelEditor->ResPanel.ReferenceWidthNameButton, 255, 255, 255);
     
     char ReferenceWidthBuffer[8] = {};
-    sprintf(ReferenceWidthBuffer, "%d", 1366);
+    sprintf(ReferenceWidthBuffer, "%d", LevelEditor->ResPanel.ReferenceWidth);
     
     char ReferenceHeightBuffer[8] = {};
-    sprintf(ReferenceHeightBuffer, "%d", 768);
+    sprintf(ReferenceHeightBuffer, "%d", LevelEditor->ResPanel.ReferenceHeight);
     
     LevelEditorMakeTextButton(Buffer, LevelEditor->Font, ReferenceWidthBuffer, 
                               LevelEditor->ResPanelQuad.x + ButtonQuad,
@@ -1543,6 +1537,35 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 printf("TargetHeight = %d\n", LevelEditor->ResPanel.TargetHeight);
                 printf("RefWidth = %d\n", LevelEditor->ResPanel.ReferenceWidth);
                 printf("RefHeight = %d\n", LevelEditor->ResPanel.ReferenceHeight);
+                
+                Buffer->Width  = LevelEditor->ResPanel.TargetWidth;
+                Buffer->Height = LevelEditor->ResPanel.TargetHeight;
+                
+                Buffer->ReferenceWidth = LevelEditor->ResPanel.ReferenceWidth;
+                Buffer->ReferenceHeight = LevelEditor->ResPanel.ReferenceHeight;
+                
+                SDL_RenderSetLogicalSize(Buffer->Renderer, Buffer->Width, Buffer->Height);
+                //
+                //r32 NewScale = GetScale(ScreenWidth, ScreenHeight, RefWidth, RefHeight,
+                //RectScaleFactor);
+                //
+                //UnityRect.w = (r32)OriginalRectWidth  * NewScale;
+                //UnityRect.h = (r32)OriginalRectHeight * NewScale;
+                //
+                //game_point OldCenter = 
+                //{ (r32)(OriginalRectX + (OriginalRectWidth / 2)), 
+                //(r32)(OriginalRectY + (OriginalRectHeight / 2))};
+                //
+                //
+                //game_point Center = {};
+                //Center.x = (OldCenter.x / (r32)RefWidth) * (r32)ScreenWidth;
+                //Center.y = (OldCenter.y / (r32)RefHeight) * (r32)ScreenHeight;
+                //
+                //UnityRect.x = Center.x - (UnityRect.w / 2);
+                //UnityRect.y = Center.y - (UnityRect.h / 2);
+                //
+                //printf("Center.x = %f\n", Center.x);
+                //printf("Center.y = %f\n", Center.y);
             }
         }
         

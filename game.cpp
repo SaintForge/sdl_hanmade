@@ -50,6 +50,21 @@ GameCopyImageToBuffer(game_bitmap* GameBitmap, u32 X, u32 Y,
 }
 #endif
 
+static void
+GameUpdateRelativePositions(game_offscreen_buffer *Buffer, game_memory *Memory)
+{
+    s32 ActualWidth  = Buffer->Width;
+    s32 ActualHeight = Buffer->Height;
+    
+    s32 ReferenceWidth  = Buffer->Width;
+    s32 ReferenceHeight = Buffer->Height;
+    
+    {
+        // Grid Position
+        
+        r32 NewScale = 0;
+    }
+}
 
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)

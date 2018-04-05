@@ -459,6 +459,20 @@ CalculateNewSizeByHeight(math_point RefSize, math_point RefScreenSize,
     return(Result);
 }
 
+static r32
+GetScale(s32 ScreenWidth, s32 ScreenHeight, 
+         s32 RefWidth, s32 RefHeight,
+         float ScaleFactor)
+{
+    r32 Result;
+    
+    Result = pow((r32)ScreenWidth / (r32)RefWidth, 1.0f - ScaleFactor) * 
+        pow((r32)ScreenHeight / (r32)RefHeight, ScaleFactor);
+    
+    return(Result);
+}
+
+
 #define GAME_MATH_H
 #endif 
 

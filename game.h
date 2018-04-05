@@ -18,9 +18,13 @@ void LogErrorLine(const char* Message, int Line)
 
 struct game_offscreen_buffer
 {
-    int Width;
-    int Height;
-    SDL_Texture *Memory;
+    s32 Width;
+    s32 Height;
+    
+    s32 ReferenceWidth;
+    s32 ReferenceHeight;
+    
+    //SDL_Texture  *Memory;
     SDL_Renderer *Renderer;
 };
 
