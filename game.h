@@ -47,6 +47,7 @@ struct game_keyboard_input
             game_button_state BackQuote;
             game_button_state Q_Button;
             game_button_state E_Button;
+            game_button_state Tab;
             
             game_button_state Zero;
             game_button_state One;

@@ -24,8 +24,7 @@ LevelEditorMakeTextButton(game_offscreen_buffer *Buffer, game_font *Font, char* 
     ButtonQuad->Quad.x  = X;
     ButtonQuad->Quad.y  = Y;
     
-    GameMakeTextureFromString(ButtonQuad->Texture, Text, &ButtonQuad->TextureQuad, Font,
-                              {Red, Green, Blue}, Buffer);
+    GameMakeTextureFromString(ButtonQuad->Texture, Text, &ButtonQuad->TextureQuad, Font, {Red, Green, Blue}, Buffer);
     
     ButtonQuad->TextureQuad.w = (ButtonQuad->TextureQuad.w < ButtonQuad->Quad.w) ? ButtonQuad->TextureQuad.w : ButtonQuad->Quad.w;
     ButtonQuad->TextureQuad.h = (ButtonQuad->TextureQuad.h < ButtonQuad->Quad.h) ? ButtonQuad->TextureQuad.h : ButtonQuad->Quad.h;
@@ -34,6 +33,17 @@ LevelEditorMakeTextButton(game_offscreen_buffer *Buffer, game_font *Font, char* 
     ButtonQuad->TextureQuad.y = ButtonQuad->Quad.y + (ButtonQuad->Quad.h / 2) - (ButtonQuad->TextureQuad.h / 2);
 }
 
+static void
+LevelEditorUpdateTextureOnButton(game_offscreen_buffer *Buffer, game_font *Font,
+                                 char *Text, button_quad *ButtonQuad, 
+                                 u8 Red, u8 Green, u8 Blue)
+{
+    GameMakeTextureFromString(ButtonQuad->Texture, Text, &ButtonQuad->TextureQuad, Font,{Red, Green, Blue}, Buffer);
+    
+    ButtonQuad->TextureQuad.w = (ButtonQuad->TextureQuad.w < ButtonQuad->Quad.w) ? ButtonQuad->TextureQuad.w : ButtonQuad->Quad.w;
+    ButtonQuad->TextureQuad.h = (ButtonQuad->TextureQuad.h < ButtonQuad->Quad.h) ? ButtonQuad->TextureQuad.h : ButtonQuad->Quad.h;
+    
+}
 
 static void
 RenderButtonQuad(game_offscreen_buffer *Buffer, button_quad *ButtonQuad, 
@@ -141,6 +151,14 @@ UpdateScaleType(scale_type ScaleType)
     return(Result);
 }
 
+enum res_type
+{
+    TARGET_WIDTH,
+    TARGET_HEIGHT,
+    REF_WIDTH,
+    REF_HEIGHT
+};
+
 struct resolution_routine
 {
     /* Resolution Scaler button routine*/
@@ -171,6 +189,8 @@ struct resolution_routine
     button_quad ReferenceHeightNameButton;
     button_quad ReferenceHeightButton;
     
+    res_type ResolutionType;
+    
     s32 ReferenceWidth;
     s32 ReferenceHeight;
     s32 TargetWidth;
@@ -178,7 +198,7 @@ struct resolution_routine
     
     s32 ResOldNumber;
     s32 ResNumberBufferIndex;
-    char ResNumberBuffer[4];
+    char ResNumberBuffer[5];
     b32 ResNumberSelected;
     
     button_quad ApplyButton;
@@ -831,6 +851,20 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
                               &LevelEditor->PosPanel.FourthNumberButton, 255, 255, 255);
     
     
+    /* Resolution panel initialization */
+    //
+    //LevelEditor->ResPanel.ResOldNumber = 0;
+    //LevelEditor->ResPanel.ResNumberBufferIndex;
+    //LevelEditor->ResPanel.ResNumberBuffer[4];
+    //b32 ResNumberSelected;
+    
+    
+    LevelEditor->ResPanel.ReferenceWidth  = 800;
+    LevelEditor->ResPanel.ReferenceHeight = 600;
+    
+    LevelEditor->ResPanel.TargetWidth  = 1366;
+    LevelEditor->ResPanel.TargetHeight = 768;
+    
     r32 ResPanelWidth  = PosPanelWidth;
     r32 ResPanelHeight = 7 * ButtonHeight;
     
@@ -1165,6 +1199,8 @@ GridEntityNewGrid(game_offscreen_buffer *Buffer, level_entity *LevelEntity,
 inline static void
 CleanResolutionNumber(resolution_routine *ResPanel, s32 OldNumber)
 {
+    printf("ResNumberSelected = true\n");
+    
     ResPanel->ResNumberSelected = true;
     ResPanel->ResNumberBufferIndex = 0;
     ResPanel->ResOldNumber = OldNumber;
@@ -1173,6 +1209,7 @@ CleanResolutionNumber(resolution_routine *ResPanel, s32 OldNumber)
     ResPanel->ResNumberBuffer[1] = '\0';
     ResPanel->ResNumberBuffer[2] = '\0';
     ResPanel->ResNumberBuffer[3] = '\0';
+    ResPanel->ResNumberBuffer[4] = '\0';
 }
 
 static char
@@ -1236,6 +1273,82 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     
     game_rect GridArea = LevelEntity->GridEntity->GridArea;
     
+    if(LevelEditor->ResPanel.ResNumberSelected)
+    {
+        s32 DigitIndex = LevelEditor->ResPanel.ResNumberBufferIndex;
+        char NextDigit = GetNumberFromInput(DigitIndex, Input);
+        
+        if(NextDigit)
+        {
+            if(DigitIndex <= 3 && NextDigit != '\n')
+            {
+                LevelEditor->ResPanel.ResNumberBuffer[DigitIndex] = NextDigit;
+                LevelEditor->ResPanel.ResNumberBufferIndex = ++DigitIndex;
+                
+                button_quad *CurrentButtonQuad;
+                switch(LevelEditor->ResPanel.ResolutionType)
+                {
+                    case TARGET_WIDTH:
+                    {
+                        CurrentButtonQuad = &LevelEditor->ResPanel.TargetWidthNumberButton;
+                    } break;
+                    
+                    case TARGET_HEIGHT:
+                    {
+                        CurrentButtonQuad = &LevelEditor->ResPanel.TargetHeightNumberButton;
+                    } break;
+                    
+                    case REF_WIDTH:
+                    {
+                        CurrentButtonQuad = &LevelEditor->ResPanel.ReferenceWidthButton;
+                    } break;
+                    
+                    case REF_HEIGHT:
+                    {
+                        CurrentButtonQuad = &LevelEditor->ResPanel.ReferenceHeightButton;
+                    } break;
+                }
+                
+                LevelEditorUpdateTextureOnButton(Buffer, LevelEditor->Font,
+                                                 LevelEditor->ResPanel.ResNumberBuffer, CurrentButtonQuad, 
+                                                 255, 255, 255);
+            }
+        }
+    }
+    
+    if(Input->Keyboard.Enter.EndedDown)
+    {
+        if(LevelEditor->ResPanel.ResNumberSelected)
+        {
+            LevelEditor->ResPanel.ResNumberSelected = false;
+            s32 ResultNumber = strtol(LevelEditor->ResPanel.ResNumberBuffer, 0, 10);
+            
+            switch(LevelEditor->ResPanel.ResolutionType)
+            {
+                case TARGET_WIDTH:
+                {
+                    LevelEditor->ResPanel.TargetWidth = ResultNumber;
+                } break;
+                
+                case TARGET_HEIGHT:
+                {
+                    LevelEditor->ResPanel.TargetHeight = ResultNumber;
+                } break;
+                
+                case REF_WIDTH:
+                {
+                    LevelEditor->ResPanel.ReferenceWidth = ResultNumber;
+                } break;
+                
+                case REF_HEIGHT:
+                {
+                    LevelEditor->ResPanel.ReferenceHeight = ResultNumber;
+                } break;
+            }
+        }
+    }
+    
+    
     if(Input->Keyboard.LeftShift.EndedDown)
     {
         if(!LevelEditor->ShiftKeyPressed)
@@ -1255,6 +1368,45 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     
     if(Input->MouseButtons[0].EndedDown)
     {
+        if(LevelEditor->ResPanel.ResNumberSelected)
+        {
+            LevelEditor->ResPanel.ResNumberSelected = false;
+            
+            char StringBuffer[4] = {};
+            sprintf(StringBuffer, "%d", LevelEditor->ResPanel.ResOldNumber);
+            
+            button_quad *CurrentButtonQuad;
+            res_type ResType = LevelEditor->ResPanel.ResolutionType;
+            
+            switch (ResType)
+            {
+                case TARGET_WIDTH:
+                {
+                    CurrentButtonQuad = &LevelEditor->ResPanel.TargetWidthNumberButton;
+                } break;
+                
+                case TARGET_HEIGHT:
+                {
+                    CurrentButtonQuad = &LevelEditor->ResPanel.TargetHeightNumberButton;
+                } break;
+                
+                case REF_WIDTH:
+                {
+                    CurrentButtonQuad = &LevelEditor->ResPanel.ReferenceWidthButton;
+                } break;
+                
+                case REF_HEIGHT:
+                {
+                    CurrentButtonQuad = &LevelEditor->ResPanel.ReferenceHeightButton;
+                } break;
+            }
+            
+            LevelEditorUpdateTextureOnButton(Buffer, LevelEditor->Font,
+                                             StringBuffer, CurrentButtonQuad, 
+                                             255, 255, 255);
+        }
+        
+        
         if(LevelEditor->CursorType != ARROW)
         {
             if(LevelEditor->ObjectIsSelected)
@@ -1334,7 +1486,8 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             }
             
         }
-        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanelQuad))
+        
+        if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanelQuad))
         {
             if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.LeftArrowButton.Quad))
             {
@@ -1350,14 +1503,13 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 LevelEditor->ButtonSelected = true;
                 LevelEditor->HighlightButtonQuad = LevelEditor->ResPanel.RightArrowButton.Quad;
             }
-            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.TargetWidthNumberButton.Quad))
+            
+            if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.TargetWidthNumberButton.Quad))
             {
                 printf("target width\n");
                 
                 CleanResolutionNumber(&LevelEditor->ResPanel, LevelEditor->ResPanel.TargetWidth);
-                
-                LevelEditor->ButtonSelected = true;
-                LevelEditor->HighlightButtonQuad = LevelEditor->ResPanel.TargetWidthNumberButton.Quad;
+                LevelEditor->ResPanel.ResolutionType = TARGET_WIDTH;
             }
             else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.TargetHeightNumberButton.Quad))
             {
@@ -1365,8 +1517,7 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 
                 CleanResolutionNumber(&LevelEditor->ResPanel, LevelEditor->ResPanel.TargetHeight);
                 
-                LevelEditor->ButtonSelected = true;
-                LevelEditor->HighlightButtonQuad = LevelEditor->ResPanel.TargetHeightNumberButton.Quad;
+                LevelEditor->ResPanel.ResolutionType = TARGET_HEIGHT;
             }
             else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.ReferenceWidthButton.Quad))
             {
@@ -1374,8 +1525,8 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 
                 CleanResolutionNumber(&LevelEditor->ResPanel, LevelEditor->ResPanel.ReferenceWidth);
                 
-                LevelEditor->ButtonSelected = true;
-                LevelEditor->HighlightButtonQuad = LevelEditor->ResPanel.ReferenceWidthButton.Quad;
+                LevelEditor->ResPanel.ResolutionType = REF_WIDTH;
+                
             }
             else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.ReferenceHeightButton.Quad))
             {
@@ -1383,10 +1534,16 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 
                 CleanResolutionNumber(&LevelEditor->ResPanel, LevelEditor->ResPanel.ReferenceHeight);
                 
-                LevelEditor->ButtonSelected = true;
-                LevelEditor->HighlightButtonQuad = LevelEditor->ResPanel.ReferenceHeightButton.Quad;
+                LevelEditor->ResPanel.ResolutionType = REF_HEIGHT;
             }
-            
+            else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.ApplyButton.Quad))
+            {
+                printf("apply button\n");
+                printf("TargetWidth = %d\n", LevelEditor->ResPanel.TargetWidth);
+                printf("TargetHeight = %d\n", LevelEditor->ResPanel.TargetHeight);
+                printf("RefWidth = %d\n", LevelEditor->ResPanel.ReferenceWidth);
+                printf("RefHeight = %d\n", LevelEditor->ResPanel.ReferenceHeight);
+            }
         }
         
     }
@@ -1566,6 +1723,36 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     {
         s32 Index = LevelEditor->EditorObjectIndex;
         DEBUGRenderQuad(Buffer, &LevelEditor->EditorObject[Index].AreaQuad, {255, 255, 0}, 255);
+    }
+    
+    if(LevelEditor->ResPanel.ResNumberSelected)
+    {
+        game_rect CurrentNumberTextureQuad = {};
+        
+        switch(LevelEditor->ResPanel.ResolutionType)
+        {
+            case TARGET_WIDTH:
+            {
+                CurrentNumberTextureQuad = LevelEditor->ResPanel.TargetWidthNumberButton.TextureQuad;
+            } break;
+            
+            case TARGET_HEIGHT:
+            {
+                CurrentNumberTextureQuad = LevelEditor->ResPanel.TargetHeightNumberButton.TextureQuad;
+            } break;
+            
+            case REF_WIDTH:
+            {
+                CurrentNumberTextureQuad = LevelEditor->ResPanel.ReferenceWidthButton.TextureQuad;
+            } break;
+            
+            case REF_HEIGHT:
+            {
+                CurrentNumberTextureQuad = LevelEditor->ResPanel.ReferenceHeightButton.TextureQuad;
+            } break;
+        }
+        
+        DEBUGRenderQuadFill(Buffer, &CurrentNumberTextureQuad, {255, 0, 255}, 255);
     }
     
     RenderButtonQuad(Buffer, &LevelEditor->SwitchConfiguration, 255, 192, 203, 100);

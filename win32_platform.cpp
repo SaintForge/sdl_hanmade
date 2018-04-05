@@ -276,6 +276,10 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input)
                     {
                         SDLProcessKeyPress(&Input->Keyboard.LeftShift, IsDown, WasDown);
                     }
+                    else if(KeyCode == SDLK_TAB)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.Tab, IsDown, WasDown);
+                    }
                     
                 }										 
                 

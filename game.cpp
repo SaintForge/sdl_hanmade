@@ -355,7 +355,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
     }
     
-    if(Input->Keyboard.One.EndedDown)
+    if(Input->Keyboard.Tab.EndedDown)
     {
         ShouldQuit = true;
     }
