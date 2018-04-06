@@ -146,13 +146,6 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input)
                 Input->MouseX = Event->motion.x;
                 Input->MouseY = Event->motion.y;
                 
-                if(Input->MouseX < 0)
-                {
-                    printf("< 0 \n");
-                }
-                
-                
-                
                 Input->MouseRelX += Event->motion.xrel;
                 Input->MouseRelY += Event->motion.yrel;
             } break;
@@ -342,8 +335,8 @@ int main(int argc, char **argv)
     SDL_DisplayMode Display = {};
     SDL_GetDesktopDisplayMode(0, &Display);
     
-    s32 ScreenWidth  = 1366;
-    s32 ScreenHeight = 768;
+    s32 ScreenWidth  = 800;
+    s32 ScreenHeight = 600;
     s32 ReferenceWidth  = 800;
     s32 ReferenceHeight = 600;
     
@@ -366,7 +359,7 @@ int main(int argc, char **argv)
     SDL_Window* Window = SDL_CreateWindow("This is window",
                                           0,
                                           0,
-                                          1366, 768,
+                                          800, 600,
                                           SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
     
     if(Window)
@@ -374,7 +367,7 @@ int main(int argc, char **argv)
         SDL_Renderer* Renderer = SDL_CreateRenderer(Window, -1,
                                                     SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
         SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
-        //SDL_RenderSetLogicalSize(Renderer, ReferenceWidth, ReferenceHeight);
+        SDL_RenderSetLogicalSize(Renderer, ScreenWidth, ScreenHeight);
         
         
         if(Renderer)
@@ -387,7 +380,6 @@ int main(int argc, char **argv)
             BackBuffer.Height = ScreenHeight;
             
             game_offscreen_buffer Buffer = {};
-            Buffer.Window   = Window;
             Buffer.Renderer = Renderer;
             
             Buffer.Width    = BackBuffer.Width;

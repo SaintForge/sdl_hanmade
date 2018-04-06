@@ -562,10 +562,28 @@ LevelEditorUpdatePositions(game_offscreen_buffer *Buffer, level_editor *LevelEdi
     // Reference dimension assumed to be 800x600
     //
     
-    s32 ScreenWidth = Buffer->Width;
-    s32 ScreenHeight = Buffer->Height;
-    s32 ReferenceWidth = Buffer->ReferenceWidth;
+    s32 ScreenWidth     = Buffer->Width;
+    s32 ScreenHeight    = Buffer->Height;
+    s32 ReferenceWidth  = Buffer->ReferenceWidth;
     s32 ReferenceHeight = Buffer->ReferenceHeight;
+    
+    // New Font size
+    {
+        s32 FontSize = 12;
+        
+        r32 NewScale = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 1.0f);
+        
+        if(LevelEditor->Font)
+        {
+            TTF_CloseFont(LevelEditor->Font);
+        }
+        
+        FontSize = (r32)FontSize * NewScale;
+        
+        LevelEditor->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
+        Assert(LevelEditor->Font);
+        
+    }
     
     /* Next/Prev level buttons */
     
