@@ -1026,29 +1026,13 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
     LevelEditor->EditorObject[1].ScaleType = WIDTH;
     LevelEditor->EditorObject[1].AreaQuad  = LevelEntity->FigureEntity->FigureArea; 
     
-    r32 FontRatio = 0.0146f;
-    s32 FontSize  = roundf(FontRatio * Buffer->Width);
-    
-    LevelEditor->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
-    Assert(LevelEditor->Font);
-    
     /* Next/Prev level buttons */
     
     LevelEditor->PrevLevelTexture = GetTexture(Memory, "left_arrow.png", Buffer->Renderer);
     Assert(LevelEditor->PrevLevelTexture);
     
-    LevelEditor->PrevLevelQuad.w = 40;
-    LevelEditor->PrevLevelQuad.h = 40;
-    LevelEditor->PrevLevelQuad.x = LevelEditor->PrevLevelQuad.w;
-    LevelEditor->PrevLevelQuad.y = Buffer->Height - (LevelEditor->PrevLevelQuad.h * 2);
-    
     LevelEditor->NextLevelTexture = GetTexture(Memory, "right_arrow.png", Buffer->Renderer);
     Assert(LevelEditor->NextLevelTexture);
-    
-    LevelEditor->NextLevelQuad.w = 40;
-    LevelEditor->NextLevelQuad.h = 40;
-    LevelEditor->NextLevelQuad.x = Buffer->Width - (LevelEditor->NextLevelQuad.w * 2);
-    LevelEditor->NextLevelQuad.y = Buffer->Height - (LevelEditor->NextLevelQuad.h * 2);
     
     LevelEditorUpdatePositions(Buffer, LevelEditor, LevelEntity, Memory);
     
@@ -1979,7 +1963,7 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 SDL_RenderSetLogicalSize(Buffer->Renderer, Buffer->Width, Buffer->Height);
                 
                 LevelEditorUpdatePositions(Buffer, LevelEditor, LevelEntity, Memory);
-                
+                GameUpdateRelativePositions(Buffer, LevelEntity, Memory);
                 
             }
         }
@@ -2257,9 +2241,6 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     {
         DEBUGRenderQuadFill(Buffer, &LevelEditor->HighlightButtonQuad, {255, 255, 0}, 150);
     }
-    
-    printf("MouseX = %d\n", Input->MouseX);
-    printf("MouseY = %d\n", Input->MouseY);
     
 }
 

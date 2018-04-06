@@ -1,6 +1,74 @@
 #include "assets.h"
 #include "entity.h"
 
+static s32
+CalculateGridBlockSize(s32 RowAmount, s32 ColumnAmount, 
+                       r32 GridWidth, r32 GridHeight,
+                       s32 DefaultRowAmount, s32 DefaultColumnAmount)
+{
+    s32 Result = 0;
+    
+    RowAmount = RowAmount > DefaultRowAmount
+        ? RowAmount
+        : DefaultRowAmount;
+    
+    ColumnAmount = ColumnAmount > DefaultColumnAmount
+        ? ColumnAmount
+        : DefaultColumnAmount;
+    
+    s32 MinColSize = roundf(GridWidth  / (r32)ColumnAmount);
+    s32 MinRowSize = roundf(GridHeight / (r32)RowAmount);
+    
+    Result = (MinRowSize < MinColSize) ? MinRowSize : MinColSize;
+    
+    return(Result);
+}
+
+
+static void
+GameUpdateRelativePositions(game_offscreen_buffer *Buffer, level_entity *LevelEntity, game_memory *Memory)
+{
+    s32 ActualWidth  = Buffer->Width;
+    s32 ActualHeight = Buffer->Height;
+    
+    s32 ReferenceWidth  = Buffer->ReferenceWidth;
+    s32 ReferenceHeight = Buffer->ReferenceHeight;
+    
+    r32 ScaleByWidth = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 0.0f);
+    
+    r32 ScaleByHeight = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 1.0f);
+    
+    // Game Area location
+    {
+        Memory->PadRect.x = 40;
+        Memory->PadRect.y = 30;
+        Memory->PadRect.w = 720;
+        Memory->PadRect.h = 570;
+        
+        Memory->PadRect.w = roundf((r32)Memory->PadRect.w * ScaleByWidth);
+        Memory->PadRect.h = roundf((r32)Memory->PadRect.h * ScaleByHeight);
+        
+        Memory->PadRect.x = (ActualWidth / 2) - (Memory->PadRect.w / 2);
+        Memory->PadRect.y = ActualHeight - Memory->PadRect.h;
+        
+    }
+    
+    {
+        // Grid Area location
+        
+        game_rect GridArea = {};
+        GridArea.w = Memory->PadRect.w;
+        GridArea.h = 350;
+        GridArea.x = Memory->PadRect.x;
+        GridArea.y = Memory->PadRect.y;
+        
+        GridArea.h = roundf((r32)GridArea.h * ScaleByHeight);
+        
+        LevelEntity->GridEntity->GridArea = GridArea;
+    }
+}
+
+
 static void
 DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, u32 BlockSize, SDL_Color color, u8 Alpha)
 {
@@ -1793,12 +1861,19 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
     r32 ActualGridWidth  = ColumnAmount * GridBlockSize;
     r32 ActualGridHeight = RowAmount * GridBlockSize;
     
+    s32 MinRowSize = roundf((r32)GridArea.h / (r32)RowAmount);
+    s32 MinColSize = roundf((r32)GridArea.w / (r32)ColumnAmount);
+    
+    GridBlockSize = MinRowSize < MinColSize ? MinRowSize : MinColSize;
+    GridQuad.w = GridBlockSize;
+    GridQuad.h = GridBlockSize;
+    
     for (u32 Row = 0; Row < RowAmount; ++Row)
     {
-        StartY = GridCenter.y + (GridBlockSize * Row) - roundf(ActualGridHeight / 2.0f);
+        StartY = GridCenter.y + (GridBlockSize * Row) - roundf(GridArea.h / 2.0f);
         for (u32 Col = 0; Col < ColumnAmount; ++Col)
         {
-            StartX = GridCenter.x + (GridBlockSize * Col) - roundf(ActualGridWidth / 2.0f);
+            StartX = GridCenter.x + (GridBlockSize * Col) - roundf(GridArea.w / 2.0f);
             
             GridQuad.x = StartX;
             GridQuad.y = StartY;
@@ -1992,25 +2067,3 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
     
 }
 
-static s32
-CalculateGridBlockSize(s32 RowAmount, s32 ColumnAmount, 
-                       r32 GridWidth, r32 GridHeight,
-                       s32 DefaultRowAmount, s32 DefaultColumnAmount)
-{
-    s32 Result = 0;
-    
-    RowAmount = RowAmount > DefaultRowAmount
-        ? RowAmount
-        : DefaultRowAmount;
-    
-    ColumnAmount = ColumnAmount > DefaultColumnAmount
-        ? ColumnAmount
-        : DefaultColumnAmount;
-    
-    s32 MinColSize = roundf(GridWidth  / (r32)ColumnAmount);
-    s32 MinRowSize = roundf(GridHeight / (r32)RowAmount);
-    
-    Result = (MinRowSize < MinColSize) ? MinRowSize : MinColSize;
-    
-    return(Result);
-}
