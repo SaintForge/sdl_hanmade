@@ -43,6 +43,9 @@ LevelEditorUpdateTextureOnButton(game_offscreen_buffer *Buffer, game_font *Font,
     ButtonQuad->TextureQuad.w = (ButtonQuad->TextureQuad.w < ButtonQuad->Quad.w) ? ButtonQuad->TextureQuad.w : ButtonQuad->Quad.w;
     ButtonQuad->TextureQuad.h = (ButtonQuad->TextureQuad.h < ButtonQuad->Quad.h) ? ButtonQuad->TextureQuad.h : ButtonQuad->Quad.h;
     
+    ButtonQuad->TextureQuad.x = ButtonQuad->Quad.x + (ButtonQuad->Quad.w / 2) - (ButtonQuad->TextureQuad.w / 2);
+    ButtonQuad->TextureQuad.y = ButtonQuad->Quad.y + (ButtonQuad->Quad.h / 2) - (ButtonQuad->TextureQuad.h / 2);
+    
 }
 
 static void
@@ -239,8 +242,8 @@ struct level_editor
     game_texture *LevelIndexTexture;
     
     /* Current level number data */
-    game_rect LevelNumberQuad;
-    game_texture *LevelNumberTexture;
+    //game_rect LevelNumberQuad;
+    //game_texture *LevelNumberTexture;
     
     /* Next and Previous button data*/
     game_rect PrevLevelQuad;
@@ -462,10 +465,8 @@ LevelEditorUpdateLevelStats(s32 X, s32 Y, level_editor *LevelEditor,
 {
     game_surface *Surface = {};
     
-    char LevelNumberString[3] = {};
     char LevelIndexString[3]  = {};
     
-    sprintf(LevelNumberString, "%d", LevelNumber);
     sprintf(LevelIndexString, "%d", LevelIndex);
     
     /* Level Index Texture initialization */
@@ -494,42 +495,14 @@ LevelEditorUpdateLevelStats(s32 X, s32 Y, level_editor *LevelEditor,
         SDL_FreeSurface(Surface);
         
     }
-    
-    /* Level Number Texture initialization */
-    
-    {
-        char TmpBuffer[128] = {};
-        strcpy(TmpBuffer, "level number = ");
-        strcat(TmpBuffer, LevelNumberString);
-        
-        if(LevelEditor->LevelNumberTexture)
-        {
-            SDL_DestroyTexture(LevelEditor->LevelNumberTexture);
-        }
-        
-        Surface = TTF_RenderUTF8_Blended(LevelEditor->Font, TmpBuffer, {255, 255, 255});
-        Assert(Surface);
-        
-        LevelEditor->LevelNumberQuad.w = Surface->w;
-        LevelEditor->LevelNumberQuad.h = Surface->h;
-        LevelEditor->LevelNumberQuad.x = X;
-        LevelEditor->LevelNumberQuad.y =  LevelEditor->LevelIndexQuad.y + LevelEditor->LevelIndexQuad.h;
-        
-        LevelEditor->LevelNumberTexture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
-        Assert(LevelEditor->LevelNumberTexture);
-        
-        SDL_FreeSurface(Surface);
-    }
 }
 
 static void
 LevelEditorInitLabel(level_editor *LevelEditor, label_button *Label, char* Text,
                      s32 Number, s32 X, s32 Y, s32 LabelWidth, s32 LabelHeight, 
-                     game_offscreen_buffer *Buffer)
+                     s32 InfoWidth, s32 BoxWidth, game_offscreen_buffer *Buffer)
+
 {
-    s32 InfoWidth = (r32)LabelWidth * 0.6f;
-    s32 BoxWidth  = (LabelWidth - InfoWidth) / 3.0f;
-    
     Label->InfoQuad = {X, Y, InfoWidth, LabelHeight};
     
     MenuMakeTextButton(Text, Label->InfoQuad.x, Label->InfoQuad.y, Label->InfoQuad.w,
@@ -581,6 +554,442 @@ LevelEditorRenderLabel(label_button *Label, game_offscreen_buffer *Buffer)
     GameRenderBitmapToBuffer(Buffer, Label->PlusTexture, &Label->PlusTextureQuad);
 }
 
+
+static void
+LevelEditorUpdatePositions(game_offscreen_buffer *Buffer, level_editor *LevelEditor, level_entity *LevelEntity, game_memory *Memory)
+{
+    //
+    // Reference dimension assumed to be 800x600
+    //
+    
+    s32 ScreenWidth = Buffer->Width;
+    s32 ScreenHeight = Buffer->Height;
+    s32 ReferenceWidth = Buffer->ReferenceWidth;
+    s32 ReferenceHeight = Buffer->ReferenceHeight;
+    
+    /* Next/Prev level buttons */
+    
+    { 
+        LevelEditor->PrevLevelQuad.w = 40;
+        LevelEditor->PrevLevelQuad.h = 40;
+        
+        LevelEditor->NextLevelQuad.w = 40;
+        LevelEditor->NextLevelQuad.h = 40;
+        
+        r32 NewScale = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 0.0f);
+        
+        LevelEditor->PrevLevelQuad.w = (r32)LevelEditor->PrevLevelQuad.w * NewScale;
+        LevelEditor->PrevLevelQuad.h = (r32)LevelEditor->PrevLevelQuad.h * NewScale;
+        LevelEditor->PrevLevelQuad.x = Memory->PadRect.x; LevelEditor->PrevLevelQuad.y = Memory->PadRect.y - LevelEditor->PrevLevelQuad.h; 
+        
+        LevelEditor->NextLevelQuad.w = (r32)LevelEditor->NextLevelQuad.w * NewScale;
+        LevelEditor->NextLevelQuad.h = (r32)LevelEditor->NextLevelQuad.h * NewScale;
+        LevelEditor->NextLevelQuad.x = (Memory->PadRect.x + Memory->PadRect.w) - LevelEditor->NextLevelQuad.w;
+        LevelEditor->NextLevelQuad.y = Memory->PadRect.y + Memory->PadRect.h - LevelEditor->NextLevelQuad.h;
+        
+    }
+    
+    // Level Properties location
+    
+    {
+        s32 ButtonWidth  = 150;
+        s32 ButtonHeight = 30;
+        s32 ButtonAmount = 4;
+        
+        r32 NewScale = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 0.0f);
+        
+        ButtonWidth  = roundf((r32)ButtonWidth  * NewScale);
+        ButtonHeight = roundf((r32)ButtonHeight * NewScale);
+        
+        LevelEditor->LevelPropertiesQuad.x = 0;
+        LevelEditor->LevelPropertiesQuad.y = 0;
+        LevelEditor->LevelPropertiesQuad.w = ButtonWidth;
+        LevelEditor->LevelPropertiesQuad.h = ButtonHeight * ButtonAmount;
+        
+        /* Level header name initialization */
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Level Configuration", 
+                                  LevelEditor->LevelPropertiesQuad.x,
+                                  LevelEditor->LevelPropertiesQuad.y,
+                                  ButtonWidth, ButtonHeight,
+                                  &LevelEditor->SwitchConfiguration, 255, 255, 255);
+        
+        s32 InfoWidth = 75;
+        s32 BoxWidth  = 25;
+        
+        InfoWidth = roundf((r32)InfoWidth * NewScale);
+        BoxWidth  = roundf((r32)BoxWidth  * NewScale);
+        
+        /* Row label initialization */
+        
+        s32 RowAmount = LevelEntity->GridEntity->RowAmount;
+        LevelEditorInitLabel(LevelEditor, &LevelEditor->RowLabel, "Row amount",
+                             RowAmount, 0, ButtonHeight, ButtonWidth, ButtonHeight,
+                             InfoWidth, BoxWidth, Buffer);
+        
+        /* Column label initialization */
+        
+        s32 ColumnAmount = LevelEntity->GridEntity->ColumnAmount;
+        LevelEditorInitLabel(LevelEditor, &LevelEditor->ColumnLabel, "Column amount",
+                             ColumnAmount, 0, ButtonHeight*2, ButtonWidth, ButtonHeight, InfoWidth, BoxWidth, Buffer);
+        
+        /* Figure label initialization */
+        
+        s32 FigureAmount = LevelEntity->FigureEntity->FigureAmount;
+        LevelEditorInitLabel(LevelEditor, &LevelEditor->FigureLabel, "Figure amount",
+                             FigureAmount, 0, ButtonHeight*3, ButtonWidth, ButtonHeight, InfoWidth, BoxWidth, Buffer);
+    }
+    
+    // Figure Properties location
+    
+    {
+        s32 ButtonWidth  = 150;
+        s32 ButtonHeight = 30;
+        s32 ButtonAmount = 5;
+        
+        r32 NewScale = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 0.0f);
+        
+        ButtonWidth  = roundf((r32)ButtonWidth  * NewScale);
+        ButtonHeight = roundf((r32)ButtonHeight * NewScale); 
+        
+        LevelEditor->FigurePropertiesQuad.w = ButtonWidth;
+        LevelEditor->FigurePropertiesQuad.h = ButtonHeight * ButtonAmount;
+        LevelEditor->FigurePropertiesQuad.x = LevelEditor->LevelPropertiesQuad.x;
+        LevelEditor->FigurePropertiesQuad.y = LevelEditor->LevelPropertiesQuad.y
+            + LevelEditor->LevelPropertiesQuad.h;
+        
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Figure Configuration", 
+                                  LevelEditor->FigurePropertiesQuad.x,
+                                  LevelEditor->FigurePropertiesQuad.y,
+                                  ButtonWidth, ButtonHeight,
+                                  &LevelEditor->FigureConfigButton, 255, 255, 255);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Flip figure", 
+                                  LevelEditor->FigurePropertiesQuad.x,
+                                  LevelEditor->FigurePropertiesQuad.y + ButtonHeight,
+                                  ButtonWidth, ButtonHeight,
+                                  &LevelEditor->FlipFigureButton, 255, 255, 255);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Rotate figure", 
+                                  LevelEditor->FigurePropertiesQuad.x,
+                                  LevelEditor->FigurePropertiesQuad.y + (ButtonHeight * 2),
+                                  ButtonWidth, ButtonHeight,
+                                  &LevelEditor->RotateFigureButton, 255, 255, 255);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Change type", 
+                                  LevelEditor->FigurePropertiesQuad.x,
+                                  LevelEditor->FigurePropertiesQuad.y + (ButtonHeight * 3),
+                                  ButtonWidth, ButtonHeight,
+                                  &LevelEditor->TypeFigureButton, 255, 255, 255);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Change form", 
+                                  LevelEditor->FigurePropertiesQuad.x,
+                                  LevelEditor->FigurePropertiesQuad.y + (ButtonHeight * 4),
+                                  ButtonWidth, ButtonHeight,
+                                  &LevelEditor->FormFigureButton, 255, 255, 255);
+        
+    }
+    
+    // IO properties location
+    
+    {
+        s32 ButtonWidth  = 150;
+        s32 ButtonHeight = 30;
+        s32 ButtonAmount = 3;
+        
+        r32 NewScale = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 0.0f);
+        
+        ButtonWidth  = roundf((r32)ButtonWidth  * NewScale);
+        ButtonHeight = roundf((r32)ButtonHeight * NewScale); 
+        
+        LevelEditor->IOPropertiesQuad.w = ButtonWidth;
+        LevelEditor->IOPropertiesQuad.h = ButtonHeight * ButtonAmount;
+        LevelEditor->IOPropertiesQuad.x = LevelEditor->FigurePropertiesQuad.x;
+        LevelEditor->IOPropertiesQuad.y = LevelEditor->FigurePropertiesQuad.y + LevelEditor->FigurePropertiesQuad.h;
+        
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Save/Load level", 
+                                  LevelEditor->IOPropertiesQuad.x,
+                                  LevelEditor->IOPropertiesQuad.y,
+                                  ButtonWidth, ButtonHeight,
+                                  &LevelEditor->IOConfigButton, 255, 255, 255);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Save to disk", 
+                                  LevelEditor->IOPropertiesQuad.x,
+                                  LevelEditor->IOPropertiesQuad.y + (ButtonHeight),
+                                  ButtonWidth, ButtonHeight,
+                                  &LevelEditor->SaveLevelButton, 255, 255, 255);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Load from disk", 
+                                  LevelEditor->IOPropertiesQuad.x,
+                                  LevelEditor->IOPropertiesQuad.y + (ButtonHeight * 2),
+                                  ButtonWidth, ButtonHeight,
+                                  &LevelEditor->LoadLevelButton, 255, 255, 255);
+        
+    }
+    
+    // Level stats location
+    {
+        s32 PosX = LevelEditor->LevelPropertiesQuad.x
+            + LevelEditor->LevelPropertiesQuad.w + 10;
+        s32 PosY = 0;
+        
+        LevelEditorUpdateLevelStats(PosX, PosY, LevelEditor, 0, Memory->CurrentLevelIndex, Buffer);
+    }
+    
+    
+    // Position Panel location
+    
+    {
+        
+        s32 ButtonWidth  = 150;
+        s32 ButtonHeight = 20;
+        s32 ButtonAmount = 6;
+        
+        r32 NewScale = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 0.0f);
+        
+        ButtonWidth  = roundf((r32) ButtonWidth * NewScale);
+        ButtonHeight = roundf((r32) ButtonHeight * NewScale);
+        
+        LevelEditor->PosPanelQuad.x = 0;
+        LevelEditor->PosPanelQuad.y = LevelEditor->LevelPropertiesQuad.y + LevelEditor->SwitchConfiguration.Quad.h;
+        LevelEditor->PosPanelQuad.w = ButtonWidth;
+        LevelEditor->PosPanelQuad.h = ButtonHeight * ButtonAmount;
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Position properties", 
+                                  LevelEditor->PosPanelQuad.x,
+                                  LevelEditor->PosPanelQuad.y,
+                                  ButtonWidth, ButtonHeight,
+                                  &LevelEditor->PosPanel.HeaderButton, 255, 255, 255);
+        
+        s32 ArrowWidth  = 32;
+        s32 SwitchWidth = 86;
+        
+        ArrowWidth  = roundf((r32)ArrowWidth * NewScale);
+        SwitchWidth = roundf((r32)SwitchWidth * NewScale);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "<", 
+                                  LevelEditor->PosPanelQuad.x,
+                                  LevelEditor->PosPanelQuad.y + ButtonHeight,
+                                  ArrowWidth, ButtonHeight,
+                                  &LevelEditor->PosPanel.LeftArrowButton, 255, 255, 255);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Pixels", 
+                                  LevelEditor->PosPanelQuad.x + ArrowWidth,
+                                  LevelEditor->PosPanelQuad.y + (ButtonHeight),
+                                  SwitchWidth, ButtonHeight,
+                                  &LevelEditor->PosPanel.SwitchNameButton, 255, 255, 255);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, ">", 
+                                  LevelEditor->PosPanelQuad.x + ArrowWidth + SwitchWidth,
+                                  LevelEditor->PosPanelQuad.y + (ButtonHeight),
+                                  ArrowWidth, ButtonHeight,
+                                  &LevelEditor->PosPanel.RightArrowButton, 255, 255, 255);
+        
+        s32 NameNumberWidth = 60;
+        s32 NumberWidth     = 90;
+        
+        NameNumberWidth = roundf((r32)NameNumberWidth * NewScale);
+        NumberWidth     = roundf((r32)NumberWidth * NewScale);
+        
+        char NumberString[128] = {};
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "X", 
+                                  LevelEditor->PosPanelQuad.x,
+                                  LevelEditor->PosPanelQuad.y + (ButtonHeight * 2),
+                                  NameNumberWidth, ButtonHeight,
+                                  &LevelEditor->PosPanel.FirstNumberNameButton, 255, 255, 255);
+        
+        sprintf(NumberString, "%d", LevelEntity->GridEntity->GridArea.x);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, NumberString, 
+                                  LevelEditor->PosPanelQuad.x + NameNumberWidth,
+                                  LevelEditor->PosPanelQuad.y + (ButtonHeight * 2),
+                                  NumberWidth, ButtonHeight,
+                                  &LevelEditor->PosPanel.FirstNumberButton, 255, 255, 255);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Y", 
+                                  LevelEditor->PosPanelQuad.x,
+                                  LevelEditor->PosPanelQuad.y + (ButtonHeight * 3),
+                                  NameNumberWidth, ButtonHeight,
+                                  &LevelEditor->PosPanel.SecondNumberNameButton, 255, 255, 255);
+        
+        sprintf(NumberString, "%d", LevelEntity->GridEntity->GridArea.y);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, NumberString, 
+                                  LevelEditor->PosPanelQuad.x + NameNumberWidth,
+                                  LevelEditor->PosPanelQuad.y + (ButtonHeight * 3),
+                                  NumberWidth, ButtonHeight,
+                                  &LevelEditor->PosPanel.SecondNumberButton, 255, 255, 255);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Width", 
+                                  LevelEditor->PosPanelQuad.x,
+                                  LevelEditor->PosPanelQuad.y + (ButtonHeight * 4),
+                                  NameNumberWidth, ButtonHeight,
+                                  &LevelEditor->PosPanel.ThirdNumberNameButton, 255, 255, 255);
+        sprintf(NumberString, "%d", LevelEntity->GridEntity->GridArea.w);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, NumberString, 
+                                  LevelEditor->PosPanelQuad.x + NameNumberWidth,
+                                  LevelEditor->PosPanelQuad.y + (ButtonHeight * 4),
+                                  NumberWidth, ButtonHeight,
+                                  &LevelEditor->PosPanel.ThirdNumberButton, 255, 255, 255);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Height", 
+                                  LevelEditor->PosPanelQuad.x,
+                                  LevelEditor->PosPanelQuad.y + (ButtonHeight * 5),
+                                  NameNumberWidth, ButtonHeight,
+                                  &LevelEditor->PosPanel.FourthNumberNameButton, 255, 255, 255);
+        
+        sprintf(NumberString, "%d", LevelEntity->GridEntity->GridArea.h);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, NumberString, 
+                                  LevelEditor->PosPanelQuad.x + NameNumberWidth,
+                                  LevelEditor->PosPanelQuad.y + (ButtonHeight * 5),
+                                  NumberWidth, ButtonHeight,
+                                  &LevelEditor->PosPanel.FourthNumberButton, 255, 255, 255);
+        
+    }
+    
+    // Resolution panel location
+    
+    {
+        s32 ButtonWidth  = 150;
+        s32 ButtonHeight = 20;
+        s32 ButtonAmount = 7;
+        
+        r32 NewScale = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 0.0f);
+        
+        ButtonWidth  = roundf((r32) ButtonWidth  * NewScale);
+        ButtonHeight = roundf((r32) ButtonHeight * NewScale);
+        
+        LevelEditor->ResPanelQuad.x = LevelEditor->PosPanelQuad.x;
+        LevelEditor->ResPanelQuad.y = LevelEditor->PosPanelQuad.y + LevelEditor->PosPanelQuad.h;
+        LevelEditor->ResPanelQuad.w = ButtonWidth;
+        LevelEditor->ResPanelQuad.h = ButtonHeight * ButtonAmount;
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Scale Factor", 
+                                  LevelEditor->ResPanelQuad.x,
+                                  LevelEditor->ResPanelQuad.y,
+                                  ButtonWidth, ButtonHeight,
+                                  &LevelEditor->ResPanel.ScalerHeaderButton, 255, 255, 255);
+        
+        s32 ArrowWidth  = 30;
+        s32 SwitchWidth = 90;
+        ArrowWidth  = roundf((r32)ArrowWidth * NewScale);
+        SwitchWidth = roundf((r32)SwitchWidth * NewScale);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "<", 
+                                  LevelEditor->ResPanelQuad.x,
+                                  LevelEditor->ResPanelQuad.y + ButtonHeight,
+                                  ArrowWidth, ButtonHeight,
+                                  &LevelEditor->ResPanel.LeftArrowButton, 255, 255, 255);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Width", 
+                                  LevelEditor->ResPanelQuad.x + ArrowWidth,
+                                  LevelEditor->ResPanelQuad.y + ButtonHeight,
+                                  SwitchWidth, ButtonHeight,
+                                  &LevelEditor->ResPanel.SwitchButton, 255, 255, 255);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, ">", 
+                                  LevelEditor->ResPanelQuad.x + ArrowWidth + SwitchWidth,
+                                  LevelEditor->ResPanelQuad.y + ButtonHeight,
+                                  ArrowWidth, ButtonHeight,
+                                  &LevelEditor->ResPanel.RightArrowButton, 255, 255, 255);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Target Resolution", 
+                                  LevelEditor->ResPanelQuad.x,
+                                  LevelEditor->ResPanelQuad.y + (ButtonHeight * 2),
+                                  ButtonWidth, ButtonHeight,
+                                  &LevelEditor->ResPanel.TargetResolutionHeaderButton, 255, 255, 255);
+        
+        s32 ButtonName  = 38;
+        ButtonName = roundf((r32)ButtonName * NewScale);
+        
+        s32 ButtonValue = 37;
+        ButtonValue = roundf((r32) ButtonValue * NewScale);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Width", 
+                                  LevelEditor->ResPanelQuad.x,
+                                  LevelEditor->ResPanelQuad.y + (ButtonHeight * 3),
+                                  ButtonName, ButtonHeight,
+                                  &LevelEditor->ResPanel.TargetWidthNameButton, 255, 255, 255);
+        
+        char TargetWidthBuffer[8] = {};
+        LevelEditor->ResPanel.TargetWidth = ScreenWidth;
+        sprintf(TargetWidthBuffer, "%d", LevelEditor->ResPanel.TargetWidth);
+        
+        char TargetHeightBuffer[8] = {};
+        LevelEditor->ResPanel.TargetHeight = ScreenHeight;
+        sprintf(TargetHeightBuffer, "%d", LevelEditor->ResPanel.TargetHeight);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, TargetWidthBuffer, 
+                                  LevelEditor->ResPanelQuad.x + ButtonName,
+                                  LevelEditor->ResPanelQuad.y + (ButtonHeight * 3),
+                                  ButtonValue, ButtonHeight,
+                                  &LevelEditor->ResPanel.TargetWidthNumberButton, 255, 255, 255);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Height", 
+                                  LevelEditor->ResPanelQuad.x + (ButtonName + ButtonValue),
+                                  LevelEditor->ResPanelQuad.y + (ButtonHeight * 3),
+                                  ButtonName, ButtonHeight,
+                                  &LevelEditor->ResPanel.TargetHeightNameButton, 255, 255, 255);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, TargetHeightBuffer, 
+                                  LevelEditor->ResPanelQuad.x + ((ButtonName * 2) + ButtonValue),
+                                  LevelEditor->ResPanelQuad.y + (ButtonHeight * 3),
+                                  ButtonValue, ButtonHeight,
+                                  &LevelEditor->ResPanel.TargetHeightNumberButton, 255, 255, 255);
+        
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Reference Resolution", 
+                                  LevelEditor->ResPanelQuad.x,
+                                  LevelEditor->ResPanelQuad.y + (ButtonHeight * 4),
+                                  ButtonWidth, ButtonHeight,
+                                  &LevelEditor->ResPanel.ReferenceResolutionHeaderButton, 255, 255, 255);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Width", 
+                                  LevelEditor->ResPanelQuad.x,
+                                  LevelEditor->ResPanelQuad.y + (ButtonHeight * 5),
+                                  ButtonName, ButtonHeight,
+                                  &LevelEditor->ResPanel.ReferenceWidthNameButton, 255, 255, 255);
+        
+        char ReferenceWidthBuffer[8] = {};
+        LevelEditor->ResPanel.ReferenceWidth = Buffer->ReferenceWidth;
+        sprintf(ReferenceWidthBuffer, "%d", LevelEditor->ResPanel.ReferenceWidth);
+        
+        char ReferenceHeightBuffer[8] = {};
+        LevelEditor->ResPanel.ReferenceHeight = Buffer->ReferenceHeight;
+        sprintf(ReferenceHeightBuffer, "%d", LevelEditor->ResPanel.ReferenceHeight);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, ReferenceWidthBuffer, 
+                                  LevelEditor->ResPanelQuad.x + ButtonName,
+                                  LevelEditor->ResPanelQuad.y + (ButtonHeight * 5),
+                                  ButtonValue, ButtonHeight,
+                                  &LevelEditor->ResPanel.ReferenceWidthButton, 255, 255, 255);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Height", 
+                                  LevelEditor->ResPanelQuad.x + (ButtonName + ButtonValue),
+                                  LevelEditor->ResPanelQuad.y + (ButtonHeight * 5),
+                                  ButtonName, ButtonHeight,
+                                  &LevelEditor->ResPanel.ReferenceHeightNameButton, 255, 255, 255);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, ReferenceHeightBuffer, 
+                                  LevelEditor->ResPanelQuad.x + ((ButtonName * 2) + ButtonValue),
+                                  LevelEditor->ResPanelQuad.y + (ButtonHeight * 5),
+                                  ButtonValue, ButtonHeight,
+                                  &LevelEditor->ResPanel.ReferenceHeightButton, 255, 255, 255);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Apply", 
+                                  LevelEditor->ResPanelQuad.x,
+                                  LevelEditor->ResPanelQuad.y + (ButtonHeight * 6),
+                                  ButtonWidth, ButtonHeight,
+                                  &LevelEditor->ResPanel.ApplyButton, 255, 255, 255);
+        
+    }
+}
+
 static void
 LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memory *Memory, game_offscreen_buffer *Buffer)
 {
@@ -623,6 +1032,9 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
     LevelEditor->NextLevelQuad.x = Buffer->Width - (LevelEditor->NextLevelQuad.w * 2);
     LevelEditor->NextLevelQuad.y = Buffer->Height - (LevelEditor->NextLevelQuad.h * 2);
     
+    LevelEditorUpdatePositions(Buffer, LevelEditor, LevelEntity, Memory);
+    
+#if 0
     r32 ButtonNormHeight = 0.053333f;
     r32 ButtonNormWidth  = 0.045;
     s32 ButtonWidth  = roundf(ButtonNormWidth * (r32)Buffer->Width);
@@ -633,8 +1045,8 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
     r32 NormalX = 0.0f;
     r32 NormalY = 1.0f;
     
-    r32 NormalHeight   = 1.0f - (ButtonNormHeight * 4.0f);
-    r32 NormalWidth    = ButtonNormWidth * 4.0f;
+    r32 NormalHeight = 1.0f - (ButtonNormHeight * 4.0f);
+    r32 NormalWidth  = ButtonNormWidth * 4.0f;
     
     math_rect PropertiesQuad = CreateMathRect(NormalX, NormalY, NormalWidth, NormalHeight, ScreenArea);
     
@@ -978,6 +1390,8 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
                               LevelEditor->ResPanelQuad.y + (ButtonHeight * 6),
                               LevelEditor->ResPanelQuad.w, ButtonHeight,
                               &LevelEditor->ResPanel.ApplyButton, 255, 255, 255);
+    
+#endif
     
 }
 
@@ -1545,27 +1959,10 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 Buffer->ReferenceHeight = LevelEditor->ResPanel.ReferenceHeight;
                 
                 SDL_RenderSetLogicalSize(Buffer->Renderer, Buffer->Width, Buffer->Height);
-                //
-                //r32 NewScale = GetScale(ScreenWidth, ScreenHeight, RefWidth, RefHeight,
-                //RectScaleFactor);
-                //
-                //UnityRect.w = (r32)OriginalRectWidth  * NewScale;
-                //UnityRect.h = (r32)OriginalRectHeight * NewScale;
-                //
-                //game_point OldCenter = 
-                //{ (r32)(OriginalRectX + (OriginalRectWidth / 2)), 
-                //(r32)(OriginalRectY + (OriginalRectHeight / 2))};
-                //
-                //
-                //game_point Center = {};
-                //Center.x = (OldCenter.x / (r32)RefWidth) * (r32)ScreenWidth;
-                //Center.y = (OldCenter.y / (r32)RefHeight) * (r32)ScreenHeight;
-                //
-                //UnityRect.x = Center.x - (UnityRect.w / 2);
-                //UnityRect.y = Center.y - (UnityRect.h / 2);
-                //
-                //printf("Center.x = %f\n", Center.x);
-                //printf("Center.y = %f\n", Center.y);
+                
+                LevelEditorUpdatePositions(Buffer, LevelEditor, LevelEntity, Memory);
+                
+                
             }
         }
         
@@ -1842,6 +2239,9 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     {
         DEBUGRenderQuadFill(Buffer, &LevelEditor->HighlightButtonQuad, {255, 255, 0}, 150);
     }
+    
+    printf("MouseX = %d\n", Input->MouseX);
+    printf("MouseY = %d\n", Input->MouseY);
     
 }
 
@@ -2412,7 +2812,6 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     /* Prev/Next level buttons rendering */
     
     GameRenderBitmapToBuffer(Buffer, LevelEditor->LevelIndexTexture, &LevelEditor->LevelIndexQuad);
-    GameRenderBitmapToBuffer(Buffer, LevelEditor->LevelNumberTexture, &LevelEditor->LevelNumberQuad);
     
     DEBUGRenderQuad(Buffer, &LevelEntity->GridEntity->GridArea, { 0, 255, 255 }, 255);
     

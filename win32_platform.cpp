@@ -146,6 +146,13 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input)
                 Input->MouseX = Event->motion.x;
                 Input->MouseY = Event->motion.y;
                 
+                if(Input->MouseX < 0)
+                {
+                    printf("< 0 \n");
+                }
+                
+                
+                
                 Input->MouseRelX += Event->motion.xrel;
                 Input->MouseRelY += Event->motion.yrel;
             } break;
@@ -160,6 +167,8 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input)
             case SDL_MOUSEBUTTONDOWN: 
             case SDL_MOUSEBUTTONUP: 
             {
+                Input->MouseX = Event->motion.x;
+                Input->MouseY = Event->motion.y;
                 
                 u8 Button = Event->button.button;
                 
@@ -317,6 +326,8 @@ SDLReloadFontTexture(TTF_Font *&Font, SDL_Texture *&Texture, SDL_Rect *Quad,
     SDL_FreeSurface(Surface);
 }
 
+
+
 #undef main //NOTE(Max): Because SDL_main doesn't work on some windows versions 
 int main(int argc, char **argv)
 {
@@ -331,8 +342,11 @@ int main(int argc, char **argv)
     SDL_DisplayMode Display = {};
     SDL_GetDesktopDisplayMode(0, &Display);
     
-    s32 ScreenWidth  = Display.w;
-    s32 ScreenHeight = Display.h;
+    s32 ScreenWidth  = 1366;
+    s32 ScreenHeight = 768;
+    s32 ReferenceWidth  = 800;
+    s32 ReferenceHeight = 600;
+    
     
     /*
     
@@ -349,17 +363,19 @@ int main(int argc, char **argv)
     
     */
     
-    SDL_Window *Window = SDL_CreateWindow("This is window",
+    SDL_Window* Window = SDL_CreateWindow("This is window",
                                           0,
                                           0,
-                                          ScreenWidth, ScreenHeight,
-                                          SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE|SDL_WINDOW_FULLSCREEN);
+                                          1366, 768,
+                                          SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
     
     if(Window)
     {
         SDL_Renderer* Renderer = SDL_CreateRenderer(Window, -1,
                                                     SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
         SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
+        //SDL_RenderSetLogicalSize(Renderer, ReferenceWidth, ReferenceHeight);
+        
         
         if(Renderer)
         {
@@ -367,8 +383,20 @@ int main(int argc, char **argv)
             window_dimension Dimension = SDLGetWindowDimension(Window);
             
             sdl_offscreen_buffer BackBuffer = {};
-            BackBuffer.Width = Dimension.Width;
-            BackBuffer.Height = Dimension.Height;
+            BackBuffer.Width  = ScreenWidth;
+            BackBuffer.Height = ScreenHeight;
+            
+            game_offscreen_buffer Buffer = {};
+            Buffer.Window   = Window;
+            Buffer.Renderer = Renderer;
+            
+            Buffer.Width    = BackBuffer.Width;
+            Buffer.Height   = BackBuffer.Height;
+            
+            Buffer.ReferenceWidth  = ReferenceWidth;
+            Buffer.ReferenceHeight = ReferenceHeight;
+            
+            
             
 #if ASSET_BUILD
             // NOTE: This is for packaging data to the disk
@@ -385,6 +413,9 @@ int main(int argc, char **argv)
             
             r32 PreviousTimeTick = SDL_GetTicks();
             
+            s32 OldMouseX = 0;
+            s32 OldMouseY = 0;
+            
             while (IsRunning)
             {
                 r32 CurrentTimeTick = SDL_GetTicks();
@@ -392,8 +423,10 @@ int main(int argc, char **argv)
                 PreviousTimeTick = CurrentTimeTick;
                 
                 game_input Input = {};
+                Input.MouseX = OldMouseX;
+                Input.MouseY = OldMouseY;
                 Input.TimeElapsedMs = TimeElapsed;
-                SDL_GetMouseState(&Input.MouseX, &Input.MouseY);
+                //SDL_GetMouseState(&Input.MouseX, &Input.MouseY);
                 
                 SDL_Event Event;
                 if(SDLHandleEvent(&Event, &Input))
@@ -401,11 +434,6 @@ int main(int argc, char **argv)
                     IsRunning = false;
                 }
                 
-                game_offscreen_buffer Buffer = {};
-                Buffer.Renderer = Renderer;
-                //Buffer.Memory   = BackBuffer.Texture;
-                Buffer.Width    = BackBuffer.Width;
-                Buffer.Height   = BackBuffer.Height;
                 
                 if (Memory.AssetsInitialized)
                 {
@@ -418,6 +446,9 @@ int main(int argc, char **argv)
                 }
                 
                 SDLUpdateWindow(Window, Renderer, &BackBuffer);
+                
+                OldMouseX = Input.MouseX;
+                OldMouseY = Input.MouseY;
             }
         }
     }

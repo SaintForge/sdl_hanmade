@@ -26,6 +26,7 @@ struct game_offscreen_buffer
     
     //SDL_Texture  *Memory;
     SDL_Renderer *Renderer;
+    SDL_Window *Window;
 };
 
 struct game_button_state
