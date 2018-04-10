@@ -195,7 +195,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->MovingBlocksAmount  = 0;
         GridEntity->MovingBlocksAmountReserved  = MovingBlocksAmountReserved;
         
-        
         GridEntity->GridArea.w = ActiveBlockSize * ColumnAmount;
         GridEntity->GridArea.h = ActiveBlockSize * RowAmount;
         GridEntity->GridArea.x = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
@@ -274,6 +273,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         menu_editor  *MenuEditor  = (menu_editor *) (((char*)Memory->EditorMemoryStorage) + (sizeof(level_editor))); 
         
         /* level_editor initialization */ 
+        GameUpdateRelativePositions(Buffer, LevelEntity, Memory);
         LevelEditorInit(LevelEditor, LevelEntity, Memory, Buffer);
         
         /* menu_editor initialization */ 

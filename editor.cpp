@@ -586,44 +586,6 @@ LevelEditorUpdatePositions(game_offscreen_buffer *Buffer, level_editor *LevelEdi
         
     }
     
-    // New Game area location
-    
-    {
-        Memory->PadRect.x = 40;
-        Memory->PadRect.y = 30;
-        Memory->PadRect.w = 720;
-        Memory->PadRect.h = 570;
-        
-        r32 NewScale = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 0.0f);
-        
-        Memory->PadRect.w = (r32)Memory->PadRect.w * NewScale;
-        Memory->PadRect.h = (r32)Memory->PadRect.h * NewScale;
-        Memory->PadRect.x = (r32)Memory->PadRect.x * NewScale;
-        Memory->PadRect.y = (r32)Memory->PadRect.y * NewScale;
-    }
-    
-    {
-        game_rect GridArea = {};//475;
-        
-        GridArea.w = 720;
-        GridArea.h = 390;
-        GridArea.x = 40;
-        GridArea.y = 30;
-        
-        r32 NewScale = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 0.0f);
-        
-        GridArea.w = (r32)GridArea.w * NewScale;
-        GridArea.h = (r32)GridArea.h * NewScale;
-        GridArea.x = (r32)GridArea.x * NewScale;
-        GridArea.y = (r32)GridArea.y * NewScale;
-        
-        LevelEntity->GridEntity->GridArea = GridArea;
-        LevelEditor->EditorObject[0].AreaQuad = GridArea;
-        
-        LevelEntity->Configuration.GridBlockSize = CalculateGridBlockSize(LevelEntity->GridEntity->RowAmount, LevelEntity->GridEntity->ColumnAmount, GridArea.w, GridArea.h);
-        
-    }
-    
     /* Next/Prev level buttons */
     
     { 
@@ -1045,6 +1007,8 @@ LevelEditorUpdatePositions(game_offscreen_buffer *Buffer, level_editor *LevelEdi
                                   &LevelEditor->ResPanel.ApplyButton, 255, 255, 255);
         
     }
+    
+    LevelEditor->EditorObject[0].AreaQuad = LevelEntity->GridEntity->GridArea;
 }
 
 static void
@@ -2001,9 +1965,8 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 
                 SDL_RenderSetLogicalSize(Buffer->Renderer, Buffer->Width, Buffer->Height);
                 
-                LevelEditorUpdatePositions(Buffer, LevelEditor, LevelEntity, Memory);
                 GameUpdateRelativePositions(Buffer, LevelEntity, Memory);
-                
+                LevelEditorUpdatePositions(Buffer, LevelEditor, LevelEntity, Memory);
             }
         }
         

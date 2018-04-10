@@ -340,7 +340,6 @@ int main(int argc, char **argv)
     s32 ReferenceWidth  = 800;
     s32 ReferenceHeight = 600;
     
-    
     /*
     
     320 x 480	Alcatel pixi 3, LG Wine Smart
@@ -359,7 +358,7 @@ int main(int argc, char **argv)
     SDL_Window* Window = SDL_CreateWindow("This is window",
                                           0,
                                           0,
-                                          1366, 768,
+                                          1920, 1080,
                                           SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
     
     if(Window)

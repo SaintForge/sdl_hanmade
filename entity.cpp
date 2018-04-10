@@ -57,26 +57,31 @@ GameUpdateRelativePositions(game_offscreen_buffer *Buffer, level_entity *LevelEn
         Memory->PadRect.w = 720;
         Memory->PadRect.h = 570;
         
-        Memory->PadRect.w = roundf((r32)Memory->PadRect.w * ScaleByWidth);
-        Memory->PadRect.h = roundf((r32)Memory->PadRect.h * ScaleByHeight);
-        
-        Memory->PadRect.x = (ActualWidth / 2) - (Memory->PadRect.w / 2);
-        Memory->PadRect.y = ActualHeight - Memory->PadRect.h;
+        Memory->PadRect.w = (r32)Memory->PadRect.w * ScaleByWidth;
+        Memory->PadRect.h = (r32)Memory->PadRect.h * ScaleByWidth;
+        Memory->PadRect.x = (r32)Memory->PadRect.x * ScaleByWidth;
+        Memory->PadRect.y = (r32)Memory->PadRect.y * ScaleByWidth;
         
     }
     
     {
         // Grid Area location
+        game_rect GridArea = {};//475;
         
-        game_rect GridArea = {};
-        GridArea.w = Memory->PadRect.w;
-        GridArea.h = 350;
-        GridArea.x = Memory->PadRect.x;
-        GridArea.y = Memory->PadRect.y;
+        GridArea.w = 720;
+        GridArea.h = 390;
+        GridArea.x = 40;
+        GridArea.y = 30;
         
-        GridArea.h = roundf((r32)GridArea.h * ScaleByHeight);
+        GridArea.w = (r32)GridArea.w * ScaleByWidth;
+        GridArea.h = (r32)GridArea.h * ScaleByHeight;
+        GridArea.x = (r32)GridArea.x * ScaleByWidth;
+        GridArea.y = (r32)GridArea.y * ScaleByWidth;
         
         LevelEntity->GridEntity->GridArea = GridArea;
+        
+        LevelEntity->Configuration.GridBlockSize = CalculateGridBlockSize(LevelEntity->GridEntity->RowAmount, LevelEntity->GridEntity->ColumnAmount, GridArea.w, GridArea.h);
+        
     }
 }
 
