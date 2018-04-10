@@ -3,23 +3,35 @@
 
 static s32
 CalculateGridBlockSize(s32 RowAmount, s32 ColumnAmount, 
-                       r32 GridWidth, r32 GridHeight,
-                       s32 DefaultRowAmount, s32 DefaultColumnAmount)
+                       r32 GridWidth, r32 GridHeight)
+
 {
     s32 Result = 0;
     
-    RowAmount = RowAmount > DefaultRowAmount
-        ? RowAmount
-        : DefaultRowAmount;
+    //RowAmount = RowAmount > DefaultRowAmount
+    //? RowAmount
+    //: DefaultRowAmount;
+    //
+    //ColumnAmount = ColumnAmount > DefaultColumnAmount
+    //? ColumnAmount
+    //: DefaultColumnAmount;
+    //
+    //s32 MinColSize = roundf(GridWidth  / (r32)ColumnAmount);
+    //s32 MinRowSize = roundf(GridHeight / (r32)RowAmount);
+    //
+    //Result = (MinRowSize < MinColSize) ? MinRowSize : MinColSize;
+    //
     
-    ColumnAmount = ColumnAmount > DefaultColumnAmount
-        ? ColumnAmount
-        : DefaultColumnAmount;
+    s32 DefaultRowAmount    = 5;
+    s32 DefaultColumnAmount = 5; 
     
-    s32 MinColSize = roundf(GridWidth  / (r32)ColumnAmount);
-    s32 MinRowSize = roundf(GridHeight / (r32)RowAmount);
+    if(RowAmount < DefaultRowAmount)       RowAmount    = 4;
+    if(ColumnAmount < DefaultColumnAmount) ColumnAmount = 4;
     
-    Result = (MinRowSize < MinColSize) ? MinRowSize : MinColSize;
+    s32 MinRowSize = roundf((r32)GridHeight / (r32)RowAmount);
+    s32 MinColSize = roundf((r32)GridWidth / (r32)ColumnAmount);
+    
+    Result = MinRowSize < MinColSize ? MinRowSize : MinColSize;
     
     return(Result);
 }
@@ -1857,23 +1869,23 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
     game_point GridCenter = {};
     GridCenter.x = GridArea.x + roundf((r32)GridArea.w / 2.0f);
     GridCenter.y = GridArea.y + roundf((r32)GridArea.h / 2.0f);
+    //
+    //s32 MinRowSize = roundf((r32)GridArea.h / (r32)RowAmount);
+    //s32 MinColSize = roundf((r32)GridArea.w / (r32)ColumnAmount);
+    //
+    //GridBlockSize = MinRowSize < MinColSize ? MinRowSize : MinColSize;
+    //GridQuad.w = GridBlockSize;
+    //GridQuad.h = GridBlockSize;
     
     r32 ActualGridWidth  = ColumnAmount * GridBlockSize;
     r32 ActualGridHeight = RowAmount * GridBlockSize;
     
-    s32 MinRowSize = roundf((r32)GridArea.h / (r32)RowAmount);
-    s32 MinColSize = roundf((r32)GridArea.w / (r32)ColumnAmount);
-    
-    GridBlockSize = MinRowSize < MinColSize ? MinRowSize : MinColSize;
-    GridQuad.w = GridBlockSize;
-    GridQuad.h = GridBlockSize;
-    
     for (u32 Row = 0; Row < RowAmount; ++Row)
     {
-        StartY = GridCenter.y + (GridBlockSize * Row) - roundf(GridArea.h / 2.0f);
+        StartY = GridCenter.y + (GridBlockSize * Row) - roundf(ActualGridHeight / 2.0f);
         for (u32 Col = 0; Col < ColumnAmount; ++Col)
         {
-            StartX = GridCenter.x + (GridBlockSize * Col) - roundf(GridArea.w / 2.0f);
+            StartX = GridCenter.x + (GridBlockSize * Col) - roundf(ActualGridWidth / 2.0f);
             
             GridQuad.x = StartX;
             GridQuad.y = StartY;

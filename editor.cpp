@@ -2115,13 +2115,12 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         
         if(Index == 0)
         {
-            LevelEditor->EditorObject[Index].AreaQuad = ConvertMathRectToGameRect(AreaQuad);
+            game_rect GridArea = ConvertMathRectToGameRect(AreaQuad);
             
-            LevelEntity->GridEntity->GridArea = LevelEditor->EditorObject[Index].AreaQuad;
+            LevelEditor->EditorObject[Index].AreaQuad = GridArea;
+            LevelEntity->GridEntity->GridArea = GridArea;
             
-            LevelEntity->Configuration.GridBlockSize = CalculateGridBlockSize(RowAmount, ColAmount, LevelEntity->GridEntity->GridArea.w, 
-                                                                              LevelEntity->GridEntity->GridArea.h,
-                                                                              LevelEntity->Configuration.DefaultBlocksInRow, LevelEntity->Configuration.DefaultBlocksInCol);
+            LevelEntity->Configuration.GridBlockSize = CalculateGridBlockSize(RowAmount, ColAmount, GridArea.w, GridArea.h);
             
             LevelEditorUpdateCoordinates(Buffer, LevelEditor->Font, &LevelEditor->PosPanel, LevelEntity->GridEntity->GridArea, 
                                          Memory->PadRect, {0, 0, Buffer->Width, Buffer->Height});

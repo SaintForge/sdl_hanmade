@@ -202,8 +202,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->GridArea.y = (Buffer->Height - FigureEntity->FigureArea.h) / 2 - (GridEntity->GridArea.h / 2);
         
         LevelEntity->Configuration.GridBlockSize = CalculateGridBlockSize(RowAmount, ColumnAmount, 
-                                                                          GridEntity->GridArea.w, GridEntity->GridArea.h,
-                                                                          LevelEntity->Configuration.DefaultBlocksInRow, LevelEntity->Configuration.DefaultBlocksInCol);
+                                                                          GridEntity->GridArea.w, GridEntity->GridArea.h);
+        
         //LevelEntity->Configuration.GridBlockSize = ActiveBlockSize;
         printf("GridBlockSize = %d\n", LevelEntity->Configuration.GridBlockSize);
         
