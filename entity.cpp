@@ -893,6 +893,7 @@ GameUpdateEvent(game_input *Input, level_entity *LevelEntity, game_offscreen_buf
     r32 BlockRatio  = 0;
     u32 ActiveIndex = FigureEntity->FigureActive;
     
+    r32 GridBlockSize = LevelEntity->Configuration.GridBlockSize;
     r32 ActiveBlockSize   = LevelEntity->Configuration.ActiveBlockSize;
     r32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
     
@@ -921,7 +922,7 @@ GameUpdateEvent(game_input *Input, level_entity *LevelEntity, game_offscreen_buf
                                 
                                 if(!FigureUnit[ActiveIndex].IsEnlarged)
                                 {
-                                    BlockRatio = ActiveBlockSize / InActiveBlockSize;
+                                    BlockRatio = GridBlockSize / InActiveBlockSize;
                                     FigureUnit[ActiveIndex].IsIdle = false;
                                     FigureUnit[ActiveIndex].IsEnlarged = true;
                                     FigureUnitResizeBy(&FigureUnit[ActiveIndex], BlockRatio);
@@ -969,7 +970,7 @@ GameUpdateEvent(game_input *Input, level_entity *LevelEntity, game_offscreen_buf
                        (!IsPointInsideRect(FigureUnit[ActiveIndex].Center.x,FigureUnit[ActiveIndex].Center.y, &ScreenArea)))
                     {
                         FigureUnit[ActiveIndex].IsIdle = true;
-                        BlockRatio = InActiveBlockSize / ActiveBlockSize;
+                        BlockRatio = InActiveBlockSize / GridBlockSize;
                         FigureUnitSetToDefaultArea(&FigureUnit[ActiveIndex], BlockRatio);
                         
                         FigureEntity->IsReturning = true;
@@ -1616,7 +1617,6 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
     u32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
     
     game_rect AreaQuad = {};
-    game_rect GridArea = GridEntity->GridArea;
     
     r32 TimeElapsed  = Input->TimeElapsedMs;
     r32 MaxVel       = ActiveBlockSize / 6;
@@ -1624,6 +1624,15 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
     s32 ColumnAmount = GridEntity->ColumnAmount;
     u32 FigureAmount = FigureEntity->FigureAmount;
     s32 ActiveIndex  = FigureEntity->FigureActive;
+    
+    r32 ActualGridWidth  = ColumnAmount * GridBlockSize;
+    r32 ActualGridHeight = RowAmount * GridBlockSize;
+    
+    game_rect GridArea = {};
+    GridArea.w = ActualGridWidth;
+    GridArea.h = ActualGridHeight;
+    GridArea.x = GridEntity->GridArea.x + (GridEntity->GridArea.w / 2) - (ActualGridWidth / 2);
+    GridArea.y = GridEntity->GridArea.y + (GridEntity->GridArea.h / 2) - (ActualGridHeight / 2);
     
     bool ToggleHighlight = false;
     
@@ -1702,14 +1711,14 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
                 r32 OffsetY = 0;
                 u32 RowIndex[4] = {0};
                 u32 ColIndex[4] = {0};
-                game_rect Rect = {0, 0, (s32)ActiveBlockSize, (s32)ActiveBlockSize};
+                game_rect Rect = {0, 0, (s32)GridBlockSize, (s32)GridBlockSize};
                 
                 for (u32 i = 0 ; i < RowAmount && Count != 4; ++i)
                 {
                     for (u32 j = 0; j < ColumnAmount && Count != 4; ++j)
                     {
-                        Rect.x = GridArea.x + (j*ActiveBlockSize);
-                        Rect.y = GridArea.y + (i*ActiveBlockSize);
+                        Rect.x = GridArea.x + (j*GridBlockSize);
+                        Rect.y = GridArea.y + (i*GridBlockSize);
                         
                         for (u32 l = 0; l < 4; ++l)
                         {
@@ -1784,7 +1793,6 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
                                 }
                             }
                         }
-                        
                         
                         
                         if(IsFull == true)
@@ -1877,15 +1885,13 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
     //GridQuad.w = GridBlockSize;
     //GridQuad.h = GridBlockSize;
     
-    r32 ActualGridWidth  = ColumnAmount * GridBlockSize;
-    r32 ActualGridHeight = RowAmount * GridBlockSize;
     
     for (u32 Row = 0; Row < RowAmount; ++Row)
     {
         StartY = GridCenter.y + (GridBlockSize * Row) - roundf(ActualGridHeight / 2.0f);
         for (u32 Col = 0; Col < ColumnAmount; ++Col)
         {
-            StartX = GridCenter.x + (GridBlockSize * Col) - roundf(ActualGridWidth / 2.0f);
+            StartX = GridCenter.x + (GridBlockSize * Col) - roundf(ActualGridWidth / 2.0f);	
             
             GridQuad.x = StartX;
             GridQuad.y = StartY;

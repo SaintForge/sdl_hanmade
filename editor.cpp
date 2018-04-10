@@ -571,7 +571,7 @@ LevelEditorUpdatePositions(game_offscreen_buffer *Buffer, level_editor *LevelEdi
     {
         s32 FontSize = 12;
         
-        r32 NewScale = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 1.0f);
+        r32 NewScale = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 0.0f);
         
         if(LevelEditor->Font)
         {
@@ -579,9 +579,48 @@ LevelEditorUpdatePositions(game_offscreen_buffer *Buffer, level_editor *LevelEdi
         }
         
         FontSize = (r32)FontSize * NewScale;
+        printf("FontSize = %d\n",FontSize);
         
         LevelEditor->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
         Assert(LevelEditor->Font);
+        
+    }
+    
+    // New Game area location
+    
+    {
+        Memory->PadRect.x = 40;
+        Memory->PadRect.y = 30;
+        Memory->PadRect.w = 720;
+        Memory->PadRect.h = 570;
+        
+        r32 NewScale = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 0.0f);
+        
+        Memory->PadRect.w = (r32)Memory->PadRect.w * NewScale;
+        Memory->PadRect.h = (r32)Memory->PadRect.h * NewScale;
+        Memory->PadRect.x = (r32)Memory->PadRect.x * NewScale;
+        Memory->PadRect.y = (r32)Memory->PadRect.y * NewScale;
+    }
+    
+    {
+        game_rect GridArea = {};//475;
+        
+        GridArea.w = 720;
+        GridArea.h = 390;
+        GridArea.x = 40;
+        GridArea.y = 30;
+        
+        r32 NewScale = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 0.0f);
+        
+        GridArea.w = (r32)GridArea.w * NewScale;
+        GridArea.h = (r32)GridArea.h * NewScale;
+        GridArea.x = (r32)GridArea.x * NewScale;
+        GridArea.y = (r32)GridArea.y * NewScale;
+        
+        LevelEntity->GridEntity->GridArea = GridArea;
+        LevelEditor->EditorObject[0].AreaQuad = GridArea;
+        
+        LevelEntity->Configuration.GridBlockSize = CalculateGridBlockSize(LevelEntity->GridEntity->RowAmount, LevelEntity->GridEntity->ColumnAmount, GridArea.w, GridArea.h);
         
     }
     
