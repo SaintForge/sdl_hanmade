@@ -2853,6 +2853,11 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         {
             LevelEditor->IsOn  = false;
             LevelEntity->LevelPaused = false;
+            
+            if(LevelEditor->CursorType != ARROW)
+            {
+                LevelEditorSetCursorType(ARROW);
+            }
         }
     }
     
