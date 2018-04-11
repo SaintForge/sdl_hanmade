@@ -583,7 +583,6 @@ LevelEditorUpdatePositions(game_offscreen_buffer *Buffer, level_editor *LevelEdi
         
         LevelEditor->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
         Assert(LevelEditor->Font);
-        
     }
     
     /* Next/Prev level buttons */
@@ -761,7 +760,6 @@ LevelEditorUpdatePositions(game_offscreen_buffer *Buffer, level_editor *LevelEdi
     // Position Panel location
     
     {
-        
         s32 ButtonWidth  = 150;
         s32 ButtonHeight = 20;
         s32 ButtonAmount = 6;

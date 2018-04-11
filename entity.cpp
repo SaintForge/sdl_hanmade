@@ -8,20 +8,6 @@ CalculateGridBlockSize(s32 RowAmount, s32 ColumnAmount,
 {
     s32 Result = 0;
     
-    //RowAmount = RowAmount > DefaultRowAmount
-    //? RowAmount
-    //: DefaultRowAmount;
-    //
-    //ColumnAmount = ColumnAmount > DefaultColumnAmount
-    //? ColumnAmount
-    //: DefaultColumnAmount;
-    //
-    //s32 MinColSize = roundf(GridWidth  / (r32)ColumnAmount);
-    //s32 MinRowSize = roundf(GridHeight / (r32)RowAmount);
-    //
-    //Result = (MinRowSize < MinColSize) ? MinRowSize : MinColSize;
-    //
-    
     s32 DefaultRowAmount    = 5;
     s32 DefaultColumnAmount = 5; 
     
@@ -36,72 +22,56 @@ CalculateGridBlockSize(s32 RowAmount, s32 ColumnAmount,
     return(Result);
 }
 
-
-static void
-GameUpdateRelativePositions(game_offscreen_buffer *Buffer, level_entity *LevelEntity, game_memory *Memory)
+static game_rect
+FigureUnitGetArea(figure_unit *Unit)
 {
-    s32 ActualWidth  = Buffer->Width;
-    s32 ActualHeight = Buffer->Height;
+    game_rect Area = {Unit->Shell[0].x, Unit->Shell[0].y, -500, -500};
+    u32 OffsetX = 0;
+    u32 OffsetY = 0;
+    bool ZeroArea = false;
     
-    s32 ReferenceWidth  = Buffer->ReferenceWidth;
-    s32 ReferenceHeight = Buffer->ReferenceHeight;
-    
-    r32 ScaleByWidth = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 0.0f);
-    
-    r32 ScaleByHeight = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 1.0f);
-    
-    // Game Area location
+    for (u32 i = 0; i < 4; ++i)
     {
-        Memory->PadRect.x = 40;
-        Memory->PadRect.y = 30;
-        Memory->PadRect.w = 720;
-        Memory->PadRect.h = 570;
-        
-        Memory->PadRect.w = (r32)Memory->PadRect.w * ScaleByWidth;
-        Memory->PadRect.h = (r32)Memory->PadRect.h * ScaleByWidth;
-        Memory->PadRect.x = (r32)Memory->PadRect.x * ScaleByWidth;
-        Memory->PadRect.y = (r32)Memory->PadRect.y * ScaleByWidth;
+        if(Area.x >= Unit->Shell[i].x) Area.x = Unit->Shell[i].x;
+        if(Area.y >= Unit->Shell[i].y) Area.y = Unit->Shell[i].y;
+        if(Area.w <= Unit->Shell[i].x) Area.w = Unit->Shell[i].x;
+        if(Area.h <= Unit->Shell[i].y) Area.h = Unit->Shell[i].y;
         
     }
     
-    // Grid Area location
+    Area.w -= Area.x;
+    Area.h -= Area.y;
+    
+    if(Area.w == 0 || Area.h == 0)
     {
-        
-        game_rect GridArea = {};//475;
-        
-        GridArea.w = 720;
-        GridArea.h = 300;
-        GridArea.x = 40;
-        GridArea.y = 30;
-        
-        GridArea.w = (r32)GridArea.w * ScaleByWidth;
-        GridArea.h = (r32)GridArea.h * ScaleByHeight;
-        GridArea.x = (r32)GridArea.x * ScaleByWidth;
-        GridArea.y = (r32)GridArea.y * ScaleByWidth;
-        
-        LevelEntity->GridEntity->GridArea = GridArea;
-        
-        LevelEntity->Configuration.GridBlockSize = CalculateGridBlockSize(LevelEntity->GridEntity->RowAmount, LevelEntity->GridEntity->ColumnAmount, GridArea.w, GridArea.h);
-        
+        ZeroArea = true;
     }
     
-    // Figure area location
+    if(Area.w >= Unit->AreaQuad.h)
     {
-        game_rect FigureArea = {};
-        
-        FigureArea.w = Memory->PadRect.w;
-        FigureArea.h = Memory->PadRect.h - LevelEntity->GridEntity->GridArea.h;
-        FigureArea.x = Memory->PadRect.x;
-        FigureArea.y = Memory->PadRect.y + LevelEntity->GridEntity->GridArea.h;
-        //
-        //FigureArea.w = (r32)FigureArea.w * ScaleByWidth;
-        //FigureArea.h = (r32)FigureArea.h * ScaleByHeight;
-        //FigureArea.x = (r32)FigureArea.x * ScaleByWidth;
-        //FigureArea.y = (r32)FigureArea.y * ScaleByHeight;
-        
-        LevelEntity->FigureEntity->FigureArea = FigureArea;
+        Area.h = Unit->AreaQuad.h;
+        Area.w = Unit->AreaQuad.w;
+        OffsetX = (Area.y + Area.h) - (Area.y + Area.h / 2);
     }
+    else
+    {
+        Area.h = Unit->AreaQuad.w;
+        Area.w = Unit->AreaQuad.h;
+        OffsetX = (Area.x + Area.w) - (Area.x + Area.w / 2);
+    }
+    
+    if(!ZeroArea)
+    {
+        OffsetX /= 2;
+    }
+    
+    Area.x -= OffsetX;
+    Area.y -= OffsetX;
+    
+    return(Area);
 }
+
+
 
 
 static void
@@ -545,54 +515,6 @@ GridEntityUpdateStickUnits(grid_entity *GridEntity, u32 FigureAmount)
     }
 }
 
-static game_rect
-FigureUnitGetArea(figure_unit *Unit)
-{
-    game_rect Area = {Unit->Shell[0].x, Unit->Shell[0].y, -500, -500};
-    u32 OffsetX = 0;
-    u32 OffsetY = 0;
-    bool ZeroArea = false;
-    
-    for (u32 i = 0; i < 4; ++i)
-    {
-        if(Area.x >= Unit->Shell[i].x) Area.x = Unit->Shell[i].x;
-        if(Area.y >= Unit->Shell[i].y) Area.y = Unit->Shell[i].y;
-        if(Area.w <= Unit->Shell[i].x) Area.w = Unit->Shell[i].x;
-        if(Area.h <= Unit->Shell[i].y) Area.h = Unit->Shell[i].y;
-        
-    }
-    
-    Area.w -= Area.x;
-    Area.h -= Area.y;
-    
-    if(Area.w == 0 || Area.h == 0)
-    {
-        ZeroArea = true;
-    }
-    
-    if(Area.w >= Unit->AreaQuad.h)
-    {
-        Area.h = Unit->AreaQuad.h;
-        Area.w = Unit->AreaQuad.w;
-        OffsetX = (Area.y + Area.h) - (Area.y + Area.h / 2);
-    }
-    else
-    {
-        Area.h = Unit->AreaQuad.w;
-        Area.w = Unit->AreaQuad.h;
-        OffsetX = (Area.x + Area.w) - (Area.x + Area.w / 2);
-    }
-    
-    if(!ZeroArea)
-    {
-        OffsetX /= 2;
-    }
-    
-    Area.x -= OffsetX;
-    Area.y -= OffsetX;
-    
-    return(Area);
-}
 
 static void
 FigureUnitFlipHorizontally(figure_unit *Unit)
@@ -1177,6 +1099,7 @@ Move2DPointPerSec(game_point *p1, game_point *p2, r32 MaxVelocity, r32 TimeElaps
     return(Velocity);
 }
 
+// TODO(Sierra): This is outdated!!!
 static void
 RescaleGameField(game_offscreen_buffer *Buffer,
                  u32 RowAmount, u32 ColumnAmount, u32 FigureAmount,
@@ -1427,6 +1350,8 @@ LevelEntityUpdateLevelEntityFromMemory(game_memory *Memory, s32 Index, bool IsSt
     //
     // level number texture loading
     //
+    
+    //GameUpdateRelativePositions(Buffer, LevelEntity, Memory);
     
     LevelEntityUpdateLevelNumber(LevelEntity, Memory, Buffer);
 }
@@ -2112,3 +2037,81 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
     
 }
 
+static void
+GameUpdateRelativePositions(game_offscreen_buffer *Buffer, level_entity *LevelEntity, game_memory *Memory)
+{
+    s32 ActualWidth  = Buffer->Width;
+    s32 ActualHeight = Buffer->Height;
+    
+    s32 ReferenceWidth  = Buffer->ReferenceWidth;
+    s32 ReferenceHeight = Buffer->ReferenceHeight;
+    
+    r32 ScaleByWidth = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 0.0f);
+    
+    r32 ScaleByHeight = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 1.0f);
+    
+    // Game Area location
+    
+    {
+        Memory->PadRect.x = 40;
+        Memory->PadRect.y = 30;
+        Memory->PadRect.w = 720;
+        Memory->PadRect.h = 570;
+        
+        Memory->PadRect.w = (r32)Memory->PadRect.w * ScaleByWidth;
+        Memory->PadRect.h = (r32)Memory->PadRect.h * ScaleByWidth;
+        Memory->PadRect.x = (r32)Memory->PadRect.x * ScaleByWidth;
+        Memory->PadRect.y = (r32)Memory->PadRect.y * ScaleByWidth;
+        
+    }
+    
+    // Grid Area location
+    {
+        
+        game_rect GridArea = {};//475;
+        
+        GridArea.w = 720;
+        GridArea.h = 300;
+        GridArea.x = 40;
+        GridArea.y = 30;
+        
+        GridArea.w = (r32)GridArea.w * ScaleByWidth;
+        GridArea.h = (r32)GridArea.h * ScaleByHeight;
+        GridArea.x = (r32)GridArea.x * ScaleByWidth;
+        GridArea.y = (r32)GridArea.y * ScaleByWidth;
+        
+        LevelEntity->GridEntity->GridArea = GridArea;
+        
+        LevelEntity->Configuration.GridBlockSize = CalculateGridBlockSize(LevelEntity->GridEntity->RowAmount, LevelEntity->GridEntity->ColumnAmount, GridArea.w, GridArea.h);
+        
+    }
+    
+    // Figure area location
+    {
+        s32 OldFigureBlockSize = LevelEntity->Configuration.InActiveBlockSize;
+        s32 FigureBlockSize = 20;
+        
+        game_rect FigureArea = {};
+        
+        FigureArea.w = Memory->PadRect.w;
+        FigureArea.h = Memory->PadRect.h - LevelEntity->GridEntity->GridArea.h;
+        FigureArea.x = Memory->PadRect.x;
+        FigureArea.y = Memory->PadRect.y + LevelEntity->GridEntity->GridArea.h;
+        
+        FigureBlockSize = roundf((r32)FigureBlockSize * ScaleByHeight);
+        LevelEntity->Configuration.InActiveBlockSize = FigureBlockSize;
+        r32 BlockRatio = (r32)FigureBlockSize / (r32)OldFigureBlockSize;
+        
+        s32 FigureAmount = LevelEntity->FigureEntity->FigureAmount;
+        for(s32 i = 0; i < FigureAmount; ++i)
+        {
+            FigureUnitResizeBy(&LevelEntity->FigureEntity->FigureUnit[i], BlockRatio);
+        }
+        
+        
+        
+        LevelEntity->FigureEntity->FigureArea = FigureArea;
+        
+        FigureEntityAlignHorizontally(LevelEntity->FigureEntity, FigureBlockSize);
+    }
+}

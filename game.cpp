@@ -109,9 +109,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         RescaleGameField(Buffer, RowAmount, ColumnAmount,
                          FigureAmountReserve, LevelEntity->Configuration.DefaultBlocksInRow, LevelEntity->Configuration.DefaultBlocksInCol, LevelEntity);
         
-        //DEBUG
-        //LevelEntity->Configuration.ActiveBlockSize   = 20;
-        
+        //for DEBUG purposes only
         game_rect FigureAreaRect = ConvertMathRectToGameRect(FigureArea);
         
         LevelEntity->Configuration.InActiveBlockSize = CalculateFigureBlockSize(3, FigureAreaRect.w, FigureAreaRect.h);
