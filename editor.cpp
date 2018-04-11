@@ -1009,6 +1009,7 @@ LevelEditorUpdatePositions(game_offscreen_buffer *Buffer, level_editor *LevelEdi
     }
     
     LevelEditor->EditorObject[0].AreaQuad = LevelEntity->GridEntity->GridArea;
+    LevelEditor->EditorObject[1].AreaQuad = LevelEntity->FigureEntity->FigureArea;
 }
 
 static void
@@ -1837,6 +1838,22 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                     LevelEditor->EditorObjectIndex = i;
                 }
             }
+            
+            if(LevelEditor->ObjectIsSelected)
+            {
+                if(LevelEditor->EditorObjectIndex == 0)
+                {
+                    LevelEditorUpdateCoordinates(Buffer, LevelEditor->Font, &LevelEditor->PosPanel, LevelEntity->GridEntity->GridArea, 
+                                                 Memory->PadRect, {0, 0, Buffer->Width, Buffer->Height});
+                }
+                else if(LevelEditor->EditorObjectIndex == 1)
+                {
+                    LevelEditorUpdateCoordinates(Buffer, LevelEditor->Font, &LevelEditor->PosPanel, LevelEntity->FigureEntity->FigureArea, 
+                                                 Memory->PadRect, {0, 0, Buffer->Width, Buffer->Height});
+                }
+                
+            }
+            
         }
         
         if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->SwitchConfiguration.Quad))

@@ -64,12 +64,13 @@ GameUpdateRelativePositions(game_offscreen_buffer *Buffer, level_entity *LevelEn
         
     }
     
+    // Grid Area location
     {
-        // Grid Area location
+        
         game_rect GridArea = {};//475;
         
         GridArea.w = 720;
-        GridArea.h = 390;
+        GridArea.h = 300;
         GridArea.x = 40;
         GridArea.y = 30;
         
@@ -82,6 +83,23 @@ GameUpdateRelativePositions(game_offscreen_buffer *Buffer, level_entity *LevelEn
         
         LevelEntity->Configuration.GridBlockSize = CalculateGridBlockSize(LevelEntity->GridEntity->RowAmount, LevelEntity->GridEntity->ColumnAmount, GridArea.w, GridArea.h);
         
+    }
+    
+    // Figure area location
+    {
+        game_rect FigureArea = {};
+        
+        FigureArea.w = Memory->PadRect.w;
+        FigureArea.h = Memory->PadRect.h - LevelEntity->GridEntity->GridArea.h;
+        FigureArea.x = Memory->PadRect.x;
+        FigureArea.y = Memory->PadRect.y + LevelEntity->GridEntity->GridArea.h;
+        //
+        //FigureArea.w = (r32)FigureArea.w * ScaleByWidth;
+        //FigureArea.h = (r32)FigureArea.h * ScaleByHeight;
+        //FigureArea.x = (r32)FigureArea.x * ScaleByWidth;
+        //FigureArea.y = (r32)FigureArea.y * ScaleByHeight;
+        
+        LevelEntity->FigureEntity->FigureArea = FigureArea;
     }
 }
 
@@ -1426,7 +1444,7 @@ LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
     
     r32 PixelsDrawn = LevelEntity->Configuration.PixelsDrawn;
     r32 PixelsToDraw = LevelEntity->Configuration.PixelsToDraw;
-    s32 MaximumBlockSize = LevelEntity->Configuration.ActiveBlockSize;
+    s32 MaximumBlockSize = LevelEntity->Configuration.GridBlockSize;
     r32 StartAlphaPerSec = LevelEntity->Configuration.StartAlphaPerSec;
     r32 StartUpTimeElapsed = LevelEntity->Configuration.StartUpTimeElapsed;
     r32 StartUpTimeToFinish = LevelEntity->Configuration.StartUpTimeToFinish;
@@ -1437,8 +1455,12 @@ LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
     s32 RowAmount = GridEntity->RowAmount;
     s32 ColAmount = GridEntity->ColumnAmount;
     s32 FigureAmount = FigureEntity->FigureAmount;
-    s32 GridAreaX = GridEntity->GridArea.x;
-    s32 GridAreaY = GridEntity->GridArea.y;
+    
+    s32 ActualGridWidth = ColAmount * MaximumBlockSize;
+    s32 ActualGridHeight= RowAmount * MaximumBlockSize;
+    
+    s32 GridAreaX = GridEntity->GridArea.x + (GridEntity->GridArea.w / 2) - (ActualGridWidth / 2);
+    s32 GridAreaY = GridEntity->GridArea.y + (GridEntity->GridArea.h / 2) - (ActualGridHeight / 2);
     
     s32 AmountOfPixels = (MaximumBlockSize * (RowAmount + ColAmount - 1));
     s32 PixelScalePerSec = (AmountOfPixels / (StartUpTimeToFinish * 0.5f));
