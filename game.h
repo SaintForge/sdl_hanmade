@@ -172,6 +172,36 @@ GameResizeInActiveBlock(u32 FigureAreaWidth,
     return(ResultBlockSize);
 }
 
+static void
+GameMakeTextureFromString(game_texture *&Texture, 
+                          char* Text, 
+                          game_rect *TextureQuad, 
+                          game_font *&Font, 
+                          game_color Color, 
+                          game_offscreen_buffer *Buffer)
+{
+    if(!Text || !Font) return;
+    
+    if(Texture)
+    {
+        SDL_DestroyTexture(Texture);
+    }
+    
+    game_surface *Surface = TTF_RenderUTF8_Blended(Font, Text, Color);
+    Assert(Surface);
+    
+    if(TextureQuad)
+    {
+        TextureQuad->w = Surface->w;
+        TextureQuad->h = Surface->h;
+    }
+    
+    Texture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+    Assert(Texture);
+    
+    SDL_FreeSurface(Surface);
+}
+
 static void 
 GameRenderBitmapToBuffer(game_offscreen_buffer *Buffer, game_texture *&Texture, game_rect *Quad)
 {

@@ -1239,9 +1239,9 @@ GameUpdatePositionsPortrait(game_offscreen_buffer *Buffer, level_entity *LevelEn
         game_rect GridArea = {};//475;
         
         GridArea.w = 520;
-        GridArea.h = 200;
+        GridArea.h = 260;
         GridArea.x = 40;
-        GridArea.y = 300;
+        GridArea.y = 240;
         
         GridArea.w = (r32)GridArea.w * ScaleByWidth;
         GridArea.h = (r32)GridArea.h * ScaleByHeight;
@@ -1285,6 +1285,54 @@ GameUpdatePositionsPortrait(game_offscreen_buffer *Buffer, level_entity *LevelEn
         LevelEntity->FigureEntity->FigureArea = FigureArea;
         
         FigureEntityAlignHorizontally(LevelEntity->FigureEntity, FigureBlockSize);
+    }
+    
+    // Level Number location
+    
+    {
+        s32 FontSize = 50;
+        
+        game_point LevelNumberPoint = { 570, 0};
+        game_point LevelNumberShadowPoint = { 573, 3 };
+        
+        if(Memory->LevelNumberFont)
+        {
+            TTF_CloseFont(Memory->LevelNumberFont);
+        }
+        
+        FontSize = roundf((r32)FontSize * ScaleByHeight);
+        
+        Memory->LevelNumberFont = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
+        
+        char LevelNumberString[3] = {0};
+        sprintf(LevelNumberString, "%d", LevelEntity->LevelNumber);
+        
+        GameMakeTextureFromString(LevelEntity->LevelNumberTexture, 
+                                  LevelNumberString, 
+                                  &LevelEntity->LevelNumberQuad, 
+                                  Memory->LevelNumberFont, 
+                                  {255, 255, 255}, 
+                                  Buffer);
+        
+        GameMakeTextureFromString(LevelEntity->LevelNumberShadowTexture, 
+                                  LevelNumberString,
+                                  &LevelEntity->LevelNumberShadowQuad, 
+                                  Memory->LevelNumberFont, 
+                                  {0, 0, 0}, 
+                                  Buffer);
+        
+        LevelNumberPoint.x = (Buffer->Width - LevelEntity->LevelNumberQuad.w) - roundf((r32)LevelEntity->LevelNumberQuad.w / 2.0f);
+        LevelNumberPoint.y = 0;
+        
+        LevelNumberShadowPoint.x = LevelNumberPoint.x + roundf(3.0f * ScaleByHeight);
+        LevelNumberShadowPoint.y = LevelNumberPoint.y + roundf(3.0f * ScaleByHeight);
+        
+        LevelEntity->LevelNumberQuad.x = LevelNumberPoint.x;
+        LevelEntity->LevelNumberQuad.y = LevelNumberPoint.y;
+        
+        LevelEntity->LevelNumberShadowQuad.x = LevelNumberShadowPoint.x;
+        LevelEntity->LevelNumberShadowQuad.y = LevelNumberShadowPoint.y;
+        
     }
 }
 
@@ -1372,6 +1420,54 @@ GameUpdatePositionsLandscape(game_offscreen_buffer *Buffer, level_entity *LevelE
         LevelEntity->FigureEntity->FigureArea = FigureArea;
         
         FigureEntityAlignHorizontally(LevelEntity->FigureEntity, FigureBlockSize);
+    }
+    
+    // Level Number location
+    
+    {
+        s32 FontSize = 50;
+        
+        game_point LevelNumberPoint = { 570, 0};
+        game_point LevelNumberShadowPoint = { 573, 3 };
+        
+        if(Memory->LevelNumberFont)
+        {
+            TTF_CloseFont(Memory->LevelNumberFont);
+        }
+        
+        FontSize = roundf((r32)FontSize * ScaleByWidth);
+        
+        Memory->LevelNumberFont = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
+        
+        char LevelNumberString[3] = {0};
+        sprintf(LevelNumberString, "%d", LevelEntity->LevelNumber);
+        
+        GameMakeTextureFromString(LevelEntity->LevelNumberTexture, 
+                                  LevelNumberString, 
+                                  &LevelEntity->LevelNumberQuad, 
+                                  Memory->LevelNumberFont, 
+                                  {255, 255, 255}, 
+                                  Buffer);
+        
+        GameMakeTextureFromString(LevelEntity->LevelNumberShadowTexture, 
+                                  LevelNumberString,
+                                  &LevelEntity->LevelNumberShadowQuad, 
+                                  Memory->LevelNumberFont, 
+                                  {0, 0, 0}, 
+                                  Buffer);
+        
+        LevelNumberPoint.x = (Buffer->Width - LevelEntity->LevelNumberQuad.w) - roundf((r32)LevelEntity->LevelNumberQuad.w / 2.0f);
+        LevelNumberPoint.y = 0;
+        
+        LevelNumberShadowPoint.x = LevelNumberPoint.x + roundf(3.0f * ScaleByWidth);
+        LevelNumberShadowPoint.y = LevelNumberPoint.y + roundf(3.0f * ScaleByWidth);
+        
+        LevelEntity->LevelNumberQuad.x = LevelNumberPoint.x;
+        LevelEntity->LevelNumberQuad.y = LevelNumberPoint.y;
+        
+        LevelEntity->LevelNumberShadowQuad.x = LevelNumberShadowPoint.x;
+        LevelEntity->LevelNumberShadowQuad.y = LevelNumberShadowPoint.y;
+        
     }
 }
 
