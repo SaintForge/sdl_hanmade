@@ -2753,12 +2753,22 @@ static void
 LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity, 
                            game_memory *Memory, game_offscreen_buffer *Buffer, game_input *Input)
 {
-    game_rect GridArea   = LevelEntity->GridEntity->GridArea;
     game_rect FigureArea = LevelEntity->FigureEntity->FigureArea;
     
     s32 FigureAmount   = LevelEntity->FigureEntity->FigureAmount;
     s32 RowAmount      = LevelEntity->GridEntity->RowAmount;
     s32 ColAmount      = LevelEntity->GridEntity->ColumnAmount;
+    
+    s32 GridBlockSize  = LevelEntity->Configuration.GridBlockSize;
+    
+    s32 ActualGridWidth  = ColAmount * GridBlockSize;
+    s32 ActualGridHeight = RowAmount * GridBlockSize;
+    
+    game_rect GridArea = {};
+    GridArea.w = ActualGridWidth;
+    GridArea.h = ActualGridHeight;
+    GridArea.x = LevelEntity->GridEntity->GridArea.x + (LevelEntity->GridEntity->GridArea.w / 2) - (ActualGridWidth / 2);
+    GridArea.y = LevelEntity->GridEntity->GridArea.y + (LevelEntity->GridEntity->GridArea.h / 2) - (ActualGridHeight / 2);
     
     s32 NewFigureIndex = LevelEditor->CurrentFigureIndex;
     
@@ -3163,74 +3173,72 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         }
         else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &GridArea))
         {
-            if(!LevelEditor->ObjectIsSelected)
+            game_rect AreaQuad = { 0, 0, GridBlockSize, GridBlockSize };
+            
+            u32 StartX = 0;
+            u32 StartY = 0;
+            
+            for(u32 Row = 0; Row < RowAmount; ++Row)
             {
-                game_rect AreaQuad = { 0, 0, (s32)LevelEntity->Configuration.ActiveBlockSize, (s32)LevelEntity->Configuration.ActiveBlockSize };
+                StartY = GridArea.y + (GridBlockSize * Row);
                 
-                u32 StartX = 0;
-                u32 StartY = 0;
-                
-                for(u32 Row = 0; Row < RowAmount; ++Row)
+                for(u32 Col = 0; Col < ColAmount; ++Col)
                 {
-                    StartY = GridArea.y + (LevelEntity->Configuration.ActiveBlockSize * Row);
+                    StartX = GridArea.x + (GridBlockSize * Col);
                     
-                    for(u32 Col = 0; Col < ColAmount; ++Col)
+                    AreaQuad.x = StartX;
+                    AreaQuad.y = StartY;
+                    
+                    if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
+                                         &AreaQuad))
                     {
-                        StartX = GridArea.x + (LevelEntity->Configuration.ActiveBlockSize * Col);
-                        
-                        AreaQuad.x = StartX;
-                        AreaQuad.y = StartY;
-                        
-                        if(IsPointInsideRect(Input->MouseX, Input->MouseY, 
-                                             &AreaQuad))
+                        s32 UnitIndex = (Row * ColAmount) + Col;
+                        u32 GridUnit = LevelEntity->GridEntity->UnitField[UnitIndex];
+                        if(GridUnit == 0)
                         {
-                            s32 UnitIndex = (Row * ColAmount) + Col;
-                            u32 GridUnit = LevelEntity->GridEntity->UnitField[UnitIndex];
-                            if(GridUnit == 0)
+                            LevelEntity->GridEntity->UnitField[UnitIndex] = 1;
+                        }
+                        else
+                        {
+                            s32 Index = -1;
+                            for(u32 m = 0; m < LevelEntity->GridEntity->MovingBlocksAmount; ++m)
                             {
-                                LevelEntity->GridEntity->UnitField[UnitIndex] = 1;
-                            }
-                            else
-                            {
-                                s32 Index = -1;
-                                for(u32 m = 0; m < LevelEntity->GridEntity->MovingBlocksAmount; ++m)
-                                {
-                                    u32 RowNumber = LevelEntity->GridEntity->MovingBlocks[m].RowNumber;
-                                    u32 ColNumber = LevelEntity->GridEntity->MovingBlocks[m].ColNumber;
-                                    
-                                    if((Row == RowNumber) && (Col == ColNumber))
-                                    {
-                                        Index = m;
-                                        break;
-                                    }
-                                }
+                                u32 RowNumber = LevelEntity->GridEntity->MovingBlocks[m].RowNumber;
+                                u32 ColNumber = LevelEntity->GridEntity->MovingBlocks[m].ColNumber;
                                 
-                                if(Index >= 0)
+                                if((Row == RowNumber) && (Col == ColNumber))
                                 {
-                                    
-                                    if(!LevelEntity->GridEntity->MovingBlocks[Index].MoveSwitch)
-                                    {
-                                        LevelEntity->GridEntity->MovingBlocks[Index].MoveSwitch = true;
-                                    }
-                                    else if(!LevelEntity->GridEntity->MovingBlocks[Index].IsVertical)
-                                    {
-                                        LevelEntity->GridEntity->MovingBlocks[Index].IsVertical = true;
-                                        LevelEntity->GridEntity->MovingBlocks[Index].MoveSwitch = false;
-                                    }
-                                    else
-                                    {
-                                        GridEntityDeleteMovingBlock(LevelEntity->GridEntity, Index);
-                                        LevelEntity->GridEntity->UnitField[UnitIndex] = 0;
-                                    }
+                                    Index = m;
+                                    break;
+                                }
+                            }
+                            
+                            if(Index >= 0)
+                            {
+                                
+                                if(!LevelEntity->GridEntity->MovingBlocks[Index].MoveSwitch)
+                                {
+                                    LevelEntity->GridEntity->MovingBlocks[Index].MoveSwitch = true;
+                                }
+                                else if(!LevelEntity->GridEntity->MovingBlocks[Index].IsVertical)
+                                {
+                                    LevelEntity->GridEntity->MovingBlocks[Index].IsVertical = true;
+                                    LevelEntity->GridEntity->MovingBlocks[Index].MoveSwitch = false;
                                 }
                                 else
                                 {
-                                    GridEntityAddMovingBlock(LevelEntity->GridEntity, Row, Col, false, false, LevelEntity->Configuration.ActiveBlockSize);
+                                    GridEntityDeleteMovingBlock(LevelEntity->GridEntity, Index);
+                                    LevelEntity->GridEntity->UnitField[UnitIndex] = 0;
                                 }
+                            }
+                            else
+                            {
+                                GridEntityAddMovingBlock(LevelEntity->GridEntity, Row, Col, false, false, LevelEntity->Configuration.GridBlockSize);
                             }
                         }
                     }
                 }
+                
             }
         }
     }

@@ -2131,14 +2131,6 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
     game_point GridCenter = {};
     GridCenter.x = GridArea.x + roundf((r32)GridArea.w / 2.0f);
     GridCenter.y = GridArea.y + roundf((r32)GridArea.h / 2.0f);
-    //
-    //s32 MinRowSize = roundf((r32)GridArea.h / (r32)RowAmount);
-    //s32 MinColSize = roundf((r32)GridArea.w / (r32)ColumnAmount);
-    //
-    //GridBlockSize = MinRowSize < MinColSize ? MinRowSize : MinColSize;
-    //GridQuad.w = GridBlockSize;
-    //GridQuad.h = GridBlockSize;
-    
     
     for (u32 Row = 0; Row < RowAmount; ++Row)
     {
