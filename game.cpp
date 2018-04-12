@@ -151,11 +151,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->FadeInSum     = 0;
         FigureEntity->FadeOutSum    = 0;
         
-        //FigureEntity->FigureArea.w  = Buffer->Width;
-        //FigureEntity->FigureArea.h  = InActiveBlockSize * //LevelEntity->Configuration.DefaultBlocksInCol;
-        //FigureEntity->FigureArea.y  = Buffer->Height - (FigureEntity->FigureArea.h);
-        //FigureEntity->FigureArea.x  = 0;
-        
         FigureEntity->FigureArea = FigureAreaRect;
         
         //FigureEntity->FigureArea = ConvertMathRectToGameRect(FigureArea);
@@ -271,7 +266,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         menu_editor  *MenuEditor  = (menu_editor *) (((char*)Memory->EditorMemoryStorage) + (sizeof(level_editor))); 
         
         /* level_editor initialization */ 
-        GameUpdateRelativePositions(Buffer, LevelEntity, Memory);
+        GameUpdatePositionsLandscape(Buffer, LevelEntity, Memory);
         LevelEditorInit(LevelEditor, LevelEntity, Memory, Buffer);
         
         /* menu_editor initialization */ 
