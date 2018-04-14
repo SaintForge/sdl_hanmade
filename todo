@@ -25,8 +25,8 @@
 +	8. Find or implement a math vector!
 -    9. Change unit field memory allocation to be just one block of memory instead 
 		allocating memory for every row!
--	10. Need to think about the maximum size of active block
--	11. Make game to be more resolution independent
++	10. Need to think about the maximum size of active block
++	11. Make game to be more resolution independent
 
 ---Data serialization---
 +	1. Distinct assets into groups of sprites, sound and music
@@ -51,7 +51,7 @@
 -	5. Separate editor code from the game code so that no editor code will be in release
 -	6. Make separate binary file for editor assets loading
 +	7. Implement sorting selected buttons
--	8. Panel for resolution independence testing:
++	8. Panel for resolution independence testing:
 
 	   Object Scaler
 	 <	 Width	>
