@@ -117,7 +117,6 @@ struct level_config
 {
     u32 DefaultBlocksInRow;
     u32 DefaultBlocksInCol;
-    u32 ActiveBlockSize;
     u32 InActiveBlockSize;
     
     r32 StartUpTimeToFinish;

@@ -54,6 +54,7 @@ GameCopyImageToBuffer(game_bitmap* GameBitmap, u32 X, u32 Y,
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
+    
     bool ShouldQuit = false;
     
     if(!Memory->IsInitialized)
@@ -112,9 +113,16 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         //for DEBUG purposes only
         game_rect FigureAreaRect = ConvertMathRectToGameRect(FigureArea);
         
-        LevelEntity->Configuration.InActiveBlockSize = CalculateFigureBlockSize(3, FigureAreaRect.w, FigureAreaRect.h);
+        if(Buffer->Width < Buffer->Height)
+        {
+            LevelEntity->Configuration.InActiveBlockSize = CalculateFigureBlockSizeByHeight(3,FigureAreaRect.h);
+        }
+        else
+        {
+            LevelEntity->Configuration.InActiveBlockSize = CalculateFigureBlockSizeByWidth(3, FigureAreaRect.w);
+        }
         
-        u32 ActiveBlockSize   = LevelEntity->Configuration.ActiveBlockSize;
+        u32 GridBlockSize = LevelEntity->Configuration.GridBlockSize;
         u32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
         
         /* Change values below to be time configured */
@@ -124,7 +132,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         LevelEntity->Configuration.StartAlphaPerSec    = 500.0f;
         LevelEntity->Configuration.FlippingAlphaPerSec = 1000.0f;
         
-        LevelEntity->Configuration.GridScalePerSec     = (ActiveBlockSize * ((RowAmount + ColumnAmount) - 1)) / LevelEntity->Configuration.StartUpTimeToFinish;
         
         /* figure_entity initialization */
         
@@ -167,7 +174,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureUnitAddNewFigure(FigureEntity, I_figure, stone,   0.0f, Memory, Buffer);
         FigureUnitAddNewFigure(FigureEntity, J_figure, mirror,  0.0f, Memory, Buffer);
         
-        
         FigureEntity->FigureOrder = (u32*)malloc(sizeof(u32) * FigureEntity->FigureAmountReserved);
         Assert(FigureEntity->FigureOrder);
         
@@ -188,8 +194,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->MovingBlocksAmount  = 0;
         GridEntity->MovingBlocksAmountReserved  = MovingBlocksAmountReserved;
         
-        GridEntity->GridArea.w = ActiveBlockSize * ColumnAmount;
-        GridEntity->GridArea.h = ActiveBlockSize * RowAmount;
+        GridEntity->GridArea.w = GridBlockSize * ColumnAmount;
+        GridEntity->GridArea.h = GridBlockSize * RowAmount;
         GridEntity->GridArea.x = (Buffer->Width / 2) - (GridEntity->GridArea.w / 2);
         GridEntity->GridArea.y = (Buffer->Height - FigureEntity->FigureArea.h) / 2 - (GridEntity->GridArea.h / 2);
         

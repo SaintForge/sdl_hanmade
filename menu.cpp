@@ -8,6 +8,51 @@
 //
 
 static void
+MenuEntityUpdatePositionsLandscape(game_offscreen_buffer *Buffer, menu_entity *MenuEntity, game_memory *Memory)
+{
+    s32 ActualWidth = Buffer->Width;
+    s32 ActualHeight = Buffer->Height;
+    
+    s32 ReferenceWidth = Buffer->ReferenceWidth;
+    s32 ReferenceHeight = Buffer->ReferenceHeight;
+    
+    r32 ScaleByWidth = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 0.0f);
+    r32 ScaleByHeight = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 1.0f);
+    r32 ScaleByAll = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 0.5f);
+    
+    // Reference resolution is 800x600
+    
+    // Level button
+    {
+        s32 ButtonWidth  = 100;
+        s32 ButtonHeight = 100;
+        
+        ButtonWidth  = (r32)ButtonWidth  * ScaleByWidth;
+        ButtonHeight = (r32)ButtonHeight * ScaleByWidth;
+        
+        MenuEntity->ButtonSizeWidth  = ButtonWidth;
+        MenuEntity->ButtonSizeHeight = ButtonHeight;
+    }
+    
+    // Menu level buttons area
+    {
+        s32 ButtonsPerRow = 4;
+        s32 ButtonsPerColumn = 5;
+        
+        s32 SpaceBetweenButtons = 10;
+        SpaceBetweenButtons = (r32)SpaceBetweenButtons * ScaleByAll;
+        
+        s32 ButtonWidth = MenuEntity->ButtonSizeWidth;
+        s32 ButtonHeight = MenuEntity->ButtonSizeHeight;
+        
+        game_rect ButtonsArea = {};
+        
+        ButtonsArea.w = (ButtonWidth * ButtonsPerRow) + ((ButtonsPerRow - 1) * SpaceBetweenButtons);
+        ButtonsArea.h = (ButtonHeight * ButtonsPerColumn) + ((ButtonsPerColumn - 1) * SpaceBetweenButtons);
+    }
+}
+
+static void
 MenuEntityAlignButtons(menu_entity *MenuEntity, 
                        u32 ScreenWidth, 
                        u32 ScreenHeight)
@@ -428,6 +473,9 @@ MenuUpdateAndRender(menu_entity *MenuEntity, game_memory *Memory,
     }
     
     /* Menu Rendering */
+    
+    game_rect ScreenRect = {0, 0, Buffer->Width, Buffer->Height};
+    DEBUGRenderQuadFill(Buffer, &ScreenRect, {0, 128, 255}, 100);
     
     u32 ButtonsAreaAmount = (MenuEntity->ButtonsAmount / 20) + 1;
     for(u32 i = 0; i < ButtonsAreaAmount; ++i)

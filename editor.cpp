@@ -219,6 +219,11 @@ enum editor_type
     GAME_EDITOR
 };
 
+enum device_orientation
+{
+    LANDSCAPE, PORTRAIT
+};
+
 struct level_editor
 {
     /* For switching to editor mode*/
@@ -301,11 +306,30 @@ struct level_editor
     game_rect ResPanelQuad;
     resolution_routine ResPanel;
     
+    device_orientation Orientation;
+    
     // Objects that we actually edit
     bool ObjectIsSelected;
     s32 EditorObjectIndex;
-    editor_object EditorObject[2];
+    editor_object EditorObject[3];
 };
+
+static char*
+GetOrientationString(device_orientation Orientation)
+{
+    char *Result = {};
+    
+    if(Orientation == LANDSCAPE)
+    {
+        Result = "Landscape";
+    }
+    else if(Orientation == PORTRAIT)
+    {
+        Result = "Portrait";
+    }
+    
+    return(Result);
+}
 
 static void
 LevelEditorUpdateTextOnButton(game_offscreen_buffer *Buffer, game_font *&Font, char *TextBuffer, game_texture *&Texture, game_rect *TextureQuad, game_rect *AreaQuad, game_color Color)
@@ -593,7 +617,8 @@ LevelEditorUpdatePositionsPortrait(game_offscreen_buffer *Buffer, level_editor *
         
         LevelEditor->PrevLevelQuad.w = (r32)LevelEditor->PrevLevelQuad.w * ScaleByHeight;
         LevelEditor->PrevLevelQuad.h = (r32)LevelEditor->PrevLevelQuad.h * ScaleByHeight;
-        LevelEditor->PrevLevelQuad.x = Memory->PadRect.x; LevelEditor->PrevLevelQuad.y = Memory->PadRect.y - LevelEditor->PrevLevelQuad.h; 
+        LevelEditor->PrevLevelQuad.x = Memory->PadRect.x; LevelEditor->PrevLevelQuad.y = 
+            Memory->PadRect.y + Memory->PadRect.h - LevelEditor->PrevLevelQuad.h;
         
         LevelEditor->NextLevelQuad.w = (r32)LevelEditor->NextLevelQuad.w * ScaleByHeight;
         LevelEditor->NextLevelQuad.h = (r32)LevelEditor->NextLevelQuad.h * ScaleByHeight;
@@ -871,7 +896,7 @@ LevelEditorUpdatePositionsPortrait(game_offscreen_buffer *Buffer, level_editor *
         LevelEditor->ResPanelQuad.w = ButtonWidth;
         LevelEditor->ResPanelQuad.h = ButtonHeight * ButtonAmount;
         
-        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Scale Factor", 
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Orientation", 
                                   LevelEditor->ResPanelQuad.x,
                                   LevelEditor->ResPanelQuad.y,
                                   ButtonWidth, ButtonHeight,
@@ -888,7 +913,10 @@ LevelEditorUpdatePositionsPortrait(game_offscreen_buffer *Buffer, level_editor *
                                   ArrowWidth, ButtonHeight,
                                   &LevelEditor->ResPanel.LeftArrowButton, 255, 255, 255);
         
-        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Width", 
+        LevelEditor->Orientation = PORTRAIT;
+        char *OrientationString  = GetOrientationString(PORTRAIT);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, OrientationString, 
                                   LevelEditor->ResPanelQuad.x + ArrowWidth,
                                   LevelEditor->ResPanelQuad.y + ButtonHeight,
                                   SwitchWidth, ButtonHeight,
@@ -959,11 +987,11 @@ LevelEditorUpdatePositionsPortrait(game_offscreen_buffer *Buffer, level_editor *
         
         char ReferenceWidthBuffer[8] = {};
         LevelEditor->ResPanel.ReferenceWidth = Buffer->ReferenceWidth;
-        sprintf(ReferenceWidthBuffer, "%d", LevelEditor->ResPanel.ReferenceWidth);
+        sprintf(ReferenceWidthBuffer, "%d", LevelEditor->ResPanel.ReferenceHeight);
         
         char ReferenceHeightBuffer[8] = {};
         LevelEditor->ResPanel.ReferenceHeight = Buffer->ReferenceHeight;
-        sprintf(ReferenceHeightBuffer, "%d", LevelEditor->ResPanel.ReferenceHeight);
+        sprintf(ReferenceHeightBuffer, "%d", LevelEditor->ResPanel.ReferenceWidth);
         
         LevelEditorMakeTextButton(Buffer, LevelEditor->Font, ReferenceWidthBuffer, 
                                   LevelEditor->ResPanelQuad.x + ButtonName,
@@ -991,8 +1019,9 @@ LevelEditorUpdatePositionsPortrait(game_offscreen_buffer *Buffer, level_editor *
         
     }
     
-    LevelEditor->EditorObject[0].AreaQuad = LevelEntity->GridEntity->GridArea;
+    LevelEditor->EditorObject[0].AreaQuad = LevelEntity->LevelNumberQuad;
     LevelEditor->EditorObject[1].AreaQuad = LevelEntity->FigureEntity->FigureArea;
+    LevelEditor->EditorObject[3].AreaQuad = LevelEntity->GridEntity->GridArea;
 }
 
 static void
@@ -1038,7 +1067,7 @@ LevelEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, level_editor 
         
         LevelEditor->PrevLevelQuad.w = (r32)LevelEditor->PrevLevelQuad.w * NewScale;
         LevelEditor->PrevLevelQuad.h = (r32)LevelEditor->PrevLevelQuad.h * NewScale;
-        LevelEditor->PrevLevelQuad.x = Memory->PadRect.x; LevelEditor->PrevLevelQuad.y = Memory->PadRect.y - LevelEditor->PrevLevelQuad.h; 
+        LevelEditor->PrevLevelQuad.x = Memory->PadRect.x; LevelEditor->PrevLevelQuad.y = Memory->PadRect.y + Memory->PadRect.h - LevelEditor->PrevLevelQuad.h;
         
         LevelEditor->NextLevelQuad.w = (r32)LevelEditor->NextLevelQuad.w * NewScale;
         LevelEditor->NextLevelQuad.h = (r32)LevelEditor->NextLevelQuad.h * NewScale;
@@ -1326,7 +1355,8 @@ LevelEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, level_editor 
         LevelEditor->ResPanelQuad.w = ButtonWidth;
         LevelEditor->ResPanelQuad.h = ButtonHeight * ButtonAmount;
         
-        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Scale Factor", 
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Orientation", 
                                   LevelEditor->ResPanelQuad.x,
                                   LevelEditor->ResPanelQuad.y,
                                   ButtonWidth, ButtonHeight,
@@ -1343,7 +1373,11 @@ LevelEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, level_editor 
                                   ArrowWidth, ButtonHeight,
                                   &LevelEditor->ResPanel.LeftArrowButton, 255, 255, 255);
         
-        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, "Width", 
+        
+        LevelEditor->Orientation = LANDSCAPE;
+        char *OrientationString  = GetOrientationString(LANDSCAPE);
+        
+        LevelEditorMakeTextButton(Buffer, LevelEditor->Font, OrientationString, 
                                   LevelEditor->ResPanelQuad.x + ArrowWidth,
                                   LevelEditor->ResPanelQuad.y + ButtonHeight,
                                   SwitchWidth, ButtonHeight,
@@ -1446,8 +1480,9 @@ LevelEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, level_editor 
         
     }
     
-    LevelEditor->EditorObject[0].AreaQuad = LevelEntity->GridEntity->GridArea;
+    LevelEditor->EditorObject[0].AreaQuad = LevelEntity->LevelNumberQuad;
     LevelEditor->EditorObject[1].AreaQuad = LevelEntity->FigureEntity->FigureArea;
+    LevelEditor->EditorObject[2].AreaQuad = LevelEntity->GridEntity->GridArea;
 }
 
 static void
@@ -1458,15 +1493,19 @@ LevelEditorInit(level_editor *LevelEditor, level_entity *LevelEntity, game_memor
     LevelEditor->EditorType = LEVEL_EDITOR;
     
     LevelEditor->ObjectIsSelected  = false;
-    LevelEditor->EditorObjectIndex = 0;
+    LevelEditor->EditorObjectIndex = -1;
     
-    // Grid Area Object
+    // Level Number Object
     LevelEditor->EditorObject[0].ScaleType = WIDTH;
-    LevelEditor->EditorObject[0].AreaQuad  = LevelEntity->GridEntity->GridArea;
+    LevelEditor->EditorObject[0].AreaQuad  = LevelEntity->LevelNumberQuad;
     
     // Figure Area Object
     LevelEditor->EditorObject[1].ScaleType = WIDTH;
     LevelEditor->EditorObject[1].AreaQuad  = LevelEntity->FigureEntity->FigureArea; 
+    
+    // Grid Area Object
+    LevelEditor->EditorObject[2].ScaleType = WIDTH;
+    LevelEditor->EditorObject[2].AreaQuad  = LevelEntity->GridEntity->GridArea;
     
     /* Next/Prev level buttons */
     
@@ -2257,7 +2296,7 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->SwitchConfiguration.Quad))
         {
             LevelEditor->EditorType = LEVEL_EDITOR;
-            LevelEditorUpdateTextOnButton(Buffer, LevelEditor->Font, "Level configuration", LevelEditor->SwitchConfiguration.Texture, &LevelEditor->SwitchConfiguration.TextureQuad, &LevelEditor->SwitchConfiguration.Quad, {255, 255, 255});
+            LevelEditorUpdateTextOnButton(Buffer, LevelEditor->Font, "< Level configuration >", LevelEditor->SwitchConfiguration.Texture, &LevelEditor->SwitchConfiguration.TextureQuad, &LevelEditor->SwitchConfiguration.Quad, {255, 255, 255});
             
             LevelEditor->CursorType = ARROW;
             
@@ -2320,12 +2359,48 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             {
                 printf("Left arrow\n");
                 
+                s32 TempVariable = Buffer->Width;
+                Buffer->Width = Buffer->Height;
+                Buffer->Height = TempVariable;
+                
+                SDL_RenderSetLogicalSize(Buffer->Renderer, Buffer->Width, Buffer->Height);
+                
+                if(Buffer->Width > Buffer->Height)
+                {
+                    GameUpdatePositionsLandscape(Buffer, LevelEntity, Memory);
+                    LevelEditorUpdatePositionsLandscape(Buffer, LevelEditor, LevelEntity, Memory);
+                }
+                else
+                {
+                    GameUpdatePositionsPortrait(Buffer, LevelEntity, Memory);
+                    LevelEditorUpdatePositionsPortrait(Buffer, LevelEditor, LevelEntity, Memory);
+                }
+                
+                
                 LevelEditor->ButtonSelected = true;
                 LevelEditor->HighlightButtonQuad = LevelEditor->ResPanel.LeftArrowButton.Quad;
             }
             else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->ResPanel.RightArrowButton.Quad))
             {
                 printf("Right arrow\n");
+                
+                s32 TempVariable = Buffer->Width;
+                Buffer->Width = Buffer->Height;
+                Buffer->Height = TempVariable;
+                
+                SDL_RenderSetLogicalSize(Buffer->Renderer, Buffer->Width, Buffer->Height);
+                
+                if(Buffer->Width > Buffer->Height)
+                {
+                    GameUpdatePositionsLandscape(Buffer, LevelEntity, Memory);
+                    LevelEditorUpdatePositionsLandscape(Buffer, LevelEditor, LevelEntity, Memory);
+                }
+                else
+                {
+                    GameUpdatePositionsPortrait(Buffer, LevelEntity, Memory);
+                    LevelEditorUpdatePositionsPortrait(Buffer, LevelEditor, LevelEntity, Memory);
+                }
+                
                 
                 LevelEditor->ButtonSelected = true;
                 LevelEditor->HighlightButtonQuad = LevelEditor->ResPanel.RightArrowButton.Quad;
@@ -2390,8 +2465,6 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                     LevelEditorUpdatePositionsPortrait(Buffer, LevelEditor, LevelEntity, Memory);
                 }
                 
-                
-                
             }
         }
         else
@@ -2406,31 +2479,41 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             }
             else
             {
-                for(s32 i = 0; i < 2; ++i)
+                for(s32 i = 0; i < 3; ++i)
                 {
                     if(IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEditor->EditorObject[i].AreaQuad))
                     {
                         LevelEditor->ObjectIsSelected = true;
                         LevelEditor->EditorObjectIndex = i;
+                        break;
                     }
                 }
-                
-                if(LevelEditor->ObjectIsSelected)
-                {
-                    if(LevelEditor->EditorObjectIndex == 0)
-                    {
-                        LevelEditorUpdateCoordinates(Buffer, LevelEditor->Font, &LevelEditor->PosPanel, LevelEntity->GridEntity->GridArea, 
-                                                     Memory->PadRect, {0, 0, Buffer->Width, Buffer->Height});
-                    }
-                    else if(LevelEditor->EditorObjectIndex == 1)
-                    {
-                        LevelEditorUpdateCoordinates(Buffer, LevelEditor->Font, &LevelEditor->PosPanel, LevelEntity->FigureEntity->FigureArea, 
-                                                     Memory->PadRect, {0, 0, Buffer->Width, Buffer->Height});
-                    }
-                    
-                }
-                
             }
+            
+            
+            if(LevelEditor->ObjectIsSelected)
+            {
+                game_rect SelectedArea = {};
+                game_rect ScreenArea = {0, 0, Buffer->Width, Buffer->Height};
+                game_rect GameArea   = Memory->PadRect;
+                
+                if(LevelEditor->EditorObjectIndex == 0)
+                {
+                    SelectedArea = LevelEntity->LevelNumberQuad;
+                }
+                else if(LevelEditor->EditorObjectIndex == 1)
+                {
+                    SelectedArea = LevelEntity->FigureEntity->FigureArea;
+                }
+                else if(LevelEditor->EditorObjectIndex == 2)
+                {
+                    SelectedArea = LevelEntity->GridEntity->GridArea;
+                }
+                
+                LevelEditorUpdateCoordinates(Buffer, LevelEditor->Font, &LevelEditor->PosPanel, SelectedArea,
+                                             GameArea, ScreenArea);
+            }
+            
             
         }
         
@@ -2457,7 +2540,7 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         PanelArea.x = LevelEditor->LevelPropertiesQuad.x;
         PanelArea.y = LevelEditor->LevelPropertiesQuad.y;
         PanelArea.w = LevelEditor->LevelPropertiesQuad.w;
-        PanelArea.h = LevelEditor->PosPanelQuad.h + LevelEditor->ResPanelQuad.h;
+        PanelArea.h = LevelEditor->SwitchConfiguration.Quad.h + LevelEditor->PosPanelQuad.h + LevelEditor->ResPanelQuad.h;
         
         if(IsPointInsideRect(Input->MouseX, Input->MouseY, &PanelArea))
         {
@@ -2602,15 +2685,10 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         
         if(Index == 0)
         {
-            game_rect GridArea = ConvertMathRectToGameRect(AreaQuad);
+            LevelEditor->EditorObject[Index].AreaQuad = ConvertMathRectToGameRect(AreaQuad);
             
-            LevelEditor->EditorObject[Index].AreaQuad = GridArea;
-            LevelEntity->GridEntity->GridArea = GridArea;
-            
-            LevelEntity->Configuration.GridBlockSize = CalculateGridBlockSize(RowAmount, ColAmount, GridArea.w, GridArea.h);
-            
-            LevelEditorUpdateCoordinates(Buffer, LevelEditor->Font, &LevelEditor->PosPanel, LevelEntity->GridEntity->GridArea, 
-                                         Memory->PadRect, {0, 0, Buffer->Width, Buffer->Height});
+            LevelEntity->LevelNumberQuad = LevelEditor->EditorObject[Index].AreaQuad;
+            LevelEntity->LevelNumberShadowQuad = LevelEditor->EditorObject[Index].AreaQuad;
             
         }
         else if(Index == 1)
@@ -2619,10 +2697,20 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             
             LevelEntity->FigureEntity->FigureArea = LevelEditor->EditorObject[Index].AreaQuad;
             
+            s32 FigureBlockSize = 0;
             s32 OldFigureBlockSize = LevelEntity->Configuration.InActiveBlockSize;
-            s32 FigureBlockSize = 
-                CalculateFigureBlockSize(LevelEntity->FigureEntity->FigureAmount, LevelEntity->FigureEntity->FigureArea.w, 
-                                         LevelEntity->FigureEntity->FigureArea.h);
+            
+            if(LevelEditor->Orientation == LANDSCAPE)
+            {
+                FigureBlockSize = 
+                    CalculateFigureBlockSizeByWidth(LevelEntity->FigureEntity->FigureAmount, LevelEntity->FigureEntity->FigureArea.w);
+            }
+            else
+            {
+                FigureBlockSize = 
+                    CalculateFigureBlockSizeByHeight(LevelEntity->FigureEntity->FigureAmount, 
+                                                     LevelEntity->FigureEntity->FigureArea.h);
+            }
             
             LevelEntity->Configuration.InActiveBlockSize = FigureBlockSize;
             
@@ -2633,7 +2721,14 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 FigureUnitResizeBy(&LevelEntity->FigureEntity->FigureUnit[i], BlockRatio);
             }
             
-            FigureEntityAlignHorizontally(LevelEntity->FigureEntity, FigureBlockSize);
+            if(LevelEditor->Orientation == LANDSCAPE)
+            {
+                FigureEntityAlignVertically(LevelEntity->FigureEntity, FigureBlockSize);
+            }
+            else
+            {
+                FigureEntityAlignHorizontally(LevelEntity->FigureEntity, FigureBlockSize);
+            }
             
             LevelEditorUpdateCoordinates(Buffer, LevelEditor->Font, &LevelEditor->PosPanel, LevelEntity->FigureEntity->FigureArea, 
                                          Memory->PadRect, {0, 0, Buffer->Width, Buffer->Height});
@@ -2641,7 +2736,15 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         }
         else if(Index == 2)
         {
+            game_rect GridArea = ConvertMathRectToGameRect(AreaQuad);
             
+            LevelEditor->EditorObject[Index].AreaQuad = GridArea;
+            LevelEntity->GridEntity->GridArea = GridArea;
+            
+            LevelEntity->Configuration.GridBlockSize = CalculateGridBlockSize(RowAmount, ColAmount, GridArea.w, GridArea.h);
+            
+            LevelEditorUpdateCoordinates(Buffer, LevelEditor->Font, &LevelEditor->PosPanel, LevelEntity->GridEntity->GridArea, 
+                                         Memory->PadRect, {0, 0, Buffer->Width, Buffer->Height});
         }
         
     }
@@ -2650,6 +2753,7 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     {
         s32 Index = LevelEditor->EditorObjectIndex;
         DEBUGRenderQuad(Buffer, &LevelEditor->EditorObject[Index].AreaQuad, {255, 255, 0}, 255);
+        DEBUGRenderQuadFill(Buffer, &LevelEditor->EditorObject[Index].AreaQuad, {255, 255, 255}, 50);
     }
     
     if(LevelEditor->ResPanel.ResNumberSelected)
@@ -2680,6 +2784,14 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         }
         
         DEBUGRenderQuadFill(Buffer, &CurrentNumberTextureQuad, {255, 0, 255}, 255);
+    }
+    
+    for(s32 i = 0; i < 3;++i)
+    {
+        if(i != LevelEditor->EditorObjectIndex)
+        {
+            DEBUGRenderQuad(Buffer, &LevelEditor->EditorObject[i].AreaQuad, {255, 255, 255}, 255);
+        }
     }
     
     RenderButtonQuad(Buffer, &LevelEditor->SwitchConfiguration, 255, 192, 203, 100);
@@ -2780,7 +2892,6 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         LevelEditorUpdateLevelStats(LevelEditor->LevelPropertiesQuad.w + 10, 0, 
                                     LevelEditor, LevelEntity->LevelNumber, 
                                     CurrentLevelIndex, Buffer);
-        
     }
     
     if(LevelEditor->LevelNumberSelected)
@@ -2794,6 +2905,16 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             {
                 LevelEditor->LevelNumberBuffer[DigitIndex] = NextDigit;
                 LevelEditor->LevelNumberBufferIndex = ++DigitIndex;
+                
+                game_point QuadCenter = {};
+                
+                QuadCenter.x = LevelEntity->LevelNumberQuad.x + (LevelEntity->LevelNumberQuad.w / 2);
+                QuadCenter.y = LevelEntity->LevelNumberQuad.y + (LevelEntity->LevelNumberQuad.h / 2);
+                
+                game_point QuadShadowCenter = {};
+                
+                QuadShadowCenter.x = LevelEntity->LevelNumberShadowQuad.x + (LevelEntity->LevelNumberShadowQuad.w / 2);
+                QuadShadowCenter.y = LevelEntity->LevelNumberShadowQuad.y + (LevelEntity->LevelNumberShadowQuad.h / 2);
                 
                 GameMakeTextureFromString(LevelEntity->LevelNumberTexture, 
                                           LevelEditor->LevelNumberBuffer, 
@@ -2809,11 +2930,14 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                           {0, 0, 0}, 
                                           Buffer);
                 
-                LevelEntity->LevelNumberQuad.x = (Buffer->Width - LevelEntity->LevelNumberQuad.w) - (LevelEntity->LevelNumberQuad.w / 2);
-                LevelEntity->LevelNumberQuad.y = 0;
                 
-                LevelEntity->LevelNumberShadowQuad.x = LevelEntity->LevelNumberQuad.x + 3;
-                LevelEntity->LevelNumberShadowQuad.y = LevelEntity->LevelNumberQuad.y + 3;
+                
+                LevelEntity->LevelNumberQuad.x = QuadCenter.x - (LevelEntity->LevelNumberQuad.w / 2);
+                LevelEntity->LevelNumberQuad.y = QuadCenter.y - (LevelEntity->LevelNumberQuad.h / 2);
+                
+                LevelEntity->LevelNumberShadowQuad.x = QuadShadowCenter.x - (LevelEntity->LevelNumberShadowQuad.w / 2);
+                
+                LevelEntity->LevelNumberShadowQuad.y = QuadShadowCenter.y - (LevelEntity->LevelNumberShadowQuad.h / 2);
             }
         }
         
@@ -2896,7 +3020,7 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             if(LevelEditor->EditorType == LEVEL_EDITOR)
             {
                 LevelEditor->EditorType = GAME_EDITOR;
-                LevelEditorUpdateTextOnButton(Buffer, LevelEditor->Font, "Game configuration", LevelEditor->SwitchConfiguration.Texture, &LevelEditor->SwitchConfiguration.TextureQuad, &LevelEditor->SwitchConfiguration.Quad, {255, 255, 255});
+                LevelEditorUpdateTextOnButton(Buffer, LevelEditor->Font, "< Game configuration >", LevelEditor->SwitchConfiguration.Texture, &LevelEditor->SwitchConfiguration.TextureQuad, &LevelEditor->SwitchConfiguration.Quad, {255, 255, 255});
                 
                 LevelEditor->ButtonSelected = true;
                 LevelEditor->HighlightButtonQuad = LevelEditor->SwitchConfiguration.Quad;
@@ -2924,6 +3048,17 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 char StringBuffer[4] = {};
                 sprintf(StringBuffer, "%d", LevelEntity->LevelNumber);
                 
+                
+                game_point QuadCenter = {};
+                
+                QuadCenter.x = LevelEntity->LevelNumberQuad.x + (LevelEntity->LevelNumberQuad.w / 2);
+                QuadCenter.y = LevelEntity->LevelNumberQuad.y + (LevelEntity->LevelNumberQuad.h / 2);
+                
+                game_point QuadShadowCenter = {};
+                
+                QuadShadowCenter.x = LevelEntity->LevelNumberShadowQuad.x + (LevelEntity->LevelNumberShadowQuad.w / 2);
+                QuadShadowCenter.y = LevelEntity->LevelNumberShadowQuad.y + (LevelEntity->LevelNumberShadowQuad.h / 2);
+                
                 GameMakeTextureFromString(LevelEntity->LevelNumberTexture, 
                                           StringBuffer, 
                                           &LevelEntity->LevelNumberQuad, 
@@ -2938,12 +3073,12 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                                           {0, 0, 0}, 
                                           Buffer);
                 
+                LevelEntity->LevelNumberQuad.x = QuadCenter.x - (LevelEntity->LevelNumberQuad.w / 2);
+                LevelEntity->LevelNumberQuad.y = QuadCenter.y - (LevelEntity->LevelNumberQuad.h / 2);
                 
-                LevelEntity->LevelNumberQuad.x = (Buffer->Width - LevelEntity->LevelNumberQuad.w) - (LevelEntity->LevelNumberQuad.w / 2);
-                LevelEntity->LevelNumberQuad.y = 0;
+                LevelEntity->LevelNumberShadowQuad.x = QuadShadowCenter.x - (LevelEntity->LevelNumberShadowQuad.w / 2);
                 
-                LevelEntity->LevelNumberShadowQuad.x = LevelEntity->LevelNumberQuad.x + 3;
-                LevelEntity->LevelNumberShadowQuad.y = LevelEntity->LevelNumberQuad.y + 3;
+                LevelEntity->LevelNumberShadowQuad.y = QuadShadowCenter.y - (LevelEntity->LevelNumberShadowQuad.h / 2);
             }
         }
         
@@ -2997,7 +3132,16 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 if(FigureAmount > 0)
                 {
                     FigureUnitDeleteFigure(LevelEntity->FigureEntity, LevelEntity->FigureEntity->FigureAmount - 1);
-                    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
+                    
+                    if(LevelEditor->Orientation == LANDSCAPE)
+                    {
+                        FigureEntityAlignVertically(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
+                    }
+                    else
+                    {
+                        FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
+                    }
+                    
                     GridEntityUpdateStickUnits(LevelEntity->GridEntity, LevelEntity->FigureEntity->FigureAmount);
                     
                     LevelEditorChangeFigureCounter(LevelEditor, FigureAmount - 1, Buffer);
@@ -3014,7 +3158,17 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 if(FigureAmount < LevelEntity->FigureEntity->FigureAmountReserved)
                 {
                     FigureUnitAddNewFigure(LevelEntity->FigureEntity, O_figure, classic, 0.0f, Memory, Buffer);
-                    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
+                    
+                    if(LevelEditor->Orientation == LANDSCAPE)
+                    {
+                        FigureEntityAlignVertically(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
+                    }
+                    else
+                    {
+                        FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
+                    }
+                    
+                    
                     GridEntityUpdateStickUnits(LevelEntity->GridEntity, LevelEntity->FigureEntity->FigureAmount);
                     
                     LevelEditorChangeFigureCounter(LevelEditor, FigureAmount + 1, Buffer);
@@ -3031,7 +3185,15 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 printf("flip!\n");
                 
                 FigureUnitFlipHorizontally(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->CurrentFigureIndex]);
-                FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
+                
+                if(LevelEditor->Orientation == LANDSCAPE)
+                {
+                    FigureEntityAlignVertically(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
+                }
+                else
+                {
+                    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
+                }
                 
                 LevelEditor->ButtonSelected = true;
                 LevelEditor->HighlightButtonQuad = LevelEditor->FlipFigureButton.Quad;
@@ -3042,7 +3204,15 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 
                 FigureUnitRotateShellBy(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->CurrentFigureIndex], 90);
                 LevelEntity->FigureEntity->FigureUnit[LevelEditor->CurrentFigureIndex].Angle += 90.0f;
-                FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
+                
+                if(LevelEditor->Orientation == LANDSCAPE)
+                {
+                    FigureEntityAlignVertically(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
+                }
+                else
+                {
+                    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
+                }
                 
                 LevelEditor->ButtonSelected = true;
                 LevelEditor->HighlightButtonQuad = LevelEditor->RotateFigureButton.Quad;
@@ -3053,15 +3223,20 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 
                 if(LevelEditor->CurrentFigureIndex >= 0)
                 {
-                    FreeTexture(LevelEntity->FigureEntity->FigureUnit[LevelEditor->CurrentFigureIndex].Texture);
-                    
                     figure_type Type = LevelEditorGetNextFigureType(LevelEntity->FigureEntity->FigureUnit[LevelEditor->CurrentFigureIndex].Type);
                     
                     figure_form Form = LevelEntity->FigureEntity->FigureUnit[LevelEditor->CurrentFigureIndex].Form;
                     
                     FigureUnitInitFigure(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->CurrentFigureIndex], Form,Type, 0.0f, Memory, Buffer);
                     
-                    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
+                    if(LevelEditor->Orientation == LANDSCAPE)
+                    {
+                        FigureEntityAlignVertically(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
+                    }
+                    else
+                    {
+                        FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
+                    }
                 }
                 
                 LevelEditor->ButtonSelected = true;
@@ -3074,15 +3249,21 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 
                 if(LevelEditor->CurrentFigureIndex >= 0)
                 {
-                    FreeTexture(LevelEntity->FigureEntity->FigureUnit[LevelEditor->CurrentFigureIndex].Texture);
-                    
                     figure_form Form = LevelEditorGetNextFigureForm(LevelEntity->FigureEntity->FigureUnit[LevelEditor->CurrentFigureIndex].Form);
                     
                     figure_type Type = LevelEntity->FigureEntity->FigureUnit[LevelEditor->CurrentFigureIndex].Type;
                     
                     FigureUnitInitFigure(&LevelEntity->FigureEntity->FigureUnit[LevelEditor->CurrentFigureIndex], Form,Type, 0.0f,  Memory, Buffer);
                     
-                    FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
+                    if(LevelEditor->Orientation == LANDSCAPE)
+                    {
+                        FigureEntityAlignVertically(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
+                    }
+                    else
+                    {
+                        FigureEntityAlignHorizontally(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
+                    }
+                    
                 }
                 
                 LevelEditor->ButtonSelected = true;
@@ -3262,7 +3443,6 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     
     if(LevelEntity->LevelStarted)
     {
-        //printf("FigureAmount = %d\n", FigureAmount);
         for(u32 i = 0; i < FigureAmount; ++i)
         {
             DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[i], LevelEntity->Configuration.InActiveBlockSize / 4, {0, 0, 255}, 255);
@@ -3325,9 +3505,6 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     
     GameRenderBitmapToBuffer(Buffer, LevelEditor->LevelIndexTexture, &LevelEditor->LevelIndexQuad);
     
-    //DEBUGRenderQuad(Buffer, &LevelEntity->GridEntity->GridArea, { 0, 255, 255 }, 255);
-    
-    
     if(LevelEditor->ButtonSelected)
     {
         DEBUGRenderQuadFill(Buffer, &LevelEditor->HighlightButtonQuad, {255, 255, 0}, 150);
@@ -3362,6 +3539,8 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
     {
         return;
     }
+    
+    DEBUGRenderQuad(Buffer, &Memory->PadRect, {0, 255, 0}, 255);
     
     if(LevelEditor->EditorType == LEVEL_EDITOR)
     {
@@ -3697,6 +3876,8 @@ MenuEditorUpdateAndRender(menu_editor *MenuEditor, menu_entity *MenuEntity, game
             }
         }
     }
+    
+    
     
     DEBUGRenderQuadFill(Buffer, &MenuEditor->NewLevelButtonQuad, {128, 128, 128}, 100);
     DEBUGRenderQuad(Buffer, &MenuEditor->NewLevelButtonQuad, {255, 255, 255}, 255);
