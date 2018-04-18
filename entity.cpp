@@ -1445,6 +1445,41 @@ GameUpdatePositionsPortrait(game_offscreen_buffer *Buffer, game_memory *Memory)
         LevelEntity->LevelNumberShadowQuad.y = LevelNumberShadowPoint.y;
         
     }
+    
+    // Menu level buttons area
+    {
+        s32 ButtonsPerRow = 4;
+        s32 ButtonsPerColumn = 5;
+        
+        s32 SpaceBetweenButtons = 10;
+        SpaceBetweenButtons = (r32)SpaceBetweenButtons * ScaleByHeight;
+        
+        game_rect ButtonsArea = {};
+        
+        ButtonsArea.w = 430;
+        ButtonsArea.h = 540;
+        ButtonsArea.x = 185;
+        ButtonsArea.y = 130;
+        
+        ButtonsArea.w = roundf((r32)ButtonsArea.w * ScaleByHeight);
+        ButtonsArea.h = roundf((r32)ButtonsArea.h * ScaleByHeight);
+        
+        s32 ButtonWidth  = roundf((r32)(ButtonsArea.w - SpaceBetweenButtons * (ButtonsPerRow - 1)) / (r32)ButtonsPerRow);
+        
+        s32 ButtonHeight = roundf((r32)(ButtonsArea.h - SpaceBetweenButtons * (ButtonsPerColumn - 1)) / (r32)ButtonsPerColumn);
+        
+        MenuEntity->ButtonSizeWidth  = ButtonWidth;
+        MenuEntity->ButtonSizeHeight = ButtonHeight;
+        
+        s32 ButtonAreaAmount = (MenuEntity->ButtonsAmountReserved / 20);
+        
+        for(s32 i = 0; i < ButtonAreaAmount; ++i )
+        {
+            MenuEntity->ButtonsArea[i] = ButtonsArea;
+        }
+        
+        MenuEntityAlignButtons(MenuEntity, Buffer->Width, Buffer->Height);
+    }
 }
 
 static void
@@ -1610,39 +1645,45 @@ GameUpdatePositionsLandscape(game_offscreen_buffer *Buffer, game_memory *Memory)
     
     // Menu level buttons area
     {
+        s32 FontSize = 50;
+        FontSize = roundf((r32)FontSize * ScaleByWidth);
+        
+        if(MenuEntity->LevelNumberFont)
+        {
+            TTF_CloseFont(MenuEntity->LevelNumberFont);
+        }
+        
+        MenuEntity->LevelNumberFont = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
+        
         s32 ButtonsPerRow = 4;
         s32 ButtonsPerColumn = 5;
         
         s32 SpaceBetweenButtons = 10;
         SpaceBetweenButtons = (r32)SpaceBetweenButtons * ScaleByHeight;
         
+        // TODO(Sierra): Figure out the way to leave buttons areas in the same position
         game_rect ButtonsArea = {};
-        
         ButtonsArea.w = 430;
         ButtonsArea.h = 540;
         ButtonsArea.x = 185;
         ButtonsArea.y = 130;
         
-        s32 ButtonWidth  = MenuEntity->ButtonSizeWidth;
-        s32 ButtonHeight = MenuEntity->ButtonSizeHeight;
+        ButtonsArea.w = roundf((r32)ButtonsArea.w * ScaleByHeight);
+        ButtonsArea.h = roundf((r32)ButtonsArea.h * ScaleByHeight);
         
-        ButtonWidth  = (r32)ButtonWidth * ScaleByHeight;
-        ButtonHeight = (r32)ButtonHeight * ScaleByHeight;
+        s32 ButtonWidth  = roundf((r32)(ButtonsArea.w - SpaceBetweenButtons * (ButtonsPerRow - 1)) / (r32)ButtonsPerRow);
+        
+        s32 ButtonHeight = roundf((r32)(ButtonsArea.h - SpaceBetweenButtons * (ButtonsPerColumn - 1)) / (r32)ButtonsPerColumn);
         
         MenuEntity->ButtonSizeWidth = ButtonWidth;
         MenuEntity->ButtonSizeHeight = ButtonHeight;
         
-        game_rect ButtonsArea = {};
-        
-        ButtonsArea.w = (ButtonWidth * ButtonsPerRow) + ((ButtonsPerRow - 1) * SpaceBetweenButtons);
-        ButtonsArea.h = (ButtonHeight * ButtonsPerColumn) + ((ButtonsPerColumn - 1) * SpaceBetweenButtons);
-        
-        s32 ButtonAreaAmount = (MenuEntity->ButtonsAmountReserved / 20);
-        
-        for(s32 i = 0; i < ButtonAreaAmount; ++i )
+        for(s32 i = 0; i < 5; ++i )
         {
             MenuEntity->ButtonsArea[i] = ButtonsArea;
         }
+        
+        MenuLoadButtonsFromMemory(MenuEntity, Memory, Buffer);
         
         MenuEntityAlignButtons(MenuEntity, Buffer->Width, Buffer->Height);
         

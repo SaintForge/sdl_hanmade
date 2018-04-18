@@ -40,6 +40,9 @@
 +	1. Implement level navigation
 +	2. Implement level creation/deletion from level navigator
 -	3. Implement main menu
+-	4. Show some inditificator whether level is completed or not
+-	5. Make difficulty levels 
+-	6. Add block/unblock level button in editor gui
 
 ---Misc---
 +	1. Think about a better way to handle input events

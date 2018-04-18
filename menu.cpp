@@ -23,73 +23,13 @@ MenuEntityUpdatePositionsLandscape(game_offscreen_buffer *Buffer, menu_entity *M
     
 }
 
-static void
-MenuMakeTextButton(char* Text, s32 X, s32 Y, s32 Width, s32 Height,
-                   game_rect *ButtonQuad, game_rect *TextureQuad,
-                   game_texture *&Texture, game_font *&Font,
-                   game_color Color, game_offscreen_buffer *Buffer)
-{
-    ButtonQuad->w  = Width;
-    ButtonQuad->h  = Height;
-    ButtonQuad->x  = X;
-    ButtonQuad->y  = Y;
-    
-    GameMakeTextureFromString(Texture, Text, TextureQuad, Font, 
-                              {Color.r, Color.g, Color.b}, Buffer);
-    TextureQuad->w = (TextureQuad->w < ButtonQuad->w) ? TextureQuad->w : ButtonQuad->w;
-    TextureQuad->h = (TextureQuad->h < ButtonQuad->h) ? TextureQuad->h : ButtonQuad->h;
-    
-    TextureQuad->x = ButtonQuad->x + (ButtonQuad->w / 2) - (TextureQuad->w / 2);
-    TextureQuad->y = ButtonQuad->y + (ButtonQuad->h / 2) - (TextureQuad->h / 2);
-}
-
-static void
-MenuLoadButtonsFromMemory(menu_entity *MenuEntity, game_memory *Memory, 
-                          game_offscreen_buffer *Buffer)
-{
-    level_memory *LevelMemory = (level_memory *) Memory->GlobalMemoryStorage;
-    
-    MenuEntity->ButtonsAmount         = Memory->LevelMemoryAmount;
-    MenuEntity->ButtonsAmountReserved = Memory->LevelMemoryReserved;
-    
-    if(MenuEntity->ButtonsArea)
-    {
-        free(MenuEntity->ButtonsArea);
-    }
-    if(MenuEntity->Buttons)
-    {
-        free(MenuEntity->Buttons);
-    }
-    
-    MenuEntity->ButtonsArea = (game_rect *) malloc(sizeof(game_rect) * (MenuEntity->ButtonsAmountReserved / 20));
-    Assert(MenuEntity->ButtonsArea);
-    
-    MenuEntity->Buttons = (menu_button *) calloc (MenuEntity->ButtonsAmountReserved, sizeof(menu_button));
-    Assert(MenuEntity->Buttons);
-    
-    for(u32 i = 0; i < MenuEntity->ButtonsAmountReserved; ++i)
-    {
-        char LevelNumber[3] = {0};
-        sprintf(LevelNumber, "%d", LevelMemory[i].LevelNumber);
-        
-        MenuMakeTextButton(LevelNumber, 0, 0, MenuEntity->ButtonSizeWidth, MenuEntity->ButtonSizeHeight,
-                           &MenuEntity->Buttons[i].ButtonQuad, &MenuEntity->Buttons[i].LevelNumberTextureQuad,
-                           MenuEntity->Buttons[i].LevelNumberTexture, Memory->LevelNumberFont, {255, 255, 255}, Buffer);
-        
-    }
-    
-    MenuEntityAlignButtons(MenuEntity, Buffer->Width, Buffer->Height);
-}
 
 static void 
 MenuInit(menu_entity *MenuEntity, game_memory *Memory, game_offscreen_buffer *Buffer)
 {
     MenuEntity->MaxVelocity      = 20.0f;
     MenuEntity->ButtonIndex      = -1;
-    MenuEntity->ButtonSizeWidth  = 100;
-    MenuEntity->ButtonSizeHeight = 100;
-    
-    MenuLoadButtonsFromMemory(MenuEntity, Memory, Buffer);
+    //MenuLoadButtonsFromMemory(MenuEntity, Memory, Buffer);
     
     MenuEntity->BackTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
 }
@@ -300,6 +240,11 @@ MenuUpdateAndRender(menu_entity *MenuEntity, game_memory *Memory,
                     
                     Memory->ToggleMenu        = false;
                     Memory->CurrentLevelIndex = Index;
+                    
+                    MenuEntity->MouseOffsetX = 0;
+                    MenuEntity->MouseOffsetY = 0;
+                    MenuEntity->IsMoving = false;
+                    MenuEntity->IsAnimating = false;
                 }
                 
                 MenuEntity->ButtonIndex = -1;
@@ -316,13 +261,15 @@ MenuUpdateAndRender(menu_entity *MenuEntity, game_memory *Memory,
         MenuEntity->MouseOffsetX += Input->MouseRelX;
         MenuEntity->MouseOffsetY += Input->MouseRelY;
         
+        printf("MenuEntity->MouseOffsetX = %d\n",MenuEntity->MouseOffsetX);
+        
         r32 MouseDistance = sqrt((MenuEntity->MouseOffsetX * MenuEntity->MouseOffsetX) + (MenuEntity->MouseOffsetY * MenuEntity->MouseOffsetY));
         
         if(MouseDistance >= MenuEntity->ButtonSizeWidth * 0.5f)
         {
             MenuEntity->ButtonIndex = -1;
-            MenuEntity->MouseOffsetX = 0;
-            MenuEntity->MouseOffsetY = 0;
+            //MenuEntity->MouseOffsetX = 0;
+            //MenuEntity->MouseOffsetY = 0;
         }
     }
     

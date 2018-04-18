@@ -211,9 +211,70 @@ struct menu_entity
     game_texture *BackTexture;
     game_texture *FrontTexture;
     
-    game_rect    *ButtonsArea;
+    game_rect ButtonsArea[5];
     menu_button  *Buttons;
+    
+    game_font *MainFont;
+    game_font *LevelNumberFont;
 };
+
+static void
+MenuMakeTextButton(char* Text, s32 X, s32 Y, s32 Width, s32 Height,
+                   game_rect *ButtonQuad, game_rect *TextureQuad,
+                   game_texture *&Texture, game_font *&Font,
+                   game_color Color, game_offscreen_buffer *Buffer)
+{
+    ButtonQuad->w  = Width;
+    ButtonQuad->h  = Height;
+    ButtonQuad->x  = X;
+    ButtonQuad->y  = Y;
+    
+    GameMakeTextureFromString(Texture, Text, TextureQuad, Font, 
+                              {Color.r, Color.g, Color.b}, Buffer);
+    TextureQuad->w = (TextureQuad->w < ButtonQuad->w) ? TextureQuad->w : ButtonQuad->w;
+    TextureQuad->h = (TextureQuad->h < ButtonQuad->h) ? TextureQuad->h : ButtonQuad->h;
+    
+    TextureQuad->x = ButtonQuad->x + (ButtonQuad->w / 2) - (TextureQuad->w / 2);
+    TextureQuad->y = ButtonQuad->y + (ButtonQuad->h / 2) - (TextureQuad->h / 2);
+}
+
+static void
+MenuLoadButtonsFromMemory(menu_entity *MenuEntity, game_memory *Memory, 
+                          game_offscreen_buffer *Buffer)
+{
+    level_memory *LevelMemory = (level_memory *) Memory->GlobalMemoryStorage;
+    
+    MenuEntity->ButtonsAmount         = Memory->LevelMemoryAmount;
+    MenuEntity->ButtonsAmountReserved = Memory->LevelMemoryReserved;
+    
+    if(MenuEntity->Buttons)
+    {
+        for(s32 i = 0; i < MenuEntity->ButtonsAmountReserved; ++i)
+        {
+            if(MenuEntity->Buttons[i].LevelNumberTexture)
+            {
+                FreeTexture(MenuEntity->Buttons[i].LevelNumberTexture);
+            }
+        }
+        
+        free(MenuEntity->Buttons);
+    }
+    
+    MenuEntity->Buttons = (menu_button *) calloc (MenuEntity->ButtonsAmountReserved, sizeof(menu_button));
+    Assert(MenuEntity->Buttons);
+    
+    for(u32 i = 0; i < MenuEntity->ButtonsAmountReserved; ++i)
+    {
+        char LevelNumber[3] = {0};
+        sprintf(LevelNumber, "%d", LevelMemory[i].LevelNumber);
+        
+        MenuMakeTextButton(LevelNumber, 0, 0, MenuEntity->ButtonSizeWidth, MenuEntity->ButtonSizeHeight,
+                           &MenuEntity->Buttons[i].ButtonQuad, &MenuEntity->Buttons[i].LevelNumberTextureQuad,
+                           MenuEntity->Buttons[i].LevelNumberTexture, MenuEntity->LevelNumberFont, {255, 255, 255}, Buffer);
+        
+    }
+}
+
 
 static void
 MenuEntityAlignButtons(menu_entity *MenuEntity, 
@@ -241,8 +302,6 @@ MenuEntityAlignButtons(menu_entity *MenuEntity,
     {
         MenuEntity->ButtonsArea[i].x = StartX + (i * ScreenWidth);
         MenuEntity->ButtonsArea[i].y = StartY;
-        //MenuEntity->ButtonsArea[i].w = (ButtonWidth * ButtonsPerRow) + ((ButtonsPerRow - 1) * SpaceBetweenButtons);
-        //MenuEntity->ButtonsArea[i].h = (ButtonHeight * ButtonsPerColumn) + ((ButtonsPerColumn - 1) * SpaceBetweenButtons);
     }
     
     for(u32 i = 0; i < MenuEntity->ButtonsAmount; ++i)

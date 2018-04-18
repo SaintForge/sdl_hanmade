@@ -270,12 +270,15 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         level_editor *LevelEditor = (level_editor *) Memory->EditorMemoryStorage;
         menu_editor  *MenuEditor  = (menu_editor *) (((char*)Memory->EditorMemoryStorage) + (sizeof(level_editor))); 
         
-        /* level_editor initialization */ 
+        
+        /* Adjusting object positions on the screen */
         GameUpdatePositionsLandscape(Buffer, Memory);
-        LevelEditorInit(LevelEditor, LevelEntity, Memory, Buffer);
         
         /* menu_editor initialization */ 
         MenuEditorInit(MenuEditor, MenuEntity, Memory, Buffer);
+        
+        /* level_editor initialization */ 
+        LevelEditorInit(LevelEditor, LevelEntity, Memory, Buffer);
         
         Memory->IsInitialized = true;
         printf("Memory has been initialized!\n");
