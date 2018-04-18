@@ -215,6 +215,65 @@ struct menu_entity
     menu_button  *Buttons;
 };
 
+static void
+MenuEntityAlignButtons(menu_entity *MenuEntity, 
+                       u32 ScreenWidth, 
+                       u32 ScreenHeight)
+{
+    u32 ButtonsPerRow       = 4;
+    u32 ButtonsPerColumn    = 5;
+    u32 SpaceBetweenButtons = 10;
+    
+    s32 XOffset = 0;
+    s32 YOffset = 0;
+    
+    s32 XPosition = 0;
+    s32 YPosition = 0;
+    
+    u32 ButtonWidth  = MenuEntity->ButtonSizeWidth;
+    u32 ButtonHeight = MenuEntity->ButtonSizeHeight;
+    
+    s32 StartX = (ScreenWidth / 2)  - (((ButtonWidth * ButtonsPerRow) + ((ButtonsPerRow - 1) * SpaceBetweenButtons)) / 2);
+    s32 StartY = (ScreenHeight / 2) - ((ButtonHeight * ButtonsPerColumn) / 2)- ((ButtonsPerColumn * SpaceBetweenButtons) / 2);
+    
+    u32 ButtonsAreaAmount = MenuEntity->ButtonsAmountReserved / 20;
+    for(u32 i = 0; i < ButtonsAreaAmount; ++i)
+    {
+        MenuEntity->ButtonsArea[i].x = StartX + (i * ScreenWidth);
+        MenuEntity->ButtonsArea[i].y = StartY;
+        //MenuEntity->ButtonsArea[i].w = (ButtonWidth * ButtonsPerRow) + ((ButtonsPerRow - 1) * SpaceBetweenButtons);
+        //MenuEntity->ButtonsArea[i].h = (ButtonHeight * ButtonsPerColumn) + ((ButtonsPerColumn - 1) * SpaceBetweenButtons);
+    }
+    
+    for(u32 i = 0; i < MenuEntity->ButtonsAmount; ++i)
+    {
+        XOffset = i % ButtonsPerRow;
+        
+        if((i % 20 == 0) && i != 0)
+        {
+            StartX += ScreenWidth;
+        }
+        
+        if(i % ButtonsPerRow == 0 && i != 0)
+        {
+            YOffset += 1;
+        }
+        
+        if(YOffset >= ButtonsPerColumn)
+        {
+            YOffset = 0;
+        }
+        
+        XPosition = StartX + (XOffset * ButtonWidth) + (XOffset * SpaceBetweenButtons);
+        YPosition = StartY + (YOffset * ButtonHeight) + (YOffset * SpaceBetweenButtons);
+        MenuEntity->Buttons[i].ButtonQuad.x = XPosition;
+        MenuEntity->Buttons[i].ButtonQuad.y = YPosition;
+        
+        MenuEntity->Buttons[i].LevelNumberTextureQuad.x = XPosition + (MenuEntity->Buttons[i].ButtonQuad.w / 2) - (MenuEntity->Buttons[i].LevelNumberTextureQuad.w / 2);
+        MenuEntity->Buttons[i].LevelNumberTextureQuad.y = YPosition + (MenuEntity->Buttons[i].ButtonQuad.h / 2) - (MenuEntity->Buttons[i].LevelNumberTextureQuad.h / 2);
+    }
+}
+
 
 #define ENTITY_H
 #endif

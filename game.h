@@ -293,5 +293,7 @@ DEBUGRenderMathRectFill(game_offscreen_buffer *Buffer, math_rect *Rectangle, u8 
     DEBUGRenderQuadFill(Buffer, &AreaQuad, {Red, Green, Blue}, Alpha);
 }
 
+
+
 #define GAME_H
 #endif

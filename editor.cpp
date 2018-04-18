@@ -2367,12 +2367,12 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 
                 if(Buffer->Width > Buffer->Height)
                 {
-                    GameUpdatePositionsLandscape(Buffer, LevelEntity, Memory);
+                    GameUpdatePositionsLandscape(Buffer, Memory);
                     LevelEditorUpdatePositionsLandscape(Buffer, LevelEditor, LevelEntity, Memory);
                 }
                 else
                 {
-                    GameUpdatePositionsPortrait(Buffer, LevelEntity, Memory);
+                    GameUpdatePositionsPortrait(Buffer, Memory);
                     LevelEditorUpdatePositionsPortrait(Buffer, LevelEditor, LevelEntity, Memory);
                 }
                 
@@ -2392,12 +2392,12 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 
                 if(Buffer->Width > Buffer->Height)
                 {
-                    GameUpdatePositionsLandscape(Buffer, LevelEntity, Memory);
+                    GameUpdatePositionsLandscape(Buffer, Memory);
                     LevelEditorUpdatePositionsLandscape(Buffer, LevelEditor, LevelEntity, Memory);
                 }
                 else
                 {
-                    GameUpdatePositionsPortrait(Buffer, LevelEntity, Memory);
+                    GameUpdatePositionsPortrait(Buffer, Memory);
                     LevelEditorUpdatePositionsPortrait(Buffer, LevelEditor, LevelEntity, Memory);
                 }
                 
@@ -2456,12 +2456,12 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                 
                 if(Buffer->Width > Buffer->Height)
                 {
-                    GameUpdatePositionsLandscape(Buffer, LevelEntity, Memory);
+                    GameUpdatePositionsLandscape(Buffer, Memory);
                     LevelEditorUpdatePositionsLandscape(Buffer, LevelEditor, LevelEntity, Memory);
                 }
                 else
                 {
-                    GameUpdatePositionsPortrait(Buffer, LevelEntity, Memory);
+                    GameUpdatePositionsPortrait(Buffer, Memory);
                     LevelEditorUpdatePositionsPortrait(Buffer, LevelEditor, LevelEntity, Memory);
                 }
                 

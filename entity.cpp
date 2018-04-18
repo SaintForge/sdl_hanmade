@@ -67,9 +67,6 @@ FigureUnitGetArea(figure_unit *Unit)
         if(Area.h <= Unit->Shell[i].y) Area.h = Unit->Shell[i].y;
         
     }
-    //
-    //Area.w += BlockSize;
-    //Area.h += BlockSize;
     
     Area.w -= Area.x;
     Area.h -= Area.y;
@@ -359,7 +356,6 @@ FigureUnitInitFigure(figure_unit *FigureUnit,
     
     level_entity *LevelEntity = (level_entity*)Memory->LocalMemoryStorage;
     
-    //u32 ActiveBlockSize   = LevelEntity->Configuration.ActiveBlockSize;
     u32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
     
     FigureUnit->IsIdle       = true;
@@ -1309,8 +1305,11 @@ LevelEntityUpdateLevelNumber(level_entity *LevelEntity, game_memory *Memory, gam
 }
 
 static void
-GameUpdatePositionsPortrait(game_offscreen_buffer *Buffer, level_entity *LevelEntity, game_memory *Memory)
+GameUpdatePositionsPortrait(game_offscreen_buffer *Buffer, game_memory *Memory)
 {
+    level_entity *LevelEntity = (level_entity*)Memory->LocalMemoryStorage;
+    menu_entity  *MenuEntity = (menu_entity*)(((char*)Memory->LocalMemoryStorage) + (sizeof(level_entity)));
+    
     s32 ActualWidth  = Buffer->Width;
     s32 ActualHeight = Buffer->Height;
     
@@ -1449,8 +1448,11 @@ GameUpdatePositionsPortrait(game_offscreen_buffer *Buffer, level_entity *LevelEn
 }
 
 static void
-GameUpdatePositionsLandscape(game_offscreen_buffer *Buffer, level_entity *LevelEntity, game_memory *Memory)
+GameUpdatePositionsLandscape(game_offscreen_buffer *Buffer, game_memory *Memory)
 {
+    level_entity *LevelEntity = (level_entity*)Memory->LocalMemoryStorage;
+    menu_entity  *MenuEntity = (menu_entity*)(((char*)Memory->LocalMemoryStorage) + (sizeof(level_entity)));
+    
     s32 ActualWidth  = Buffer->Width;
     s32 ActualHeight = Buffer->Height;
     
@@ -1461,7 +1463,11 @@ GameUpdatePositionsLandscape(game_offscreen_buffer *Buffer, level_entity *LevelE
     
     r32 ScaleByHeight = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 1.0f);
     
+    r32 ScaleByAll = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 0.5f);
+    
     // Reference resolution is 800x600
+    
+    // level_entity initialization
     
     // Game Area location
     
@@ -1582,6 +1588,63 @@ GameUpdatePositionsLandscape(game_offscreen_buffer *Buffer, level_entity *LevelE
         
         LevelEntity->LevelNumberShadowQuad.x = LevelNumberShadowPoint.x;
         LevelEntity->LevelNumberShadowQuad.y = LevelNumberShadowPoint.y;
+        
+    }
+    
+    
+    // menu_entity initialization
+    
+    // Reference resolution is 800x600
+    
+    // Level button
+    {
+        s32 ButtonWidth  = 100;
+        s32 ButtonHeight = 100;
+        
+        ButtonWidth  = (r32)ButtonWidth  * ScaleByWidth;
+        ButtonHeight = (r32)ButtonHeight * ScaleByWidth;
+        
+        MenuEntity->ButtonSizeWidth  = ButtonWidth;
+        MenuEntity->ButtonSizeHeight = ButtonHeight;
+    }
+    
+    // Menu level buttons area
+    {
+        s32 ButtonsPerRow = 4;
+        s32 ButtonsPerColumn = 5;
+        
+        s32 SpaceBetweenButtons = 10;
+        SpaceBetweenButtons = (r32)SpaceBetweenButtons * ScaleByHeight;
+        
+        game_rect ButtonsArea = {};
+        
+        ButtonsArea.w = 430;
+        ButtonsArea.h = 540;
+        ButtonsArea.x = 185;
+        ButtonsArea.y = 130;
+        
+        s32 ButtonWidth  = MenuEntity->ButtonSizeWidth;
+        s32 ButtonHeight = MenuEntity->ButtonSizeHeight;
+        
+        ButtonWidth  = (r32)ButtonWidth * ScaleByHeight;
+        ButtonHeight = (r32)ButtonHeight * ScaleByHeight;
+        
+        MenuEntity->ButtonSizeWidth = ButtonWidth;
+        MenuEntity->ButtonSizeHeight = ButtonHeight;
+        
+        game_rect ButtonsArea = {};
+        
+        ButtonsArea.w = (ButtonWidth * ButtonsPerRow) + ((ButtonsPerRow - 1) * SpaceBetweenButtons);
+        ButtonsArea.h = (ButtonHeight * ButtonsPerColumn) + ((ButtonsPerColumn - 1) * SpaceBetweenButtons);
+        
+        s32 ButtonAreaAmount = (MenuEntity->ButtonsAmountReserved / 20);
+        
+        for(s32 i = 0; i < ButtonAreaAmount; ++i )
+        {
+            MenuEntity->ButtonsArea[i] = ButtonsArea;
+        }
+        
+        MenuEntityAlignButtons(MenuEntity, Buffer->Width, Buffer->Height);
         
     }
 }
@@ -1769,11 +1832,11 @@ moving_block
     
     if(Buffer->Width > Buffer->Height)
     {
-        GameUpdatePositionsLandscape(Buffer, LevelEntity, Memory);
+        GameUpdatePositionsLandscape(Buffer, Memory);
     }
     else
     {
-        GameUpdatePositionsPortrait(Buffer, LevelEntity, Memory);
+        GameUpdatePositionsPortrait(Buffer, Memory);
     }
 }
 
