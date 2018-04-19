@@ -444,6 +444,7 @@ ConvertLevelMemoryFromRaw(game_memory *&Memory, void *&RawMemory, u32 RawMemoryS
         u32 Index = Memory->LevelMemoryAmount;
         u32 BytesToSkip = 0;
         
+        LevelMemory[Index].IsLocked           = Level->IsLocked;
         LevelMemory[Index].LevelNumber        = Level->LevelNumber;
         LevelMemory[Index].RowAmount          = Level->RowAmount;
         LevelMemory[Index].ColumnAmount       = Level->ColumnAmount;
@@ -453,7 +454,7 @@ ConvertLevelMemoryFromRaw(game_memory *&Memory, void *&RawMemory, u32 RawMemoryS
         BytesToSkip += sizeof(level_memory);
         
         if(Level->RowAmount > 0 && Level->ColumnAmount > 0)
-        {
+        { 
             s32 *UnitField = ((s32*)((U8Mem) + BytesToSkip));
             
             LevelMemory[Index].UnitField = (s32 *)malloc(Level->ColumnAmount * Level->RowAmount * sizeof(s32));
@@ -516,9 +517,7 @@ ConvertLevelMemoryFromRaw(game_memory *&Memory, void *&RawMemory, u32 RawMemoryS
     }
     
     printf("READ %d LEVELS FROM BINARY!!!!!!!!\n",Memory->LevelMemoryAmount);
-    printf("LevelMemory[0].FigureAmount = %d\n", LevelMemory[0].FigureAmount);
-    printf("LevelMemory[1].FigureAmount = %d\n", LevelMemory[1].FigureAmount);
-    printf("LevelMemory[2].FigureAmount = %d\n", LevelMemory[2].FigureAmount);
+    printf("LevelMemory[0].IsLocked = %d\n", LevelMemory[0].IsLocked);
 }
 
 static void

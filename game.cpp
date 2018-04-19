@@ -253,7 +253,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->VerticalSquareTexture   = GetTexture(Memory, "o_s.png", Buffer->Renderer);
         GridEntity->HorizontlaSquareTexture = GetTexture(Memory, "o_m.png", Buffer->Renderer);
         
-        LevelEntityUpdateLevelNumber(LevelEntity, Memory, Buffer);
+        //LevelEntityUpdateLevelNumber(LevelEntity, Memory, Buffer);
+        
+        /* Adjusting object positions on the screen */
+        LevelEntityUpdatePositionsLandscape(Buffer, Memory);
         
         /* menu_entity initialization */ 
         
@@ -261,6 +264,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Assert(MenuEntity);
         
         MenuInit(MenuEntity, Memory, Buffer);
+        MenuEntityUpdatePositionsLandscape(Buffer, MenuEntity, Memory);
         
         /* EditorMemoryStorage allocation */
         
@@ -271,8 +275,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         menu_editor  *MenuEditor  = (menu_editor *) (((char*)Memory->EditorMemoryStorage) + (sizeof(level_editor))); 
         
         
-        /* Adjusting object positions on the screen */
-        GameUpdatePositionsLandscape(Buffer, Memory);
         
         /* menu_editor initialization */ 
         MenuEditorInit(MenuEditor, MenuEntity, Memory, Buffer);

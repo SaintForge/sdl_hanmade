@@ -8,19 +8,235 @@
 //
 
 static void
+MenuMakeTextButton(char* Text, s32 X, s32 Y, s32 Width, s32 Height,
+                   game_rect *ButtonQuad, game_rect *TextureQuad,
+                   game_texture *&Texture, game_font *&Font,
+                   game_color Color, game_offscreen_buffer *Buffer)
+{
+    ButtonQuad->w  = Width;
+    ButtonQuad->h  = Height;
+    ButtonQuad->x  = X;
+    ButtonQuad->y  = Y;
+    
+    GameMakeTextureFromString(Texture, Text, TextureQuad, Font, 
+                              {Color.r, Color.g, Color.b}, Buffer);
+    TextureQuad->w = (TextureQuad->w < ButtonQuad->w) ? TextureQuad->w : ButtonQuad->w;
+    TextureQuad->h = (TextureQuad->h < ButtonQuad->h) ? TextureQuad->h : ButtonQuad->h;
+    
+    TextureQuad->x = ButtonQuad->x + (ButtonQuad->w / 2) - (TextureQuad->w / 2);
+    TextureQuad->y = ButtonQuad->y + (ButtonQuad->h / 2) - (TextureQuad->h / 2);
+}
+
+
+static void
+MenuLoadButtonsFromMemory(menu_entity *MenuEntity, game_memory *Memory, 
+                          game_offscreen_buffer *Buffer)
+{
+    level_memory *LevelMemory = (level_memory *) Memory->GlobalMemoryStorage;
+    
+    MenuEntity->ButtonsAmount         = Memory->LevelMemoryAmount;
+    MenuEntity->ButtonsAmountReserved = Memory->LevelMemoryReserved;
+    
+    if(MenuEntity->Buttons)
+    {
+        for(s32 i = 0; i < MenuEntity->ButtonsAmountReserved; ++i)
+        {
+            if(MenuEntity->Buttons[i].LevelNumberTexture)
+            {
+                FreeTexture(MenuEntity->Buttons[i].LevelNumberTexture);
+            }
+        }
+        
+        free(MenuEntity->Buttons);
+    }
+    
+    MenuEntity->Buttons = (menu_button *) calloc (MenuEntity->ButtonsAmountReserved, sizeof(menu_button));
+    Assert(MenuEntity->Buttons);
+    
+    for(u32 i = 0; i < MenuEntity->ButtonsAmountReserved; ++i)
+    {
+        char LevelNumber[3] = {0};
+        sprintf(LevelNumber, "%d", LevelMemory[i].LevelNumber);
+        MenuEntity->Buttons[i].IsLocked = LevelMemory[i].IsLocked;
+        
+        MenuMakeTextButton(LevelNumber, 0, 0, MenuEntity->ButtonSizeWidth, MenuEntity->ButtonSizeHeight,
+                           &MenuEntity->Buttons[i].ButtonQuad, &MenuEntity->Buttons[i].LevelNumberTextureQuad,
+                           MenuEntity->Buttons[i].LevelNumberTexture, MenuEntity->LevelNumberFont, {255, 255, 255}, Buffer);
+        
+    }
+}
+
+
+static void
+MenuEntityAlignButtons(menu_entity *MenuEntity, 
+                       u32 ScreenWidth, 
+                       u32 ScreenHeight)
+{
+    u32 ButtonsPerRow       = 4;
+    u32 ButtonsPerColumn    = 5;
+    u32 SpaceBetweenButtons = 10;
+    
+    s32 XOffset = 0;
+    s32 YOffset = 0;
+    
+    s32 XPosition = 0;
+    s32 YPosition = 0;
+    
+    u32 ButtonWidth  = MenuEntity->ButtonSizeWidth;
+    u32 ButtonHeight = MenuEntity->ButtonSizeHeight;
+    
+    s32 StartX = (ScreenWidth / 2)  - (((ButtonWidth * ButtonsPerRow) + ((ButtonsPerRow - 1) * SpaceBetweenButtons)) / 2);
+    s32 StartY = (ScreenHeight / 2) - ((ButtonHeight * ButtonsPerColumn) / 2)- ((ButtonsPerColumn * SpaceBetweenButtons) / 2);
+    
+    for(u32 i = 0; i < 5; ++i)
+    {
+        MenuEntity->ButtonsArea[i].x = StartX + (i * ScreenWidth);
+        MenuEntity->ButtonsArea[i].y = StartY;
+    }
+    
+    for(u32 i = 0; i < MenuEntity->ButtonsAmountReserved; ++i)
+    {
+        XOffset = i % ButtonsPerRow;
+        
+        if((i % 20 == 0) && i != 0)
+        {
+            StartX += ScreenWidth;
+        }
+        
+        if(i % ButtonsPerRow == 0 && i != 0)
+        {
+            YOffset += 1;
+        }
+        
+        if(YOffset >= ButtonsPerColumn)
+        {
+            YOffset = 0;
+        }
+        
+        XPosition = StartX + (XOffset * ButtonWidth) + (XOffset * SpaceBetweenButtons);
+        YPosition = StartY + (YOffset * ButtonHeight) + (YOffset * SpaceBetweenButtons);
+        MenuEntity->Buttons[i].ButtonQuad.x = XPosition;
+        MenuEntity->Buttons[i].ButtonQuad.y = YPosition;
+        
+        MenuEntity->Buttons[i].LevelNumberTextureQuad.x = XPosition + (MenuEntity->Buttons[i].ButtonQuad.w / 2) - (MenuEntity->Buttons[i].LevelNumberTextureQuad.w / 2);
+        MenuEntity->Buttons[i].LevelNumberTextureQuad.y = YPosition + (MenuEntity->Buttons[i].ButtonQuad.h / 2) - (MenuEntity->Buttons[i].LevelNumberTextureQuad.h / 2);
+    }
+}
+
+static void
 MenuEntityUpdatePositionsLandscape(game_offscreen_buffer *Buffer, menu_entity *MenuEntity, game_memory *Memory)
 {
-    s32 ActualWidth = Buffer->Width;
+    s32 ActualWidth  = Buffer->Width;
     s32 ActualHeight = Buffer->Height;
     
-    s32 ReferenceWidth = Buffer->ReferenceWidth;
+    s32 ReferenceWidth  = Buffer->ReferenceWidth;
     s32 ReferenceHeight = Buffer->ReferenceHeight;
     
     r32 ScaleByWidth = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 0.0f);
+    
     r32 ScaleByHeight = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 1.0f);
+    
     r32 ScaleByAll = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 0.5f);
     
+    // Menu level buttons area
     
+    {
+        s32 FontSize = 50;
+        FontSize = roundf((r32)FontSize * ScaleByWidth);
+        
+        if(MenuEntity->LevelNumberFont)
+        {
+            TTF_CloseFont(MenuEntity->LevelNumberFont);
+        }
+        
+        MenuEntity->LevelNumberFont = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
+        
+        s32 ButtonsPerRow = 4;
+        s32 ButtonsPerColumn = 5;
+        
+        s32 SpaceBetweenButtons = 10;
+        SpaceBetweenButtons = (r32)SpaceBetweenButtons * ScaleByHeight;
+        
+        // TODO(Sierra): Figure out the way to leave buttons areas in the same position
+        game_rect ButtonsArea = {};
+        ButtonsArea.w = 430;
+        ButtonsArea.h = 540;
+        ButtonsArea.x = 185;
+        ButtonsArea.y = 130;
+        
+        ButtonsArea.w = roundf((r32)ButtonsArea.w * ScaleByHeight);
+        ButtonsArea.h = roundf((r32)ButtonsArea.h * ScaleByHeight);
+        
+        s32 ButtonWidth  = roundf((r32)(ButtonsArea.w - SpaceBetweenButtons * (ButtonsPerRow - 1)) / (r32)ButtonsPerRow);
+        
+        s32 ButtonHeight = roundf((r32)(ButtonsArea.h - SpaceBetweenButtons * (ButtonsPerColumn - 1)) / (r32)ButtonsPerColumn);
+        
+        MenuEntity->ButtonSizeWidth = ButtonWidth;
+        MenuEntity->ButtonSizeHeight = ButtonHeight;
+        
+        for(s32 i = 0; i < 5; ++i )
+        {
+            MenuEntity->ButtonsArea[i].w = ButtonsArea.w;
+            MenuEntity->ButtonsArea[i].h = ButtonsArea.h;
+        }
+        
+        MenuLoadButtonsFromMemory(MenuEntity, Memory, Buffer);
+        
+        MenuEntityAlignButtons(MenuEntity, Buffer->Width, Buffer->Height);
+        
+    }
+    
+}
+
+static void
+MenuEntityUpdatePositionsPortrait(game_offscreen_buffer *Buffer, menu_entity *MenuEntity, game_memory *Memory)
+{
+    s32 ActualWidth  = Buffer->Width;
+    s32 ActualHeight = Buffer->Height;
+    
+    s32 ReferenceWidth  = Buffer->ReferenceWidth;
+    s32 ReferenceHeight = Buffer->ReferenceHeight;
+    
+    r32 ScaleByWidth = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 0.0f);
+    
+    r32 ScaleByHeight = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 1.0f);
+    
+    r32 ScaleByAll = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 0.5f);
+    
+    // Menu level buttons area
+    {
+        s32 ButtonsPerRow = 4;
+        s32 ButtonsPerColumn = 5;
+        
+        s32 SpaceBetweenButtons = 10;
+        SpaceBetweenButtons = (r32)SpaceBetweenButtons * ScaleByHeight;
+        
+        game_rect ButtonsArea = {};
+        
+        ButtonsArea.w = 430;
+        ButtonsArea.h = 540;
+        ButtonsArea.x = 185;
+        ButtonsArea.y = 130;
+        
+        ButtonsArea.w = roundf((r32)ButtonsArea.w * ScaleByHeight);
+        ButtonsArea.h = roundf((r32)ButtonsArea.h * ScaleByHeight);
+        
+        s32 ButtonWidth  = roundf((r32)(ButtonsArea.w - SpaceBetweenButtons * (ButtonsPerRow - 1)) / (r32)ButtonsPerRow);
+        
+        s32 ButtonHeight = roundf((r32)(ButtonsArea.h - SpaceBetweenButtons * (ButtonsPerColumn - 1)) / (r32)ButtonsPerColumn);
+        
+        MenuEntity->ButtonSizeWidth  = ButtonWidth;
+        MenuEntity->ButtonSizeHeight = ButtonHeight;
+        
+        s32 ButtonAreaAmount = (MenuEntity->ButtonsAmountReserved / 20);
+        
+        for(s32 i = 0; i < ButtonAreaAmount; ++i )
+        {
+            MenuEntity->ButtonsArea[i] = ButtonsArea;
+        }
+        
+        MenuEntityAlignButtons(MenuEntity, Buffer->Width, Buffer->Height);
+    }
 }
 
 
@@ -123,6 +339,7 @@ MenuDeleteLevel(menu_entity *MenuEntity,
     LevelMemory[LevelIndex].Figures      = 0;
     
     MenuLoadButtonsFromMemory(MenuEntity, Memory, Buffer);
+    MenuEntityAlignButtons(MenuEntity, Buffer->Width, Buffer->Height);
 }
 
 static void
@@ -253,6 +470,7 @@ MenuUpdateAndRender(menu_entity *MenuEntity, game_memory *Memory,
         }
     }
     
+    // TODO(Sierra): This is weird, maybe there is a way i can fix that!!
     s32 OffsetX = 0;
     if(MenuEntity->IsMoving)
     {
@@ -265,11 +483,9 @@ MenuUpdateAndRender(menu_entity *MenuEntity, game_memory *Memory,
         
         r32 MouseDistance = sqrt((MenuEntity->MouseOffsetX * MenuEntity->MouseOffsetX) + (MenuEntity->MouseOffsetY * MenuEntity->MouseOffsetY));
         
-        if(MouseDistance >= MenuEntity->ButtonSizeWidth * 0.5f)
+        if(MouseDistance >= (r32)MenuEntity->ButtonSizeWidth * 0.2f)
         {
             MenuEntity->ButtonIndex = -1;
-            //MenuEntity->MouseOffsetX = 0;
-            //MenuEntity->MouseOffsetY = 0;
         }
     }
     
@@ -311,7 +527,7 @@ MenuUpdateAndRender(menu_entity *MenuEntity, game_memory *Memory,
                     MenuEntity->ButtonsArea[i].x += Offset;
                 }
                 
-                for(u32 i = 0; i < MenuEntity->ButtonsAmount; ++i)
+                for(u32 i = 0; i < MenuEntity->ButtonsAmountReserved; ++i)
                 {
                     MenuEntity->Buttons[i].ButtonQuad.x += Offset;
                     MenuEntity->Buttons[i].LevelNumberTextureQuad.x += Offset;
@@ -334,8 +550,7 @@ MenuUpdateAndRender(menu_entity *MenuEntity, game_memory *Memory,
     game_rect ScreenRect = {0, 0, Buffer->Width, Buffer->Height};
     DEBUGRenderQuadFill(Buffer, &ScreenRect, {0, 128, 255}, 100);
     
-    u32 ButtonsAreaAmount = (MenuEntity->ButtonsAmount / 20) + 1;
-    for(u32 i = 0; i < ButtonsAreaAmount; ++i)
+    for(u32 i = 0; i < 5; ++i)
     {
         if(MenuEntity->IsMoving)
         {
@@ -356,7 +571,10 @@ MenuUpdateAndRender(menu_entity *MenuEntity, game_memory *Memory,
         DEBUGRenderQuad(Buffer, &MenuEntity->ButtonsArea[i], {255, 255, 255}, 100);
     }
     
-    for(u32 i = 0; i < MenuEntity->ButtonsAmount; ++i)
+    s32 ButtonsAmount = MenuEntity->ButtonsAmount;
+    s32 ButtonsAmountReserved = MenuEntity->ButtonsAmountReserved;
+    
+    for(u32 i = 0; i < ButtonsAmountReserved; ++i)
     {
         if(MenuEntity->IsMoving)
         {
@@ -370,7 +588,7 @@ MenuUpdateAndRender(menu_entity *MenuEntity, game_memory *Memory,
             MenuEntity->Buttons[i].LevelNumberTextureQuad.x += roundf(MenuEntity->Velocity.x);
         }
         
-        if(MenuEntity->ButtonIndex == i)
+        if(MenuEntity->ButtonIndex == i && i < ButtonsAmount)
         {
             game_point AreaCenter = {0};
             AreaCenter.x = MenuEntity->Buttons[i].ButtonQuad.x + (MenuEntity->Buttons[i].ButtonQuad.w / 2);
@@ -394,9 +612,20 @@ MenuUpdateAndRender(menu_entity *MenuEntity, game_memory *Memory,
         }
         else
         {
-            GameRenderBitmapToBuffer(Buffer, MenuEntity->BackTexture, &MenuEntity->Buttons[i].ButtonQuad);
-            GameRenderBitmapToBuffer(Buffer, MenuEntity->Buttons[i].LevelNumberTexture,
-                                     &MenuEntity->Buttons[i].LevelNumberTextureQuad);
+            if(i < ButtonsAmount)
+            {
+                
+                GameRenderBitmapToBuffer(Buffer, MenuEntity->BackTexture, &MenuEntity->Buttons[i].ButtonQuad);
+                GameRenderBitmapToBuffer(Buffer, MenuEntity->Buttons[i].LevelNumberTexture,
+                                         &MenuEntity->Buttons[i].LevelNumberTextureQuad);
+                
+                if(MenuEntity->Buttons[i].IsLocked)
+                {
+                    DEBUGRenderQuadFill(Buffer, &MenuEntity->Buttons[i].ButtonQuad, {0, 0, 0}, 150);
+                }
+                
+            }
+            
         }
     }
 }
