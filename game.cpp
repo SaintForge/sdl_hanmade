@@ -58,6 +58,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     if(!Memory->IsInitialized)
     {
+        Memory->CurrentState = LEVEL;
+        
         Memory->RefWidth  = 800;
         Memory->RefHeight = 600;
         
@@ -268,19 +270,14 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         /* EditorMemoryStorage allocation */
         
-        Memory->EditorMemoryStorage = malloc(sizeof(level_editor) + sizeof(menu_editor));
+        Memory->EditorMemoryStorage = calloc(1, sizeof(game_editor) + sizeof(level_editor) + sizeof(menu_editor) + sizeof(resolution_editor));
         Assert(Memory->EditorMemoryStorage);
         
-        level_editor *LevelEditor = (level_editor *) Memory->EditorMemoryStorage;
-        menu_editor  *MenuEditor  = (menu_editor *) (((char*)Memory->EditorMemoryStorage) + (sizeof(level_editor))); 
+        /* game_editor initialization */ 
+        game_editor *GameEditor = (game_editor *)Memory->EditorMemoryStorage;
+        Assert(GameEditor);
         
-        
-        
-        /* menu_editor initialization */ 
-        MenuEditorInit(MenuEditor, MenuEntity, Memory, Buffer);
-        
-        /* level_editor initialization */ 
-        LevelEditorInit(LevelEditor, LevelEntity, Memory, Buffer);
+        GameEditorInit(Buffer, Memory, GameEditor);
         
         Memory->IsInitialized = true;
         printf("Memory has been initialized!\n");
@@ -289,41 +286,47 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     level_entity *LevelEntity  = (level_entity *)Memory->LocalMemoryStorage;
     menu_entity  *MenuEntity   = (menu_entity*) (((char*)Memory->LocalMemoryStorage) + (sizeof(level_entity))); 
     
-    level_editor *LevelEditor = (level_editor *) Memory->EditorMemoryStorage;
-    menu_editor  *MenuEditor  = (menu_editor *) (((char*)Memory->EditorMemoryStorage) + (sizeof(level_editor))); 
-    
     
     if(Input->Keyboard.Tab.EndedDown)
     {
-        if (!Memory->ToggleMenu) 
+        if(Memory->CurrentState == LEVEL) 
         {
-            Memory->ToggleMenu = true;
+            Memory->CurrentState = LEVEL_MENU;
         }
-        else
+        else if(Memory->CurrentState == LEVEL_MENU)
         {
-            Memory->ToggleMenu = false;
+            Memory->CurrentState = LEVEL;
         }
         
     }
+    
     
     if(Input->Keyboard.Escape.EndedDown)
     {
         ShouldQuit = true;
     }
     
-    if(Memory->ToggleMenu)
+    game_state CurrentState = Memory->CurrentState;
+    
+    switch (CurrentState)
     {
-        MenuUpdateAndRender(MenuEntity, Memory, Input, Buffer);
-        MenuEditorUpdateAndRender(MenuEditor, MenuEntity, Memory, Input, Buffer);
-    }
-    else
-    {
-        game_rect ScreenArea = { 0, 0, Buffer->Width, Buffer->Height};
-        DEBUGRenderQuadFill(Buffer, &ScreenArea, { 42, 6, 21 }, 255);
+        case LEVEL:
+        {
+            game_rect ScreenArea = { 0, 0, Buffer->Width, Buffer->Height};
+            DEBUGRenderQuadFill(Buffer, &ScreenArea, { 42, 6, 21 }, 255);
+            
+            LevelEntityUpdateAndRender(LevelEntity, Memory, Input, Buffer);
+        } break;
         
-        LevelEntityUpdateAndRender(LevelEntity, Memory, Input, Buffer);
-        LevelEditorUpdateAndRender(LevelEditor, LevelEntity, Memory, Buffer, Input);
+        case LEVEL_MENU:
+        {
+            MenuUpdateAndRender(MenuEntity, Memory, Input, Buffer);
+        } break;
     }
+    
+    
+    game_editor *GameEditor = (game_editor *)Memory->EditorMemoryStorage;
+    GameEditorUpdateAndRender(Buffer, Memory, Input, GameEditor);
     
     return(ShouldQuit);
 }

@@ -9,6 +9,12 @@
 
 #if !defined(GAME_H)
 
+
+enum game_state
+{
+    LEVEL, LEVEL_MENU, MAIN_MENU
+};
+
 #define Assert(Expression) if(!(Expression)) { LogErrorLine( __FILE__, __LINE__); *(int *)0 = 0;  }
 
 void LogErrorLine(const char* Message, int Line)
@@ -92,7 +98,11 @@ struct game_memory
     s32 RefWidth;
     s32 RefHeight;
     
+    b32 EditorMode;
+    
     /*              */
+    
+    game_state CurrentState;
     
     u32 CurrentLevelIndex;
     u32 LevelMemoryAmount;

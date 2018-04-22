@@ -454,8 +454,7 @@ MenuUpdateAndRender(menu_entity *MenuEntity, game_memory *Memory,
                 {
                     LevelEntityUpdateLevelEntityFromMemory(Memory, Index, false,Buffer);
                     
-                    
-                    Memory->ToggleMenu        = false;
+                    Memory->CurrentState      = LEVEL;
                     Memory->CurrentLevelIndex = Index;
                     
                     MenuEntity->MouseOffsetX = 0;
