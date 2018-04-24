@@ -9,7 +9,6 @@
 
 #include "editor.h"
 
-
 //
 // level_editor start
 //
@@ -1508,15 +1507,18 @@ LevelEditorUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
 static void
 LevelEditorUpdatePositionsPortrait(game_offscreen_buffer *Buffer, level_editor *LevelEditor, level_entity *LevelEntity, game_memory *Memory)
 {
+    s32 ActualWidth = Buffer->Width;
+    s32 ActualHeight = Buffer->Height;
+    
     s32 ScreenWidth     = Buffer->Width;
     s32 ScreenHeight    = Buffer->Height;
     
     s32 ReferenceWidth  = Buffer->ReferenceWidth;
     s32 ReferenceHeight = Buffer->ReferenceHeight;
     
-    r32 ScaleByWidth = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 0.0f);
+    r32 ScaleByWidth = GetScale(ScreenWidth, ScreenHeight, 600, 800, 0.0f);
     
-    r32 ScaleByHeight = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 1.0f);
+    r32 ScaleByHeight = GetScale(ScreenWidth, ScreenHeight, 600, 800, 1.0f);
     
     // New Font size
     {
@@ -1533,26 +1535,6 @@ LevelEditorUpdatePositionsPortrait(game_offscreen_buffer *Buffer, level_editor *
         Assert(LevelEditor->Font);
     }
     
-    /* Next/Prev level buttons */
-    
-    { 
-        LevelEditor->PrevLevelQuad.w = 40;
-        LevelEditor->PrevLevelQuad.h = 40;
-        
-        LevelEditor->NextLevelQuad.w = 40;
-        LevelEditor->NextLevelQuad.h = 40;
-        
-        LevelEditor->PrevLevelQuad.w = (r32)LevelEditor->PrevLevelQuad.w * ScaleByHeight;
-        LevelEditor->PrevLevelQuad.h = (r32)LevelEditor->PrevLevelQuad.h * ScaleByHeight;
-        LevelEditor->PrevLevelQuad.x = Memory->PadRect.x; LevelEditor->PrevLevelQuad.y = 
-            Memory->PadRect.y + Memory->PadRect.h - LevelEditor->PrevLevelQuad.h;
-        
-        LevelEditor->NextLevelQuad.w = (r32)LevelEditor->NextLevelQuad.w * ScaleByHeight;
-        LevelEditor->NextLevelQuad.h = (r32)LevelEditor->NextLevelQuad.h * ScaleByHeight;
-        LevelEditor->NextLevelQuad.x = (Memory->PadRect.x + Memory->PadRect.w) - LevelEditor->NextLevelQuad.w;
-        LevelEditor->NextLevelQuad.y = Memory->PadRect.y + Memory->PadRect.h - LevelEditor->NextLevelQuad.h;
-        
-    }
     
     // Level Properties location
     
@@ -1808,6 +1790,42 @@ LevelEditorUpdatePositionsPortrait(game_offscreen_buffer *Buffer, level_editor *
         
     }
     
+    // Previous level button
+    { 
+        s32 X = 0;
+        s32 Y = 50;
+        s32 ButtonWidth  = 30;
+        s32 ButtonHeight = 30;
+        
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByHeight);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByHeight);
+        X = (ActualWidth / 2) - (ButtonWidth);
+        Y = roundf((r32)Y * ScaleByHeight);
+        
+        LevelEditor->PrevLevelQuad.w = ButtonWidth;
+        LevelEditor->PrevLevelQuad.h = ButtonHeight;
+        LevelEditor->PrevLevelQuad.x = X;
+        LevelEditor->PrevLevelQuad.y = Y;
+    }
+    
+    // Next level editor
+    {
+        s32 X = 0;
+        s32 Y = 50;
+        s32 ButtonWidth = 30;
+        s32 ButtonHeight = 30;
+        
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByHeight);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByHeight);
+        X = (ActualWidth / 2) + ButtonWidth;
+        Y = roundf((r32)Y * ScaleByHeight);
+        
+        LevelEditor->NextLevelQuad.w = ButtonWidth;
+        LevelEditor->NextLevelQuad.h = ButtonHeight;
+        LevelEditor->NextLevelQuad.x = X;
+        LevelEditor->NextLevelQuad.y = Y;
+    }
+    
     LevelEditor->EditorObject[0].AreaQuad = LevelEntity->LevelNumberQuad;
     LevelEditor->EditorObject[1].AreaQuad = LevelEntity->FigureEntity->FigureArea;
     LevelEditor->EditorObject[2].AreaQuad = LevelEntity->GridEntity->GridArea;
@@ -1819,51 +1837,37 @@ LevelEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, level_editor 
     //
     // Reference dimension assumed to be 800x600
     //
+    s32 ActualWidth  = Buffer->Width;
+    s32 ActualHeight = Buffer->Height;
     
     s32 ScreenWidth     = Buffer->Width;
     s32 ScreenHeight    = Buffer->Height;
     s32 ReferenceWidth  = Buffer->ReferenceWidth;
     s32 ReferenceHeight = Buffer->ReferenceHeight;
     
+    r32 ScaleByWidth = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 0.0f);
+    
+    r32 ScaleByHeight = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 1.0f);
+    
+    r32 ScaleByAll = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 0.5f);
+    
     // New Font size
     {
         s32 FontSize = 12;
-        
-        r32 NewScale = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 0.0f);
         
         if(LevelEditor->Font)
         {
             TTF_CloseFont(LevelEditor->Font);
         }
         
-        FontSize = (r32)FontSize * NewScale;
+        FontSize = (r32)FontSize * ScaleByWidth;
         printf("FontSize = %d\n",FontSize);
         
         LevelEditor->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
         Assert(LevelEditor->Font);
     }
     
-    /* Next/Prev level buttons */
     
-    { 
-        LevelEditor->PrevLevelQuad.w = 40;
-        LevelEditor->PrevLevelQuad.h = 40;
-        
-        LevelEditor->NextLevelQuad.w = 40;
-        LevelEditor->NextLevelQuad.h = 40;
-        
-        r32 NewScale = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 0.0f);
-        
-        LevelEditor->PrevLevelQuad.w = (r32)LevelEditor->PrevLevelQuad.w * NewScale;
-        LevelEditor->PrevLevelQuad.h = (r32)LevelEditor->PrevLevelQuad.h * NewScale;
-        LevelEditor->PrevLevelQuad.x = Memory->PadRect.x; LevelEditor->PrevLevelQuad.y = Memory->PadRect.y + Memory->PadRect.h - LevelEditor->PrevLevelQuad.h;
-        
-        LevelEditor->NextLevelQuad.w = (r32)LevelEditor->NextLevelQuad.w * NewScale;
-        LevelEditor->NextLevelQuad.h = (r32)LevelEditor->NextLevelQuad.h * NewScale;
-        LevelEditor->NextLevelQuad.x = (Memory->PadRect.x + Memory->PadRect.w) - LevelEditor->NextLevelQuad.w;
-        LevelEditor->NextLevelQuad.y = Memory->PadRect.y + Memory->PadRect.h - LevelEditor->NextLevelQuad.h;
-        
-    }
     
     // Level Properties location
     
@@ -1872,10 +1876,8 @@ LevelEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, level_editor 
         s32 ButtonHeight = 30;
         s32 ButtonAmount = 4;
         
-        r32 NewScale = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 0.0f);
-        
-        ButtonWidth  = roundf((r32)ButtonWidth  * NewScale);
-        ButtonHeight = roundf((r32)ButtonHeight * NewScale);
+        ButtonWidth  = roundf((r32)ButtonWidth  * ScaleByWidth);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByHeight);
         
         LevelEditor->LevelPropertiesQuad.x = 0;
         LevelEditor->LevelPropertiesQuad.y = 0;
@@ -1893,8 +1895,8 @@ LevelEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, level_editor 
         s32 InfoWidth = 75;
         s32 BoxWidth  = 25;
         
-        InfoWidth = roundf((r32)InfoWidth * NewScale);
-        BoxWidth  = roundf((r32)BoxWidth  * NewScale);
+        InfoWidth = roundf((r32)InfoWidth * ScaleByWidth);
+        BoxWidth  = roundf((r32)BoxWidth  * ScaleByWidth);
         
         /* Row label initialization */
         
@@ -1923,10 +1925,8 @@ LevelEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, level_editor 
         s32 ButtonHeight = 30;
         s32 ButtonAmount = 5;
         
-        r32 NewScale = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 0.0f);
-        
-        ButtonWidth  = roundf((r32)ButtonWidth  * NewScale);
-        ButtonHeight = roundf((r32)ButtonHeight * NewScale); 
+        ButtonWidth  = roundf((r32)ButtonWidth  * ScaleByWidth);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByHeight); 
         
         LevelEditor->FigurePropertiesQuad.w = ButtonWidth;
         LevelEditor->FigurePropertiesQuad.h = ButtonHeight * ButtonAmount;
@@ -1974,10 +1974,8 @@ LevelEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, level_editor 
         s32 ButtonHeight = 30;
         s32 ButtonAmount = 3;
         
-        r32 NewScale = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 0.0f);
-        
-        ButtonWidth  = roundf((r32)ButtonWidth  * NewScale);
-        ButtonHeight = roundf((r32)ButtonHeight * NewScale); 
+        ButtonWidth  = roundf((r32)ButtonWidth  * ScaleByWidth);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByHeight); 
         
         LevelEditor->IOPropertiesQuad.w = ButtonWidth;
         LevelEditor->IOPropertiesQuad.h = ButtonHeight * ButtonAmount;
@@ -2022,10 +2020,8 @@ LevelEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, level_editor 
         s32 ButtonHeight = 20;
         s32 ButtonAmount = 6;
         
-        r32 NewScale = GetScale(ScreenWidth, ScreenHeight, ReferenceWidth, ReferenceHeight, 0.0f);
-        
-        ButtonWidth  = roundf((r32) ButtonWidth * NewScale);
-        ButtonHeight = roundf((r32) ButtonHeight * NewScale);
+        ButtonWidth  = roundf((r32) ButtonWidth * ScaleByWidth);
+        ButtonHeight = roundf((r32) ButtonHeight * ScaleByHeight);
         
         LevelEditor->PosPanelQuad.x = 0;
         LevelEditor->PosPanelQuad.y = LevelEditor->LevelPropertiesQuad.y + LevelEditor->SwitchConfiguration.Quad.h;
@@ -2041,8 +2037,8 @@ LevelEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, level_editor 
         s32 ArrowWidth  = 32;
         s32 SwitchWidth = 86;
         
-        ArrowWidth  = roundf((r32)ArrowWidth * NewScale);
-        SwitchWidth = roundf((r32)SwitchWidth * NewScale);
+        ArrowWidth  = roundf((r32)ArrowWidth * ScaleByWidth);
+        SwitchWidth = roundf((r32)SwitchWidth * ScaleByHeight);
         
         EditorMakeTextButton(Buffer, LevelEditor->Font, "<", 
                              LevelEditor->PosPanelQuad.x,
@@ -2065,8 +2061,8 @@ LevelEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, level_editor 
         s32 NameNumberWidth = 60;
         s32 NumberWidth     = 90;
         
-        NameNumberWidth = roundf((r32)NameNumberWidth * NewScale);
-        NumberWidth     = roundf((r32)NumberWidth * NewScale);
+        NameNumberWidth = roundf((r32)NameNumberWidth * ScaleByWidth);
+        NumberWidth     = roundf((r32)NumberWidth * ScaleByWidth);
         
         char NumberString[128] = {};
         
@@ -2125,6 +2121,43 @@ LevelEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, level_editor 
                              NumberWidth, ButtonHeight,
                              &LevelEditor->PosPanel.FourthNumberButton, 255, 255, 255);
         
+    }
+    
+    /* Previous level button */
+    
+    { 
+        s32 X = 0;
+        s32 Y = 550;
+        s32 ButtonWidth  = 30;
+        s32 ButtonHeight = 30;
+        
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByWidth);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByWidth);
+        X = (ActualWidth / 2) - (ButtonWidth);
+        Y = roundf((r32)Y * ScaleByHeight);
+        
+        LevelEditor->PrevLevelQuad.w = ButtonWidth;
+        LevelEditor->PrevLevelQuad.h = ButtonHeight;
+        LevelEditor->PrevLevelQuad.x = X;
+        LevelEditor->PrevLevelQuad.y = Y;
+    }
+    
+    // Next level editor
+    {
+        s32 X = 0;
+        s32 Y = 550;
+        s32 ButtonWidth = 30;
+        s32 ButtonHeight = 30;
+        
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByWidth);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByWidth);
+        X = (ActualWidth / 2) + ButtonWidth;
+        Y = roundf((r32)Y * ScaleByHeight);
+        
+        LevelEditor->NextLevelQuad.w = ButtonWidth;
+        LevelEditor->NextLevelQuad.h = ButtonHeight;
+        LevelEditor->NextLevelQuad.x = X;
+        LevelEditor->NextLevelQuad.y = Y;
     }
     
     LevelEditor->EditorObject[0].AreaQuad = LevelEntity->LevelNumberQuad;
@@ -2191,7 +2224,7 @@ MenuEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, menu_editor *M
     // Font for editor gui
     {
         s32 FontSize = 12;
-        FontSize = (r32)FontSize * ScaleByWidth;
+        FontSize = roundf((r32)FontSize * ScaleByWidth);
         
         if(MenuEditor->Font)
         {
@@ -2210,14 +2243,14 @@ MenuEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, menu_editor *M
         s32 ButtonHeight = 30;
         //s32 ButtonAmount = 4;
         
-        ButtonWidth  = roundf((r32)ButtonWidth  * ScaleByHeight);
-        ButtonHeight = roundf((r32)ButtonHeight * ScaleByHeight);
+        ButtonWidth  = roundf((r32)ButtonWidth  * ScaleByWidth);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByWidth);
         
         s32 InfoWidth = 75;
         s32 BoxWidth  = 25;
         
-        InfoWidth = roundf((r32)InfoWidth * ScaleByHeight);
-        BoxWidth  = roundf((r32)BoxWidth  * ScaleByHeight);
+        InfoWidth = roundf((r32)InfoWidth * ScaleByWidth);
+        BoxWidth  = roundf((r32)BoxWidth  * ScaleByWidth);
         
         // LevelAmount label initialization
         s32 LevelAmount = MenuEntity->ButtonsAmount;
@@ -2231,10 +2264,10 @@ MenuEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, menu_editor *M
         s32 ButtonWidth  = 75;
         s32 ButtonHeight = 30;
         
-        X = (r32)X * ScaleByWidth;
-        Y = (r32)Y * ScaleByWidth;
-        ButtonWidth = (r32)ButtonWidth * ScaleByWidth;
-        ButtonHeight = (r32)ButtonHeight * ScaleByHeight;
+        X = roundf((r32)X * ScaleByWidth);
+        Y = roundf((r32)Y * ScaleByWidth);
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByWidth);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByWidth);
         
         EditorMakeTextButton(Buffer, MenuEditor->Font, "Load", 
                              X, Y, ButtonWidth, ButtonHeight,
@@ -2248,10 +2281,10 @@ MenuEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, menu_editor *M
         s32 ButtonWidth  = 75;
         s32 ButtonHeight = 30;
         
-        X = (r32)X * ScaleByWidth;
-        Y = (r32)Y * ScaleByWidth;
-        ButtonWidth = (r32)ButtonWidth * ScaleByWidth;
-        ButtonHeight = (r32)ButtonHeight * ScaleByHeight;
+        X = roundf((r32)X * ScaleByWidth);
+        Y = roundf((r32)Y * ScaleByWidth);
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByWidth);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByWidth);
         
         EditorMakeTextButton(Buffer, MenuEditor->Font, "Save", 
                              X, Y, ButtonWidth, ButtonHeight,
@@ -2265,10 +2298,10 @@ MenuEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, menu_editor *M
         s32 ButtonWidth  = 150;
         s32 ButtonHeight = 30;
         
-        X = (r32)X * ScaleByWidth;
-        Y = (r32)Y * ScaleByWidth;
-        ButtonWidth  = (r32)ButtonWidth * ScaleByWidth;
-        ButtonHeight = (r32)ButtonHeight * ScaleByHeight;
+        X = roundf((r32)X * ScaleByWidth);
+        Y = roundf((r32)Y * ScaleByWidth);
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByWidth);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByWidth);
         
         EditorMakeTextButton(Buffer, MenuEditor->Font, "Sort", 
                              X, Y, ButtonWidth, ButtonHeight,
@@ -2281,11 +2314,10 @@ MenuEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, menu_editor *M
         s32 Y = 90;
         s32 ButtonWidth  = 75;
         s32 ButtonHeight = 30;
-        
-        X = (r32)X * ScaleByWidth;
-        Y = (r32)Y * ScaleByWidth;
-        ButtonWidth  = (r32)ButtonWidth * ScaleByWidth;
-        ButtonHeight = (r32)ButtonHeight * ScaleByHeight;
+        X = roundf((r32)X * ScaleByWidth);
+        Y = roundf((r32)Y * ScaleByWidth);
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByWidth);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByWidth);
         
         EditorMakeTextButton(Buffer, MenuEditor->Font, "Delete", 
                              X, Y, ButtonWidth, ButtonHeight,
@@ -2299,11 +2331,10 @@ MenuEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, menu_editor *M
         s32 ButtonWidth  = 75;
         s32 ButtonHeight = 30;
         
-        X = (r32)X * ScaleByWidth;
-        Y = (r32)Y * ScaleByWidth;
-        ButtonWidth  = (r32)ButtonWidth * ScaleByWidth;
-        ButtonHeight = (r32)ButtonHeight * ScaleByHeight;
-        
+        X = roundf((r32)X * ScaleByWidth);
+        Y = roundf((r32)Y * ScaleByWidth);
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByWidth);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByWidth);
         EditorMakeTextButton(Buffer, MenuEditor->Font, "Swap", 
                              X, Y, ButtonWidth, ButtonHeight,
                              &MenuEditor->SwapButton, 255, 255, 255);
@@ -2316,10 +2347,10 @@ MenuEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, menu_editor *M
         s32 ButtonWidth  = 75;
         s32 ButtonHeight = 30;
         
-        X = (r32)X * ScaleByWidth;
-        Y = (r32)Y * ScaleByWidth;
-        ButtonWidth  = (r32)ButtonWidth * ScaleByWidth;
-        ButtonHeight = (r32)ButtonHeight * ScaleByHeight;
+        X = roundf((r32)X * ScaleByWidth);
+        Y = roundf((r32)Y * ScaleByWidth);
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByWidth);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByWidth);
         
         EditorMakeTextButton(Buffer, MenuEditor->Font, "Lock", 
                              X, Y, ButtonWidth, ButtonHeight,
@@ -2333,10 +2364,10 @@ MenuEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, menu_editor *M
         s32 ButtonWidth  = 75;
         s32 ButtonHeight = 30;
         
-        X = (r32)X * ScaleByWidth;
-        Y = (r32)Y * ScaleByWidth;
-        ButtonWidth  = (r32)ButtonWidth * ScaleByWidth;
-        ButtonHeight = (r32)ButtonHeight * ScaleByHeight;
+        X = roundf((r32)X * ScaleByWidth);
+        Y = roundf((r32)Y * ScaleByWidth);
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByWidth);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByWidth);
         
         EditorMakeTextButton(Buffer, MenuEditor->Font, "Unlock", 
                              X, Y, ButtonWidth, ButtonHeight,
@@ -2350,14 +2381,49 @@ MenuEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, menu_editor *M
         s32 ButtonWidth  = 150;
         s32 ButtonHeight = 30;
         
-        X = (r32)X * ScaleByWidth;
-        Y = (r32)Y * ScaleByWidth;
-        ButtonWidth  = (r32)ButtonWidth * ScaleByWidth;
-        ButtonHeight = (r32)ButtonHeight * ScaleByHeight;
+        X = roundf((r32)X * ScaleByWidth);
+        Y = roundf((r32)Y * ScaleByWidth);
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByWidth);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByWidth);
         
         EditorMakeTextButton(Buffer, MenuEditor->Font, "Cancel", 
                              X, Y, ButtonWidth, ButtonHeight,
                              &MenuEditor->CancelButton, 255, 255, 255);
+    }
+    
+    // Previous levels button
+    {
+        s32 X = 0;
+        s32 Y = 0;
+        s32 ButtonWidth  = 30;
+        s32 ButtonHeight = 30;
+        
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByWidth);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByWidth);
+        Y = (ActualHeight / 2) - (ButtonHeight / 2);
+        
+        MenuEditor->PrevButtonQuad.w = ButtonWidth;
+        MenuEditor->PrevButtonQuad.h = ButtonHeight;
+        MenuEditor->PrevButtonQuad.x = X;
+        MenuEditor->PrevButtonQuad.y = Y;
+    }
+    
+    // Next levels button
+    {
+        s32 X = 0;
+        s32 Y = 285;
+        s32 ButtonWidth  = 30;
+        s32 ButtonHeight = 30;
+        
+        ButtonWidth  = roundf((r32)ButtonWidth * ScaleByWidth);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByWidth);
+        X = ActualWidth - ButtonWidth;
+        Y = (ActualHeight / 2) - (ButtonHeight / 2);
+        
+        MenuEditor->NextButtonQuad.w = ButtonWidth;
+        MenuEditor->NextButtonQuad.h = ButtonHeight;
+        MenuEditor->NextButtonQuad.x = X;
+        MenuEditor->NextButtonQuad.y = Y;
     }
 }
 
@@ -2375,9 +2441,8 @@ MenuEditorUpdatePositionsPortrait(game_offscreen_buffer *Buffer,
     s32 ReferenceWidth  = Buffer->ReferenceWidth;
     s32 ReferenceHeight = Buffer->ReferenceHeight;
     
-    r32 ScaleByWidth = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 0.0f);
-    
-    r32 ScaleByHeight = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 1.0f);
+    r32 ScaleByWidth = GetScale(ActualWidth, ActualHeight, 600, 800, 0.0f);
+    r32 ScaleByHeight = GetScale(ActualWidth, ActualHeight, 600, 800, 1.0f);
     
     // Font for editor gui
     {
@@ -2422,10 +2487,10 @@ MenuEditorUpdatePositionsPortrait(game_offscreen_buffer *Buffer,
         s32 ButtonWidth  = 75;
         s32 ButtonHeight = 30;
         
-        X = (r32)X * ScaleByHeight;
-        Y = (r32)Y * ScaleByHeight;
-        ButtonWidth = (r32)ButtonWidth * ScaleByHeight;
-        ButtonHeight = (r32)ButtonHeight * ScaleByHeight;
+        X = roundf((r32)X * ScaleByHeight);
+        Y = roundf((r32)Y * ScaleByHeight);
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByHeight);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByHeight);
         
         EditorMakeTextButton(Buffer, MenuEditor->Font, "Load", 
                              X, Y, ButtonWidth, ButtonHeight,
@@ -2439,10 +2504,10 @@ MenuEditorUpdatePositionsPortrait(game_offscreen_buffer *Buffer,
         s32 ButtonWidth  = 75;
         s32 ButtonHeight = 30;
         
-        X = (r32)X * ScaleByHeight;
-        Y = (r32)Y * ScaleByHeight;
-        ButtonWidth = (r32)ButtonWidth * ScaleByHeight;
-        ButtonHeight = (r32)ButtonHeight * ScaleByHeight;
+        X = roundf((r32)X * ScaleByHeight);
+        Y = roundf((r32)Y * ScaleByHeight);
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByHeight);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByHeight);
         
         EditorMakeTextButton(Buffer, MenuEditor->Font, "Save", 
                              X, Y, ButtonWidth, ButtonHeight,
@@ -2456,10 +2521,10 @@ MenuEditorUpdatePositionsPortrait(game_offscreen_buffer *Buffer,
         s32 ButtonWidth  = 150;
         s32 ButtonHeight = 30;
         
-        X = (r32)X * ScaleByHeight;
-        Y = (r32)Y * ScaleByHeight;
-        ButtonWidth  = (r32)ButtonWidth * ScaleByHeight;
-        ButtonHeight = (r32)ButtonHeight * ScaleByHeight;
+        X = roundf((r32)X * ScaleByHeight);
+        Y = roundf((r32)Y * ScaleByHeight);
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByHeight);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByHeight);
         
         EditorMakeTextButton(Buffer, MenuEditor->Font, "Sort", 
                              X, Y, ButtonWidth, ButtonHeight,
@@ -2473,10 +2538,10 @@ MenuEditorUpdatePositionsPortrait(game_offscreen_buffer *Buffer,
         s32 ButtonWidth  = 75;
         s32 ButtonHeight = 30;
         
-        X = (r32)X * ScaleByHeight;
-        Y = (r32)Y * ScaleByHeight;
-        ButtonWidth  = (r32)ButtonWidth * ScaleByHeight;
-        ButtonHeight = (r32)ButtonHeight * ScaleByHeight;
+        X = roundf((r32)X * ScaleByHeight);
+        Y = roundf((r32)Y * ScaleByHeight);
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByHeight);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByHeight);
         
         EditorMakeTextButton(Buffer, MenuEditor->Font, "Delete", 
                              X, Y, ButtonWidth, ButtonHeight,
@@ -2490,10 +2555,10 @@ MenuEditorUpdatePositionsPortrait(game_offscreen_buffer *Buffer,
         s32 ButtonWidth  = 75;
         s32 ButtonHeight = 30;
         
-        X = (r32)X * ScaleByHeight;
-        Y = (r32)Y * ScaleByHeight;
-        ButtonWidth  = (r32)ButtonWidth * ScaleByHeight;
-        ButtonHeight = (r32)ButtonHeight * ScaleByHeight;
+        X = roundf((r32)X * ScaleByHeight);
+        Y = roundf((r32)Y * ScaleByHeight);
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByHeight);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByHeight);
         
         EditorMakeTextButton(Buffer, MenuEditor->Font, "Swap", 
                              X, Y, ButtonWidth, ButtonHeight,
@@ -2507,10 +2572,10 @@ MenuEditorUpdatePositionsPortrait(game_offscreen_buffer *Buffer,
         s32 ButtonWidth  = 75;
         s32 ButtonHeight = 30;
         
-        X = (r32)X * ScaleByHeight;
-        Y = (r32)Y * ScaleByHeight;
-        ButtonWidth  = (r32)ButtonWidth * ScaleByHeight;
-        ButtonHeight = (r32)ButtonHeight * ScaleByHeight;
+        X = roundf((r32)X * ScaleByHeight);
+        Y = roundf((r32)Y * ScaleByHeight);
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByHeight);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByHeight);
         
         EditorMakeTextButton(Buffer, MenuEditor->Font, "Lock", 
                              X, Y, ButtonWidth, ButtonHeight,
@@ -2524,10 +2589,10 @@ MenuEditorUpdatePositionsPortrait(game_offscreen_buffer *Buffer,
         s32 ButtonWidth  = 75;
         s32 ButtonHeight = 30;
         
-        X = (r32)X * ScaleByHeight;
-        Y = (r32)Y * ScaleByHeight;
-        ButtonWidth  = (r32)ButtonWidth * ScaleByHeight;
-        ButtonHeight = (r32)ButtonHeight * ScaleByHeight;
+        X = roundf((r32)X * ScaleByHeight);
+        Y = roundf((r32)Y * ScaleByHeight);
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByHeight);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByHeight);
         
         EditorMakeTextButton(Buffer, MenuEditor->Font, "Unlock", 
                              X, Y, ButtonWidth, ButtonHeight,
@@ -2541,14 +2606,51 @@ MenuEditorUpdatePositionsPortrait(game_offscreen_buffer *Buffer,
         s32 ButtonWidth  = 150;
         s32 ButtonHeight = 30;
         
-        X = (r32)X * ScaleByHeight;
-        Y = (r32)Y * ScaleByHeight;
-        ButtonWidth  = (r32)ButtonWidth * ScaleByHeight;
-        ButtonHeight = (r32)ButtonHeight * ScaleByHeight;
+        X = roundf((r32)X * ScaleByHeight);
+        Y = roundf((r32)Y * ScaleByHeight);
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByHeight);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByHeight);
         
         EditorMakeTextButton(Buffer, MenuEditor->Font, "Cancel", 
                              X, Y, ButtonWidth, ButtonHeight,
                              &MenuEditor->CancelButton, 255, 255, 255);
+    }
+    
+    // Previous levels button
+    {
+        s32 X = 0;
+        s32 Y = 385;
+        s32 ButtonWidth  = 30;
+        s32 ButtonHeight = 30;
+        
+        X = roundf((r32)X * ScaleByHeight);
+        Y = roundf((r32)Y * ScaleByHeight);
+        ButtonWidth = roundf((r32)ButtonWidth * ScaleByHeight);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByHeight);
+        
+        MenuEditor->PrevButtonQuad.w = ButtonWidth;
+        MenuEditor->PrevButtonQuad.h = ButtonHeight;
+        MenuEditor->PrevButtonQuad.x = X;
+        MenuEditor->PrevButtonQuad.y = Y;
+    }
+    
+    // Next levels button
+    {
+        s32 X = 0;
+        s32 Y = 385;
+        s32 ButtonWidth  = 30;
+        s32 ButtonHeight = 30;
+        
+        ButtonWidth  = roundf((r32)ButtonWidth * ScaleByHeight);
+        ButtonHeight = roundf((r32)ButtonHeight * ScaleByHeight);
+        
+        X = ActualWidth - ButtonWidth;
+        Y = (ActualHeight / 2) - (ButtonHeight / 2);
+        
+        MenuEditor->NextButtonQuad.w = ButtonWidth;
+        MenuEditor->NextButtonQuad.h = ButtonHeight;
+        MenuEditor->NextButtonQuad.x = X;
+        MenuEditor->NextButtonQuad.y = Y;
     }
 }
 
@@ -2557,6 +2659,12 @@ static void
 MenuEditorInit(menu_editor *MenuEditor, menu_entity *MenuEntity, 
                game_memory *Memory, game_offscreen_buffer *Buffer)
 {
+    MenuEditor->PrevButtonTexture = GetTexture(Memory, "left_arrow.png", Buffer->Renderer);
+    Assert(MenuEditor->PrevButtonTexture);
+    
+    MenuEditor->NextButtonTexture = GetTexture(Memory, "right_arrow.png", Buffer->Renderer);
+    Assert(MenuEditor->NextButtonTexture);
+    
     MenuEditorUpdatePositionsLandscape(Buffer, MenuEditor, MenuEntity, Memory);
 }
 
@@ -2711,8 +2819,7 @@ MenuEditorUpdateAndRender(menu_editor *MenuEditor, menu_entity *MenuEntity, game
             MenuEditor->ButtonIsPressed = true;
             MenuEditor->HighlightButtonQuad = MenuEditor->SortButton.Quad;
         }
-        
-        if(IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEditor->DeleteButton.Quad))
+        else if(IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEditor->DeleteButton.Quad))
         {
             // delete level/levels button
             
@@ -2867,6 +2974,15 @@ MenuEditorUpdateAndRender(menu_editor *MenuEditor, menu_entity *MenuEntity, game
             MenuEditor->ButtonIsPressed = true;
             MenuEditor->HighlightButtonQuad = MenuEditor->UnlockButton.Quad;
         }
+        else if (IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEditor->PrevButtonQuad))
+        {
+            
+        }
+        else if (IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEditor->NextButtonQuad))
+        {
+            
+        }
+        
         
     }
     else if(Input->MouseButtons[0].EndedUp)
@@ -2905,6 +3021,16 @@ MenuEditorUpdateAndRender(menu_editor *MenuEditor, menu_entity *MenuEntity, game
         }
     }
     
+    if(Input->Keyboard.Q_Button.EndedDown)
+    {
+        
+    }
+    
+    if(Input->Keyboard.E_Button.EndedDown)
+    {
+        
+    }
+    
     LevelEditorRenderLabel(&MenuEditor->LevelLabel, Buffer, 0, 255, 0, 0, 255, 0, 150);
     
     RenderButtonQuad(Buffer, &MenuEditor->LoadButton, 0, 255, 0, 150);
@@ -2919,6 +3045,9 @@ MenuEditorUpdateAndRender(menu_editor *MenuEditor, menu_entity *MenuEntity, game
     RenderButtonQuad(Buffer, &MenuEditor->UnlockButton, 255, 0, 0, 150);
     
     RenderButtonQuad(Buffer, &MenuEditor->CancelButton, 255, 0, 0, 150);
+    
+    GameRenderBitmapToBuffer(Buffer, MenuEditor->PrevButtonTexture, &MenuEditor->PrevButtonQuad);
+    GameRenderBitmapToBuffer(Buffer, MenuEditor->NextButtonTexture, &MenuEditor->NextButtonQuad);
     
     if(MenuEditor->ButtonsSelected)
     {
@@ -3140,9 +3269,8 @@ ResolutionEditorScalePortrait(game_offscreen_buffer *Buffer,resolution_editor *R
     s32 ReferenceWidth = Buffer->ReferenceWidth;
     s32 ReferenceHeight = Buffer->ReferenceHeight;
     
-    r32 ScaleByWidth = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 0.0f);
-    
-    r32 ScaleByHeight = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 1.0f);
+    r32 ScaleByWidth = GetScale(ActualWidth, ActualHeight, 600, 800, 0.0f);
+    r32 ScaleByHeight = GetScale(ActualWidth, ActualHeight, 600, 800, 1.0f);
     
     // Resolution font
     {
@@ -3377,6 +3505,7 @@ ResolutionEditorUpdateAndRender(game_offscreen_buffer *Buffer, game_input *Input
                 if(Buffer->Width > Buffer->Height)
                 {
                     LevelEntityUpdatePositionsLandscape(Buffer, Memory);
+                    MenuEntityUpdatePositionsLandscape(Buffer, MenuEntity, Memory);
                     
                     LevelEditorUpdatePositionsLandscape(Buffer, LevelEditor, LevelEntity, Memory);
                     MenuEditorUpdatePositionsLandscape(Buffer, MenuEditor, MenuEntity, Memory);
@@ -3385,6 +3514,8 @@ ResolutionEditorUpdateAndRender(game_offscreen_buffer *Buffer, game_input *Input
                 else
                 {
                     LevelEntityUpdatePositionsPortrait(Buffer, Memory);
+                    MenuEntityUpdatePositionsPortrait(Buffer, MenuEntity, Memory);
+                    
                     LevelEditorUpdatePositionsPortrait(Buffer, LevelEditor, LevelEntity, Memory);
                     MenuEditorUpdatePositionsPortrait(Buffer, MenuEditor, MenuEntity, Memory);
                     
@@ -3409,6 +3540,7 @@ ResolutionEditorUpdateAndRender(game_offscreen_buffer *Buffer, game_input *Input
                 if(Buffer->Width > Buffer->Height)
                 {
                     LevelEntityUpdatePositionsLandscape(Buffer, Memory);
+                    MenuEntityUpdatePositionsLandscape(Buffer, MenuEntity, Memory);
                     LevelEditorUpdatePositionsLandscape(Buffer, LevelEditor, LevelEntity, Memory);
                     MenuEditorUpdatePositionsLandscape(Buffer, MenuEditor, MenuEntity, Memory);
                     
@@ -3418,6 +3550,7 @@ ResolutionEditorUpdateAndRender(game_offscreen_buffer *Buffer, game_input *Input
                 else
                 {
                     LevelEntityUpdatePositionsPortrait(Buffer, Memory);
+                    MenuEntityUpdatePositionsLandscape(Buffer, MenuEntity, Memory);
                     LevelEditorUpdatePositionsPortrait(Buffer, LevelEditor, LevelEntity, Memory);
                     MenuEditorUpdatePositionsPortrait(Buffer, MenuEditor, MenuEntity, Memory);
                     ResolutionEditorScalePortrait(Buffer,ResPanel, Memory);
@@ -3454,6 +3587,7 @@ ResolutionEditorUpdateAndRender(game_offscreen_buffer *Buffer, game_input *Input
                 if(Buffer->Width > Buffer->Height)
                 {
                     LevelEntityUpdatePositionsLandscape(Buffer, Memory);
+                    MenuEntityUpdatePositionsLandscape(Buffer, MenuEntity, Memory);
                     LevelEditorUpdatePositionsLandscape(Buffer, LevelEditor, LevelEntity, Memory);
                     MenuEditorUpdatePositionsLandscape(Buffer, MenuEditor, MenuEntity, Memory);
                     ResolutionEditorScaleLandscape(Buffer,ResPanel, Memory);
@@ -3461,6 +3595,7 @@ ResolutionEditorUpdateAndRender(game_offscreen_buffer *Buffer, game_input *Input
                 else
                 {
                     LevelEntityUpdatePositionsPortrait(Buffer, Memory);
+                    MenuEntityUpdatePositionsPortrait(Buffer, MenuEntity, Memory);
                     LevelEditorUpdatePositionsPortrait(Buffer, LevelEditor, LevelEntity, Memory);
                     MenuEditorUpdatePositionsPortrait(Buffer, MenuEditor, MenuEntity, Memory);
                     ResolutionEditorScalePortrait(Buffer,ResPanel, Memory);

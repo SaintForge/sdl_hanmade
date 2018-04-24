@@ -450,6 +450,13 @@ struct menu_editor
     /* Button for locking/unlocking the levels */
     button_quad UnlockButton;
     
+    /* Buttons for switching to next/previous 20 levels */
+    s32 CurrrentLevelSlide;
+    game_rect PrevButtonQuad;
+    game_texture *PrevButtonTexture;
+    game_rect NextButtonQuad;
+    game_texture *NextButtonTexture;
+    
     /* For highlightning the button whenever pressed */
     bool ButtonIsPressed;
     game_rect HighlightButtonQuad;

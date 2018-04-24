@@ -196,6 +196,7 @@ struct menu_entity
     bool IsMoving;
     bool IsAnimating;
     
+    s32 SpaceBetweenButtons;
     u32 ButtonSizeWidth;
     u32 ButtonSizeHeight;
     u32 ButtonsAmount;
