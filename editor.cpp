@@ -3510,6 +3510,8 @@ ResolutionEditorUpdateAndRender(game_offscreen_buffer *Buffer, game_input *Input
                     LevelEditorUpdatePositionsLandscape(Buffer, LevelEditor, LevelEntity, Memory);
                     MenuEditorUpdatePositionsLandscape(Buffer, MenuEditor, MenuEntity, Memory);
                     ResolutionEditorScaleLandscape(Buffer,ResPanel, Memory);
+                    
+                    ButtonQuadUpdateTextureOnButton(Buffer, ResPanel->Font, "Landscape", &ResPanel->SwitchButton, 255, 255, 255);
                 }
                 else
                 {
@@ -3521,7 +3523,10 @@ ResolutionEditorUpdateAndRender(game_offscreen_buffer *Buffer, game_input *Input
                     
                     ResolutionEditorScalePortrait(Buffer,ResPanel, Memory);
                     
+                    ButtonQuadUpdateTextureOnButton(Buffer, ResPanel->Font, "Portrait", &ResPanel->SwitchButton, 255, 255, 255);
+                    
                 }
+                
                 
                 
                 ResPanel->ButtonSelected = true;
@@ -3545,7 +3550,7 @@ ResolutionEditorUpdateAndRender(game_offscreen_buffer *Buffer, game_input *Input
                     MenuEditorUpdatePositionsLandscape(Buffer, MenuEditor, MenuEntity, Memory);
                     
                     ResolutionEditorScaleLandscape(Buffer,ResPanel, Memory);
-                    
+                    ButtonQuadUpdateTextureOnButton(Buffer, ResPanel->Font, "Landscape", &ResPanel->SwitchButton, 255, 255, 255);
                 }
                 else
                 {
@@ -3554,6 +3559,7 @@ ResolutionEditorUpdateAndRender(game_offscreen_buffer *Buffer, game_input *Input
                     LevelEditorUpdatePositionsPortrait(Buffer, LevelEditor, LevelEntity, Memory);
                     MenuEditorUpdatePositionsPortrait(Buffer, MenuEditor, MenuEntity, Memory);
                     ResolutionEditorScalePortrait(Buffer,ResPanel, Memory);
+                    ButtonQuadUpdateTextureOnButton(Buffer, ResPanel->Font, "Portrait", &ResPanel->SwitchButton, 255, 255, 255);
                 }
                 
                 
@@ -3591,6 +3597,8 @@ ResolutionEditorUpdateAndRender(game_offscreen_buffer *Buffer, game_input *Input
                     LevelEditorUpdatePositionsLandscape(Buffer, LevelEditor, LevelEntity, Memory);
                     MenuEditorUpdatePositionsLandscape(Buffer, MenuEditor, MenuEntity, Memory);
                     ResolutionEditorScaleLandscape(Buffer,ResPanel, Memory);
+                    
+                    ButtonQuadUpdateTextureOnButton(Buffer, ResPanel->Font, "Landscape", &ResPanel->SwitchButton, 255, 255, 255);
                 }
                 else
                 {
@@ -3599,6 +3607,8 @@ ResolutionEditorUpdateAndRender(game_offscreen_buffer *Buffer, game_input *Input
                     LevelEditorUpdatePositionsPortrait(Buffer, LevelEditor, LevelEntity, Memory);
                     MenuEditorUpdatePositionsPortrait(Buffer, MenuEditor, MenuEntity, Memory);
                     ResolutionEditorScalePortrait(Buffer,ResPanel, Memory);
+                    
+                    ButtonQuadUpdateTextureOnButton(Buffer, ResPanel->Font, "Landscape", &ResPanel->SwitchButton, 255, 255, 255);
                 }
                 
             }
