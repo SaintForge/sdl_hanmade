@@ -253,8 +253,6 @@ FigureEntityHighlightFigureArea(figure_entity *FigureEntity,
     SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, 255);
 }
 
-
-
 static void
 FigureUnitResizeBy(figure_unit *Entity, r32 ScaleFactor)
 {
@@ -279,7 +277,7 @@ FigureUnitResizeBy(figure_unit *Entity, r32 ScaleFactor)
     Rectangle->x += (OldCenter.x - NewCenter.x);
     Rectangle->y += (OldCenter.y - NewCenter.y);
     
-    OffsetX = roundf((Entity->Center.x - OldX) * ScaleFactor);
+    OffsetX = roundf((Entity->Center.x - OldX) * ScaleFactor); //150
     OffsetY = roundf((Entity->Center.y - OldY) * ScaleFactor);
     Entity->Center.x = OldX + OffsetX;
     Entity->Center.y = OldY + OffsetY;
@@ -492,6 +490,12 @@ FigureUnitInitFigure(figure_unit *FigureUnit,
     FigureUnit->Texture = Texture;
     Assert(FigureUnit->Texture);
     
+    s32 w, h;
+    SDL_QueryTexture(FigureUnit->Texture, 0, 0, &w, &h);
+    
+    FigureUnit->OriginWidth  = w;
+    FigureUnit->OriginHeight = h;
+    
     FigureUnit->AreaQuad.x = 0;
     FigureUnit->AreaQuad.y = 0;
     FigureUnit->AreaQuad.w = RowAmount * InActiveBlockSize;
@@ -682,7 +686,6 @@ FigureUnitRenderBitmap(game_offscreen_buffer *Buffer, figure_unit *Entity)
     SDL_RenderCopyEx(Buffer->Renderer, Entity->Texture,
                      0, &Entity->AreaQuad, Entity->Angle, &Center, Entity->Flip);
 }
-
 
 static void
 FigureUnitSetToDefaultArea(figure_unit* Unit, r32 BlockRatio)
@@ -1803,11 +1806,504 @@ moving_block
     }
 }
 
+static void
+LevelEntityFinishAnimationInit1(level_entity *LevelEntity, game_memory *Memory, game_offscreen_buffer *Buffer)
+{
+    grid_entity *GridEntity = LevelEntity->GridEntity;
+    
+    // drawing the grid texture
+    
+    s32 OriginalBlockWidth, OriginalBlockHeight;
+    SDL_QueryTexture(GridEntity->NormalSquareTexture, 0, 0, &OriginalBlockWidth, &OriginalBlockHeight);
+    
+    s32 RowAmount    = GridEntity->RowAmount;
+    s32 ColumnAmount = GridEntity->ColumnAmount;
+    
+    s32 FinishTextureWidth = ColumnAmount * OriginalBlockWidth;
+    s32 FinishTextureHeight = RowAmount * OriginalBlockHeight;
+    
+    game_texture *FinishTexture = SDL_CreateTexture(Buffer->Renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, FinishTextureWidth, FinishTextureHeight);
+    Assert(FinishTexture);
+    
+    SDL_SetTextureBlendMode(FinishTexture, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderTarget(Buffer->Renderer, FinishTexture);
+    
+    for(s32 i = 0; i < RowAmount; ++i )
+    {
+        for(s32 j = 0; j < ColumnAmount; ++j)
+        {
+            game_rect AreaQuad; 
+            AreaQuad.x = j * OriginalBlockWidth;
+            AreaQuad.y = i * OriginalBlockHeight;
+            AreaQuad.w = OriginalBlockWidth;
+            AreaQuad.h = OriginalBlockHeight;
+            
+            s32 UnitIndex = (i * ColumnAmount) + j;
+            
+            s32 UnitField = GridEntity->UnitField[UnitIndex];
+            if(UnitField == 0)
+            {
+                SDL_RenderCopy(Buffer->Renderer, GridEntity->NormalSquareTexture, NULL, &AreaQuad);
+            }
+            
+            printf("%d ", UnitField);
+        }
+        printf("\n");
+    }
+    
+    // drawing moving blocks
+    for(s32 i = 0; i < GridEntity->MovingBlocksAmount; ++i)
+    {
+        s32 RowNumber = GridEntity->MovingBlocks[i].RowNumber;
+        s32 ColNumber = GridEntity->MovingBlocks[i].ColNumber;
+        
+        game_rect AreaQuad = {};
+        AreaQuad.w = OriginalBlockWidth;
+        AreaQuad.h = OriginalBlockHeight;
+        AreaQuad.x = ColNumber * OriginalBlockWidth;
+        AreaQuad.y = RowNumber * OriginalBlockHeight;
+        
+        b32 IsVertical = GridEntity->MovingBlocks[i].IsVertical;
+        if(IsVertical)
+        {
+            SDL_RenderCopy(Buffer->Renderer, GridEntity->VerticalSquareTexture, NULL, &AreaQuad);
+        }
+        else
+        {
+            SDL_RenderCopy(Buffer->Renderer, GridEntity->HorizontlaSquareTexture, NULL, &AreaQuad);
+        }
+        
+    }
+    
+    // drawing figure onto the texture
+    
+    figure_entity *FigureEntity = LevelEntity->FigureEntity;
+    figure_unit *FigureUnit = FigureEntity->FigureUnit;
+    
+    s32 GridBlockSize = LevelEntity->Configuration.GridBlockSize;
+    r32 ActualGridWidth  = ColumnAmount * GridBlockSize;
+    r32 ActualGridHeight = RowAmount * GridBlockSize;
+    
+    game_rect GridArea = {};
+    GridArea.w = ActualGridWidth;
+    GridArea.h = ActualGridHeight;
+    GridArea.x = LevelEntity->GridEntity->GridArea.x + (LevelEntity->GridEntity->GridArea.w / 2) - (ActualGridWidth / 2);
+    GridArea.y = LevelEntity->GridEntity->GridArea.y + (LevelEntity->GridEntity->GridArea.h / 2) - (ActualGridHeight / 2);
+    
+    s32 FigureAmount = FigureEntity->FigureAmount;
+    for(s32 Index = 0; Index < FigureAmount; ++Index)
+    {
+        game_rect FigureArea = FigureUnitGetArea(&FigureUnit[Index]);
+        
+        s32 FigureRowAmount    = FigureUnit[Index].AreaQuad.h / GridBlockSize;
+        s32 FigureColumnAmount = FigureUnit[Index].AreaQuad.w / GridBlockSize;
+        
+        s32 RowNumber = (FigureArea.y - GridArea.y) / (GridArea.h / RowAmount);
+        s32 ColumnNumber = (FigureArea.x - GridArea.x) / (GridArea.w / ColumnAmount);
+        
+        game_rect AreaQuad = {};
+        AreaQuad.w = FigureColumnAmount*OriginalBlockWidth;
+        AreaQuad.h = FigureRowAmount*OriginalBlockHeight;
+        AreaQuad.x = ColumnNumber * OriginalBlockWidth;
+        AreaQuad.y = RowNumber * OriginalBlockHeight;
+        
+        r32 OffsetX = (r32)(FigureUnit[Index].AreaQuad.x - GridArea.x) / (r32)GridBlockSize;
+        r32 OffsetY = (r32)(FigureUnit[Index].AreaQuad.y - GridArea.y) / (r32)GridBlockSize;
+        OffsetX = OffsetX * (r32)OriginalBlockWidth;
+        OffsetY = OffsetY * (r32)OriginalBlockHeight;
+        
+        AreaQuad.x = roundf(OffsetX);
+        AreaQuad.y = roundf(OffsetY);
+        
+        r32 BlockRatio = (r32)OriginalBlockWidth / (r32)GridBlockSize;
+        FigureUnitResizeBy(&FigureUnit[Index], BlockRatio);
+        
+        game_point Center;
+        Center.x = FigureUnit[Index].Center.x - FigureUnit[Index].AreaQuad.x;
+        Center.y = FigureUnit[Index].Center.y - FigureUnit[Index].AreaQuad.y;
+        
+        SDL_RenderCopyEx(Buffer->Renderer, FigureUnit[Index].Texture, 0, &AreaQuad, FigureUnit[Index].Angle, &Center, FigureUnit[Index].Flip);
+        
+        BlockRatio = (r32)GridBlockSize / (r32)OriginalBlockWidth;
+        FigureUnitResizeBy(&FigureUnit[Index], BlockRatio);
+    }
+    
+    LevelEntity->FinishQuad.w = FinishTextureWidth;
+    LevelEntity->FinishQuad.h = FinishTextureHeight;
+    LevelEntity->FinishTexture = FinishTexture;
+    //#if 0
+    
+    LevelEntity->MaxOffset = 90;
+    
+    s32 CommonAmount = RowAmount * ColumnAmount;
+    
+    LevelEntity->TileTexture = (p_texture *) calloc(CommonAmount, sizeof(p_texture));
+    Assert(LevelEntity->TileTexture);
+    
+    LevelEntity->TileQuad = (game_rect *)calloc(CommonAmount, sizeof(game_rect));
+    Assert(LevelEntity->TileQuad);
+    
+    LevelEntity->TileAlpha = (s32 *)calloc(CommonAmount, sizeof(s32));
+    Assert(LevelEntity->TileAlpha);
+    
+    LevelEntity->TileOffset = (s32 *)calloc(CommonAmount, sizeof(s32));
+    Assert(LevelEntity->TileOffset);
+    
+    for(s32 i = 0; i < RowAmount; ++i)
+    {
+        for(s32 j = 0; j < ColumnAmount; ++j)
+        {
+            s32 Index = (i * ColumnAmount) + j;
+            
+            game_texture *TileTexture = LevelEntity->TileTexture[Index].Texture;
+            
+            if(TileTexture)
+            {
+                FreeTexture(TileTexture);
+            }
+            
+            TileTexture = SDL_CreateTexture(Buffer->Renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, OriginalBlockWidth, OriginalBlockHeight);
+            Assert(TileTexture);
+            
+            SDL_SetTextureBlendMode(TileTexture, SDL_BLENDMODE_BLEND);
+            
+            game_rect RectQuad;
+            RectQuad.w = OriginalBlockWidth;
+            RectQuad.h = OriginalBlockHeight;
+            RectQuad.x = j * OriginalBlockWidth;
+            RectQuad.y = i * OriginalBlockHeight;
+            
+            SDL_SetRenderTarget(Buffer->Renderer, TileTexture);
+            SDL_RenderCopy(Buffer->Renderer, FinishTexture, &RectQuad, NULL);
+            
+            LevelEntity->TileTexture[Index].Texture = TileTexture;
+            
+            LevelEntity->TileQuad[Index].w = GridBlockSize;
+            LevelEntity->TileQuad[Index].h = GridBlockSize;
+            LevelEntity->TileQuad[Index].x = GridArea.x + (j * GridBlockSize);
+            LevelEntity->TileQuad[Index].y = GridArea.y + (i * GridBlockSize);
+            
+            LevelEntity->TileAlpha[Index]  = 255;
+            LevelEntity->TileOffset[Index] = 0;
+        }
+    }
+    //#endif
+    SDL_SetRenderTarget(Buffer->Renderer, NULL);
+}
 
 static void
-LevelEntityUpdateStartUpAnimation(level_entity *LevelEntity,
-                                  game_memory *Memory,
-                                  game_offscreen_buffer *Buffer, r32 TimeElapsed)
+LevelEntityFinishAnimation1(level_entity *LevelEntity, game_memory *Memory, game_offscreen_buffer *Buffer)
+{
+    s32 RowAmount    = LevelEntity->GridEntity->RowAmount;
+    s32 ColumnAmount = LevelEntity->GridEntity->ColumnAmount;
+    
+    s32 GridBlockSize = LevelEntity->Configuration.GridBlockSize;
+    r32 ActualGridWidth  = ColumnAmount * GridBlockSize;
+    r32 ActualGridHeight = RowAmount * GridBlockSize;
+    
+    game_rect GridArea = {};
+    GridArea.w = ActualGridWidth;
+    GridArea.h = ActualGridHeight;
+    //GridArea.w = LevelEntity->FinishQuad.w;
+    //GridArea.h = LevelEntity->FinishQuad.h;
+    GridArea.x = LevelEntity->GridEntity->GridArea.x + (LevelEntity->GridEntity->GridArea.w / 2) - (ActualGridWidth / 2);
+    GridArea.y = LevelEntity->GridEntity->GridArea.y + (LevelEntity->GridEntity->GridArea.h / 2) - (ActualGridHeight / 2);
+    
+    
+    b32 AnimationFinished = true;
+    
+    s32 MaxOffset = LevelEntity->MaxOffset;
+    
+    for(s32 Line = 1; Line <= ((RowAmount + ColumnAmount) - 1); ++Line)
+    {
+        b32 ShouldBreak = true;
+        
+        s32 StartColumn = Max2(0, Line - RowAmount);
+        s32 Count = Min3(Line, (ColumnAmount - StartColumn), RowAmount);
+        
+        for(s32 i = 0; i < Count; ++i)
+        {
+            s32 RowIndex = Min2(RowAmount, Line) - i - 1;
+            s32 ColIndex = StartColumn + i;
+            
+            s32 Index = (RowIndex * ColumnAmount) + ColIndex;
+            
+            if(LevelEntity->TileOffset[Index] < MaxOffset)
+            {
+                LevelEntity->TileOffset[Index] += 20;
+            }
+            else
+            {
+                if(ShouldBreak)
+                {
+                    ShouldBreak = false;
+                }
+            }
+            
+            if(LevelEntity->TileAlpha[Index] > 0)
+            {
+                LevelEntity->TileAlpha[Index] -= 10;
+                
+                u8 Alpha = 0;
+                
+                if(LevelEntity->TileAlpha[Index] > 0)
+                {
+                    Alpha = LevelEntity->TileAlpha[Index];
+                }
+                
+                SDL_SetTextureAlphaMod(LevelEntity->TileTexture[Index].Texture, Alpha);
+            }
+            
+            LevelEntity->TileQuad[Index].y -= 1;
+            LevelEntity->TileQuad[Index].x -= 1;
+            LevelEntity->TileQuad[Index].w -= 1;
+            LevelEntity->TileQuad[Index].h -= 1;
+        }
+        
+        if(ShouldBreak)
+        {
+            AnimationFinished = false;
+            break;
+        }
+    }
+    
+    if(AnimationFinished)
+    {
+        LevelEntity->LevelFinished = false;
+        
+        for(s32 i = 0; i < RowAmount * ColumnAmount; ++i)
+        {
+            FreeTexture(LevelEntity->TileTexture[i].Texture);
+        }
+        
+        free(LevelEntity->TileTexture);
+        free(LevelEntity->TileQuad);
+        free(LevelEntity->TileAlpha);
+        free(LevelEntity->TileOffset);
+        
+        FreeTexture(LevelEntity->FinishTexture);
+        
+        //LevelEntityFinishAnimationInit1(LevelEntity, Memory, Buffer);
+    }
+    
+    for(s32 i = 0; i < RowAmount; ++i)
+    {
+        for(s32 j = 0; j < ColumnAmount; ++j)
+        {
+            s32 Index = (i * ColumnAmount) + j;
+            
+            GameRenderBitmapToBuffer(Buffer, LevelEntity->TileTexture[Index].Texture, &LevelEntity->TileQuad[Index]);
+            //DEBUGRenderQuad(Buffer, &LevelEntity->TileQuad[Index], {255, 255, 255}, 255);
+        }
+    }
+}
+
+static void
+LevelEntityFinishAnimationInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_buffer *Buffer)
+{
+    figure_unit *&FigureUnit = LevelEntity->FigureEntity->FigureUnit;
+    
+    s32 FigureAmount = LevelEntity->FigureEntity->FigureAmount;
+    for(s32 Index = 0; Index < FigureAmount; ++ Index)
+    {
+        game_rect FigureArea = FigureUnitGetArea(&FigureUnit[Index]);
+        
+        FigureUnit[Index].MaxOffset = 90;
+        
+        s32 TileWidthSource  = FigureUnit[Index].OriginWidth / TilePerRow;
+        s32 TileHeightSource = FigureUnit[Index].OriginHeight / TilePerColumn;
+        
+        s32 TileWidthTarget = FigureArea.w / TilePerRow;
+        s32 TileHeightTarget = FigureArea.h / TilePerColumn;
+        
+        s32 TileSize = TileWidthTarget < TileHeightTarget ? TileWidthTarget : TileHeightTarget;
+        
+        printf("TileWidthSource = %d\n", TileWidthSource);
+        printf("TileHeightSource = %d\n",TileHeightSource);
+        printf("TileWidthTarget = %d\n", TileWidthTarget);
+        printf("TileHeightTarget = %d\n", TileHeightTarget);
+        
+        for(s32 i = 0; i < TilePerRow; ++i)
+        {
+            for(s32 j = 0; j < TilePerColumn; ++j)
+            {
+                FigureUnit[Index].TileAlpha[i][j]  = 255;
+                FigureUnit[Index].TileOffset[i][j] = 0;
+                
+                if(FigureUnit[Index].TileTexture[i][j])
+                {
+                    FreeTexture(FigureUnit[Index].TileTexture[i][j]);
+                }
+                
+                FigureUnit[Index].TileTexture[i][j] = SDL_CreateTexture(Buffer->Renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, TileWidthSource, TileHeightSource);
+                Assert(FigureUnit[Index].TileTexture[i][j]);
+                
+                SDL_SetTextureBlendMode(FigureUnit[Index].TileTexture[i][j], SDL_BLENDMODE_BLEND);
+                
+                game_rect RectQuad;
+                RectQuad.x = (i * TileWidthSource);
+                RectQuad.y = (j * TileHeightSource);
+                RectQuad.w = TileWidthSource;
+                RectQuad.h = TileHeightSource;
+                
+                SDL_SetRenderTarget(Buffer->Renderer, FigureUnit[Index].TileTexture[i][j]);
+                SDL_RenderCopy(Buffer->Renderer, FigureUnit[Index].Texture, &RectQuad, NULL);
+                
+                FigureUnit[Index].TileQuad[i][j].w = TileWidthTarget;
+                FigureUnit[Index].TileQuad[i][j].h = TileHeightTarget;
+                FigureUnit[Index].TileQuad[i][j].x = FigureArea.x + (i * TileWidthTarget);
+                FigureUnit[Index].TileQuad[i][j].y = FigureArea.y + (j * TileHeightTarget);
+            }
+        }
+    }
+    
+    
+    SDL_SetRenderTarget(Buffer->Renderer, NULL);
+}
+
+static void
+LevelEntityFinishAnimation(level_entity *LevelEntity, game_memory *Memory, game_offscreen_buffer *Buffer)
+{
+    figure_unit *&FigureUnit = LevelEntity->FigureEntity->FigureUnit;
+    
+    b32 AnimationFinished = true;
+    
+    s32 FigureAmount = LevelEntity->FigureEntity->FigureAmount;
+    for(s32 Index = 0; Index < FigureAmount; ++Index)
+    {
+        s32 MaxOffset = FigureUnit[Index].MaxOffset;
+        
+        for(s32 Line = 1; Line <= ((TilePerRow + TilePerColumn) - 1); ++ Line)
+        {
+            b32 ShouldBreak = true;
+            
+            s32 StartColumn = Max2(0, Line - TilePerRow);
+            s32 Count = Min3(Line, (TilePerColumn - StartColumn), TilePerRow);
+            
+            for(s32 i = 0; i < Count; ++i)
+            {
+                s32 RowIndex = Min2(TilePerRow, Line) - i - 1;
+                s32 ColIndex = StartColumn + i;
+                s32 UnitIndex = (TilePerRow * TilePerColumn) + ColIndex;
+                
+                if(FigureUnit[Index].TileOffset[RowIndex][ColIndex] < MaxOffset)
+                {
+                    FigureUnit[Index].TileOffset[RowIndex][ColIndex] += 20;
+                }
+                else
+                {
+                    if(ShouldBreak)
+                    {
+                        ShouldBreak = false;
+                    }
+                }
+                
+                if(FigureUnit[Index].TileAlpha[RowIndex][ColIndex] > 0)
+                {
+                    FigureUnit[Index].TileAlpha[RowIndex][ColIndex] -= 10;
+                    
+                    u8 Alpha = 0;
+                    
+                    if(FigureUnit[Index].TileAlpha[RowIndex][ColIndex] > 0)
+                    {
+                        Alpha = FigureUnit[Index].TileAlpha[RowIndex][ColIndex];
+                    }
+                    
+                    SDL_SetTextureAlphaMod(FigureUnit[Index].TileTexture[RowIndex][ColIndex], Alpha);
+                }
+                
+                
+                FigureUnit[Index].TileQuad[RowIndex][ColIndex].y -= 1;
+                FigureUnit[Index].TileQuad[RowIndex][ColIndex].x -= 1;
+                FigureUnit[Index].TileQuad[RowIndex][ColIndex].w -= 1;
+                FigureUnit[Index].TileQuad[RowIndex][ColIndex].h -= 1;
+                
+            }
+            
+            if(ShouldBreak)
+            {
+                AnimationFinished = false;
+                break;
+            }
+        }
+    }
+    
+    if(AnimationFinished)
+    {
+        //LevelEntity->LevelFinished = false;
+        LevelEntityFinishAnimationInit(LevelEntity, Memory, Buffer);
+    }
+    else
+    {
+        s32 GridBlockSize    = LevelEntity->Configuration.GridBlockSize;
+        s32 RowAmount        = LevelEntity->GridEntity->RowAmount;
+        s32 ColumnAmount     = LevelEntity->GridEntity->ColumnAmount;
+        r32 ActualGridWidth  = ColumnAmount * GridBlockSize;
+        r32 ActualGridHeight = RowAmount * GridBlockSize;
+        
+        game_rect GridArea = {};
+        GridArea.w = ActualGridWidth;
+        GridArea.h = ActualGridHeight;
+        GridArea.x = LevelEntity->GridEntity->GridArea.x + (LevelEntity->GridEntity->GridArea.w / 2) - (ActualGridWidth / 2);
+        GridArea.y = LevelEntity->GridEntity->GridArea.y + (LevelEntity->GridEntity->GridArea.h / 2) - (ActualGridHeight / 2);
+        
+        game_rect AreaQuad;
+        AreaQuad.w = GridBlockSize;
+        AreaQuad.h = GridBlockSize;
+        
+        game_rect GridQuad = {0, 0, GridBlockSize, GridBlockSize};
+        
+        game_point GridCenter = {};
+        GridCenter.x = GridArea.x + roundf((r32)GridArea.w / 2.0f);
+        GridCenter.y = GridArea.y + roundf((r32)GridArea.h / 2.0f);
+        
+        s32 StartX, StartY;
+        
+        for (u32 Row = 0; Row < RowAmount; ++Row)
+        {
+            StartY = GridCenter.y + (GridBlockSize * Row) - roundf(ActualGridHeight / 2.0f);
+            for (u32 Col = 0; Col < ColumnAmount; ++Col)
+            {
+                StartX = GridCenter.x + (GridBlockSize * Col) - roundf(ActualGridWidth / 2.0f);	
+                
+                GridQuad.x = StartX;
+                GridQuad.y = StartY;
+                
+                u32 GridUnit = LevelEntity->GridEntity->UnitField[(Row * ColumnAmount) + Col];
+                if(GridUnit == 0 || GridUnit == 2 || GridUnit == 3)
+                {
+                    GameRenderBitmapToBuffer(Buffer, LevelEntity->GridEntity->NormalSquareTexture, &GridQuad);
+                }
+            }
+        }
+        
+        for(s32 Index = 0; Index < FigureAmount; ++ Index)
+        {
+            for(s32 i = 0; i < TilePerRow; ++i)
+            {
+                for(s32 j = 0; j < TilePerColumn; ++j)
+                {
+                    GameRenderBitmapToBuffer(Buffer, FigureUnit[Index].TileTexture[i][j],
+                                             &FigureUnit[Index].TileQuad[i][j]);
+                    
+                    if(FigureUnit[Index].TileQuad[i][j].w > 0)
+                    {
+                        //DEBUGRenderQuad(Buffer, &FigureUnit[Index].TileQuad[i][j], {0, 255, 0}, FigureUnit[Index].TileAlpha[i][j]);
+                    }
+                    
+                }
+            }
+        }
+        
+        
+        
+    }
+}
+
+static void
+LevelEntityUpdateStartAnimation(level_entity *LevelEntity,
+                                game_memory *Memory,
+                                game_offscreen_buffer *Buffer, r32 TimeElapsed)
 
 {
     if(LevelEntity->LevelStarted) 
@@ -2041,8 +2537,8 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
     
     if(!LevelEntity->LevelStarted)
     {
-        LevelEntityUpdateStartUpAnimation(LevelEntity, Memory,
-                                          Buffer, TimeElapsed);
+        LevelEntityUpdateStartAnimation(LevelEntity, Memory,
+                                        Buffer, TimeElapsed);
         if(LevelEntity->LevelStarted)
         {
             free(GridEntity->UnitSize);
@@ -2058,6 +2554,37 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
         }
         
     }
+    else if(LevelEntity->LevelFinished)
+    {
+        LevelEntityFinishAnimation1(LevelEntity, Memory, Buffer);
+        
+        if(!LevelEntity->LevelFinished)
+        {
+            // free some stuff and switch to another level
+            
+            s32 NextLevelIndex = Memory->CurrentLevelIndex + 1;
+            if(NextLevelIndex < Memory->LevelMemoryAmount)
+            {
+                /* Switching to the next level*/
+                
+                LevelEntity->LevelFinished = false;
+                Memory->CurrentLevelIndex = NextLevelIndex;
+                LevelEntityUpdateLevelEntityFromMemory(Memory, NextLevelIndex, false, Buffer);
+                
+                return;
+            }
+            else
+            {
+                /* Staying at the same level */
+            }
+            
+        }
+        else
+        {
+            return;
+        }
+    }
+    
     
     /* game_input checking */
     GameUpdateEvent(Input, LevelEntity, Buffer);
@@ -2251,23 +2778,9 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
     if(IsAllSticked)
     {
         /* Level is completed */
-        
-        s32 NextLevelIndex = Memory->CurrentLevelIndex + 1;
-        if(NextLevelIndex < Memory->LevelMemoryAmount)
-        {
-            /* Switching to the next level*/
-            
-            //TODO(Max): Do we need that LevelFinished thing???
-            LevelEntity->LevelFinished = true;
-            Memory->CurrentLevelIndex = NextLevelIndex;
-            LevelEntityUpdateLevelEntityFromMemory(Memory, NextLevelIndex, false, Buffer);
-            
-            return;
-        }
-        else
-        {
-            /* Staying at the same level */
-        }
+        LevelEntity->LevelFinished = true;
+        LevelEntityFinishAnimationInit1(LevelEntity, Memory, Buffer);
+        return;
     }
     
     AreaQuad.w = GridBlockSize;

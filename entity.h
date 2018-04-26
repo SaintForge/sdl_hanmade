@@ -20,6 +20,9 @@ enum figure_type
     classic, stone, mirror
 };
 
+#define TilePerRow 5
+#define TilePerColumn 5
+
 struct figure_unit
 {
     bool IsStick;
@@ -41,6 +44,15 @@ struct figure_unit
     figure_type Type;
     
     game_texture *Texture;
+    
+    s32 OriginWidth;
+    s32 OriginHeight;
+    
+    s32 MaxOffset;
+    game_texture *TileTexture[TilePerRow][TilePerColumn];
+    game_rect TileQuad[TilePerRow][TilePerColumn];
+    s32 TileOffset[TilePerRow][TilePerColumn];
+    s32 TileAlpha[TilePerRow][TilePerColumn];
 };
 
 
@@ -51,6 +63,7 @@ struct figure_entity
     s32 FigureActive;
     u32 FigureAmount;
     u32 *FigureOrder;
+    
     figure_unit *FigureUnit;
     
     game_rect FigureArea;
@@ -132,6 +145,11 @@ struct level_config
     s32 GridBlockSize;
 };
 
+struct p_texture
+{
+    game_texture *Texture;
+};
+
 struct level_entity
 {
     grid_entity   *GridEntity;
@@ -149,6 +167,15 @@ struct level_entity
     bool LevelStarted;
     bool LevelPaused;
     bool LevelFinished;
+    
+    game_rect FinishQuad;
+    game_texture *FinishTexture;
+    
+    s32 MaxOffset;
+    s32 *TileOffset;
+    s32 *TileAlpha;
+    p_texture *TileTexture;
+    game_rect *TileQuad;
 };
 
 struct figure_memory

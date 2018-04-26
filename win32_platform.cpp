@@ -324,7 +324,7 @@ SDLReloadFontTexture(TTF_Font *&Font, SDL_Texture *&Texture, SDL_Rect *Quad,
 #undef main //NOTE(Max): Because SDL_main doesn't work on some windows versions 
 int main(int argc, char **argv)
 {
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+    //SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
     //SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
     
     SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
@@ -335,8 +335,8 @@ int main(int argc, char **argv)
     SDL_DisplayMode Display = {};
     SDL_GetDesktopDisplayMode(0, &Display);
     
-    s32 ScreenWidth  = 800;
-    s32 ScreenHeight = 600;
+    s32 ScreenWidth  = 1366;
+    s32 ScreenHeight = 768;
     s32 ReferenceWidth  = 800;
     s32 ReferenceHeight = 600;
     
@@ -389,8 +389,7 @@ int main(int argc, char **argv)
             
             Buffer.ReferenceWidth  = ReferenceWidth;
             Buffer.ReferenceHeight = ReferenceHeight;
-            
-            
+            printf("Ready!\n");
             
 #if ASSET_BUILD
             // NOTE: This is for packaging data to the disk

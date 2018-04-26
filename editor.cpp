@@ -2976,11 +2976,13 @@ MenuEditorUpdateAndRender(menu_editor *MenuEditor, menu_entity *MenuEntity, game
         }
         else if (IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEditor->PrevButtonQuad))
         {
-            
+            MenuEditor->ButtonIsPressed = true;
+            MenuEditor->HighlightButtonQuad = MenuEditor->PrevButtonQuad;
         }
         else if (IsPointInsideRect(Input->MouseX, Input->MouseY, &MenuEditor->NextButtonQuad))
         {
-            
+            MenuEditor->ButtonIsPressed = true;
+            MenuEditor->HighlightButtonQuad = MenuEditor->NextButtonQuad;
         }
         
         
@@ -3023,12 +3025,14 @@ MenuEditorUpdateAndRender(menu_editor *MenuEditor, menu_entity *MenuEntity, game
     
     if(Input->Keyboard.Q_Button.EndedDown)
     {
-        
+        MenuEditor->ButtonIsPressed = true;
+        MenuEditor->HighlightButtonQuad = MenuEditor->PrevButtonQuad;
     }
     
     if(Input->Keyboard.E_Button.EndedDown)
     {
-        
+        MenuEditor->ButtonIsPressed = true;
+        MenuEditor->HighlightButtonQuad = MenuEditor->NextButtonQuad;
     }
     
     LevelEditorRenderLabel(&MenuEditor->LevelLabel, Buffer, 0, 255, 0, 0, 255, 0, 150);
