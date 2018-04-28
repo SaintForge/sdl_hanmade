@@ -324,7 +324,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         } break;
     }
     
-    
     game_editor *GameEditor = (game_editor *)Memory->EditorMemoryStorage;
     GameEditorUpdateAndRender(Buffer, Memory, Input, GameEditor);
     

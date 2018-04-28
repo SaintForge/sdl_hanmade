@@ -172,6 +172,10 @@ struct level_entity
     game_texture *FinishTexture;
     
     s32 MaxOffset;
+    
+    s32 AlphaChannel;
+    
+    r32 *TileAngle;
     s32 *TileOffset;
     s32 *TileAlpha;
     p_texture *TileTexture;
