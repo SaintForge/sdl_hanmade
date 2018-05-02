@@ -1000,6 +1000,8 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
             
         }
         
+        
+        // level number check
         if (IsPointInsideRect(Input->MouseX, Input->MouseY, &LevelEntity->LevelNumberQuad))
         {
             LevelEditor->LevelNumberSelected = true;
@@ -1117,6 +1119,8 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                     GridEntityUpdateStickUnits(LevelEntity->GridEntity, LevelEntity->FigureEntity->FigureAmount);
                     
                     LevelEditorChangeFigureCounter(LevelEditor, FigureAmount - 1, Buffer);
+                    
+                    FigureAmount = LevelEntity->FigureEntity->FigureAmount;
                 }
                 
                 LevelEditor->ButtonSelected = true;
@@ -1144,6 +1148,8 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
                     GridEntityUpdateStickUnits(LevelEntity->GridEntity, LevelEntity->FigureEntity->FigureAmount);
                     
                     LevelEditorChangeFigureCounter(LevelEditor, FigureAmount + 1, Buffer);
+                    
+                    FigureAmount = LevelEntity->FigureEntity->FigureAmount;
                 }
                 
                 LevelEditor->ButtonSelected = true;

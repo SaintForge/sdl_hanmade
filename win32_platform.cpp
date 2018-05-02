@@ -335,8 +335,8 @@ int main(int argc, char **argv)
     SDL_DisplayMode Display = {};
     SDL_GetDesktopDisplayMode(0, &Display);
     
-    s32 ScreenWidth  = 1366;
-    s32 ScreenHeight = 768;
+    s32 ScreenWidth  = 800;
+    s32 ScreenHeight = 600;
     s32 ReferenceWidth  = 800;
     s32 ReferenceHeight = 600;
     
@@ -358,10 +358,10 @@ int main(int argc, char **argv)
     SDL_Window* Window = SDL_CreateWindow("This is window",
                                           SDL_WINDOWPOS_CENTERED,
                                           SDL_WINDOWPOS_CENTERED,
-                                          1920, 1080,
+                                          800, 600,
                                           SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
     
-    SDL_SetWindowSize(Window, 1366, 768);
+    //SDL_SetWindowSize(Window, 1366, 768);
     SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     
     if(Window)

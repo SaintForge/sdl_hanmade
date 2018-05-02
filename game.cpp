@@ -108,8 +108,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         u32 FigureAmountReserve = 20;
         u32 MovingBlocksAmountReserved  = 10;
         
-        RescaleGameField(Buffer, RowAmount, ColumnAmount,
-                         FigureAmountReserve, LevelEntity->Configuration.DefaultBlocksInRow, LevelEntity->Configuration.DefaultBlocksInCol, LevelEntity);
+        //RescaleGameField(Buffer, RowAmount, ColumnAmount,
+        //FigureAmountReserve, LevelEntity->Configuration.DefaultBlocksInRow, //LevelEntity->Configuration.DefaultBlocksInCol, LevelEntity);
         
         //for DEBUG purposes only
         game_rect FigureAreaRect = ConvertMathRectToGameRect(FigureArea);

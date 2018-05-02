@@ -44,15 +44,6 @@ struct figure_unit
     figure_type Type;
     
     game_texture *Texture;
-    
-    s32 OriginWidth;
-    s32 OriginHeight;
-    
-    s32 MaxOffset;
-    game_texture *TileTexture[TilePerRow][TilePerColumn];
-    game_rect TileQuad[TilePerRow][TilePerColumn];
-    s32 TileOffset[TilePerRow][TilePerColumn];
-    s32 TileAlpha[TilePerRow][TilePerColumn];
 };
 
 
@@ -61,9 +52,10 @@ struct figure_entity
     u32 FigureAmountReserved;
     u32 ReturnIndex;
     s32 FigureActive;
-    u32 FigureAmount;
+    
     u32 *FigureOrder;
     
+    u32 FigureAmount;
     figure_unit *FigureUnit;
     
     game_rect FigureArea;
@@ -80,6 +72,8 @@ struct figure_entity
     r32 FadeInSum;
     r32 FadeOutSum;
     r32 RotationSum;
+    
+    s32 FigureVelocity;
 };
 
 struct sticked_unit
@@ -164,19 +158,26 @@ struct level_entity
     level_config Configuration;
     
     u32 LevelNumber;
-    bool LevelStarted;
-    bool LevelPaused;
-    bool LevelFinished;
+    b32 LevelStarted;
+    b32 LevelPaused;
+    b32 LevelFinished;
     
     game_rect FinishQuad;
     game_texture *FinishTexture;
     
-    s32 MaxOffset;
-    
     s32 AlphaChannel;
     
+    r32 MaxTileDelaySec;
+    r32 TilePixelPerSec;
+    r32 TileAlphaPerSec;
+    r32 TileAnglePerSec;
+    r32 TileCountPerSec;
+    
+    s32 OldRowAmount;
+    s32 OldColAmount;
+    
     r32 *TileAngle;
-    s32 *TileOffset;
+    r32 *TileOffset;
     s32 *TileAlpha;
     p_texture *TileTexture;
     game_rect *TileQuad;

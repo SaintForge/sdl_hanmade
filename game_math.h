@@ -17,6 +17,12 @@ struct math_rect
     r32 Bottom;
 };
 
+struct v2
+{
+    r32 x;
+    r32 y;
+};
+
 struct math_point
 {
     r32 x;
