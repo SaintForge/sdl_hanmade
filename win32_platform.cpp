@@ -324,9 +324,6 @@ SDLReloadFontTexture(TTF_Font *&Font, SDL_Texture *&Texture, SDL_Rect *Quad,
 #undef main //NOTE(Max): Because SDL_main doesn't work on some windows versions 
 int main(int argc, char **argv)
 {
-    //SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
-    //SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
-    
     SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
     Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096);
     IMG_Init(IMG_INIT_PNG);
@@ -334,6 +331,9 @@ int main(int argc, char **argv)
     
     SDL_DisplayMode Display = {};
     SDL_GetDesktopDisplayMode(0, &Display);
+    
+    b32 VSyncOn = false;
+    s32 FrameLimit = 60;
     
     s32 ScreenWidth  = 800;
     s32 ScreenHeight = 600;
@@ -366,8 +366,17 @@ int main(int argc, char **argv)
     
     if(Window)
     {
+        //SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+        //SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
+        
+        if(VSyncOn)
+        {
+            SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
+        }
+        
         SDL_Renderer* Renderer = SDL_CreateRenderer(Window, -1,
-                                                    SDL_RENDERER_TARGETTEXTURE|SDL_RENDERER_ACCELERATED);//|SDL_RENDERER_PRESENTVSYNC);
+                                                    SDL_RENDERER_TARGETTEXTURE|SDL_RENDERER_ACCELERATED);
+        
         SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
         SDL_RenderSetLogicalSize(Renderer, ScreenWidth, ScreenHeight);
         
@@ -410,17 +419,14 @@ int main(int argc, char **argv)
             s32 OldMouseX = 0;
             s32 OldMouseY = 0;
             
-            s32 OldFpsCounter = 0;
-            
             r32 FPSCountMs = 0.0f;
             
-            s32 FrameLimit = 60;
+            
             r32 FrameLimitMs = 1.0f / (r32)FrameLimit;
             r32 TimeSinceLastFrameMs = 0.0f;
             
             while (IsRunning)
             {
-                //r32 CurrentTimeTick = SDL_GetTicks();
                 PreviousTimeTick = SDL_GetTicks();
                 
                 game_input Input = {};
@@ -452,16 +458,20 @@ int main(int argc, char **argv)
                 r32 CurrentTimeTick = SDL_GetTicks();
                 TimeElapsed = (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
                 
-                if(TimeElapsed < FrameLimitMs)
+                if(!VSyncOn)
                 {
-                    r32 TimeLeftMs = FrameLimitMs - TimeElapsed;
-                    u32 SleepMs = roundf((TimeLeftMs) * 1000.0f);
-                    
-                    if(SleepMs > 0)
+                    if(TimeElapsed < FrameLimitMs)
                     {
-                        SDL_Delay(SleepMs);
-                        TimeElapsed += TimeLeftMs;
+                        r32 TimeLeftMs = FrameLimitMs - TimeElapsed;
+                        u32 SleepMs = roundf((TimeLeftMs) * 1000.0f);
+                        
+                        if(SleepMs > 0)
+                        {
+                            SDL_Delay(SleepMs);
+                            TimeElapsed += TimeLeftMs;
+                        }
                     }
+                    
                 }
                 
                 s32 FpsCounter = roundf((1.0f / TimeElapsed));
@@ -470,7 +480,6 @@ int main(int argc, char **argv)
                 
                 if(FPSCountMs >= 0.2f)
                 {
-                    OldFpsCounter = FpsCounter;
                     FPSCountMs = 0.0f;
                     
                     char WindowTitle[128] = {};
@@ -479,11 +488,11 @@ int main(int argc, char **argv)
                     strcpy(WindowTitle, "Time: ");
                     sprintf(Number, "%d", FpsCounter);
                     strcat(WindowTitle, Number);
-                    strcat(WindowTitle, " fps, ");
+                    strcat(WindowTitle, "fps, ");
                     
                     sprintf(Number, "%.3f", TimeElapsed);
                     strcat(WindowTitle, Number);
-                    strcat(WindowTitle, " s");
+                    strcat(WindowTitle, "s");
                     
                     SDL_SetWindowTitle(Window, WindowTitle);
                 }

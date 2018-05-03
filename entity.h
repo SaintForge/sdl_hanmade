@@ -122,9 +122,10 @@ struct grid_entity
 
 struct level_config
 {
-    u32 DefaultBlocksInRow;
-    u32 DefaultBlocksInCol;
-    u32 InActiveBlockSize;
+    //u32 DefaultBlocksInRow;
+    //u32 DefaultBlocksInCol;
+    s32 InActiveBlockSize;
+    s32 GridBlockSize;
     
     r32 StartUpTimeToFinish;
     r32 StartUpTimeElapsed;
@@ -135,8 +136,6 @@ struct level_config
     r32 GridScalePerSec;
     r32 PixelsToDraw;
     r32 PixelsDrawn;
-    
-    s32 GridBlockSize;
 };
 
 struct p_texture
@@ -163,6 +162,7 @@ struct level_animation
     r32 *TileAngle;
     r32 *TileOffset;
     s32 *TileAlpha;
+    v2 *TilePos;
     p_texture *TileTexture;
     game_rect *TileQuad;
 };

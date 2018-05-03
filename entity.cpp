@@ -1284,8 +1284,8 @@ LevelEntityUpdatePositionsPortrait(game_offscreen_buffer *Buffer, game_memory *M
     s32 ActualWidth  = Buffer->Width;
     s32 ActualHeight = Buffer->Height;
     
-    s32 ReferenceWidth  = 600;
-    s32 ReferenceHeight = 800;
+    s32 ReferenceWidth  = Buffer->ReferenceHeight;
+    s32 ReferenceHeight = Buffer->ReferenceWidth;
     
     r32 ScaleByWidth = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 0.0f);
     
@@ -1827,6 +1827,7 @@ LevelEntityFinishAnimationInit1(level_entity *LevelEntity, game_memory *Memory, 
     {
         if(AnimationData->FinishTexture)
         {
+            printf("deleting animation data\n");
             s32 CommonAmount = OldRowAmount * OldColAmount;
             for(s32 i = 0; i < CommonAmount; ++i)
             {
@@ -1856,6 +1857,8 @@ LevelEntityFinishAnimationInit1(level_entity *LevelEntity, game_memory *Memory, 
             
             SDL_SetRenderTarget(Buffer->Renderer, NULL);
             SDL_SetRenderDrawColor(Buffer->Renderer, 0, 0, 0, 255);
+            
+            printf("finished deletion\n");
         }
     }
     
@@ -2177,6 +2180,156 @@ LevelEntityFinishAnimation1(level_entity *LevelEntity, game_memory *Memory, game
 }
 
 static void
+LevelEntityStartAnimationInit(level_entity *LevelEntity, game_offscreen_buffer *Buffer)
+{
+    level_animation *AnimationData = &LevelEntity->AnimationData;
+    
+    grid_entity *&GridEntity = LevelEntity->GridEntity;
+    
+    
+    s32 RowAmount = GridEntity->RowAmount;
+    s32 ColAmount = GridEntity->ColumnAmount;
+    s32 GridBlockSize = LevelEntity->Configuration.GridBlockSize;
+    
+    s32 ActualGridWidth = ColAmount * GridBlockSize;
+    s32 ActualGridHeight = RowAmount * GridBlockSize;
+    
+    s32 GridAreaX = GridEntity->GridArea.x + (GridEntity->GridArea.w / 2) - (ActualGridWidth / 2);
+    s32 GridAreaY = GridEntity->GridArea.y + (GridEntity->GridArea.h / 2) - (ActualGridHeight / 2);
+    
+    s32 GridCenterX = GridAreaX + (ActualGridWidth / 2);
+    s32 GridCenterY = GridAreaY + (ActualGridHeight / 2);
+    
+    if(AnimationData->TilePos)
+    {
+        free(AnimationData->TilePos);
+    }
+    
+    s32 GeneralAmount = ColAmount * RowAmount;
+    AnimationData->TilePos = (v2 *)calloc(sizeof(v2), GeneralAmount);
+    Assert(AnimationData->TilePos);
+    
+    for(s32 i = 0; i < GeneralAmount; ++i)
+    {
+        AnimationData->TilePos[i].x = GridCenterX - (GridBlockSize / 2);
+        AnimationData->TilePos[i].y = GridCenterY - (GridBlockSize / 2);
+        //AnimationData->TileQuad[i].w = GridBlockSize;
+        //AnimationData->TileQuad[i].h = GridBlockSize;
+    }
+    
+}
+
+static void
+LevelEntityUpdateStartAnimation1(level_entity *LevelEntity, game_memory *Memory, game_offscreen_buffer *Buffer, r32 TimeElapsed)
+{
+    if(LevelEntity->LevelStarted)
+    {
+        return;
+    }
+    
+    level_animation *AnimationData = &LevelEntity->AnimationData;
+    
+    grid_entity   *&GridEntity   = LevelEntity->GridEntity;
+    figure_entity *&FigureEntity = LevelEntity->FigureEntity;
+    
+    s32 RowAmount = GridEntity->RowAmount;
+    s32 ColAmount = GridEntity->ColumnAmount;
+    s32 FigureAmount  = FigureEntity->FigureAmount;
+    s32 GridBlockSize = LevelEntity->Configuration.GridBlockSize;
+    
+    s32 ActualGridWidth = ColAmount * GridBlockSize;
+    s32 ActualGridHeight = RowAmount * GridBlockSize;
+    
+    s32 GridAreaX = GridEntity->GridArea.x + (GridEntity->GridArea.w / 2) - (ActualGridWidth / 2);
+    s32 GridAreaY = GridEntity->GridArea.y + (GridEntity->GridArea.h / 2) - (ActualGridHeight / 2);
+    
+    b32 IsGridReady   = true;
+    b32 IsFigureReady = true;
+    b32 IsLevelReady  = true;
+    
+    for(s32 i = 0; i < RowAmount; ++i)
+    {
+        for(s32 j = 0; j < ColAmount; ++j)
+        {
+            s32 Index = (i * ColAmount) + j;
+            
+            v2 TargetPosition = {};
+            v2 CurrentPosition = {};
+            
+            TargetPosition.x = GridAreaX + (j * GridBlockSize);
+            TargetPosition.y = GridAreaY + (i * GridBlockSize);
+            
+            CurrentPosition.x = AnimationData->TilePos[Index].x;
+            CurrentPosition.y = AnimationData->TilePos[Index].y;
+            
+            v2 Velocity = {};
+            Velocity.x = TargetPosition.x - CurrentPosition.x;
+            Velocity.y = TargetPosition.y - CurrentPosition.y;
+            
+            r32 Distance = sqrt(Velocity.x * Velocity.x + Velocity.y * Velocity.y);
+            r32 ApproachRadius = (r32)GridBlockSize / 2;
+            r32 MaxVelocity = (r32)GridBlockSize * 5;
+            
+            Velocity.x = Velocity.x / Distance;
+            Velocity.y = Velocity.y / Distance;
+            
+            if(Distance > ApproachRadius)
+            {
+                Velocity.x = Velocity.x * MaxVelocity;
+                Velocity.y = Velocity.y * MaxVelocity;
+            }
+            else
+            {
+                r32 Ratio = Distance / ApproachRadius;
+                if(Ratio > 0.0001f)
+                {
+                    Velocity.x = Velocity.x * (Distance / ApproachRadius) * MaxVelocity;
+                    Velocity.y = Velocity.y * (Distance / ApproachRadius) * MaxVelocity;
+                }
+                else
+                {
+                    Velocity.x = 0;
+                    Velocity.y = 0;
+                }
+            }
+            
+            CurrentPosition.x += (Velocity.x) * TimeElapsed;
+            CurrentPosition.y += (Velocity.y) * TimeElapsed;
+            
+            AnimationData->TilePos[Index].x = CurrentPosition.x;
+            AnimationData->TilePos[Index].y = CurrentPosition.y;
+            
+            CurrentPosition.x = (s32)roundf(CurrentPosition.x);
+            CurrentPosition.y = (s32)roundf(CurrentPosition.y);
+            
+            TargetPosition.x = (s32)roundf(TargetPosition.x);
+            TargetPosition.y = (s32)roundf(TargetPosition.y);
+            
+            if(CurrentPosition.x != TargetPosition.x || CurrentPosition.y != TargetPosition.y)
+            {
+                IsGridReady = false;
+            }
+            
+            game_rect AreaQuad = {};
+            AreaQuad.w = GridBlockSize;
+            AreaQuad.h = GridBlockSize;
+            AreaQuad.x = roundf(AnimationData->TilePos[Index].x); 
+            AreaQuad.y = roundf(AnimationData->TilePos[Index].y); 
+            
+            GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture, &AreaQuad);
+        }
+        
+    }
+    
+    b32 Result = IsGridReady && IsFigureReady && IsLevelReady;
+    
+    if(Result)
+    {
+        LevelEntity->LevelStarted = true;
+    }
+}
+
+static void
 LevelEntityUpdateStartAnimation(level_entity *LevelEntity,
                                 game_memory *Memory,
                                 game_offscreen_buffer *Buffer, r32 TimeElapsed)
@@ -2443,6 +2596,8 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
                 
                 LevelEntity->AnimationData.AlphaChannel = 255;
                 LevelEntity->LevelStarted = false;
+                
+                LevelEntityStartAnimationInit(LevelEntity, Buffer);
             }
             else
             {
@@ -2458,12 +2613,13 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
     
     if(!LevelEntity->LevelStarted)
     {
-        LevelEntityUpdateStartAnimation(LevelEntity, Memory, Buffer, TimeElapsed);
+        //LevelEntityUpdateStartAnimation(LevelEntity, Memory, Buffer, TimeElapsed);
+        LevelEntityUpdateStartAnimation1(LevelEntity, Memory, Buffer, TimeElapsed);
         
         if(LevelEntity->LevelStarted)
         {
-            free(GridEntity->UnitSize);
-            GridEntity->UnitSize = 0;
+            //free(GridEntity->UnitSize);
+            //GridEntity->UnitSize = 0;
             
             LevelEntity->Configuration.StartUpTimeElapsed = 0;
             LevelEntity->Configuration.PixelsDrawn  = 0;
@@ -2674,8 +2830,6 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
         /* Level is completed */
         LevelEntity->LevelFinished = true;
         LevelEntityFinishAnimationInit1(LevelEntity, Memory, Buffer);
-        //LevelEntityFinishAnimation1(LevelEntity, Memory, Buffer);
-        //return;
     }
     
     AreaQuad.w = GridBlockSize;

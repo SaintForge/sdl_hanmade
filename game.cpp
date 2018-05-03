@@ -100,9 +100,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         LevelEntity->LevelNumberQuad       = {};
         LevelEntity->LevelNumberShadowQuad = {};
         
-        LevelEntity->Configuration.DefaultBlocksInRow = 5;
-        LevelEntity->Configuration.DefaultBlocksInCol = 5;
-        
         u32 RowAmount           = 5;
         u32 ColumnAmount        = 5;
         u32 FigureAmountReserve = 20;
@@ -281,6 +278,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         Memory->IsInitialized = true;
         printf("Memory has been initialized!\n");
+        
+        LevelEntityStartAnimationInit(LevelEntity, Buffer);
     }
     
     level_entity *LevelEntity  = (level_entity *)Memory->LocalMemoryStorage;
