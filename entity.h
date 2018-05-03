@@ -144,24 +144,8 @@ struct p_texture
     game_texture *Texture;
 };
 
-struct level_entity
+struct level_animation
 {
-    grid_entity   *GridEntity;
-    figure_entity *FigureEntity;
-    
-    game_texture *LevelNumberTexture;
-    game_texture *LevelNumberShadowTexture;
-    
-    game_rect LevelNumberQuad;
-    game_rect LevelNumberShadowQuad;
-    
-    level_config Configuration;
-    
-    u32 LevelNumber;
-    b32 LevelStarted;
-    b32 LevelPaused;
-    b32 LevelFinished;
-    
     game_rect FinishQuad;
     game_texture *FinishTexture;
     
@@ -181,6 +165,26 @@ struct level_entity
     s32 *TileAlpha;
     p_texture *TileTexture;
     game_rect *TileQuad;
+};
+
+struct level_entity
+{
+    grid_entity   *GridEntity;
+    figure_entity *FigureEntity;
+    
+    game_texture *LevelNumberTexture;
+    game_texture *LevelNumberShadowTexture;
+    
+    game_rect LevelNumberQuad;
+    game_rect LevelNumberShadowQuad;
+    
+    level_config Configuration;
+    level_animation AnimationData;
+    
+    u32 LevelNumber;
+    b32 LevelStarted;
+    b32 LevelPaused;
+    b32 LevelFinished;
 };
 
 struct figure_memory

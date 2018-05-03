@@ -367,7 +367,7 @@ int main(int argc, char **argv)
     if(Window)
     {
         SDL_Renderer* Renderer = SDL_CreateRenderer(Window, -1,
-                                                    SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
+                                                    SDL_RENDERER_TARGETTEXTURE|SDL_RENDERER_ACCELERATED);//|SDL_RENDERER_PRESENTVSYNC);
         SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
         SDL_RenderSetLogicalSize(Renderer, ScreenWidth, ScreenHeight);
         
@@ -404,22 +404,29 @@ int main(int argc, char **argv)
             SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread",
                                                        (void*)&Memory);
             
+            r32 TimeElapsed = 0.0f;
             r32 PreviousTimeTick = SDL_GetTicks();
             
             s32 OldMouseX = 0;
             s32 OldMouseY = 0;
             
+            s32 OldFpsCounter = 0;
+            
+            r32 FPSCountMs = 0.0f;
+            
+            s32 FrameLimit = 60;
+            r32 FrameLimitMs = 1.0f / (r32)FrameLimit;
+            r32 TimeSinceLastFrameMs = 0.0f;
+            
             while (IsRunning)
             {
-                r32 CurrentTimeTick = SDL_GetTicks();
-                r32 TimeElapsed = (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
-                PreviousTimeTick = CurrentTimeTick;
+                //r32 CurrentTimeTick = SDL_GetTicks();
+                PreviousTimeTick = SDL_GetTicks();
                 
                 game_input Input = {};
                 Input.MouseX = OldMouseX;
                 Input.MouseY = OldMouseY;
                 Input.TimeElapsedMs = TimeElapsed;
-                //SDL_GetMouseState(&Input.MouseX, &Input.MouseY);
                 
                 SDL_Event Event;
                 if(SDLHandleEvent(&Event, &Input))
@@ -427,8 +434,7 @@ int main(int argc, char **argv)
                     IsRunning = false;
                 }
                 
-                
-                if (Memory.AssetsInitialized)
+                if(Memory.AssetsInitialized)
                 {
                     if(GameUpdateAndRender(&Memory, &Input, &Buffer))
                     {
@@ -442,6 +448,46 @@ int main(int argc, char **argv)
                 
                 OldMouseX = Input.MouseX;
                 OldMouseY = Input.MouseY;
+                
+                r32 CurrentTimeTick = SDL_GetTicks();
+                TimeElapsed = (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
+                
+                if(TimeElapsed < FrameLimitMs)
+                {
+                    r32 TimeLeftMs = FrameLimitMs - TimeElapsed;
+                    u32 SleepMs = roundf((TimeLeftMs) * 1000.0f);
+                    
+                    if(SleepMs > 0)
+                    {
+                        SDL_Delay(SleepMs);
+                        TimeElapsed += TimeLeftMs;
+                    }
+                }
+                
+                s32 FpsCounter = roundf((1.0f / TimeElapsed));
+                
+                FPSCountMs += TimeElapsed;
+                
+                if(FPSCountMs >= 0.2f)
+                {
+                    OldFpsCounter = FpsCounter;
+                    FPSCountMs = 0.0f;
+                    
+                    char WindowTitle[128] = {};
+                    
+                    char Number[32] = {};
+                    strcpy(WindowTitle, "Time: ");
+                    sprintf(Number, "%d", FpsCounter);
+                    strcat(WindowTitle, Number);
+                    strcat(WindowTitle, " fps, ");
+                    
+                    sprintf(Number, "%.3f", TimeElapsed);
+                    strcat(WindowTitle, Number);
+                    strcat(WindowTitle, " s");
+                    
+                    SDL_SetWindowTitle(Window, WindowTitle);
+                }
+                
             }
         }
     }
