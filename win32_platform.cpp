@@ -333,7 +333,7 @@ int main(int argc, char **argv)
     SDL_GetDesktopDisplayMode(0, &Display);
     
     b32 VSyncOn = false;
-    s32 FrameLimit = 60;
+    s32 FrameLimit = 120;
     
     s32 ScreenWidth  = 800;
     s32 ScreenHeight = 600;
