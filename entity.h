@@ -118,6 +118,11 @@ struct grid_entity
     game_texture *NormalSquareTexture;
     game_texture *VerticalSquareTexture;
     game_texture *HorizontlaSquareTexture;
+    
+    game_texture *TopLeftCornerFrame;
+    game_texture *TopRightCornerFrame;
+    game_texture *DownLeftCornerFrame;
+    game_texture *DownRightCornerFrame;
 };
 
 struct level_config
@@ -159,12 +164,18 @@ struct level_animation
     s32 OldRowAmount;
     s32 OldColAmount;
     
+    s32 TileAlphaChannel;
+    
     r32 *TileAngle;
     r32 *TileOffset;
     s32 *TileAlpha;
-    v2 *TilePos;
+    v3  *TilePos;
     p_texture *TileTexture;
     game_rect *TileQuad;
+    
+    game_rect TileRect;
+    
+    r32 TimeElapsed;
 };
 
 struct level_entity

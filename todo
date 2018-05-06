@@ -79,3 +79,5 @@ BUGS:
 	+ 5. Sometimes the game crushes whenever I press ~ on loading the level.
 	+ 6. Level button switch behaviour is wrong when pressing mouse on it.
 	- 7. There is some problem with grid animation when amount of row is less than amoun of columns.
+	- 8. Finish animation starts with little wrong positioning of the blocks
+	- 9. Editor problem. Whenever u delete a row or column and there was a moving block on that then something bad happens.

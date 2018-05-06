@@ -694,6 +694,11 @@ SDLAssetBuildBinaryFile()
     SDLWriteBitmapToFile(BinaryFile, "grid_cell_1.png");
     SDLWriteBitmapToFile(BinaryFile, "grid_cell_2.png");
     
+    SDLWriteBitmapToFile(BinaryFile, "frame1.png");
+    SDLWriteBitmapToFile(BinaryFile, "frame2.png");
+    SDLWriteBitmapToFile(BinaryFile, "frame3.png");
+    SDLWriteBitmapToFile(BinaryFile, "frame4.png");
+    
     SDLWriteBitmapToFile(BinaryFile, "i_d.png");
     SDLWriteBitmapToFile(BinaryFile, "i_m.png");
     SDLWriteBitmapToFile(BinaryFile, "i_s.png");

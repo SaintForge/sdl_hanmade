@@ -1803,7 +1803,7 @@ moving_block
 }
 
 static void
-LevelEntityFinishAnimationInit1(level_entity *LevelEntity, game_memory *Memory, game_offscreen_buffer *Buffer)
+LevelEntityFinishAnimationInit(level_entity *LevelEntity, game_memory *Memory, game_offscreen_buffer *Buffer)
 {
     level_animation *AnimationData = &LevelEntity->AnimationData;
     
@@ -2038,7 +2038,7 @@ LevelEntityFinishAnimationInit1(level_entity *LevelEntity, game_memory *Memory, 
 }
 
 static void
-LevelEntityFinishAnimation1(level_entity *LevelEntity, game_memory *Memory, game_offscreen_buffer *Buffer, r32 TimeElapsedMs)
+LevelEntityFinishAnimation(level_entity *LevelEntity, game_memory *Memory, game_offscreen_buffer *Buffer, r32 TimeElapsedMs)
 {
     level_animation *AnimationData = &LevelEntity->AnimationData;
     
@@ -2179,13 +2179,370 @@ LevelEntityFinishAnimation1(level_entity *LevelEntity, game_memory *Memory, game
     AnimationData->AlphaChannel = Black;
 }
 
+
+static void
+LevelEntityStartAnimationInit3(level_entity *LevelEntity, game_offscreen_buffer *Buffer)
+{
+    grid_entity *GridEntity = LevelEntity->GridEntity;
+    level_animation *AnimationData = &LevelEntity->AnimationData;
+    
+    s32 RowAmount = GridEntity->RowAmount;
+    s32 ColAmount = GridEntity->ColumnAmount;
+    s32 GridBlockSize = LevelEntity->Configuration.GridBlockSize;
+    
+    AnimationData->TileAlpha = (s32 *)malloc(sizeof(s32 ) * RowAmount * ColAmount);
+    Assert (AnimationData->TileAlpha);
+    
+    for(s32 i = 0; i < RowAmount; ++i)
+    {
+        for(s32 j = 0; j < ColAmount; ++j)
+        {
+            s32 Index = (i * ColAmount) + j;
+            
+            s32 TargetSize = (rand() % (GridBlockSize));
+            //TargetSize = TargetSize / (2 + (rand() % 4));
+            GridEntity->UnitSize[Index] = TargetSize;
+            
+            r32 Ratio = (r32)TargetSize / (r32)GridBlockSize;
+            s32 TargetAlpha = roundf(Ratio * 255.0f);
+            AnimationData->TileAlpha[Index] = (u8)TargetAlpha;
+        }
+    }
+}
+
+static void
+LevelEntityUpdateStartAnimation3(level_entity *LevelEntity, game_offscreen_buffer *Buffer)
+{
+    grid_entity *GridEntity = LevelEntity->GridEntity;
+    level_animation *AnimationData = &LevelEntity->AnimationData;
+    
+    s32 RowAmount = GridEntity->RowAmount;
+    s32 ColAmount = GridEntity->ColumnAmount;
+    s32 GridBlockSize = LevelEntity->Configuration.GridBlockSize;
+    
+    s32 ActualGridWidth = ColAmount * GridBlockSize;
+    s32 ActualGridHeight = RowAmount * GridBlockSize;
+    
+    s32 GridAreaX = GridEntity->GridArea.x + (GridEntity->GridArea.w / 2) - (ActualGridWidth / 2);
+    s32 GridAreaY = GridEntity->GridArea.y + (GridEntity->GridArea.h / 2) - (ActualGridHeight / 2);
+    
+    b32 IsGridReady = true;
+    
+    b32 ShouldSkip = false;
+    for(s32 i = 0; i < RowAmount; ++i)
+    {
+        for(s32 j = 0; j < ColAmount; ++j)
+        {
+            s32 Index = (i * ColAmount) + j;
+            
+            s32 CurrentSize = GridEntity->UnitSize[Index] ;
+            if(CurrentSize < GridBlockSize)
+            {
+                CurrentSize += 1;
+                
+                if(CurrentSize >= GridBlockSize)
+                {
+                    CurrentSize = GridBlockSize;
+                }
+                
+                ShouldSkip = true;
+                
+                GridEntity->UnitSize[Index] = CurrentSize;
+            }
+            
+            s32 CurrentAlpha = AnimationData->TileAlpha[Index];
+            if(CurrentAlpha < 255)
+            {
+                CurrentAlpha += 2;
+                
+                if(CurrentAlpha >= 255)
+                {
+                    CurrentAlpha = 255;
+                }
+                
+                ShouldSkip = true;
+                
+                AnimationData->TileAlpha[Index] = CurrentAlpha;
+            }
+            
+            s32 PosX = GridAreaX + (j * GridBlockSize) + (GridBlockSize / 2);
+            s32 PosY = GridAreaY + (i * GridBlockSize) + (GridBlockSize / 2);
+            
+            game_rect AreaQuad = {};
+            AreaQuad.w = CurrentSize;
+            AreaQuad.h = CurrentSize;
+            AreaQuad.x = PosX - (CurrentSize / 2);  
+            AreaQuad.y = PosY - (CurrentSize / 2); 
+            
+            s32 UnitIndex = GridEntity->UnitField[Index];
+            
+            u8 AlphaChannel = CurrentAlpha;
+            
+            if(UnitIndex == 0)
+            {
+                SDL_SetTextureAlphaMod(GridEntity->NormalSquareTexture, AlphaChannel);
+                GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture, &AreaQuad);
+            }
+            else if(UnitIndex == 1)
+            {
+                SDL_SetTextureAlphaMod(GridEntity->VerticalSquareTexture, AlphaChannel);
+                GameRenderBitmapToBuffer(Buffer, GridEntity->VerticalSquareTexture, &AreaQuad);
+            }
+            else if(UnitIndex == 2)
+            {
+                SDL_SetTextureAlphaMod(GridEntity->HorizontlaSquareTexture, AlphaChannel);
+                GameRenderBitmapToBuffer(Buffer, GridEntity->HorizontlaSquareTexture, &AreaQuad);
+            }
+            
+        }
+    }
+    
+    
+    if(ShouldSkip)
+    {
+        IsGridReady = false;
+    }
+    
+    
+    if(IsGridReady)
+    {
+        LevelEntity->LevelStarted = true;
+    }
+}
+
+static void
+LevelEntityStartAnimationInit2(level_entity *LevelEntity, game_offscreen_buffer *Buffer)
+{
+    grid_entity *GridEntity = LevelEntity->GridEntity;
+    level_animation *AnimationData = &LevelEntity->AnimationData;
+    
+    s32 RowAmount = GridEntity->RowAmount;
+    s32 ColAmount = GridEntity->ColumnAmount;
+    
+    AnimationData->TileAlpha = (s32 *)calloc(RowAmount * ColAmount, sizeof(s32));
+    Assert(AnimationData->TileAlpha);
+    
+}
+
+static void
+LevelEntityUpdateStartAnimation2(level_entity *LevelEntity, game_offscreen_buffer *Buffer)
+{
+    grid_entity *GridEntity = LevelEntity->GridEntity;
+    level_animation *AnimationData = &LevelEntity->AnimationData;
+    
+    s32 RowAmount = GridEntity->RowAmount;
+    s32 ColAmount = GridEntity->ColumnAmount;
+    s32 GridBlockSize = LevelEntity->Configuration.GridBlockSize;
+    
+    s32 ActualGridWidth = ColAmount * GridBlockSize;
+    s32 ActualGridHeight = RowAmount * GridBlockSize;
+    
+    s32 GridAreaX = GridEntity->GridArea.x + (GridEntity->GridArea.w / 2) - (ActualGridWidth / 2);
+    s32 GridAreaY = GridEntity->GridArea.y + (GridEntity->GridArea.h / 2) - (ActualGridHeight / 2);
+    b32 IsGridReady = true;
+    
+#if 0
+    
+    s32 FirstRowStart = 0;
+    s32 FirstColStart = 0;
+    s32 FirstRowEnd   = roundf((r32)RowAmount / 2.0f);
+    s32 FirstColEnd   = ColAmount;
+    
+    s32 SecondRowStart = roundf((r32)RowAmount / 2.0f);
+    s32 SecondColStart = ColAmount-1;
+    s32 SecondRowEnd   = RowAmount;
+    s32 SecondColEnd   = 0;
+    
+    
+    
+    b32 ShouldSkip1 = false;
+    for(s32 i = FirstColStart; i < FirstColEnd; ++i)
+    {
+        for (s32 j = FirstRowStart; j < FirstRowEnd; ++j)
+        {
+            s32 Index = (j * ColAmount) + i;
+            
+            s32 CurrentSize = GridEntity->UnitSize[Index];
+            if(CurrentSize < GridBlockSize)
+            {
+                ShouldSkip1 = true;
+                
+                CurrentSize += 5;
+                
+                if(CurrentSize >= GridBlockSize)
+                {
+                    CurrentSize = GridBlockSize;
+                }
+                
+                GridEntity->UnitSize[Index] = CurrentSize;
+            }
+            
+            s32 PosX = GridAreaX + (i * GridBlockSize) + (GridBlockSize / 2);
+            s32 PosY = GridAreaY + (j * GridBlockSize) + (GridBlockSize / 2);
+            
+            game_rect AreaQuad = {};
+            AreaQuad.w = CurrentSize;
+            AreaQuad.h = CurrentSize;
+            AreaQuad.x = PosX - (CurrentSize / 2);  
+            AreaQuad.y = PosY - (CurrentSize / 2); 
+            
+            s32 UnitIndex = GridEntity->UnitField[Index];
+            
+            if(UnitIndex == 0)
+            {
+                GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture, &AreaQuad);
+            }
+            else if(UnitIndex == 1)
+            {
+                GameRenderBitmapToBuffer(Buffer, GridEntity->VerticalSquareTexture, &AreaQuad);
+            }
+            else if(UnitIndex == 2)
+            {
+                GameRenderBitmapToBuffer(Buffer, GridEntity->HorizontlaSquareTexture, &AreaQuad);
+            }
+        }
+        
+        if(ShouldSkip1) break;
+    }
+    
+    b32 ShouldSkip2 = false;
+    for(s32 i = SecondColStart; i >= SecondColEnd; --i)
+    {
+        for(s32 j = SecondRowStart; j < SecondRowEnd; ++j)
+        {
+            s32 Index = (j * ColAmount) + i;
+            
+            s32 CurrentSize = GridEntity->UnitSize[Index];
+            if(CurrentSize < GridBlockSize)
+            {
+                ShouldSkip2 = true;
+                
+                CurrentSize += 5;
+                
+                if(CurrentSize >= GridBlockSize)
+                {
+                    CurrentSize = GridBlockSize;
+                }
+                
+                GridEntity->UnitSize[Index] = CurrentSize;
+            }
+            
+            s32 PosX = GridAreaX + (i * GridBlockSize) + (GridBlockSize / 2);
+            s32 PosY = GridAreaY + (j * GridBlockSize) + (GridBlockSize / 2);
+            
+            game_rect AreaQuad = {};
+            AreaQuad.w = CurrentSize;
+            AreaQuad.h = CurrentSize;
+            AreaQuad.x = PosX - (CurrentSize / 2);  
+            AreaQuad.y = PosY - (CurrentSize / 2); 
+            
+            s32 UnitIndex = GridEntity->UnitField[Index];
+            
+            if(UnitIndex == 0)
+            {
+                GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture, &AreaQuad);
+            }
+            else if(UnitIndex == 1)
+            {
+                GameRenderBitmapToBuffer(Buffer, GridEntity->VerticalSquareTexture, &AreaQuad);
+            }
+            else if(UnitIndex == 2)
+            {
+                GameRenderBitmapToBuffer(Buffer, GridEntity->HorizontlaSquareTexture, &AreaQuad);
+            }
+        }
+        
+        
+        if(ShouldSkip2) break;
+    }
+    
+#endif
+    
+    b32 ShouldSkip = false;
+    for(s32 i = 0; i < RowAmount; ++i)
+    {
+        for(s32 j = 0; j < ColAmount; ++j)
+        {
+            s32 Index = (i * ColAmount) + j;
+            
+            s32 CurrentSize = GridEntity->UnitSize[Index];
+            if(CurrentSize < GridBlockSize)
+            {
+                ShouldSkip = true;
+                
+                CurrentSize += 2;
+                
+                if(CurrentSize >= GridBlockSize)
+                {
+                    CurrentSize = GridBlockSize;
+                }
+                
+                GridEntity->UnitSize[Index] = CurrentSize;
+            }
+            
+            s32 CurrentAlpha = AnimationData->TileAlpha[Index];
+            if(CurrentAlpha < 255)
+            {
+                ShouldSkip = true;
+                
+                CurrentAlpha += 1;
+                
+                if(CurrentAlpha > 255)
+                {
+                    CurrentAlpha = 255;
+                }
+                
+                AnimationData->TileAlpha[Index] = CurrentAlpha;
+            }
+            
+            s32 PosX = GridAreaX + (j * GridBlockSize) + (GridBlockSize / 2);
+            s32 PosY = GridAreaY + (i * GridBlockSize) + (GridBlockSize / 2);
+            
+            game_rect AreaQuad = {};
+            AreaQuad.w = CurrentSize;
+            AreaQuad.h = CurrentSize;
+            AreaQuad.x = PosX - (CurrentSize / 2);  
+            AreaQuad.y = PosY - (CurrentSize / 2); 
+            
+            s32 UnitIndex = GridEntity->UnitField[Index];
+            
+            u8 AlphaChannel = CurrentAlpha;
+            if(UnitIndex == 0)
+            {
+                SDL_SetTextureAlphaMod(GridEntity->NormalSquareTexture, AlphaChannel);
+                GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture, &AreaQuad);
+            }
+            else if(UnitIndex == 1)
+            {
+                SDL_SetTextureAlphaMod(GridEntity->VerticalSquareTexture, AlphaChannel);
+                GameRenderBitmapToBuffer(Buffer, GridEntity->VerticalSquareTexture, &AreaQuad);
+            }
+            else if(UnitIndex == 2)
+            {
+                SDL_SetTextureAlphaMod(GridEntity->HorizontlaSquareTexture, AlphaChannel);
+                GameRenderBitmapToBuffer(Buffer, GridEntity->HorizontlaSquareTexture, &AreaQuad);
+            }
+            
+        }
+    }
+    
+    if(ShouldSkip)
+    {
+        IsGridReady = false;
+    }
+    
+    if(IsGridReady)
+    {
+        LevelEntity->LevelStarted = true;
+    }
+}
+
 static void
 LevelEntityStartAnimationInit(level_entity *LevelEntity, game_offscreen_buffer *Buffer)
 {
     level_animation *AnimationData = &LevelEntity->AnimationData;
     
     grid_entity *&GridEntity = LevelEntity->GridEntity;
-    
     
     s32 RowAmount = GridEntity->RowAmount;
     s32 ColAmount = GridEntity->ColumnAmount;
@@ -2200,23 +2557,45 @@ LevelEntityStartAnimationInit(level_entity *LevelEntity, game_offscreen_buffer *
     s32 GridCenterX = GridAreaX + (ActualGridWidth / 2);
     s32 GridCenterY = GridAreaY + (ActualGridHeight / 2);
     
-    if(AnimationData->TilePos)
-    {
-        free(AnimationData->TilePos);
-    }
-    
     s32 GeneralAmount = ColAmount * RowAmount;
-    AnimationData->TilePos = (v2 *)calloc(sizeof(v2), GeneralAmount);
+    AnimationData->TilePos = (v3 *)calloc(GeneralAmount, sizeof(v3));
     Assert(AnimationData->TilePos);
     
-    for(s32 i = 0; i < GeneralAmount; ++i)
+    r32 TimeToCompleteSec = 0.5f;
+    
+    s32 BlockCenterX = GridCenterX - (GridBlockSize / 2);
+    s32 BlockCenterY = GridCenterY - (GridBlockSize / 2);
+    
+    for(s32 i = 0; i < RowAmount; ++i)
     {
-        AnimationData->TilePos[i].x = GridCenterX - (GridBlockSize / 2);
-        AnimationData->TilePos[i].y = GridCenterY - (GridBlockSize / 2);
-        //AnimationData->TileQuad[i].w = GridBlockSize;
-        //AnimationData->TileQuad[i].h = GridBlockSize;
+        for(s32 j = 0; j < ColAmount; ++j)
+        {
+            s32 Index = (i * ColAmount) + j;
+            
+            game_point TargetPosition = {};
+            TargetPosition.x = GridAreaX + (j * GridBlockSize);
+            TargetPosition.y = GridAreaY + (i * GridBlockSize);
+            
+            AnimationData->TilePos[Index].x = BlockCenterX;
+            AnimationData->TilePos[Index].y = BlockCenterY;
+            
+            v2 TargetVector = {};
+            TargetVector.x = TargetPosition.x - BlockCenterX;
+            TargetVector.y = TargetPosition.y - BlockCenterY;
+            
+            r32 Distance =
+                sqrt((TargetVector.x * TargetVector.x) + (TargetVector.y * TargetVector.y));
+            
+            // this is speed
+            AnimationData->TilePos[Index].z = Distance / TimeToCompleteSec;
+        }
     }
     
+    AnimationData->TimeElapsed = 0.0f;
+    AnimationData->TileAlphaChannel = 0;
+    AnimationData->TileAlphaPerSec = roundf(255.0f / TimeToCompleteSec);
+    AnimationData->TileRect.w = 0;
+    AnimationData->TileRect.h = 0;
 }
 
 static void
@@ -2243,89 +2622,287 @@ LevelEntityUpdateStartAnimation1(level_entity *LevelEntity, game_memory *Memory,
     s32 GridAreaX = GridEntity->GridArea.x + (GridEntity->GridArea.w / 2) - (ActualGridWidth / 2);
     s32 GridAreaY = GridEntity->GridArea.y + (GridEntity->GridArea.h / 2) - (ActualGridHeight / 2);
     
+    s32 GridCenterX = GridAreaX + ActualGridWidth / 2;
+    s32 GridCenterY = GridAreaY + ActualGridHeight / 2;
+    
     b32 IsGridReady   = true;
     b32 IsFigureReady = true;
     b32 IsLevelReady  = true;
     
-    for(s32 i = 0; i < RowAmount; ++i)
+    s32 SpaceOverFrame = GridBlockSize / 4;
+    s32 FrameSize = GridBlockSize / 2;
+    
+    if(AnimationData->TileRect.w < FrameSize)
     {
-        for(s32 j = 0; j < ColAmount; ++j)
+        IsGridReady = false;
+        
+        AnimationData->TileRect.w += 1;
+        AnimationData->TileRect.h += 1;
+        
+        if(AnimationData->TileRect.w >= FrameSize)
         {
-            s32 Index = (i * ColAmount) + j;
-            
-            v2 TargetPosition = {};
-            v2 CurrentPosition = {};
-            
-            TargetPosition.x = GridAreaX + (j * GridBlockSize);
-            TargetPosition.y = GridAreaY + (i * GridBlockSize);
-            
-            CurrentPosition.x = AnimationData->TilePos[Index].x;
-            CurrentPosition.y = AnimationData->TilePos[Index].y;
-            
-            v2 Velocity = {};
-            Velocity.x = TargetPosition.x - CurrentPosition.x;
-            Velocity.y = TargetPosition.y - CurrentPosition.y;
-            
-            r32 Distance = sqrt(Velocity.x * Velocity.x + Velocity.y * Velocity.y);
-            r32 ApproachRadius = (r32)GridBlockSize / 2;
-            r32 MaxVelocity = (r32)GridBlockSize * 5;
-            
-            Velocity.x = Velocity.x / Distance;
-            Velocity.y = Velocity.y / Distance;
-            
-            if(Distance > ApproachRadius)
+            AnimationData->TileRect.w = FrameSize;
+            AnimationData->TileRect.h = FrameSize;
+        }
+        
+        game_rect AreaQuad = {};
+        AreaQuad.w = AnimationData->TileRect.w;
+        AreaQuad.h = AnimationData->TileRect.h;
+        
+        // Top left corner
+        AreaQuad.x = GridCenterX - (GridBlockSize / 2) - SpaceOverFrame;
+        AreaQuad.y = GridCenterY - (GridBlockSize / 2) - SpaceOverFrame;
+        GameRenderBitmapToBuffer(Buffer, GridEntity->TopLeftCornerFrame, &AreaQuad);
+        
+        // Top right corner
+        AreaQuad.x = GridCenterX + (GridBlockSize / 2) + SpaceOverFrame - AnimationData->TileRect.w;
+        AreaQuad.y = GridCenterY - (GridBlockSize / 2) - SpaceOverFrame;
+        GameRenderBitmapToBuffer(Buffer, GridEntity->TopRightCornerFrame, &AreaQuad);
+        
+        // Down left corner
+        AreaQuad.x = GridCenterX - (GridBlockSize / 2) - SpaceOverFrame;
+        AreaQuad.y = GridCenterY + (GridBlockSize / 2) + SpaceOverFrame - AnimationData->TileRect.h;
+        GameRenderBitmapToBuffer(Buffer, GridEntity->DownLeftCornerFrame, &AreaQuad);
+        
+        // Down right corner
+        AreaQuad.x = GridCenterX + (GridBlockSize / 2) + SpaceOverFrame - AnimationData->TileRect.w;
+        AreaQuad.y = GridCenterY + (GridBlockSize / 2) + SpaceOverFrame - AnimationData->TileRect.h;
+        GameRenderBitmapToBuffer(Buffer, GridEntity->DownRightCornerFrame, &AreaQuad);
+    }
+    else
+    {
+        
+    }
+    
+    if(!IsGridReady) return;
+    
+    if(AnimationData->TileAlphaChannel != 255)
+    {
+        AnimationData->TileAlphaChannel += roundf(AnimationData->TileAlphaPerSec * TimeElapsed);
+        if(AnimationData->TileAlphaChannel > 255)
+        {
+            AnimationData->TileAlphaChannel = 255;
+        }
+        else
+        {
+            IsGridReady = false;
+        }
+        
+        u8 AlphaChannel = AnimationData->TileAlphaChannel;
+        
+        s32 LastIndex = (RowAmount * ColAmount) - 1;
+        
+        game_rect AreaQuad = {};
+        AreaQuad.w = GridBlockSize;
+        AreaQuad.h = GridBlockSize;
+        AreaQuad.x = roundf(AnimationData->TilePos[LastIndex].x); 
+        AreaQuad.y = roundf(AnimationData->TilePos[LastIndex].y); 
+        
+        s32 UnitIndex = GridEntity->UnitField[LastIndex];
+        
+        if(UnitIndex == 0)
+        {
+            SDL_SetTextureAlphaMod(GridEntity->NormalSquareTexture, AlphaChannel);
+            GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture, &AreaQuad);
+        }
+        else if(UnitIndex == 1)
+        {
+            SDL_SetTextureAlphaMod(GridEntity->VerticalSquareTexture, AlphaChannel);
+            GameRenderBitmapToBuffer(Buffer, GridEntity->VerticalSquareTexture, &AreaQuad);
+        }
+        else if(UnitIndex == 2)
+        {
+            SDL_SetTextureAlphaMod(GridEntity->HorizontlaSquareTexture, AlphaChannel);
+            GameRenderBitmapToBuffer(Buffer, GridEntity->HorizontlaSquareTexture, &AreaQuad);
+        }
+    }
+    
+    s32 MajorAmount = RowAmount > ColAmount ? RowAmount : ColAmount;
+    s32 Iterations = roundf((r32)MajorAmount / 2);
+    
+    s32 RowIndex1 = roundf((r32)RowAmount / 2.0f) - 1;
+    s32 RowIndex2 = RowAmount / 2;
+    
+    s32 ColIndex1 = roundf((r32)ColAmount / 2.0f) - 1;
+    s32 ColIndex2 = ColAmount / 2;
+    s32 OldColIndex1 = -1;
+    s32 OldColIndex2 = -1;
+    
+    AnimationData->TimeElapsed += TimeElapsed;
+    
+    for(s32 Iter = 0; Iter < Iterations; ++Iter)
+    {
+        for(s32 i = RowIndex1; i <= RowIndex2; )
+        {
+            for(s32 j = ColIndex1; j <= ColIndex2; )
             {
-                Velocity.x = Velocity.x * MaxVelocity;
-                Velocity.y = Velocity.y * MaxVelocity;
-            }
-            else
-            {
-                r32 Ratio = Distance / ApproachRadius;
-                if(Ratio > 0.0001f)
+                // drawing
+                s32 Index = (i * ColAmount) + j;
+                
+                v2 TargetPosition = {};
+                TargetPosition.x = GridAreaX + (j * GridBlockSize);
+                TargetPosition.y = GridAreaY + (i * GridBlockSize);
+                
+                v2 CurrentPosition = {};
+                CurrentPosition.x = AnimationData->TilePos[Index].x;
+                CurrentPosition.y = AnimationData->TilePos[Index].y;
+                
+                v2 Velocity = {};
+                Velocity.x = TargetPosition.x - CurrentPosition.x;
+                Velocity.y = TargetPosition.y - CurrentPosition.y;
+                
+                r32 MaxVelocity = AnimationData->TilePos[Index].z;
+                r32 MaxDistanceDelta = MaxVelocity * TimeElapsed;
+                r32 Magnitude = sqrt(Velocity.x * Velocity.x + Velocity.y * Velocity.y);
+                
+                if(Magnitude <= MaxDistanceDelta || Magnitude == 0.0f)
                 {
-                    Velocity.x = Velocity.x * (Distance / ApproachRadius) * MaxVelocity;
-                    Velocity.y = Velocity.y * (Distance / ApproachRadius) * MaxVelocity;
+                    CurrentPosition.x = TargetPosition.x;
+                    CurrentPosition.y = TargetPosition.y;
+                    
+                    printf("Magnitude = %f\n", Magnitude);
                 }
                 else
                 {
-                    Velocity.x = 0;
-                    Velocity.y = 0;
+                    v2 NormVector = {};
+                    NormVector.x = Velocity.x / Magnitude;
+                    NormVector.y = Velocity.y / Magnitude;
+                    
+                    NormVector.x *= MaxDistanceDelta;
+                    NormVector.y *= MaxDistanceDelta;
+                    
+                    CurrentPosition.x += NormVector.x;
+                    CurrentPosition.y += NormVector.y;
+                }
+                
+                AnimationData->TilePos[Index].x = CurrentPosition.x;
+                AnimationData->TilePos[Index].y = CurrentPosition.y;
+                
+                if(CurrentPosition.x != TargetPosition.x || CurrentPosition.y != TargetPosition.y)
+                {
+                    IsGridReady = false;
+                }
+                
+                game_rect AreaQuad = {};
+                AreaQuad.w = GridBlockSize;
+                AreaQuad.h = GridBlockSize;
+                AreaQuad.x = roundf(AnimationData->TilePos[Index].x); 
+                AreaQuad.y = roundf(AnimationData->TilePos[Index].y); 
+                
+                s32 UnitIndex = GridEntity->UnitField[Index];
+                
+                if(UnitIndex == 0)
+                {
+                    GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture, &AreaQuad);
+                }
+                else if(UnitIndex == 1)
+                {
+                    GameRenderBitmapToBuffer(Buffer, GridEntity->VerticalSquareTexture, &AreaQuad);
+                }
+                else if(UnitIndex == 2)
+                {
+                    GameRenderBitmapToBuffer(Buffer, GridEntity->HorizontlaSquareTexture, &AreaQuad);
+                }
+                
+                if(RowIndex1 == RowIndex2 && j != ColIndex2)
+                {
+                    j = ColIndex2;
+                }
+                else if(i == RowIndex1 || i == RowIndex2)
+                {
+                    j += 1;
+                }
+                else
+                {
+                    if(j != ColIndex2)
+                    {
+                        j = ColIndex2;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                    
                 }
             }
             
-            CurrentPosition.x += (Velocity.x) * TimeElapsed;
-            CurrentPosition.y += (Velocity.y) * TimeElapsed;
-            
-            AnimationData->TilePos[Index].x = CurrentPosition.x;
-            AnimationData->TilePos[Index].y = CurrentPosition.y;
-            
-            CurrentPosition.x = (s32)roundf(CurrentPosition.x);
-            CurrentPosition.y = (s32)roundf(CurrentPosition.y);
-            
-            TargetPosition.x = (s32)roundf(TargetPosition.x);
-            TargetPosition.y = (s32)roundf(TargetPosition.y);
-            
-            if(CurrentPosition.x != TargetPosition.x || CurrentPosition.y != TargetPosition.y)
+            if(OldColIndex1 == ColIndex1 && OldColIndex2 == ColIndex2 && i != RowIndex2)
             {
-                IsGridReady = false;
+                i = RowIndex2;
+            }
+            else
+            {
+                i += 1;
             }
             
-            game_rect AreaQuad = {};
-            AreaQuad.w = GridBlockSize;
-            AreaQuad.h = GridBlockSize;
-            AreaQuad.x = roundf(AnimationData->TilePos[Index].x); 
-            AreaQuad.y = roundf(AnimationData->TilePos[Index].y); 
-            
-            GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture, &AreaQuad);
         }
         
+        OldColIndex1 = ColIndex1;
+        OldColIndex2 = ColIndex2;
+        
+        if(ColIndex1 > 0)
+        {
+            ColIndex1 -= 1;
+        }
+        
+        if(ColIndex2 < ColAmount - 1)
+        {
+            ColIndex2 += 1;
+        }
+        
+        if(RowIndex1 > 0)
+        {
+            RowIndex1 -= 1;
+        }
+        
+        if(RowIndex2 < RowAmount - 1)
+        {
+            RowIndex2 += 1;
+        }
     }
+    
+    s32 CurrentGridWidth = AnimationData->TilePos[ColAmount - 1].x - AnimationData->TilePos[0].x;
+    
+    s32 CurrentGridHeight = AnimationData->TilePos[((RowAmount - 1) * ColAmount) + ColAmount-1].y - AnimationData->TilePos[0].y;
+    
+    game_rect AreaQuad = {};
+    AreaQuad.w = AnimationData->TileRect.w;
+    AreaQuad.h = AnimationData->TileRect.h;
+    
+    // Top left corner
+    AreaQuad.x = GridCenterX - (CurrentGridWidth / 2) - SpaceOverFrame - FrameSize;
+    AreaQuad.y = GridCenterY - (CurrentGridHeight / 2) - SpaceOverFrame - FrameSize;
+    GameRenderBitmapToBuffer(Buffer, GridEntity->TopLeftCornerFrame, &AreaQuad);
+    
+    // Top right corner
+    AreaQuad.x = GridCenterX + (CurrentGridWidth / 2) + SpaceOverFrame;
+    AreaQuad.y = GridCenterY - (CurrentGridHeight / 2) - SpaceOverFrame - FrameSize;
+    GameRenderBitmapToBuffer(Buffer, GridEntity->TopRightCornerFrame, &AreaQuad);
+    
+    // Down left corner
+    AreaQuad.x = GridCenterX - (CurrentGridWidth / 2) - SpaceOverFrame - FrameSize;
+    AreaQuad.y = GridCenterY + (CurrentGridHeight / 2) + SpaceOverFrame;
+    GameRenderBitmapToBuffer(Buffer, GridEntity->DownLeftCornerFrame, &AreaQuad);
+    
+    // Down right corner
+    AreaQuad.x = GridCenterX + (CurrentGridWidth / 2) + SpaceOverFrame;
+    AreaQuad.y = GridCenterY + (CurrentGridHeight / 2) + SpaceOverFrame;
+    GameRenderBitmapToBuffer(Buffer, GridEntity->DownRightCornerFrame, &AreaQuad);
     
     b32 Result = IsGridReady && IsFigureReady && IsLevelReady;
     
     if(Result)
     {
         LevelEntity->LevelStarted = true;
+        printf("TimeElapsed = %f\n", AnimationData->TimeElapsed);
+        
+        free(LevelEntity->AnimationData.TilePos);
+        LevelEntity->AnimationData.TilePos = NULL;
+        
+        free(LevelEntity->AnimationData.TileAlpha);
+        LevelEntity->AnimationData.TileAlpha = NULL;
+        
+        //LevelEntityStartAnimationInit(LevelEntity, Buffer);
     }
 }
 
@@ -2579,7 +3156,8 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
     
     if(LevelEntity->LevelFinished)
     {
-        LevelEntityFinishAnimation1(LevelEntity, Memory, Buffer, TimeElapsed);
+        //LevelEntityFinishAnimation(LevelEntity, Memory, Buffer, TimeElapsed);
+        LevelEntity->LevelFinished = false;
         
         if(!LevelEntity->LevelFinished)
         {
@@ -2598,6 +3176,9 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
                 LevelEntity->LevelStarted = false;
                 
                 LevelEntityStartAnimationInit(LevelEntity, Buffer);
+                
+                //LevelEntityStartAnimationInit2(LevelEntity, Buffer);
+                
             }
             else
             {
@@ -2615,11 +3196,13 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
     {
         //LevelEntityUpdateStartAnimation(LevelEntity, Memory, Buffer, TimeElapsed);
         LevelEntityUpdateStartAnimation1(LevelEntity, Memory, Buffer, TimeElapsed);
+        //LevelEntityUpdateStartAnimation2(LevelEntity, Buffer);
+        //LevelEntityUpdateStartAnimation3(LevelEntity, Buffer);
         
         if(LevelEntity->LevelStarted)
         {
-            //free(GridEntity->UnitSize);
-            //GridEntity->UnitSize = 0;
+            free(GridEntity->UnitSize);
+            GridEntity->UnitSize = 0;
             
             LevelEntity->Configuration.StartUpTimeElapsed = 0;
             LevelEntity->Configuration.PixelsDrawn  = 0;
@@ -2829,7 +3412,7 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
     {
         /* Level is completed */
         LevelEntity->LevelFinished = true;
-        LevelEntityFinishAnimationInit1(LevelEntity, Memory, Buffer);
+        //LevelEntityFinishAnimationInit(LevelEntity, Memory, Buffer);
     }
     
     AreaQuad.w = GridBlockSize;
@@ -2853,6 +3436,31 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
             }
         }
     }
+    
+    s32 SpaceOverFrame = GridBlockSize / 4;
+    s32 FrameSize = GridBlockSize / 2;
+    AreaQuad.w = FrameSize;
+    AreaQuad.h = FrameSize;
+    
+    // Top left corner
+    AreaQuad.x = GridArea.x - SpaceOverFrame;
+    AreaQuad.y = GridArea.y - SpaceOverFrame;
+    GameRenderBitmapToBuffer(Buffer, GridEntity->TopLeftCornerFrame, &AreaQuad);
+    
+    // Top right corner
+    AreaQuad.x = GridArea.x + ActualGridWidth - SpaceOverFrame;
+    AreaQuad.y = GridArea.y - SpaceOverFrame;
+    GameRenderBitmapToBuffer(Buffer, GridEntity->TopRightCornerFrame, &AreaQuad);
+    
+    // Down left corner
+    AreaQuad.x = GridArea.x - SpaceOverFrame;
+    AreaQuad.y = GridArea.y + ActualGridHeight - SpaceOverFrame;
+    GameRenderBitmapToBuffer(Buffer, GridEntity->DownLeftCornerFrame, &AreaQuad);
+    
+    // Down right corner
+    AreaQuad.x = GridArea.x + ActualGridWidth - SpaceOverFrame;
+    AreaQuad.y = GridArea.y + ActualGridHeight - SpaceOverFrame;
+    GameRenderBitmapToBuffer(Buffer, GridEntity->DownRightCornerFrame, &AreaQuad);
     
     /* MovingBlocks Update and Rendering */
     

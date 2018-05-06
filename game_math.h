@@ -23,6 +23,13 @@ struct v2
     r32 y;
 };
 
+struct v3
+{
+    r32 x;
+    r32 y;
+    r32 z;
+};
+
 struct math_point
 {
     r32 x;

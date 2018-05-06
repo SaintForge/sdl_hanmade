@@ -332,11 +332,11 @@ int main(int argc, char **argv)
     SDL_DisplayMode Display = {};
     SDL_GetDesktopDisplayMode(0, &Display);
     
-    b32 VSyncOn = false;
-    s32 FrameLimit = 120;
+    b32 VSyncOn = true;
+    s32 FrameLimit = 60;
     
-    s32 ScreenWidth  = 800;
-    s32 ScreenHeight = 600;
+    s32 ScreenWidth  = 1366;
+    s32 ScreenHeight = 768;
     s32 ReferenceWidth  = 800;
     s32 ReferenceHeight = 600;
     
@@ -358,10 +358,10 @@ int main(int argc, char **argv)
     SDL_Window* Window = SDL_CreateWindow("This is window",
                                           SDL_WINDOWPOS_CENTERED,
                                           SDL_WINDOWPOS_CENTERED,
-                                          800, 600,
+                                          Display.w, Display.h,
                                           SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
     
-    //SDL_SetWindowSize(Window, 1366, 768);
+    SDL_SetWindowSize(Window, 1366, 768);
     SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     
     if(Window)
@@ -434,7 +434,7 @@ int main(int argc, char **argv)
                 Input.MouseY = OldMouseY;
                 Input.TimeElapsedMs = TimeElapsed;
                 
-                SDL_Event Event;
+                SDL_Event Event = {};
                 if(SDLHandleEvent(&Event, &Input))
                 {
                     IsRunning = false;

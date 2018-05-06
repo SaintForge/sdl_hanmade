@@ -100,8 +100,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         LevelEntity->LevelNumberQuad       = {};
         LevelEntity->LevelNumberShadowQuad = {};
         
-        u32 RowAmount           = 5;
-        u32 ColumnAmount        = 5;
+        u32 RowAmount           = 8;
+        u32 ColumnAmount        = 6;
         u32 FigureAmountReserve = 20;
         u32 MovingBlocksAmountReserved  = 10;
         
@@ -207,23 +207,23 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         /* UnitField initialization */
         
-        GridEntity->UnitField = (s32*)calloc(GridEntity->ColumnAmount * GridEntity->RowAmount, sizeof(s32));
+        GridEntity->UnitField = (s32*)calloc(ColumnAmount * RowAmount, sizeof(s32));
         Assert(GridEntity->UnitField);
-        for (u32 Row = 0; Row < GridEntity->RowAmount; ++Row)
+        for (u32 Row = 0; Row < RowAmount; ++Row)
         {
-            for (u32 Col = 0; Col < GridEntity->ColumnAmount; ++Col)
+            for (u32 Col = 0; Col < ColumnAmount; ++Col)
             {
                 GridEntity->UnitField[(Row * GridEntity->ColumnAmount) + Col] = 0;
             }
         }
         
-        GridEntity->UnitSize = (r32*)calloc(GridEntity->ColumnAmount *GridEntity->RowAmount, sizeof(r32));
+        GridEntity->UnitSize = (r32*)calloc(ColumnAmount * RowAmount, sizeof(r32));
         Assert(GridEntity->UnitSize);
-        for(u32 Row = 0; Row < GridEntity->RowAmount; ++Row)
+        for(u32 Row = 0; Row < RowAmount; ++Row)
         {
-            for(u32 Col = 0; Col < GridEntity->ColumnAmount; ++Col)
+            for(u32 Col = 0; Col < ColumnAmount; ++Col)
             {
-                s32 UnitIndex = (Row * GridEntity->ColumnAmount) + Col;
+                s32 UnitIndex = (Row * ColumnAmount) + Col;
                 GridEntity->UnitSize[UnitIndex] = 0;
             }
         }
@@ -251,6 +251,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->NormalSquareTexture     = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
         GridEntity->VerticalSquareTexture   = GetTexture(Memory, "o_s.png", Buffer->Renderer);
         GridEntity->HorizontlaSquareTexture = GetTexture(Memory, "o_m.png", Buffer->Renderer);
+        
+        GridEntity->TopLeftCornerFrame = GetTexture(Memory, "frame3.png", Buffer->Renderer);
+        GridEntity->TopRightCornerFrame = GetTexture(Memory, "frame4.png", Buffer->Renderer);
+        GridEntity->DownLeftCornerFrame = GetTexture(Memory, "frame2.png", Buffer->Renderer);
+        GridEntity->DownRightCornerFrame = GetTexture(Memory, "frame1.png", Buffer->Renderer);
         
         //LevelEntityUpdateLevelNumber(LevelEntity, Memory, Buffer);
         
@@ -280,6 +285,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         printf("Memory has been initialized!\n");
         
         LevelEntityStartAnimationInit(LevelEntity, Buffer);
+        //LevelEntityStartAnimationInit3(LevelEntity, Buffer);
+        //LevelEntityStartAnimationInit2(LevelEntity, Buffer);
     }
     
     level_entity *LevelEntity  = (level_entity *)Memory->LocalMemoryStorage;
