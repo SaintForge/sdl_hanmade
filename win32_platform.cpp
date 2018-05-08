@@ -361,7 +361,7 @@ int main(int argc, char **argv)
                                           Display.w, Display.h,
                                           SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
     
-    SDL_SetWindowSize(Window, 1366, 768);
+    SDL_SetWindowSize(Window, 800, 600);
     SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     
     if(Window)

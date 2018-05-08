@@ -2179,364 +2179,6 @@ LevelEntityFinishAnimation(level_entity *LevelEntity, game_memory *Memory, game_
     AnimationData->AlphaChannel = Black;
 }
 
-
-static void
-LevelEntityStartAnimationInit3(level_entity *LevelEntity, game_offscreen_buffer *Buffer)
-{
-    grid_entity *GridEntity = LevelEntity->GridEntity;
-    level_animation *AnimationData = &LevelEntity->AnimationData;
-    
-    s32 RowAmount = GridEntity->RowAmount;
-    s32 ColAmount = GridEntity->ColumnAmount;
-    s32 GridBlockSize = LevelEntity->Configuration.GridBlockSize;
-    
-    AnimationData->TileAlpha = (s32 *)malloc(sizeof(s32 ) * RowAmount * ColAmount);
-    Assert (AnimationData->TileAlpha);
-    
-    for(s32 i = 0; i < RowAmount; ++i)
-    {
-        for(s32 j = 0; j < ColAmount; ++j)
-        {
-            s32 Index = (i * ColAmount) + j;
-            
-            s32 TargetSize = (rand() % (GridBlockSize));
-            //TargetSize = TargetSize / (2 + (rand() % 4));
-            GridEntity->UnitSize[Index] = TargetSize;
-            
-            r32 Ratio = (r32)TargetSize / (r32)GridBlockSize;
-            s32 TargetAlpha = roundf(Ratio * 255.0f);
-            AnimationData->TileAlpha[Index] = (u8)TargetAlpha;
-        }
-    }
-}
-
-static void
-LevelEntityUpdateStartAnimation3(level_entity *LevelEntity, game_offscreen_buffer *Buffer)
-{
-    grid_entity *GridEntity = LevelEntity->GridEntity;
-    level_animation *AnimationData = &LevelEntity->AnimationData;
-    
-    s32 RowAmount = GridEntity->RowAmount;
-    s32 ColAmount = GridEntity->ColumnAmount;
-    s32 GridBlockSize = LevelEntity->Configuration.GridBlockSize;
-    
-    s32 ActualGridWidth = ColAmount * GridBlockSize;
-    s32 ActualGridHeight = RowAmount * GridBlockSize;
-    
-    s32 GridAreaX = GridEntity->GridArea.x + (GridEntity->GridArea.w / 2) - (ActualGridWidth / 2);
-    s32 GridAreaY = GridEntity->GridArea.y + (GridEntity->GridArea.h / 2) - (ActualGridHeight / 2);
-    
-    b32 IsGridReady = true;
-    
-    b32 ShouldSkip = false;
-    for(s32 i = 0; i < RowAmount; ++i)
-    {
-        for(s32 j = 0; j < ColAmount; ++j)
-        {
-            s32 Index = (i * ColAmount) + j;
-            
-            s32 CurrentSize = GridEntity->UnitSize[Index] ;
-            if(CurrentSize < GridBlockSize)
-            {
-                CurrentSize += 1;
-                
-                if(CurrentSize >= GridBlockSize)
-                {
-                    CurrentSize = GridBlockSize;
-                }
-                
-                ShouldSkip = true;
-                
-                GridEntity->UnitSize[Index] = CurrentSize;
-            }
-            
-            s32 CurrentAlpha = AnimationData->TileAlpha[Index];
-            if(CurrentAlpha < 255)
-            {
-                CurrentAlpha += 2;
-                
-                if(CurrentAlpha >= 255)
-                {
-                    CurrentAlpha = 255;
-                }
-                
-                ShouldSkip = true;
-                
-                AnimationData->TileAlpha[Index] = CurrentAlpha;
-            }
-            
-            s32 PosX = GridAreaX + (j * GridBlockSize) + (GridBlockSize / 2);
-            s32 PosY = GridAreaY + (i * GridBlockSize) + (GridBlockSize / 2);
-            
-            game_rect AreaQuad = {};
-            AreaQuad.w = CurrentSize;
-            AreaQuad.h = CurrentSize;
-            AreaQuad.x = PosX - (CurrentSize / 2);  
-            AreaQuad.y = PosY - (CurrentSize / 2); 
-            
-            s32 UnitIndex = GridEntity->UnitField[Index];
-            
-            u8 AlphaChannel = CurrentAlpha;
-            
-            if(UnitIndex == 0)
-            {
-                SDL_SetTextureAlphaMod(GridEntity->NormalSquareTexture, AlphaChannel);
-                GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture, &AreaQuad);
-            }
-            else if(UnitIndex == 1)
-            {
-                SDL_SetTextureAlphaMod(GridEntity->VerticalSquareTexture, AlphaChannel);
-                GameRenderBitmapToBuffer(Buffer, GridEntity->VerticalSquareTexture, &AreaQuad);
-            }
-            else if(UnitIndex == 2)
-            {
-                SDL_SetTextureAlphaMod(GridEntity->HorizontlaSquareTexture, AlphaChannel);
-                GameRenderBitmapToBuffer(Buffer, GridEntity->HorizontlaSquareTexture, &AreaQuad);
-            }
-            
-        }
-    }
-    
-    
-    if(ShouldSkip)
-    {
-        IsGridReady = false;
-    }
-    
-    
-    if(IsGridReady)
-    {
-        LevelEntity->LevelStarted = true;
-    }
-}
-
-static void
-LevelEntityStartAnimationInit2(level_entity *LevelEntity, game_offscreen_buffer *Buffer)
-{
-    grid_entity *GridEntity = LevelEntity->GridEntity;
-    level_animation *AnimationData = &LevelEntity->AnimationData;
-    
-    s32 RowAmount = GridEntity->RowAmount;
-    s32 ColAmount = GridEntity->ColumnAmount;
-    
-    AnimationData->TileAlpha = (s32 *)calloc(RowAmount * ColAmount, sizeof(s32));
-    Assert(AnimationData->TileAlpha);
-    
-}
-
-static void
-LevelEntityUpdateStartAnimation2(level_entity *LevelEntity, game_offscreen_buffer *Buffer)
-{
-    grid_entity *GridEntity = LevelEntity->GridEntity;
-    level_animation *AnimationData = &LevelEntity->AnimationData;
-    
-    s32 RowAmount = GridEntity->RowAmount;
-    s32 ColAmount = GridEntity->ColumnAmount;
-    s32 GridBlockSize = LevelEntity->Configuration.GridBlockSize;
-    
-    s32 ActualGridWidth = ColAmount * GridBlockSize;
-    s32 ActualGridHeight = RowAmount * GridBlockSize;
-    
-    s32 GridAreaX = GridEntity->GridArea.x + (GridEntity->GridArea.w / 2) - (ActualGridWidth / 2);
-    s32 GridAreaY = GridEntity->GridArea.y + (GridEntity->GridArea.h / 2) - (ActualGridHeight / 2);
-    b32 IsGridReady = true;
-    
-#if 0
-    
-    s32 FirstRowStart = 0;
-    s32 FirstColStart = 0;
-    s32 FirstRowEnd   = roundf((r32)RowAmount / 2.0f);
-    s32 FirstColEnd   = ColAmount;
-    
-    s32 SecondRowStart = roundf((r32)RowAmount / 2.0f);
-    s32 SecondColStart = ColAmount-1;
-    s32 SecondRowEnd   = RowAmount;
-    s32 SecondColEnd   = 0;
-    
-    
-    
-    b32 ShouldSkip1 = false;
-    for(s32 i = FirstColStart; i < FirstColEnd; ++i)
-    {
-        for (s32 j = FirstRowStart; j < FirstRowEnd; ++j)
-        {
-            s32 Index = (j * ColAmount) + i;
-            
-            s32 CurrentSize = GridEntity->UnitSize[Index];
-            if(CurrentSize < GridBlockSize)
-            {
-                ShouldSkip1 = true;
-                
-                CurrentSize += 5;
-                
-                if(CurrentSize >= GridBlockSize)
-                {
-                    CurrentSize = GridBlockSize;
-                }
-                
-                GridEntity->UnitSize[Index] = CurrentSize;
-            }
-            
-            s32 PosX = GridAreaX + (i * GridBlockSize) + (GridBlockSize / 2);
-            s32 PosY = GridAreaY + (j * GridBlockSize) + (GridBlockSize / 2);
-            
-            game_rect AreaQuad = {};
-            AreaQuad.w = CurrentSize;
-            AreaQuad.h = CurrentSize;
-            AreaQuad.x = PosX - (CurrentSize / 2);  
-            AreaQuad.y = PosY - (CurrentSize / 2); 
-            
-            s32 UnitIndex = GridEntity->UnitField[Index];
-            
-            if(UnitIndex == 0)
-            {
-                GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture, &AreaQuad);
-            }
-            else if(UnitIndex == 1)
-            {
-                GameRenderBitmapToBuffer(Buffer, GridEntity->VerticalSquareTexture, &AreaQuad);
-            }
-            else if(UnitIndex == 2)
-            {
-                GameRenderBitmapToBuffer(Buffer, GridEntity->HorizontlaSquareTexture, &AreaQuad);
-            }
-        }
-        
-        if(ShouldSkip1) break;
-    }
-    
-    b32 ShouldSkip2 = false;
-    for(s32 i = SecondColStart; i >= SecondColEnd; --i)
-    {
-        for(s32 j = SecondRowStart; j < SecondRowEnd; ++j)
-        {
-            s32 Index = (j * ColAmount) + i;
-            
-            s32 CurrentSize = GridEntity->UnitSize[Index];
-            if(CurrentSize < GridBlockSize)
-            {
-                ShouldSkip2 = true;
-                
-                CurrentSize += 5;
-                
-                if(CurrentSize >= GridBlockSize)
-                {
-                    CurrentSize = GridBlockSize;
-                }
-                
-                GridEntity->UnitSize[Index] = CurrentSize;
-            }
-            
-            s32 PosX = GridAreaX + (i * GridBlockSize) + (GridBlockSize / 2);
-            s32 PosY = GridAreaY + (j * GridBlockSize) + (GridBlockSize / 2);
-            
-            game_rect AreaQuad = {};
-            AreaQuad.w = CurrentSize;
-            AreaQuad.h = CurrentSize;
-            AreaQuad.x = PosX - (CurrentSize / 2);  
-            AreaQuad.y = PosY - (CurrentSize / 2); 
-            
-            s32 UnitIndex = GridEntity->UnitField[Index];
-            
-            if(UnitIndex == 0)
-            {
-                GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture, &AreaQuad);
-            }
-            else if(UnitIndex == 1)
-            {
-                GameRenderBitmapToBuffer(Buffer, GridEntity->VerticalSquareTexture, &AreaQuad);
-            }
-            else if(UnitIndex == 2)
-            {
-                GameRenderBitmapToBuffer(Buffer, GridEntity->HorizontlaSquareTexture, &AreaQuad);
-            }
-        }
-        
-        
-        if(ShouldSkip2) break;
-    }
-    
-#endif
-    
-    b32 ShouldSkip = false;
-    for(s32 i = 0; i < RowAmount; ++i)
-    {
-        for(s32 j = 0; j < ColAmount; ++j)
-        {
-            s32 Index = (i * ColAmount) + j;
-            
-            s32 CurrentSize = GridEntity->UnitSize[Index];
-            if(CurrentSize < GridBlockSize)
-            {
-                ShouldSkip = true;
-                
-                CurrentSize += 2;
-                
-                if(CurrentSize >= GridBlockSize)
-                {
-                    CurrentSize = GridBlockSize;
-                }
-                
-                GridEntity->UnitSize[Index] = CurrentSize;
-            }
-            
-            s32 CurrentAlpha = AnimationData->TileAlpha[Index];
-            if(CurrentAlpha < 255)
-            {
-                ShouldSkip = true;
-                
-                CurrentAlpha += 1;
-                
-                if(CurrentAlpha > 255)
-                {
-                    CurrentAlpha = 255;
-                }
-                
-                AnimationData->TileAlpha[Index] = CurrentAlpha;
-            }
-            
-            s32 PosX = GridAreaX + (j * GridBlockSize) + (GridBlockSize / 2);
-            s32 PosY = GridAreaY + (i * GridBlockSize) + (GridBlockSize / 2);
-            
-            game_rect AreaQuad = {};
-            AreaQuad.w = CurrentSize;
-            AreaQuad.h = CurrentSize;
-            AreaQuad.x = PosX - (CurrentSize / 2);  
-            AreaQuad.y = PosY - (CurrentSize / 2); 
-            
-            s32 UnitIndex = GridEntity->UnitField[Index];
-            
-            u8 AlphaChannel = CurrentAlpha;
-            if(UnitIndex == 0)
-            {
-                SDL_SetTextureAlphaMod(GridEntity->NormalSquareTexture, AlphaChannel);
-                GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture, &AreaQuad);
-            }
-            else if(UnitIndex == 1)
-            {
-                SDL_SetTextureAlphaMod(GridEntity->VerticalSquareTexture, AlphaChannel);
-                GameRenderBitmapToBuffer(Buffer, GridEntity->VerticalSquareTexture, &AreaQuad);
-            }
-            else if(UnitIndex == 2)
-            {
-                SDL_SetTextureAlphaMod(GridEntity->HorizontlaSquareTexture, AlphaChannel);
-                GameRenderBitmapToBuffer(Buffer, GridEntity->HorizontlaSquareTexture, &AreaQuad);
-            }
-            
-        }
-    }
-    
-    if(ShouldSkip)
-    {
-        IsGridReady = false;
-    }
-    
-    if(IsGridReady)
-    {
-        LevelEntity->LevelStarted = true;
-    }
-}
-
 static void
 LevelEntityStartAnimationInit(level_entity *LevelEntity, game_offscreen_buffer *Buffer)
 {
@@ -2599,7 +2241,7 @@ LevelEntityStartAnimationInit(level_entity *LevelEntity, game_offscreen_buffer *
 }
 
 static void
-LevelEntityUpdateStartAnimation1(level_entity *LevelEntity, game_memory *Memory, game_offscreen_buffer *Buffer, r32 TimeElapsed)
+LevelEntityUpdateStartAnimation(level_entity *LevelEntity, game_memory *Memory, game_offscreen_buffer *Buffer, r32 TimeElapsed)
 {
     if(LevelEntity->LevelStarted)
     {
@@ -2906,6 +2548,8 @@ LevelEntityUpdateStartAnimation1(level_entity *LevelEntity, game_memory *Memory,
     }
 }
 
+// deprecated function
+#if 0
 static void
 LevelEntityUpdateStartAnimation(level_entity *LevelEntity,
                                 game_memory *Memory,
@@ -3120,6 +2764,8 @@ LevelEntityUpdateStartAnimation(level_entity *LevelEntity,
     AnimationData->AlphaChannel = Black;
 }
 
+#endif
+
 
 static void
 LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
@@ -3176,9 +2822,6 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
                 LevelEntity->LevelStarted = false;
                 
                 LevelEntityStartAnimationInit(LevelEntity, Buffer);
-                
-                //LevelEntityStartAnimationInit2(LevelEntity, Buffer);
-                
             }
             else
             {
@@ -3194,10 +2837,7 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
     
     if(!LevelEntity->LevelStarted)
     {
-        //LevelEntityUpdateStartAnimation(LevelEntity, Memory, Buffer, TimeElapsed);
-        LevelEntityUpdateStartAnimation1(LevelEntity, Memory, Buffer, TimeElapsed);
-        //LevelEntityUpdateStartAnimation2(LevelEntity, Buffer);
-        //LevelEntityUpdateStartAnimation3(LevelEntity, Buffer);
+        LevelEntityUpdateStartAnimation(LevelEntity, Memory, Buffer, TimeElapsed);
         
         if(LevelEntity->LevelStarted)
         {
