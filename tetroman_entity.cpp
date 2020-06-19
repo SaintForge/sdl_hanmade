@@ -1,5 +1,3 @@
-#include "assets.h"
-#include "entity.h"
 
 static s32
 CalculateGridBlockSize(s32 RowAmount, s32 ColumnAmount, 
@@ -2401,8 +2399,6 @@ LevelEntityUpdateStartAnimation(level_entity *LevelEntity, game_memory *Memory, 
                 {
                     CurrentPosition.x = TargetPosition.x;
                     CurrentPosition.y = TargetPosition.y;
-                    
-                    printf("Magnitude = %f\n", Magnitude);
                 }
                 else
                 {
@@ -2821,7 +2817,8 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
                 LevelEntity->AnimationData.AlphaChannel = 255;
                 LevelEntity->LevelStarted = false;
                 
-                LevelEntityStartAnimationInit(LevelEntity, Buffer);
+                //TODO(msokolov): temporary issue
+                //LevelEntityStartAnimationInit(LevelEntity, Buffer);
             }
             else
             {
@@ -2837,7 +2834,9 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
     
     if(!LevelEntity->LevelStarted)
     {
-        LevelEntityUpdateStartAnimation(LevelEntity, Memory, Buffer, TimeElapsed);
+        //TODO(msokolov): temporary issue
+        //LevelEntityUpdateStartAnimation(LevelEntity, Memory, Buffer, TimeElapsed);
+        LevelEntity->LevelStarted = true;
         
         if(LevelEntity->LevelStarted)
         {

@@ -7,8 +7,6 @@
  *           By: Sierra
  */
 
-#include "assets.h"
-
 static u64
 SDLSizeOfSDL_RWops(SDL_RWops *&BinaryFile)
 {
@@ -218,8 +216,10 @@ SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
     strcat(FullName, FileName);
     
     printf("FileName = %s\n", FileName);
+    printf("FullName = %s\n", FullName);
     
     SDL_Surface *Surface = IMG_Load(FullName);
+    printf("error:\n", IMG_GetError());
     Assert(Surface);
     
     asset_bitmap_header BitmapHeader;
@@ -669,7 +669,7 @@ SDLAssetLoadBinaryFile(void *Data)
     
     /* GlobalMemoryStorage allocation */
     
-    SDLReadEntireAssetFile( "package1.bin", Memory);
+    SDLReadEntireAssetFile("package1.bin", Memory);
     LoadLevelMemoryFromFile("package2.bin", Memory);
     
     Memory->AssetsInitialized = true;

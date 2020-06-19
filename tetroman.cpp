@@ -7,67 +7,27 @@
 //           By: Sierra
 //
 
-#include "game_math.h"
-#include "game.h"
+#include "tetroman.h"
 
-#include "entity.cpp"
-#include "assets.cpp"
-#include "menu.cpp"
-#include "editor.cpp"
-
-#if 0
-static void
-GameCopyImageToBuffer(game_bitmap* GameBitmap, u32 X, u32 Y,
-                      game_offscreen_buffer *Buffer)
-{
-    u8 BytesPerPixel = GameBitmap->BytesPerPixel;
-    
-    u8 *RowBuffer = (u8*)Buffer->Memory + (Y * GameBitmap->Pitch);
-    u8 *RowTarget = (u8*)GameBitmap->Pixels;
-    
-    for (u32 y = 0; y < GameBitmap->Height; ++y)
-    {
-        u32 *PixelBuffer = (u32*)RowBuffer + X;
-        u32 *PixelTarget = (u32*)RowTarget;
-        
-        for (u32 x = 0; x < GameBitmap->Width; ++x)
-        {
-            u8 Alpha = (*PixelTarget >> 24) & 0xFF;
-            u8 Blue  = (*PixelTarget >> 16) & 0xFF;
-            u8 Green = (*PixelTarget >> 8)  & 0xFF;
-            u8 Red   = (*PixelTarget & 0xFF);
-            
-            *PixelBuffer = ((Red << 24) | (Green << 16) | (Blue << 8) | (Alpha));
-            
-            *PixelBuffer++;
-            *PixelTarget++;
-        }
-        
-        RowBuffer += Buffer->Pitch;
-        RowTarget += GameBitmap->Width * BytesPerPixel;
-    }
-    
-}
-#endif
+#include "tetroman_entity.cpp"
+#include "tetroman_asset.cpp"
+#include "tetroman_menu.cpp"
+#include "tetroman_editor.cpp"
 
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
-    
     bool ShouldQuit = false;
     
     if(!Memory->IsInitialized)
     {
-        Memory->CurrentState = LEVEL;
+        Memory->CurrentState = game_mode::LEVEL;
         
         Memory->RefWidth  = 800;
         Memory->RefHeight = 600;
         
-        math_rect ScreenArea =
-        {0.0f, 0.0f, (r32)Buffer->Width, (r32)Buffer->Height};
-        
-        math_rect RefScreenArea =
-        {0.0f, 0.0f, (r32)Memory->RefWidth, (r32)Memory->RefHeight};
+        math_rect ScreenArea    = {0.0f, 0.0f, (r32)Buffer->Width, (r32)Buffer->Height};
+        math_rect RefScreenArea = {0.0f, 0.0f, (r32)Memory->RefWidth, (r32)Memory->RefHeight};
         
         Memory->PadRect.x = 40;
         Memory->PadRect.y = 30;
@@ -91,6 +51,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         Memory->LocalMemoryStorage = calloc(1, sizeof(level_entity) + (sizeof(menu_entity)));
         Assert(Memory->LocalMemoryStorage);
+        Memory->LevelMemoryAmount = 1;
         
         level_entity *LevelEntity  = (level_entity*) Memory->LocalMemoryStorage;
         LevelEntity->LevelNumber   = 0;
@@ -104,9 +65,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         u32 ColumnAmount        = 6;
         u32 FigureAmountReserve = 20;
         u32 MovingBlocksAmountReserved  = 10;
-        
-        //RescaleGameField(Buffer, RowAmount, ColumnAmount,
-        //FigureAmountReserve, LevelEntity->Configuration.DefaultBlocksInRow, //LevelEntity->Configuration.DefaultBlocksInCol, LevelEntity);
         
         //for DEBUG purposes only
         game_rect FigureAreaRect = ConvertMathRectToGameRect(FigureArea);
@@ -124,15 +82,12 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         u32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
         
         /* Change values below to be time configured */
-        
         LevelEntity->Configuration.StartUpTimeToFinish = 2.0f;
         LevelEntity->Configuration.RotationVel         = 600.0f;
         LevelEntity->Configuration.StartAlphaPerSec    = 500.0f;
         LevelEntity->Configuration.FlippingAlphaPerSec = 1000.0f;
         
-        
         /* figure_entity initialization */
-        
         LevelEntity->FigureEntity= (figure_entity*)malloc(sizeof(figure_entity));
         Assert(LevelEntity->FigureEntity);
         
@@ -140,18 +95,14 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         FigureEntity->FigureAmount         = 0;
         FigureEntity->FigureAmountReserved = FigureAmountReserve;
-        
         FigureEntity->ReturnIndex   = -1;
         FigureEntity->FigureActive  = -1;
-        
         FigureEntity->IsGrabbed     = false;
         FigureEntity->IsRotating    = false;
         FigureEntity->IsReturning   = false;
         FigureEntity->IsRestarting  = false;
         FigureEntity->IsFlipping    = false;
-        
         FigureEntity->RotationSum   = 0;
-        
         FigureEntity->FigureAlpha   = 0;
         FigureEntity->FadeInSum     = 0;
         FigureEntity->FadeOutSum    = 0;
@@ -201,7 +152,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                                                                           GridEntity->GridArea.w, GridEntity->GridArea.h);
         
         //LevelEntity->Configuration.GridBlockSize = ActiveBlockSize;
-        printf("GridBlockSize = %d\n", LevelEntity->Configuration.GridBlockSize);
         
         //GridEntity->GridArea = ConvertMathRectToGameRect(GridArea);
         
@@ -257,8 +207,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->DownLeftCornerFrame = GetTexture(Memory, "frame2.png", Buffer->Renderer);
         GridEntity->DownRightCornerFrame = GetTexture(Memory, "frame1.png", Buffer->Renderer);
         
-        //LevelEntityUpdateLevelNumber(LevelEntity, Memory, Buffer);
-        
         /* Adjusting object positions on the screen */
         LevelEntityUpdatePositionsLandscape(Buffer, Memory);
         
@@ -284,9 +232,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Memory->IsInitialized = true;
         printf("Memory has been initialized!\n");
         
-        LevelEntityStartAnimationInit(LevelEntity, Buffer);
-        //LevelEntityStartAnimationInit3(LevelEntity, Buffer);
-        //LevelEntityStartAnimationInit2(LevelEntity, Buffer);
+        //TODO(msokolov): temporary issue
+        //LevelEntityStartAnimationInit(LevelEntity, Buffer);
     }
     
     level_entity *LevelEntity  = (level_entity *)Memory->LocalMemoryStorage;
@@ -312,7 +259,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         ShouldQuit = true;
     }
     
-    game_state CurrentState = Memory->CurrentState;
+    game_mode CurrentState = Memory->CurrentState;
     
     switch (CurrentState)
     {

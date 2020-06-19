@@ -7,12 +7,151 @@
 //           By: Sierra
 //
 
-#include "editor.h"
+static void
+EditorMakeTextButton(game_offscreen_buffer *Buffer, game_font *Font, char* Text,
+                     s32 X, s32 Y, s32 Width, s32 Height, 
+                     button_quad *ButtonQuad, u8 Red, u8 Green, u8 Blue)
+{
+    ButtonQuad->Quad.w  = Width;
+    ButtonQuad->Quad.h  = Height;
+    ButtonQuad->Quad.x  = X;
+    ButtonQuad->Quad.y  = Y;
+    
+    GameMakeTextureFromString(ButtonQuad->Texture, Text, &ButtonQuad->TextureQuad, Font, {Red, Green, Blue}, Buffer);
+    
+    ButtonQuad->TextureQuad.w = (ButtonQuad->TextureQuad.w < ButtonQuad->Quad.w) ? ButtonQuad->TextureQuad.w : ButtonQuad->Quad.w;
+    ButtonQuad->TextureQuad.h = (ButtonQuad->TextureQuad.h < ButtonQuad->Quad.h) ? ButtonQuad->TextureQuad.h : ButtonQuad->Quad.h;
+    
+    ButtonQuad->TextureQuad.x = ButtonQuad->Quad.x + (ButtonQuad->Quad.w / 2) - (ButtonQuad->TextureQuad.w / 2);
+    ButtonQuad->TextureQuad.y = ButtonQuad->Quad.y + (ButtonQuad->Quad.h / 2) - (ButtonQuad->TextureQuad.h / 2);
+}
 
-//
-// level_editor start
-//
 
+static void
+ButtonQuadUpdateTextureOnButton(game_offscreen_buffer *Buffer, game_font *Font,
+                                char *Text, button_quad *ButtonQuad, 
+                                u8 Red, u8 Green, u8 Blue)
+{
+    GameMakeTextureFromString(ButtonQuad->Texture, Text, &ButtonQuad->TextureQuad, Font,{Red, Green, Blue}, Buffer);
+    
+    ButtonQuad->TextureQuad.w = (ButtonQuad->TextureQuad.w < ButtonQuad->Quad.w) ? ButtonQuad->TextureQuad.w : ButtonQuad->Quad.w;
+    ButtonQuad->TextureQuad.h = (ButtonQuad->TextureQuad.h < ButtonQuad->Quad.h) ? ButtonQuad->TextureQuad.h : ButtonQuad->Quad.h;
+    
+    ButtonQuad->TextureQuad.x = ButtonQuad->Quad.x + (ButtonQuad->Quad.w / 2) - (ButtonQuad->TextureQuad.w / 2);
+    ButtonQuad->TextureQuad.y = ButtonQuad->Quad.y + (ButtonQuad->Quad.h / 2) - (ButtonQuad->TextureQuad.h / 2);
+    
+}
+
+static void
+RenderButtonQuad(game_offscreen_buffer *Buffer, button_quad *ButtonQuad, 
+                 u8 Red, u8 Green, u8 Blue, u8 Alpha)
+{
+    DEBUGRenderQuadFill(Buffer, &ButtonQuad->Quad, {Red, Green, Blue}, Alpha);
+    DEBUGRenderQuad(Buffer, &ButtonQuad->Quad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, ButtonQuad->Texture, &ButtonQuad->TextureQuad);
+}
+
+
+static void
+InitLabel(game_font *Font, label_button *Label, char* Text,
+          s32 Number, s32 X, s32 Y, s32 LabelWidth, s32 LabelHeight, 
+          s32 InfoWidth, s32 BoxWidth, game_offscreen_buffer *Buffer)
+
+{
+    Label->InfoQuad = {X, Y, InfoWidth, LabelHeight};
+    
+    MenuMakeTextButton(Text, Label->InfoQuad.x, Label->InfoQuad.y, Label->InfoQuad.w,
+                       Label->InfoQuad.h, &Label->InfoQuad, &Label->InfoTextureQuad,
+                       Label->InfoTexture, Font, {255, 255, 255}, Buffer);
+    
+    Label->MinusQuad = {Label->InfoQuad.x + InfoWidth, Y, BoxWidth, LabelHeight};
+    MenuMakeTextButton("-", Label->MinusQuad.x, Label->MinusQuad.y,
+                       Label->MinusQuad.w, Label->MinusQuad.h, &Label->MinusQuad,
+                       &Label->MinusTextureQuad, Label->MinusTexture, Font, {255, 255, 255}, Buffer);
+    
+    
+    char NumberString[3] = {};
+    sprintf(NumberString, "%d", Number);
+    
+    Label->NumberQuad = {Label->MinusQuad.x + BoxWidth, Y, BoxWidth, LabelHeight};
+    MenuMakeTextButton(NumberString, Label->NumberQuad.x, Label->NumberQuad.y,
+                       Label->NumberQuad.w, Label->NumberQuad.h, &Label->NumberQuad,
+                       &Label->NumberTextureQuad, Label->NumberTexture, Font, {255, 255, 255}, Buffer);
+    
+    Label->PlusQuad = {Label->NumberQuad.x + BoxWidth, Y, BoxWidth, LabelHeight};
+    MenuMakeTextButton("+", Label->PlusQuad.x, Label->PlusQuad.y,
+                       Label->PlusQuad.w, Label->PlusQuad.h, &Label->PlusQuad,
+                       &Label->PlusTextureQuad, Label->PlusTexture, Font, {255, 255, 255}, Buffer);
+    
+}
+
+
+static void
+UpdateLabelNumber(game_offscreen_buffer *Buffer, game_font *Font, label_button *Label, s32 Number)
+{
+    char NumberString[5] = {};
+    sprintf(NumberString, "%d", Number);
+    
+    if(Label->NumberTexture)
+    {
+        FreeTexture(Label->NumberTexture);
+    }
+    
+    GameMakeTextureFromString(Label->NumberTexture, NumberString, &Label->NumberTextureQuad, Font, {255, 255, 255}, Buffer);
+    
+    Label->NumberTextureQuad.x = Label->NumberQuad.x + (Label->NumberQuad.w / 2.0f) - (Label->NumberTextureQuad.w / 2.0f);
+    
+    Label->NumberTextureQuad.y = Label->NumberQuad.y + (Label->NumberQuad.h / 2.0f) - (Label->NumberTextureQuad.h / 2.0f);
+}
+
+static void
+LevelEditorRenderLabel(label_button *Label, game_offscreen_buffer *Buffer)
+{
+    /* Information quad */
+    DEBUGRenderQuadFill(Buffer, &Label->InfoQuad, {255, 0, 0}, 100);
+    DEBUGRenderQuad(Buffer, &Label->InfoQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, Label->InfoTexture, &Label->InfoTextureQuad);
+    
+    /* Minus quad */
+    DEBUGRenderQuadFill(Buffer, &Label->MinusQuad, {0, 255, 0}, 100);
+    DEBUGRenderQuad(Buffer, &Label->MinusQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, Label->MinusTexture, &Label->MinusTextureQuad);
+    
+    /* Number quad */
+    DEBUGRenderQuadFill(Buffer, &Label->NumberQuad, {0, 255, 0}, 100);
+    DEBUGRenderQuad(Buffer, &Label->NumberQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, Label->NumberTexture, &Label->NumberTextureQuad);
+    
+    /* Plus quad */
+    DEBUGRenderQuadFill(Buffer, &Label->PlusQuad, {0, 255, 0}, 100);
+    DEBUGRenderQuad(Buffer, &Label->PlusQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, Label->PlusTexture, &Label->PlusTextureQuad);
+}
+
+static void
+LevelEditorRenderLabel(label_button *Label, game_offscreen_buffer *Buffer, 
+                       u8 LeftR, u8 LeftG, u8 LeftB, u8 RightR, u8 RightG, u8 RightB, u8 Alpha)
+{
+    /* Information quad */
+    DEBUGRenderQuadFill(Buffer, &Label->InfoQuad, {LeftR, LeftG, LeftB}, Alpha);
+    DEBUGRenderQuad(Buffer, &Label->InfoQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, Label->InfoTexture, &Label->InfoTextureQuad);
+    
+    /* Minus quad */
+    DEBUGRenderQuadFill(Buffer, &Label->MinusQuad, {RightR, RightG, RightB}, Alpha);
+    DEBUGRenderQuad(Buffer, &Label->MinusQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, Label->MinusTexture, &Label->MinusTextureQuad);
+    
+    /* Number quad */
+    DEBUGRenderQuadFill(Buffer, &Label->NumberQuad, {RightR, RightG, RightB}, Alpha);
+    DEBUGRenderQuad(Buffer, &Label->NumberQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, Label->NumberTexture, &Label->NumberTextureQuad);
+    
+    /* Plus quad */
+    DEBUGRenderQuadFill(Buffer, &Label->PlusQuad, {RightR, RightG, RightB}, Alpha);
+    DEBUGRenderQuad(Buffer, &Label->PlusQuad, {0, 0, 0}, 255);
+    GameRenderBitmapToBuffer(Buffer, Label->PlusTexture, &Label->PlusTextureQuad);
+}
 
 static void
 LevelEditorUpdateTextOnButton(game_offscreen_buffer *Buffer, game_font *&Font, char *TextBuffer, game_texture *&Texture, game_rect *TextureQuad, game_rect *AreaQuad, game_color Color)
@@ -1430,7 +1569,7 @@ LevelConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         if(LevelEntity->FigureEntity->FigureAmount > 0)
         {
             DEBUGRenderFigureShell(Buffer, &LevelEntity->FigureEntity->FigureUnit[NewFigureIndex],LevelEntity->Configuration.InActiveBlockSize, {255,
-                                   255, 255}, 100);
+                                       255, 255}, 100);
         }
     }
     
@@ -3695,7 +3834,7 @@ static void
 GameEditorUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, game_input *Input, game_editor *GameEditor)
 {
     b32 EditorMode       = Memory->EditorMode;
-    game_state GameState = Memory->CurrentState;
+    game_mode GameState = Memory->CurrentState;
     
     if(Input->Keyboard.BackQuote.EndedDown)
     {

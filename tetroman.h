@@ -9,139 +9,23 @@
 
 #if !defined(GAME_H)
 
+#include "tetroman_math.h"
+#include "tetroman_asset.h"
+#include "tetroman_entity.h"
 
-enum game_state
+#include "tetroman_editor.h"
+
+struct memory_area
 {
-    LEVEL, LEVEL_MENU, MAIN_MENU
+    memory_index Size;
+    u8 *Base;
+    memory_index Used;
 };
 
-#define Assert(Expression) if(!(Expression)) { LogErrorLine( __FILE__, __LINE__); *(int *)0 = 0;  }
-
-void LogErrorLine(const char* Message, int Line)
+struct game_state
 {
-    fprintf(stderr, "Assert fail in %s: %d\n",Message, Line);
-}
-
-struct game_offscreen_buffer
-{
-    s32 Width;
-    s32 Height;
-    
-    s32 ReferenceWidth;
-    s32 ReferenceHeight;
-    
-    SDL_Renderer *Renderer;
+    memory_area MemoryArea;
 };
-
-struct game_button_state
-{
-    bool EndedDown;
-    bool EndedUp;
-};
-
-struct game_keyboard_input
-{
-    union
-    {
-        game_button_state Buttons[23];
-        struct
-        {
-            game_button_state Up;
-            game_button_state Down;
-            game_button_state Left;
-            game_button_state Right;
-            game_button_state LeftClick;
-            game_button_state RightClick;
-            game_button_state Escape;
-            game_button_state BackQuote;
-            game_button_state Q_Button;
-            game_button_state E_Button;
-            game_button_state Tab;
-            
-            game_button_state Zero;
-            game_button_state One;
-            game_button_state Two;
-            game_button_state Three;
-            game_button_state Four;
-            game_button_state Five;
-            game_button_state Six;
-            game_button_state Seven;
-            game_button_state Eight;
-            game_button_state Nine;
-            game_button_state BackSpace;
-            game_button_state Enter;
-            game_button_state LeftShift;
-        };
-    };
-};
-
-struct game_input
-{
-    r32 TimeElapsedMs;
-    
-    s32 MouseX, MouseY;
-    s32 MouseRelX, MouseRelY;
-    
-    game_button_state MouseButtons[2];
-    game_keyboard_input Keyboard;
-};
-
-struct game_memory
-{
-    /* DEBUG only code */
-    
-    game_rect PadRect;
-    
-    s32 RefPadWidth;
-    s32 RefPadHeight;
-    
-    s32 RefWidth;
-    s32 RefHeight;
-    
-    b32 EditorMode;
-    
-    /*              */
-    
-    game_state CurrentState;
-    
-    u32 CurrentLevelIndex;
-    u32 LevelMemoryAmount;
-    u32 LevelMemoryReserved;
-    
-    void *LocalMemoryStorage;
-    void *GlobalMemoryStorage;
-    void *EditorMemoryStorage;
-    
-    void *AssetStorage;
-    u32 AssetsSpaceAmount;
-    
-    // TODO(Max): This should not be here!!!
-    game_font *LevelNumberFont;
-    
-    bool IsInitialized;
-    bool AssetsInitialized;
-    bool ToggleMenu;
-};
-
-
-/*
-
-Things that are need to be rescaled in order to fit into the screen
-
-game_rect GameArea;
-game_rect LevelNumber;
-
-game_rect GridArea;
-game_rect ActualGridArea;
-
-game_rect FigureArea;
-game_rect ActualFigureArea;
-
-game_rect EditorPositionPanel;
-game_rect EditorLevelPanel;
-
-*/
-
 
 static u32
 GameResizeActiveBlock(u32 GridAreaWidth, 

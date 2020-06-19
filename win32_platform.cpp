@@ -7,52 +7,17 @@
 //           By: Sierra
 //
 
-#include <SDL2\SDL.h>
-#include <SDL2\SDL_image.h>
-#include <SDL2\SDL_ttf.h>
-#include <SDL2\SDL_mixer.h>
-
-#include <stdint.h>
-#include <math.h>
-#include <string.h>
-#include <string>
-#include <vector>
-#include <windows.h>
-
-using namespace std;
-
-typedef SDL_Rect    game_rect;
-typedef SDL_Point   game_point;
-typedef SDL_Color   game_color;
-typedef SDL_Texture game_texture;
-typedef SDL_Surface game_surface;
-typedef Mix_Chunk   game_sound;
-typedef Mix_Music   game_music;
-typedef TTF_Font    game_font;
-
-typedef SDL_RendererFlip figure_flip;
-
-typedef int8_t   s8;
-typedef int16_t s16;
-typedef int32_t s32;
-typedef int64_t s64;
-
-typedef uint8_t   u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-
-typedef float r32;
-typedef double r64;
-typedef int32_t b32;
-
-#include "win32_platform.h"
-
+// TODO(msokolov): this needs to be in a better place
 static const char* SpritePath = "..\\data\\sprites\\";
 static const char* SoundPath  = "..\\data\\sound\\";
 
-#include "game.cpp"
+#include "tetroman_platform.h"
 
+#include "tetroman.cpp"
+#include "tetroman_test.cpp"
+
+#include <windows.h>
+#include "win32_platform.h"
 
 static void
 SDLChangeBufferColor(sdl_offscreen_buffer *Buffer, u8 Red, u8 Green, u8 Blue, u8 Alpha)
@@ -167,7 +132,6 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input)
                 
                 bool IsDown  = (Event->button.state == SDL_PRESSED);
                 bool WasDown = (Event->button.state == SDL_RELEASED);
-                
                 
                 if(Event->button.clicks != 0)
                 {
@@ -326,8 +290,37 @@ int main(int argc, char **argv)
 {
     SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
     Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096);
-    IMG_Init(IMG_INIT_PNG);
+    
+    s32 img_flags = IMG_INIT_PNG;
+    s32 return_flags = IMG_Init(img_flags);
+    if ((return_flags&img_flags) != img_flags) {
+        printf("IMG_Init: Failed to init required jpg and png support!\n");
+        printf("IMG_Init: %s\n", IMG_GetError());
+    }
+    
+    SDL_version compiled;
+    SDL_version linked;
+    
+    SDL_VERSION(&compiled);
+    SDL_GetVersion(&linked);
+    printf("We compiled against SDL version %d.%d.%d ...\n",
+           compiled.major, compiled.minor, compiled.patch);
+    printf("But we are linking against SDL version %d.%d.%d.\n",
+           linked.major, linked.minor, linked.patch);
+    
     TTF_Init();
+    
+    // NOTE(msokolov): this is just for testing
+    
+    memory_test mem_test = init_memory();
+    
+    write_test_data(&mem_test);
+    level_test *level = (level_test*) mem_test.transient_storage;
+    
+    level->figures->units[10].pos_x = 1488;
+    level->figures->units[0].pos_x  = 1488;
+    
+    // NOTE(msokolov): this is just for testing
     
     SDL_DisplayMode Display = {};
     SDL_GetDesktopDisplayMode(0, &Display);
@@ -335,25 +328,10 @@ int main(int argc, char **argv)
     b32 VSyncOn = true;
     s32 FrameLimit = 60;
     
-    s32 ScreenWidth  = 1366;
-    s32 ScreenHeight = 768;
+    s32 ScreenWidth  = 1920;
+    s32 ScreenHeight = 1080;
     s32 ReferenceWidth  = 800;
     s32 ReferenceHeight = 600;
-    
-    /*
-    
-    320 x 480	Alcatel pixi 3, LG Wine Smart
-    240 x 320	Nokia 230, Nokia 215, Samsung Xcover 550, LG G350
-    480 x 800	Samsung Galaxy J1 (2016), Samsung Z1, Samsung Z2, Lumia 435, Alcatel Pixi 4, LG Joy, ZTE Blade G
-    480 x 854	Huawei Y635, Nokia Lumia 635, Sony Xperia E3
-    540 x 960	Samsung Galaxy J2, Moto E 2nd Gen, Sony Xperia E4, HTC Desire 526
-    640 x 960	iPhone 4, iPhone 4S
-    640 x 1136	iPhone 5, iPhone 5S, iPhone 5C, iPhone SE
-    720 x 1280	Samsung Galaxy J5, Samsung Galaxy J3, Moto G4 Play, Xiaomi Redmi 3, Moto G 3rd Gen, Sony Xperia M4 Aqua
-    750 x 1334	iPhone 6, iPhone 6S, iPhone 7
-    1080 x 1920	iPhone 6S Plus, iPhone 6 Plus, iPhone 7 Plus, Huawei P9, Sony Xperia Z5, Samsung Galaxy A5, Samsung Galaxy A7, Samsung Galaxy S5, Samsung Galaxy A9, HTC One M9, Sony Xperia M5
-    
-    */
     
     SDL_Window* Window = SDL_CreateWindow("This is window",
                                           SDL_WINDOWPOS_CENTERED,
@@ -361,7 +339,7 @@ int main(int argc, char **argv)
                                           Display.w, Display.h,
                                           SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
     
-    SDL_SetWindowSize(Window, 800, 600);
+    SDL_SetWindowSize(Window, ScreenWidth, ScreenHeight);
     SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     
     if(Window)
