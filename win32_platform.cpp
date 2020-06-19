@@ -11,13 +11,11 @@
 static const char* SpritePath = "..\\data\\sprites\\";
 static const char* SoundPath  = "..\\data\\sound\\";
 
+#include "win32_platform.h"
 #include "tetroman_platform.h"
 
 #include "tetroman.cpp"
 #include "tetroman_test.cpp"
-
-#include <windows.h>
-#include "win32_platform.h"
 
 static void
 SDLChangeBufferColor(sdl_offscreen_buffer *Buffer, u8 Red, u8 Green, u8 Blue, u8 Alpha)

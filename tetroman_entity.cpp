@@ -379,6 +379,15 @@ FigureUnitInitFigure(figure_unit *FigureUnit,
     {
         case I_figure:
         {
+            /* TODO(msokolov): Implement something like this instead of using std::vector
+            v3 MapColor[] =
+    {
+        {1, 0, 0},
+        {0, 1, 0},
+        {0, 0, 1},
+    };
+            */
+            
             matrix = 
             { 
                 {1, 1, 1, 1},

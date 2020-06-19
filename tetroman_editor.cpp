@@ -7,6 +7,7 @@
 //           By: Sierra
 //
 
+
 static void
 EditorMakeTextButton(game_offscreen_buffer *Buffer, game_font *Font, char* Text,
                      s32 X, s32 Y, s32 Width, s32 Height, 
@@ -39,7 +40,6 @@ ButtonQuadUpdateTextureOnButton(game_offscreen_buffer *Buffer, game_font *Font,
     
     ButtonQuad->TextureQuad.x = ButtonQuad->Quad.x + (ButtonQuad->Quad.w / 2) - (ButtonQuad->TextureQuad.w / 2);
     ButtonQuad->TextureQuad.y = ButtonQuad->Quad.y + (ButtonQuad->Quad.h / 2) - (ButtonQuad->TextureQuad.h / 2);
-    
 }
 
 static void

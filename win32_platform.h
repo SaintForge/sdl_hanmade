@@ -8,19 +8,24 @@
  */
 #if !defined(WIN32_GAME_H)
 
+#include <SDL2\SDL.h>
+#include <SDL2\SDL_image.h>
+#include <SDL2\SDL_ttf.h>
+#include <SDL2\SDL_mixer.h>
+
 struct sdl_offscreen_buffer
 {
-     SDL_Texture *Texture;
-     u32 *Memory;
-     int Width;
-     int Height;
-     int Pitch;
+    SDL_Texture *Texture;
+    unsigned int *Memory;
+    int Width;
+    int Height;
+    int Pitch;
 };
 
 struct window_dimension
 {
-     int Width;
-     int Height;
+    int Width;
+    int Height;
 };
 
 #define WIN32_GAME_H
