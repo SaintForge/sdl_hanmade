@@ -47,11 +47,15 @@ typedef double r64;
 typedef size_t memory_index;
 
 #define Assert(Expression) if(!(Expression)) { LogErrorLine( __FILE__, __LINE__); *(int *)0 = 0;  }
-
 void LogErrorLine(const char* Message, int Line)
 {
     fprintf(stderr, "Assert fail in %s: %d\n",Message, Line);
 }
+
+#define Kilobytes(Value) ((Value)*1024LL)
+#define Megabytes(Value) (Kilobytes(Value)*1024LL)
+#define Gigabytes(Value) (Megabytes(Value)*1024LL)
+#define Terabytes(Value) (Gigabytes(Value)*1024LL)
 
 struct game_offscreen_buffer
 {

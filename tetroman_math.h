@@ -30,6 +30,37 @@ struct v3
     r32 z;
 };
 
+union v4
+{
+    struct
+    {
+        union
+        {
+            v3 xyz;
+            struct
+            {
+                r32 x, y, z;
+            };
+        };
+        
+        r32 w;        
+    };
+    struct
+    {
+        union
+        {
+            v3 rgb;
+            struct
+            {
+                r32 r, g, b;
+            };
+        };
+        
+        r32 a;        
+    };
+    r32 E[4];
+};
+
 struct math_point
 {
     r32 x;
@@ -40,6 +71,12 @@ struct vector2
 {
     r32 x;
     r32 y;
+};
+
+struct rectangle2
+{
+    v2 Min;
+    v2 Max;
 };
 
 enum anchor_presets

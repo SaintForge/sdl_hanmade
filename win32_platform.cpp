@@ -311,12 +311,17 @@ int main(int argc, char **argv)
     // NOTE(msokolov): this is just for testing
     
     memory_test mem_test = init_memory();
-    
     write_test_data(&mem_test);
     level_test *level = (level_test*) mem_test.transient_storage;
     
-    level->figures->units[10].pos_x = 1488;
-    level->figures->units[0].pos_x  = 1488;
+    game_memory some_memory = {};
+    SDLAssetLoadBinaryFile((void*)&some_memory);
+    LoadAllBitmapsFromMemory(&some_memory, level);
+    
+    render_group *RenderGroup = AllocateRenderGroup(&level->MemoryGroup, Kilobytes(500));
+    //Clear(RenderGroup, {255, 255, 0, 255});
+    PushRect(RenderGroup, {0, 0, 200, 300}, {0, 255, 255, 255});
+    PushRect(RenderGroup, {200, 300, 400, 600}, {0, 255, 255, 255});
     
     // NOTE(msokolov): this is just for testing
     
@@ -424,6 +429,8 @@ int main(int argc, char **argv)
                         
                         free(Memory.AssetStorage);
                     }
+                    
+                    RenderGroupToOutput(RenderGroup, &Buffer);
                 }
                 
                 SDLUpdateWindow(Window, Renderer, &BackBuffer);
