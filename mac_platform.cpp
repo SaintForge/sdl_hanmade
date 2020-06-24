@@ -73,11 +73,14 @@ window_dimension SDLGetWindowDimension(SDL_Window* Window)
 static void
 SDLProcessKeyPress(game_button_state *NewState, bool IsDown, bool WasDown)
 {
-    if(NewState->EndedDown != IsDown)
+    
+    //if(NewState->EndedDown != IsDown)
+    if (!NewState->EndedDown)
     {
         NewState->EndedDown = IsDown;
     }
-    if(NewState->EndedUp != WasDown)
+    //if(NewState->EndedUp != WasDown)
+    if (!NewState->EndedUp)
     {
         NewState->EndedUp = WasDown;
     }
@@ -122,6 +125,7 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input)
                 {
                     if(Button == SDL_BUTTON_LEFT)
                     {
+                        printf("left mouse click\n");
                         SDLProcessKeyPress(&Input->MouseButtons[0], IsDown, WasDown);
                     }
                     else if(Button == SDL_BUTTON_RIGHT)
@@ -308,7 +312,7 @@ int main(int argc, char **argv)
     render_group *RenderGroup = AllocateRenderGroup(&level->MemoryGroup, Kilobytes(500));
     //Clear(RenderGroup, {255, 255, 0, 255});
     PushRect(RenderGroup, {0, 0, 200, 300}, {0, 255, 255, 255});
-    PushRect(RenderGroup, {200, 300, 400, 600}, {0, 255, 255, 255});
+    PushRectOutline(RenderGroup, {200, 300, 400, 600}, {0, 255, 255, 255});
     
     
     // NOTE(msokolov): this is just for testing
@@ -388,12 +392,6 @@ int main(int argc, char **argv)
             s32 OldMouseX = 0;
             s32 OldMouseY = 0;
             
-            r32 FPSCountMs = 0.0f;
-            
-            
-            r32 FrameLimitMs = 1.0f / (r32)FrameLimit;
-            r32 TimeSinceLastFrameMs = 0.0f;
-            
             while (IsRunning)
             {
                 PreviousTimeTick = SDL_GetTicks();
@@ -428,46 +426,6 @@ int main(int argc, char **argv)
                 
                 r32 CurrentTimeTick = SDL_GetTicks();
                 TimeElapsed = (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
-                
-                if(!VSyncOn)
-                {
-                    if(TimeElapsed < FrameLimitMs)
-                    {
-                        r32 TimeLeftMs = FrameLimitMs - TimeElapsed;
-                        u32 SleepMs = roundf((TimeLeftMs) * 1000.0f);
-                        
-                        if(SleepMs > 0)
-                        {
-                            SDL_Delay(SleepMs);
-                            TimeElapsed += TimeLeftMs;
-                        }
-                    }
-                    
-                }
-                
-                s32 FpsCounter = roundf((1.0f / TimeElapsed));
-                
-                FPSCountMs += TimeElapsed;
-                
-                if(FPSCountMs >= 0.2f)
-                {
-                    FPSCountMs = 0.0f;
-                    
-                    char WindowTitle[128] = {};
-                    
-                    char Number[32] = {};
-                    strcpy(WindowTitle, "Time: ");
-                    sprintf(Number, "%d", FpsCounter);
-                    strcat(WindowTitle, Number);
-                    strcat(WindowTitle, "fps, ");
-                    
-                    sprintf(Number, "%.3f", TimeElapsed);
-                    strcat(WindowTitle, Number);
-                    strcat(WindowTitle, "s");
-                    
-                    SDL_SetWindowTitle(Window, WindowTitle);
-                }
-                
             }
         }
     }

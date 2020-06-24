@@ -32,6 +32,7 @@ enum render_group_entry_type
     RenderGroupEntryType_render_entry_clear,
     RenderGroupEntryType_render_entry_bitmap,
     RenderGroupEntryType_render_entry_rectangle,
+    RenderGroupEntryType_render_entry_rectangle_outline
 };
 
 
@@ -68,6 +69,12 @@ struct render_entry_bitmap
 };
 
 struct render_entry_rectangle
+{
+    rectangle2 Rectangle;
+    v4 Color;
+};
+
+struct render_entry_rectangle_outline
 {
     rectangle2 Rectangle;
     v4 Color;
@@ -134,6 +141,17 @@ inline void
 PushRect(render_group *Group, rectangle2 Rectangle, v4 Color) 
 {
     render_entry_rectangle *Piece = PushRenderElement(Group, render_entry_rectangle);
+    if (Piece) 
+    {
+        Piece->Rectangle = Rectangle;
+        Piece->Color     = Color;
+    }
+}
+
+inline void
+PushRectOutline(render_group *Group, rectangle2 Rectangle, v4 Color) 
+{
+    render_entry_rectangle_outline *Piece = PushRenderElement(Group, render_entry_rectangle_outline);
     if (Piece) 
     {
         Piece->Rectangle = Rectangle;
@@ -322,6 +340,23 @@ RenderGroupToOutput(render_group *RenderGroup, game_offscreen_buffer *Buffer)
                 
                 game_rect Rectangle = {RectangleX, RectangleY, RectangleW, RectangleH};
                 DEBUGRenderQuadFill(Buffer, &Rectangle, {(u8)Entry->Color.r,(u8)Entry->Color.g, (u8)Entry->Color.b}, (u8)Entry->Color.a);
+                
+                BaseAddress += sizeof(*Entry);
+                
+            } break;
+            
+            
+            case RenderGroupEntryType_render_entry_rectangle_outline: 
+            {
+                render_entry_rectangle *Entry = (render_entry_rectangle*) Data;
+                
+                s32 RectangleX = Entry->Rectangle.Min.x;
+                s32 RectangleY = Entry->Rectangle.Min.y;
+                s32 RectangleW = Entry->Rectangle.Max.x - RectangleX;
+                s32 RectangleH = Entry->Rectangle.Max.y - RectangleY;
+                
+                game_rect Rectangle = {RectangleX, RectangleY, RectangleW, RectangleH};
+                DEBUGRenderQuad(Buffer, &Rectangle, {(u8)Entry->Color.r,(u8)Entry->Color.g, (u8)Entry->Color.b}, (u8)Entry->Color.a);
                 
                 BaseAddress += sizeof(*Entry);
                 
