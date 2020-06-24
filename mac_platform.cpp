@@ -1,13 +1,4 @@
-// win32_game.cpp --- 
-// 
-// Filename: win32_game.cpp
-// Author: 
-// Created: Ср окт 18 20:51:21 2017 (+0400)
-// Last-Updated: Пт окт 27 09:46:39 2017 (+0300)
-//           By: Sierra
-//
-
-#include "win32_platform.h"
+#include "mac_platform.h"
 #include "tetroman_platform.h"
 
 #include "tetroman.cpp"
@@ -319,6 +310,7 @@ int main(int argc, char **argv)
     PushRect(RenderGroup, {0, 0, 200, 300}, {0, 255, 255, 255});
     PushRect(RenderGroup, {200, 300, 400, 600}, {0, 255, 255, 255});
     
+    
     // NOTE(msokolov): this is just for testing
     
     SDL_DisplayMode Display = {};
@@ -327,8 +319,8 @@ int main(int argc, char **argv)
     b32 VSyncOn = true;
     s32 FrameLimit = 60;
     
-    s32 ScreenWidth  = 1920;
-    s32 ScreenHeight = 1080;
+    s32 ScreenWidth  = 800;
+    s32 ScreenHeight = 600;
     s32 ReferenceWidth  = 800;
     s32 ReferenceHeight = 600;
     

@@ -68,7 +68,7 @@ GameResizeInActiveBlock(u32 FigureAreaWidth,
 
 static void
 GameMakeTextureFromString(game_texture *&Texture, 
-                          char* Text, 
+                          const char* Text, 
                           game_rect *TextureQuad, 
                           game_font *&Font, 
                           game_color Color, 
@@ -100,6 +100,7 @@ static void
 GameRenderBitmapToBuffer(game_offscreen_buffer *Buffer, game_texture *&Texture, game_rect *Quad)
 {
     Assert(Texture);
+    //if (!Texture) return;
     SDL_RenderCopy(Buffer->Renderer, Texture, 0, Quad);
 }
 

@@ -8,7 +8,7 @@
 //
 
 static void
-MenuMakeTextButton(char* Text, s32 X, s32 Y, s32 Width, s32 Height,
+MenuMakeTextButton(const char* Text, s32 X, s32 Y, s32 Width, s32 Height,
                    game_rect *ButtonQuad, game_rect *TextureQuad,
                    game_texture *&Texture, game_font *&Font,
                    game_color Color, game_offscreen_buffer *Buffer)
@@ -151,7 +151,7 @@ MenuEntityUpdatePositionsLandscape(game_offscreen_buffer *Buffer, menu_entity *M
             TTF_CloseFont(MenuEntity->LevelNumberFont);
         }
         
-        MenuEntity->LevelNumberFont = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
+        MenuEntity->LevelNumberFont = TTF_OpenFont(FontPath, FontSize);
         Assert(MenuEntity->LevelNumberFont);
     }
     
@@ -214,7 +214,7 @@ MenuEntityUpdatePositionsPortrait(game_offscreen_buffer *Buffer, menu_entity *Me
             TTF_CloseFont(MenuEntity->LevelNumberFont);
         }
         
-        MenuEntity->LevelNumberFont = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
+        MenuEntity->LevelNumberFont = TTF_OpenFont(FontPath, FontSize);
         Assert(MenuEntity->LevelNumberFont);
         
     }

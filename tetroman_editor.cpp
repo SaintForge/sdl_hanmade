@@ -9,7 +9,7 @@
 
 
 static void
-EditorMakeTextButton(game_offscreen_buffer *Buffer, game_font *Font, char* Text,
+EditorMakeTextButton(game_offscreen_buffer *Buffer, game_font *Font, const char* Text,
                      s32 X, s32 Y, s32 Width, s32 Height, 
                      button_quad *ButtonQuad, u8 Red, u8 Green, u8 Blue)
 {
@@ -30,7 +30,7 @@ EditorMakeTextButton(game_offscreen_buffer *Buffer, game_font *Font, char* Text,
 
 static void
 ButtonQuadUpdateTextureOnButton(game_offscreen_buffer *Buffer, game_font *Font,
-                                char *Text, button_quad *ButtonQuad, 
+                                const char *Text, button_quad *ButtonQuad, 
                                 u8 Red, u8 Green, u8 Blue)
 {
     GameMakeTextureFromString(ButtonQuad->Texture, Text, &ButtonQuad->TextureQuad, Font,{Red, Green, Blue}, Buffer);
@@ -53,7 +53,7 @@ RenderButtonQuad(game_offscreen_buffer *Buffer, button_quad *ButtonQuad,
 
 
 static void
-InitLabel(game_font *Font, label_button *Label, char* Text,
+InitLabel(game_font *Font, label_button *Label, const char* Text,
           s32 Number, s32 X, s32 Y, s32 LabelWidth, s32 LabelHeight, 
           s32 InfoWidth, s32 BoxWidth, game_offscreen_buffer *Buffer)
 
@@ -154,7 +154,7 @@ LevelEditorRenderLabel(label_button *Label, game_offscreen_buffer *Buffer,
 }
 
 static void
-LevelEditorUpdateTextOnButton(game_offscreen_buffer *Buffer, game_font *&Font, char *TextBuffer, game_texture *&Texture, game_rect *TextureQuad, game_rect *AreaQuad, game_color Color)
+LevelEditorUpdateTextOnButton(game_offscreen_buffer *Buffer, game_font *&Font, const char *TextBuffer, game_texture *&Texture, game_rect *TextureQuad, game_rect *AreaQuad, game_color Color)
 {
     GameMakeTextureFromString(Texture, TextBuffer, TextureQuad, Font, Color, Buffer);
     
@@ -800,6 +800,10 @@ GameConfigUpdateAndRender(level_editor *LevelEditor, level_entity *LevelEntity,
         
         switch(LevelEditor->CursorType)
         {
+            case ARROW:
+            {
+                
+            } break;
             case SIZE_ALL:
             {
                 AreaQuad.Left   += OffsetX;
@@ -1676,7 +1680,7 @@ LevelEditorUpdatePositionsPortrait(game_offscreen_buffer *Buffer, level_editor *
         
         FontSize = (r32)FontSize * ScaleByHeight;
         
-        LevelEditor->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
+        LevelEditor->Font = TTF_OpenFont(FontPath, FontSize);
         Assert(LevelEditor->Font);
     }
     
@@ -2008,7 +2012,7 @@ LevelEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, level_editor 
         FontSize = (r32)FontSize * ScaleByWidth;
         printf("FontSize = %d\n",FontSize);
         
-        LevelEditor->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
+        LevelEditor->Font = TTF_OpenFont(FontPath, FontSize);
         Assert(LevelEditor->Font);
     }
     
@@ -2376,7 +2380,7 @@ MenuEditorUpdatePositionsLandscape(game_offscreen_buffer *Buffer, menu_editor *M
             TTF_CloseFont(MenuEditor->Font);
         }
         
-        MenuEditor->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
+        MenuEditor->Font = TTF_OpenFont(FontPath, FontSize);
         Assert(MenuEditor->Font);
     }
     
@@ -2599,7 +2603,7 @@ MenuEditorUpdatePositionsPortrait(game_offscreen_buffer *Buffer,
             TTF_CloseFont(MenuEditor->Font);
         }
         
-        MenuEditor->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
+        MenuEditor->Font = TTF_OpenFont(FontPath, FontSize);
         Assert(MenuEditor->Font);
     }
     
@@ -3249,10 +3253,10 @@ UpdateScaleType(scale_type ScaleType)
     return(Result);
 }
 
-static char*
+static const char*
 GetOrientationString(device_orientation Orientation)
 {
-    char *Result = {};
+    const char *Result = {};
     
     if(Orientation == LANDSCAPE)
     {
@@ -3306,7 +3310,7 @@ ResolutionEditorScaleLandscape(game_offscreen_buffer *Buffer,resolution_editor *
             TTF_CloseFont(ResPanel->Font);
         }
         
-        ResPanel->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
+        ResPanel->Font = TTF_OpenFont(FontPath, FontSize);
         Assert(ResPanel->Font);
     }
     
@@ -3342,7 +3346,7 @@ ResolutionEditorScaleLandscape(game_offscreen_buffer *Buffer,resolution_editor *
                              &ResPanel->LeftArrowButton, 255, 255, 255);
         
         ResPanel->Orientation = LANDSCAPE;
-        char *OrientationString = GetOrientationString(LANDSCAPE);
+        const char *OrientationString = GetOrientationString(LANDSCAPE);
         
         EditorMakeTextButton(Buffer, ResPanel->Font, OrientationString, 
                              ResPanel->ResPanelQuad.x + ArrowWidth,
@@ -3432,7 +3436,7 @@ ResolutionEditorScalePortrait(game_offscreen_buffer *Buffer,resolution_editor *R
             TTF_CloseFont(ResPanel->Font);
         }
         
-        ResPanel->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
+        ResPanel->Font = TTF_OpenFont(FontPath, FontSize);
         Assert(ResPanel->Font);
     }
     
@@ -3468,7 +3472,7 @@ ResolutionEditorScalePortrait(game_offscreen_buffer *Buffer,resolution_editor *R
                              &ResPanel->LeftArrowButton, 255, 255, 255);
         
         ResPanel->Orientation = LANDSCAPE;
-        char *OrientationString = GetOrientationString(LANDSCAPE);
+        const char *OrientationString = GetOrientationString(LANDSCAPE);
         
         EditorMakeTextButton(Buffer, ResPanel->Font, OrientationString, 
                              ResPanel->ResPanelQuad.x + ArrowWidth,
@@ -3877,6 +3881,11 @@ GameEditorUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, ga
             {
                 
             } break;
+            
+            case MAIN_MENU:
+            {
+                
+            } break;
         }
     }
     
@@ -3902,6 +3911,10 @@ GameEditorUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, ga
             {
                 
             } break;
+            case MAIN_MENU:
+            {
+                
+            } break;
         }
         
         return;
@@ -3920,6 +3933,11 @@ GameEditorUpdateAndRender(game_offscreen_buffer *Buffer, game_memory *Memory, ga
         case LEVEL_MENU:
         {
             MenuEditorUpdateAndRender(&GameEditor->MenuEditor, MenuEntity, Memory, Input, Buffer);
+        } break;
+        
+        case MAIN_MENU:
+        {
+            
         } break;
     }
     

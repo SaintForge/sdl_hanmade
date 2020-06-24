@@ -227,7 +227,7 @@ init_memory() {
 
 
 static asset_header*
-GetAssetHeaderFromStorage(void *AssetStorage, u32 AssetStorageSize, asset_type AssetType, char* AssetName, u32 Offset)
+GetAssetHeaderFromStorage(void *AssetStorage, u32 AssetStorageSize, asset_type AssetType, const char* AssetName, u32 Offset)
 {
     u8 *mem = (u8*)AssetStorage + Offset;
     asset_header *AssetHeader = (asset_header*)mem;
@@ -250,7 +250,7 @@ GetAssetHeaderFromStorage(void *AssetStorage, u32 AssetStorageSize, asset_type A
 }
 
 static loaded_bitmap
-GetBitmapAssetFromStorage(void *AssetStorage, u32 AssetStorageSize, char* FileName)
+GetBitmapAssetFromStorage(void *AssetStorage, u32 AssetStorageSize, const char* FileName)
 {
     loaded_bitmap Result = {};
     

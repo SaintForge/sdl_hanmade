@@ -20,7 +20,7 @@ SDLSizeOfSDL_RWops(SDL_RWops *&BinaryFile)
 }
 
 static u64
-SDLSizeOfBinaryFile(char *FileName)
+SDLSizeOfBinaryFile(const char *FileName)
 {
     SDL_RWops *File = SDL_RWFromFile(FileName, "rb");
     u64 ByteSize = SDLSizeOfSDL_RWops(File);
@@ -188,7 +188,7 @@ SDLLoadBitmapFromMemory(void *&Memory, game_texture *& Texture, s64 *ByteOffset,
 
 
 static void
-SDLReadEntireAssetFile(char* FileName, game_memory *&Memory)
+SDLReadEntireAssetFile(const char* FileName, game_memory *&Memory)
 {
     SDL_RWops *BinaryFile = SDL_RWFromFile(FileName, "rb");
     Memory->AssetsSpaceAmount = SDLSizeOfSDL_RWops(BinaryFile);
@@ -307,7 +307,7 @@ SDLWriteMusicToFile(SDL_RWops *&BinaryFile, const char *FileName)
 }
 
 static bool
-IsAsset(asset_header*& AssetHeader, asset_type AssetType, char* AssetName)
+IsAsset(asset_header*& AssetHeader, asset_type AssetType, const char* AssetName)
 {
     bool Result = false;
     
@@ -323,7 +323,7 @@ IsAsset(asset_header*& AssetHeader, asset_type AssetType, char* AssetName)
 }
 
 static asset_header*
-GetAssetHeader(game_memory *&Memory, asset_type AssetType, char* AssetName, u32 Offset)
+GetAssetHeader(game_memory *&Memory, asset_type AssetType, const char* AssetName, u32 Offset)
 {
     u8 *mem = (u8*)Memory->AssetStorage + Offset;
     asset_header *AssetHeader = (asset_header*)mem;
@@ -396,7 +396,7 @@ GetSound(game_memory *Memory, char* FileName)
 }
 
 static game_texture*
-GetTexture(game_memory *&Memory, char* FileName, SDL_Renderer *&Renderer)
+GetTexture(game_memory *&Memory, const char* FileName, SDL_Renderer *&Renderer)
 {
     game_texture *Texture = NULL;
     
@@ -521,7 +521,7 @@ ConvertLevelMemoryFromRaw(game_memory *&Memory, void *&RawMemory, u32 RawMemoryS
 }
 
 static void
-LoadLevelMemoryFromFile(char* FileName, game_memory *Memory)
+LoadLevelMemoryFromFile(const char* FileName, game_memory *Memory)
 {
     if(Memory->GlobalMemoryStorage)
     {
@@ -680,6 +680,7 @@ SDLAssetLoadBinaryFile(void *Data)
 static void
 SDLAssetBuildBinaryFile()
 {
+    printf("start");
     SDL_RWops *BinaryFile = SDL_RWFromFile("package1.bin", "wb");
     
     binary_header BinaryHeader = {};
@@ -742,5 +743,6 @@ SDLAssetBuildBinaryFile()
     SDL_RWwrite(BinaryFile, &BinaryHeader, sizeof(binary_header), 1);
     
     SDL_RWclose(BinaryFile);
+    printf("finish");
 }
 

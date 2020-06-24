@@ -43,7 +43,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Memory->ToggleMenu        = false;
         Memory->CurrentLevelIndex = 0;
         
-        Memory->LevelNumberFont = TTF_OpenFont("..\\data\\Karmina-Bold.otf", 50);
+        Memory->LevelNumberFont = TTF_OpenFont(FontPath, 50);
         Assert(Memory->LevelNumberFont);
         
         /* LocalMemoryStorage allocation */
@@ -274,6 +274,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         case LEVEL_MENU:
         {
             MenuUpdateAndRender(MenuEntity, Memory, Input, Buffer);
+        } break;
+        
+        case MAIN_MENU:
+        {
+            
         } break;
     }
     

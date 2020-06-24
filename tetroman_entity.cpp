@@ -1391,7 +1391,7 @@ LevelEntityUpdatePositionsPortrait(game_offscreen_buffer *Buffer, game_memory *M
         
         FontSize = roundf((r32)FontSize * ScaleByHeight);
         
-        Memory->LevelNumberFont = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
+        Memory->LevelNumberFont = TTF_OpenFont(FontPath, FontSize);
         
         char LevelNumberString[3] = {0};
         sprintf(LevelNumberString, "%d", LevelEntity->LevelNumber);
@@ -1557,7 +1557,7 @@ LevelEntityUpdatePositionsLandscape(game_offscreen_buffer *Buffer, game_memory *
         
         FontSize = roundf((r32)FontSize * ScaleByWidth);
         
-        Memory->LevelNumberFont = TTF_OpenFont("..\\data\\Karmina-Bold.otf", FontSize);
+        Memory->LevelNumberFont = TTF_OpenFont(FontPath, FontSize);
         
         char LevelNumberString[3] = {0};
         sprintf(LevelNumberString, "%d", LevelEntity->LevelNumber);

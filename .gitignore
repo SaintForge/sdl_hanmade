@@ -2,3 +2,6 @@ build/
 data/
 makefile
 build.bat
+build.sh
+tetroman_xcode/
+.DS_Store
