@@ -154,7 +154,5 @@ struct playground_data
     figure_data Figures[FIGURE_AMOUNT_MAXIMUM];
 };
 
-
-
 #define ASSERT_GAME_H
 #endif

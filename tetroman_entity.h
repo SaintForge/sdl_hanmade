@@ -76,6 +76,14 @@ struct figure_entity
     r32 FadeOutSum;
     r32 RotationSum;
     s32 FigureVelocity;
+    
+    //classic, stone, mirror
+    //O_figure, I_figure, L_figure, J_figure,
+    //Z_figure, S_figure, T_figure
+    
+    game_texture *ClassicO_Figure;
+    game_texture *StoneO_Figure;
+    game_texture *MirrorO_Figure;
 };
 
 struct sticked_unit
@@ -179,7 +187,7 @@ struct level_animation
 // TODO(msokolov): name it playground or something
 struct level_entity
 {
-    // TODO(msokolov): we should declare them as just non-pointers
+    // TODO(msokolov): maybe we should declare them as just non-pointers
     grid_entity   *GridEntity;
     figure_entity *FigureEntity;
     

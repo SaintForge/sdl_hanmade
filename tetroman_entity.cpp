@@ -680,13 +680,39 @@ ConstructFigureArea(figure_unit *FigureUnit, s32 FigureBlockSize)
 }
 
 static void
-FigureUnitRenderBitmap(game_offscreen_buffer *Buffer, figure_unit *Entity)
+FigureUnitRenderBitmap(game_offscreen_buffer *Buffer, figure_unit *Entity, figure_entity *FigureEntity)
 {
     game_point Center;
     Center.x = Entity->Center.x - Entity->AreaQuad.x;
     Center.y = Entity->Center.y - Entity->AreaQuad.y;
     
-    SDL_RenderCopyEx(Buffer->Renderer, Entity->Texture,
+    game_texture *Texture = Entity->Texture;
+    
+    switch(Entity->Form)
+    {
+        case O_figure:
+        {
+            switch(Entity->Type)
+            {
+                case classic:
+                {
+                    Texture = FigureEntity->ClassicO_Figure;
+                } break;
+                
+                case stone:
+                {
+                    Texture = FigureEntity->StoneO_Figure;
+                } break;
+                
+                case mirror:
+                {
+                    Texture = FigureEntity->MirrorO_Figure;
+                } break;
+            }
+        } break;
+    }
+    
+    SDL_RenderCopyEx(Buffer->Renderer, Texture,
                      0, &Entity->AreaQuad, Entity->Angle, &Center, Entity->Flip);
 }
 
@@ -3108,7 +3134,7 @@ LevelEntityUpdateAndRender(level_entity *LevelEntity, game_memory *Memory, game_
     {
         u32 Index = FigureEntity->FigureOrder[i];
         
-        FigureUnitRenderBitmap(Buffer, &FigureUnit[Index]);
+        FigureUnitRenderBitmap(Buffer, &FigureUnit[Index], FigureEntity);
     }
     
     GameRenderBitmapToBuffer(Buffer, LevelEntity->LevelNumberShadowTexture, &LevelEntity->LevelNumberShadowQuad);

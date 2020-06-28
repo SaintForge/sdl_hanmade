@@ -28,7 +28,7 @@ SDLSizeOfBinaryFile(const char *FileName)
 }
 
 static void 
-ReadAssetPackageFile(const char *FileName, void *Storage, u64 StorageSize)
+ReadAssetFile(const char *FileName, void *Storage, u64 StorageSize)
 {
     SDL_RWops *BinaryFile = SDL_RWFromFile(FileName, "rb");
     
@@ -42,10 +42,10 @@ SDLReadEntireAssetFile(const char* FileName, game_memory *&Memory)
     SDL_RWops *BinaryFile = SDL_RWFromFile(FileName, "rb");
     Memory->AssetsSpaceAmount = SDLSizeOfSDL_RWops(BinaryFile);
     
-    Memory->AssetStorage = malloc(Memory->AssetsSpaceAmount);
-    Assert(Memory->AssetStorage);
+    Memory->AssetSpace = malloc(Memory->AssetsSpaceAmount);
+    Assert(Memory->AssetSpace);
     
-    SDL_RWread(BinaryFile, Memory->AssetStorage, Memory->AssetsSpaceAmount, 1);
+    SDL_RWread(BinaryFile, Memory->AssetSpace, Memory->AssetsSpaceAmount, 1);
     SDL_RWclose(BinaryFile);
 }
 
@@ -162,7 +162,7 @@ IsAsset(asset_header*& AssetHeader, asset_type AssetType, const char* AssetName)
 static asset_header*
 GetAssetHeader(game_memory *&Memory, asset_type AssetType, const char* AssetName, u32 Offset)
 {
-    u8 *mem = (u8*)Memory->AssetStorage + Offset;
+    u8 *mem = (u8*)Memory->AssetSpace + Offset;
     asset_header *AssetHeader = (asset_header*)mem;
     u32 TotalByteSize = 0;
     
@@ -187,7 +187,7 @@ GetMusic(game_memory *Memory, char* FileName)
 {
     game_music *Music = NULL;
     
-    binary_header *BinaryHeader = (binary_header*)Memory->AssetStorage;
+    binary_header *BinaryHeader = (binary_header*)Memory->AssetSpace;
     u32 ByteOffset = sizeof(binary_header) + BinaryHeader->AudioSizeInBytes;
     
     asset_header *AssetHeader = GetAssetHeader(Memory, AssetType_Music, FileName, ByteOffset);
@@ -213,7 +213,7 @@ GetSound(game_memory *Memory, char* FileName)
 {
     game_sound *Sound = NULL;
     
-    binary_header *BinaryHeader = (binary_header*)Memory->AssetStorage;
+    binary_header *BinaryHeader = (binary_header*)Memory->AssetSpace;
     u32 ByteOffset = sizeof(binary_header) + BinaryHeader->AudioSizeInBytes;
     
     asset_header *AssetHeader = GetAssetHeader(Memory, AssetType_Sound, FileName, ByteOffset);
@@ -237,7 +237,7 @@ GetTexture(game_memory *&Memory, const char* FileName, SDL_Renderer *&Renderer)
 {
     game_texture *Texture = NULL;
     
-    binary_header *BinaryHeader = (binary_header*)Memory->AssetStorage;
+    binary_header *BinaryHeader = (binary_header*)Memory->AssetSpace;
     u32 ByteOffset = sizeof(binary_header) + BinaryHeader->BitmapSizeInBytes;
     
     asset_header *AssetHeader = GetAssetHeader(Memory, AssetType_Bitmap, FileName, ByteOffset);
@@ -356,12 +356,9 @@ ConvertLevelMemoryFromRaw(game_memory *&Memory, void *&RawMemory, u32 RawMemoryS
     printf("READ %d LEVELS FROM BINARY!!!!!!!!\n",Memory->LevelMemoryAmount);
 }
 
-// TODO(msokolov): loading levels from memory needs to be re-implemented using different memory layout!
-
 static void
-ReadLevelsFromFile(const char *FileName, void *Storage, u64 StorageSize)
+ReadLevelFromFile(const char *FileName, void *Storage, u64 StorageSize)
 {
-    // TODO(msokolov): needs to be implemented
     SDL_RWops *BinaryFile = SDL_RWFromFile("package2.bin", "rb");
     if (BinaryFile)
     {
@@ -372,7 +369,6 @@ ReadLevelsFromFile(const char *FileName, void *Storage, u64 StorageSize)
     {
         printf("ReadLevelPackageFile failed: %s\n", SDL_GetError());
     }
-    
 }
 
 static void
@@ -390,11 +386,41 @@ WriteLevelsToFile(void *Storage, u64 StorageSize)
     }
 }
 
-static playground_data *
-ReadPlaygroundData()
+static playground_data
+ReadPlaygroundData(playground_data *Playground, u32 Index)
 {
-    // TODO(msokolov): need to be implemented
+    Assert(Index < PLAYGROUND_MAXIMUM);
     
+    playground_data Result = {};
+    Result.IsLocked = Playground[Index].IsLocked;
+    Result.LevelNumber = Playground[Index].LevelNumber;
+    Result.RowAmount = Playground[Index].RowAmount;
+    Result.ColumnAmount = Playground[Index].ColumnAmount;
+    Result.MovingBlocksAmount = Playground[Index].MovingBlocksAmount;
+    Result.FigureAmount = Playground[Index].FigureAmount;
+    
+    for(u32 UnitIndex = 0; 
+        UnitIndex < Result.RowAmount * Result.ColumnAmount;
+        ++UnitIndex)
+    {
+        Result.UnitField[UnitIndex] = Playground[Index].UnitField[UnitIndex];
+    }
+    
+    for(u32 BlockIndex = 0;
+        BlockIndex < Result.MovingBlocksAmount;
+        ++BlockIndex)
+    {
+        Result.MovingBlocks[BlockIndex] = Playground[Index].MovingBlocks[BlockIndex];
+    }
+    
+    for(u32 FigureIndex = 0;
+        FigureIndex < Result.FigureAmount;
+        ++FigureIndex)
+    {
+        Result.Figures[FigureIndex] = Playground[Index].Figures[FigureIndex];
+    }
+    
+    return (Result);
 }
 
 static void
@@ -608,7 +634,6 @@ SDLAssetLoadBinaryFile(void *Data)
 static void
 SDLAssetBuildBinaryFile()
 {
-    printf("start");
     SDL_RWops *BinaryFile = SDL_RWFromFile("package1.bin", "wb");
     
     binary_header BinaryHeader = {};

@@ -389,14 +389,20 @@ int main(int argc, char **argv)
 #endif
             game_memory Memory = {};
             // TODO(msokolov): these needs to be revised
+            Memory.AssetStorageSize     = Megabytes(100);
+            Memory.LevelStorageSize     = Megabytes(15);
             Memory.PermanentStorageSize = Megabytes(10);
-            Memory.TransientStorageSize = Megabytes(5);
-            u64 TotalStorageSize = Memory.PermanentStorageSize + Memory.TransientStorageSize;
+            Memory.TransientStorageSize = Megabytes(1);
+            u64 TotalStorageSize = Memory.PermanentStorageSize + Memory.TransientStorageSize + Memory.AssetStorageSize + Memory.LevelStorageSize;
             
-            void *MemoryStorage = calloc(1, TotalStorageSize);
+            void *MemoryStorage = malloc(TotalStorageSize);
             if (MemoryStorage)
             {
-                Memory.PermanentStorage = MemoryStorage;
+                memset(MemoryStorage, 0, TotalStorageSize);
+                
+                Memory.AssetStorage     = MemoryStorage;
+                Memory.LevelStorage     = ((u8*)Memory.AssetStorage + Memory.AssetStorageSize);
+                Memory.PermanentStorage = ((u8*)Memory.LevelStorage + Memory.LevelStorageSize);
                 Memory.TransientStorage = ((u8*)Memory.PermanentStorage + Memory.PermanentStorageSize);
                 
                 r32 TimeElapsed = 0.0f;
@@ -405,7 +411,11 @@ int main(int argc, char **argv)
                 s32 OldMouseX = 0;
                 s32 OldMouseY = 0;
                 
+                // TODO(msokolov): we don't need threads
                 SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread", (void*)&Memory);
+                
+                //ReadAssetFile("package1.bin", Memory.AssetStorage, Memory.AssetStorageSize);
+                //ReadLevelFile("package2.bin", Memory.PermanentStorage, Memory.PermanentStorageSize);
                 
                 while (IsRunning)
                 {
@@ -427,8 +437,6 @@ int main(int argc, char **argv)
                         if(GameUpdateAndRender(&Memory, &Input, &Buffer))
                         {
                             IsRunning = false;
-                            
-                            free(Memory.AssetStorage);
                         }
                         
 #if 0

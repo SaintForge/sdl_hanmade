@@ -13,6 +13,7 @@
 #include "tetroman_entity.h"
 #include "tetroman_asset.h"
 #include "tetroman_editor.h"
+#include "tetroman_render_group.h"
 
 struct memory_group
 {
@@ -20,7 +21,6 @@ struct memory_group
     u8 *Base;
     memory_index Used;
 };
-
 
 inline void
 InitializeMemoryGroup(memory_group *Group, memory_index Size, void *Base)
@@ -43,8 +43,6 @@ PushSize_(memory_group *Area, memory_index Size)
     return(Result);
 }
 
-
-
 enum game_mode
 {
     LEVEL, 
@@ -64,6 +62,12 @@ struct game_state
     b32 EditorMode;
     
     game_mode CurrentMode;
+};
+
+struct transient_state
+{
+    memory_group TransGroup;
+    b32 IsInitialized;
 };
 
 static u32

@@ -134,7 +134,7 @@ struct game_memory
     void *GlobalMemoryStorage;
     void *EditorMemoryStorage;
     
-    void *AssetStorage;
+    void *AssetSpace;
     u32 AssetsSpaceAmount;
     bool AssetsInitialized;
     
@@ -148,8 +148,11 @@ struct game_memory
     void *PermanentStorage;
     u64 PermanentStorageSize;
     
-    void *NewAssetStorage;
+    void *AssetStorage;
     u64 AssetStorageSize;
+    
+    void *LevelStorage;
+    u64 LevelStorageSize;
     
     bool IsInitialized;
 };

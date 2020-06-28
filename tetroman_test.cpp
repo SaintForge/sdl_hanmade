@@ -1,4 +1,4 @@
-
+#if 0
 struct memory_arena {
     memory_index size;
     u8 *base;
@@ -25,7 +25,7 @@ initialize_memory_space(memory_arena *area, memory_index size, void *base)
     area->base = (u8 *)base;
     area->used = 0;
 }
-
+#if 0
 
 enum render_group_entry_type
 {
@@ -100,11 +100,12 @@ inline render_group*
 AllocateRenderGroup(memory_arena *Space, u32 MaxPushBufferSize)
 {
     render_group *Result = PushStruct(Space, render_group);
+    Result->PushBufferBase = (u8*)PushSize(Space, MaxPushBufferSize);
     if (Result) 
     {
         Result->MaxPushBufferSize = MaxPushBufferSize;
         Result->PushBufferSize    = 0;
-        Result->PushBufferBase    = (u8*)PushSize(Space, MaxPushBufferSize);
+        
     }
     
     return (Result);
@@ -180,6 +181,8 @@ Clear(render_group *Group, v4 Color)
     }
 }
 
+#endif
+
 struct grid_test 
 {
     u32 row_amount;
@@ -188,9 +191,6 @@ struct grid_test
     s32 *unit_field;
     u32 unit_amount;
     u32 unit_amount_reserved;
-    
-    loaded_bitmap DefaultUnitBitmap;
-    loaded_bitmap MovingBlockBitmap;
 };
 
 struct unit_test 
@@ -335,7 +335,7 @@ LoadAllBitmapsFromMemory(game_offscreen_buffer *Buffer, game_memory *Memory, lev
     Level->figures->figure_bitmap[3] = GetBitmapAssetFromStorage(Buffer, Memory->AssetStorage, Memory->AssetsSpaceAmount, "j_d.png");
     Level->figures->figure_bitmap[4] = GetBitmapAssetFromStorage(Buffer, Memory->AssetStorage, Memory->AssetsSpaceAmount, "s_d.png");
 } 
-
+#if 0
 static void
 DrawEntryBitmap(game_offscreen_buffer *Buffer, render_entry_bitmap *Entry)
 {
@@ -419,7 +419,7 @@ RenderGroupToOutput(render_group *RenderGroup, game_offscreen_buffer *Buffer)
         }
     }
 }
-
+#endif
 static void
 write_test_data(memory_test *memory) {
     
@@ -456,3 +456,4 @@ read_test_data(memory_test *memory) {
     
     level_test level = {};
 }
+#endif
