@@ -1,5 +1,5 @@
 
-struct memory_group {
+struct memory_arena {
     memory_index size;
     u8 *base;
     memory_index used;
@@ -9,7 +9,7 @@ struct memory_group {
 #define PushArray(Arena, Count, type) (type *)PushSize_(Arena, (Count)*sizeof(type))
 #define PushSize(Arena, Size) PushSize_(Arena, Size)
 inline void *
-PushSize_(memory_group *area, memory_index size)
+PushSize_(memory_arena *area, memory_index size)
 {
     Assert((area->used + size) <= area->size);
     void *result = area->base + area->used;
@@ -19,7 +19,7 @@ PushSize_(memory_group *area, memory_index size)
 }
 
 inline void
-initialize_memory_space(memory_group *area, memory_index size, void *base)
+initialize_memory_space(memory_arena *area, memory_index size, void *base)
 {
     area->size = size;
     area->base = (u8 *)base;
@@ -45,10 +45,21 @@ struct render_group
 
 struct loaded_bitmap
 {
+    /*
     u32 Width;
     u32 Height;
     u32 Pitch;
+    u32 Rmask;
+    u32 Gmask;
+    u32 Bmask;
+    u32 Amask;
+    u8 BytesPerPixel;
+    u8 BitsPerPixel;
+    
     void *Memory;
+    */
+    game_texture *Texture;
+    
 };
 
 struct render_group_entry_header
@@ -58,8 +69,8 @@ struct render_group_entry_header
 
 struct render_entry_bitmap
 {
-    loaded_bitmap *Bitmap;
-    v2 Position;
+    loaded_bitmap Bitmap;
+    game_rect Rectangle;
     
     r32 Angle;
     v2 RelativeCenter;
@@ -86,7 +97,7 @@ struct render_entry_clear
 };
 
 inline render_group*
-AllocateRenderGroup(memory_group *Space, u32 MaxPushBufferSize)
+AllocateRenderGroup(memory_arena *Space, u32 MaxPushBufferSize)
 {
     render_group *Result = PushStruct(Space, render_group);
     if (Result) 
@@ -124,13 +135,13 @@ PushRenderElement_(render_group *Group, u32 Size, render_group_entry_type Type)
 }
 
 inline void
-PushBitmap(render_group *Group, loaded_bitmap *Bitmap, v2 Position, r32 Angle, v2 RelativeCenter, figure_flip Flip)
+PushBitmap(render_group *Group, loaded_bitmap Bitmap, game_rect Rectangle, r32 Angle, v2 RelativeCenter, figure_flip Flip)
 {
     render_entry_bitmap *Piece = PushRenderElement(Group, render_entry_bitmap);
     if(Piece)
     {
         Piece->Bitmap         = Bitmap;
-        Piece->Position       = Position;
+        Piece->Rectangle      = Rectangle;
         Piece->Angle          = Angle;
         Piece->RelativeCenter = RelativeCenter;
         Piece->Flip           = Flip;
@@ -207,7 +218,7 @@ struct config_test
 
 struct level_test 
 {
-    memory_group MemoryGroup;
+    memory_arena MemoryGroup;
     
     figure_test *figures;
     grid_test *grid;
@@ -245,7 +256,7 @@ init_memory() {
 
 
 static asset_header*
-GetAssetHeaderFromStorage(void *AssetStorage, u32 AssetStorageSize, asset_type AssetType, const char* AssetName, u32 Offset)
+GetAssetHeaderFromStorage(game_offscreen_buffer *Buffer, void *AssetStorage, u32 AssetStorageSize, asset_type AssetType, const char* AssetName, u32 Offset)
 {
     u8 *mem = (u8*)AssetStorage + Offset;
     asset_header *AssetHeader = (asset_header*)mem;
@@ -268,14 +279,14 @@ GetAssetHeaderFromStorage(void *AssetStorage, u32 AssetStorageSize, asset_type A
 }
 
 static loaded_bitmap
-GetBitmapAssetFromStorage(void *AssetStorage, u32 AssetStorageSize, const char* FileName)
+GetBitmapAssetFromStorage(game_offscreen_buffer *Buffer, void *AssetStorage, u32 AssetStorageSize, const char* FileName)
 {
     loaded_bitmap Result = {};
     
     binary_header *BinaryHeader = (binary_header*)AssetStorage;
     
     u32 ByteOffset = sizeof(binary_header) + BinaryHeader->BitmapSizeInBytes;
-    asset_header *AssetHeader = GetAssetHeaderFromStorage(AssetStorage, AssetStorageSize, AssetType_Bitmap, FileName, ByteOffset);
+    asset_header *AssetHeader = GetAssetHeaderFromStorage(Buffer, AssetStorage, AssetStorageSize, AssetType_Bitmap, FileName, ByteOffset);
     
     if(AssetHeader)
     {
@@ -285,24 +296,58 @@ GetBitmapAssetFromStorage(void *AssetStorage, u32 AssetStorageSize, const char* 
         Bitmap->Data = (void*)AssetHeader;
         Bitmap->Data = ((u8*)Bitmap->Data) + sizeof(asset_header);
         
+        game_surface *Surface =
+            SDL_CreateRGBSurfaceFrom(Bitmap->Data,
+                                     Header->Width, Header->Height,
+                                     Header->BitsPerPixel, Header->Pitch,
+                                     Header->Rmask, Header->Gmask,
+                                     Header->Bmask, Header->Amask);
+        Assert(Surface);
+        
+        game_texture *Texture = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
+        Assert(Texture);
+        
+        SDL_FreeSurface(Surface);
+        /*
         Result.Width = Header->Width;
         Result.Height = Header->Height;
         Result.Pitch = Header->Pitch;
         Result.Memory = Bitmap->Data;
+        Result.Rmask = Header->Rmask;
+        Result.Gmask = Header->Gmask;
+        Result.Bmask = Header->Bmask;
+        Result.Amask = Header->Amask;
+        Result.BytesPerPixel = Header->BytesPerPixel;
+        Result.BitsPerPixel = Header->BitsPerPixel;
+*/
+        Result.Texture = Texture;
     }
     
     return (Result);
 }
 
 static void
-LoadAllBitmapsFromMemory(game_memory *Memory, level_test *Level) 
+LoadAllBitmapsFromMemory(game_offscreen_buffer *Buffer, game_memory *Memory, level_test *Level) 
 {
-    Level->figures->figure_bitmap[0] = GetBitmapAssetFromStorage(Memory->AssetStorage, Memory->AssetsSpaceAmount, "i_d.png");
-    Level->figures->figure_bitmap[1] = GetBitmapAssetFromStorage(Memory->AssetStorage, Memory->AssetsSpaceAmount, "o_d.png");
-    Level->figures->figure_bitmap[2] = GetBitmapAssetFromStorage(Memory->AssetStorage, Memory->AssetsSpaceAmount, "l_d.png");
-    Level->figures->figure_bitmap[3] = GetBitmapAssetFromStorage(Memory->AssetStorage, Memory->AssetsSpaceAmount, "j_d.png");
-    Level->figures->figure_bitmap[4] = GetBitmapAssetFromStorage(Memory->AssetStorage, Memory->AssetsSpaceAmount, "s_d.png");
+    Level->figures->figure_bitmap[0] = GetBitmapAssetFromStorage(Buffer, Memory->AssetStorage, Memory->AssetsSpaceAmount, "i_d.png");
+    Level->figures->figure_bitmap[1] = GetBitmapAssetFromStorage(Buffer, Memory->AssetStorage, Memory->AssetsSpaceAmount, "o_d.png");
+    Level->figures->figure_bitmap[2] = GetBitmapAssetFromStorage(Buffer, Memory->AssetStorage, Memory->AssetsSpaceAmount, "l_d.png");
+    Level->figures->figure_bitmap[3] = GetBitmapAssetFromStorage(Buffer, Memory->AssetStorage, Memory->AssetsSpaceAmount, "j_d.png");
+    Level->figures->figure_bitmap[4] = GetBitmapAssetFromStorage(Buffer, Memory->AssetStorage, Memory->AssetsSpaceAmount, "s_d.png");
 } 
+
+static void
+DrawEntryBitmap(game_offscreen_buffer *Buffer, render_entry_bitmap *Entry)
+{
+    game_texture *Texture = Entry->Bitmap.Texture;
+    
+    game_point Center;
+    Center.x = (s32)Entry->RelativeCenter.x;
+    Center.y = (s32)Entry->RelativeCenter.y;
+    
+    SDL_RenderCopyEx(Buffer->Renderer, Texture, 0, &Entry->Rectangle, Entry->Angle, &Center, Entry->Flip);
+}
+
 
 static void
 RenderGroupToOutput(render_group *RenderGroup, game_offscreen_buffer *Buffer)
@@ -364,6 +409,11 @@ RenderGroupToOutput(render_group *RenderGroup, game_offscreen_buffer *Buffer)
             
             case RenderGroupEntryType_render_entry_bitmap: 
             {
+                render_entry_bitmap *Entry = (render_entry_bitmap*) Data;
+                
+                DrawEntryBitmap(Buffer, Entry);
+                
+                BaseAddress += sizeof(*Entry);
                 
             } break;
         }

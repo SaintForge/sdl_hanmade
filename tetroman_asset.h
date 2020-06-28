@@ -93,6 +93,68 @@ static void FreeTexture(game_texture *&Texture)
     }
 }
 
+struct figure_memory
+{
+    r32 Angle;
+    figure_flip Flip;
+    figure_form Form;
+    figure_type Type;
+};
+
+struct moving_block_memory
+{
+    u32 RowNumber;
+    u32 ColNumber;
+    bool IsVertical;
+    bool MoveSwitch;
+};
+
+struct level_memory
+{
+    // TODO(Sierra): Add lock/unlock toggle variable
+    u32 IsLocked;
+    u32 LevelNumber;
+    u32 RowAmount;
+    u32 ColumnAmount;
+    u32 MovingBlocksAmount;
+    u32 FigureAmount;
+    
+    s32 *UnitField;
+    moving_block_memory *MovingBlocks;
+    figure_memory *Figures;
+};
+
+struct figure_data
+{
+    r32 Angle;
+    figure_flip Flip;
+    figure_form Form;
+    figure_type Type;
+};
+
+struct moving_block_data
+{
+    u32 RowNumber;
+    u32 ColNumber;
+    bool IsVertical;
+    bool MoveSwitch;
+};
+
+struct playground_data
+{
+    b32 IsLocked;
+    u32 LevelNumber;
+    u32 RowAmount;
+    u32 ColumnAmount;
+    u32 MovingBlocksAmount;
+    u32 FigureAmount;
+    
+    s32 UnitField[COLUMN_AMOUNT_MAXIMUM * ROW_AMOUNT_MAXIMUM];
+    moving_block_data MovingBlocks[MOVING_BLOCKS_MAXIMUM];
+    figure_data Figures[FIGURE_AMOUNT_MAXIMUM];
+};
+
+
 
 #define ASSERT_GAME_H
 #endif

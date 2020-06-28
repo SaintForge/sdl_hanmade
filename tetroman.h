@@ -10,21 +10,60 @@
 #if !defined(GAME_H)
 
 #include "tetroman_math.h"
-#include "tetroman_asset.h"
 #include "tetroman_entity.h"
-
+#include "tetroman_asset.h"
 #include "tetroman_editor.h"
 
-struct memory_area
+struct memory_group
 {
     memory_index Size;
     u8 *Base;
     memory_index Used;
 };
 
+
+inline void
+InitializeMemoryGroup(memory_group *Group, memory_index Size, void *Base)
+{
+    Group->Size = Size;
+    Group->Base = (u8 *)Base;
+    Group->Used = 0;
+}
+
+#define PushStruct(Arena, type) (type *)PushSize_(Arena, sizeof(type))
+#define PushArray(Arena, Count, type) (type *)PushSize_(Arena, (Count)*sizeof(type))
+#define PushSize(Arena, Size) PushSize_(Arena, Size)
+inline void *
+PushSize_(memory_group *Area, memory_index Size)
+{
+    Assert((Area->Used + Size) <= Area->Size);
+    void *Result = Area->Base + Area->Used;
+    Area->Used += Size;
+    
+    return(Result);
+}
+
+
+
+enum game_mode
+{
+    LEVEL, 
+    LEVEL_MENU, 
+    MAIN_MENU
+};
+
 struct game_state
 {
-    memory_area MemoryArea;
+    memory_group MemoryGroup;
+    
+    level_entity *LevelEntity;
+    menu_entity  *MenuEntity;
+    
+    /* NOTE(msokolov): Non-release thing only */
+    game_editor *GameEditor;
+    b32 EditorMode;
+    
+    game_mode CurrentMode;
 };
 
 static u32
@@ -99,8 +138,9 @@ GameMakeTextureFromString(game_texture *&Texture,
 static void 
 GameRenderBitmapToBuffer(game_offscreen_buffer *Buffer, game_texture *&Texture, game_rect *Quad)
 {
-    Assert(Texture);
-    //if (!Texture) return;
+    // TODO(msokolov): need to uncomment Assert(Texture) in the future because that is not supposed to happed ever
+    //Assert(Texture);
+    if (!Texture) return;
     SDL_RenderCopy(Buffer->Renderer, Texture, 0, Quad);
 }
 

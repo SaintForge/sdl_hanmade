@@ -9,6 +9,12 @@
 
 #if !defined(ENTITY_H)
 
+#define FIGURE_AMOUNT_MAXIMUM 20
+#define MOVING_BLOCKS_MAXIMUM 10
+#define COLUMN_AMOUNT_MAXIMUM 10
+#define ROW_AMOUNT_MAXIMUM    10
+#define PLAYGROUND_MAXIMUM    100
+
 enum figure_form
 {
     O_figure, I_figure, L_figure, J_figure,
@@ -46,10 +52,8 @@ struct figure_unit
     game_texture *Texture;
 };
 
-
 struct figure_entity
 {
-    u32 FigureAmountReserved;
     u32 ReturnIndex;
     s32 FigureActive;
     
@@ -68,11 +72,9 @@ struct figure_entity
     
     r32 AreaAlpha;
     r32 FigureAlpha;
-    
     r32 FadeInSum;
     r32 FadeOutSum;
     r32 RotationSum;
-    
     s32 FigureVelocity;
 };
 
@@ -100,20 +102,18 @@ struct moving_block
 
 struct grid_entity
 {
-    u32 RowAmount;
-    u32 ColumnAmount;
-    
-    u32 MovingBlocksAmount;
-    u32 MovingBlocksAmountReserved;
-    
-    u32 StickUnitsAmount;
     game_rect GridArea;
     
     r32 *UnitSize;
     s32 *UnitField;
+    u32 RowAmount;
+    u32 ColumnAmount;
+    
+    moving_block *MovingBlocks;
+    u32 MovingBlocksAmount;
     
     sticked_unit *StickUnits;
-    moving_block *MovingBlocks;
+    u32 StickUnitsAmount;
     
     game_texture *NormalSquareTexture;
     game_texture *VerticalSquareTexture;
@@ -127,8 +127,6 @@ struct grid_entity
 
 struct level_config
 {
-    //u32 DefaultBlocksInRow;
-    //u32 DefaultBlocksInCol;
     s32 InActiveBlockSize;
     s32 GridBlockSize;
     
@@ -178,8 +176,10 @@ struct level_animation
     r32 TimeElapsed;
 };
 
+// TODO(msokolov): name it playground or something
 struct level_entity
 {
+    // TODO(msokolov): we should declare them as just non-pointers
     grid_entity   *GridEntity;
     figure_entity *FigureEntity;
     
@@ -196,37 +196,6 @@ struct level_entity
     b32 LevelStarted;
     b32 LevelPaused;
     b32 LevelFinished;
-};
-
-struct figure_memory
-{
-    r32 Angle;
-    figure_flip Flip;
-    figure_form Form;
-    figure_type Type;
-};
-
-struct moving_block_memory
-{
-    u32 RowNumber;
-    u32 ColNumber;
-    bool IsVertical;
-    bool MoveSwitch;
-};
-
-struct level_memory
-{
-    // TODO(Sierra): Add lock/unlock toggle variable
-    u32 IsLocked;
-    u32 LevelNumber;
-    u32 RowAmount;
-    u32 ColumnAmount;
-    u32 MovingBlocksAmount;
-    u32 FigureAmount;
-    
-    s32 *UnitField;
-    moving_block_memory *MovingBlocks;
-    figure_memory *Figures;
 };
 
 struct menu_button

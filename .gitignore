@@ -5,3 +5,4 @@ build.bat
 build.sh
 tetroman_xcode/
 .DS_Store
+tetroman.dSYM/

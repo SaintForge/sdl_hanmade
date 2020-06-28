@@ -140,7 +140,6 @@ MenuEntityUpdatePositionsLandscape(game_offscreen_buffer *Buffer, menu_entity *M
     
     r32 ScaleByAll = GetScale(ActualWidth, ActualHeight, ReferenceWidth, ReferenceHeight, 0.5f);
     
-    
     // Font for the level number buttons
     {
         s32 FontSize = 50;
@@ -183,7 +182,6 @@ MenuEntityUpdatePositionsLandscape(game_offscreen_buffer *Buffer, menu_entity *M
         }
         
         MenuLoadButtonsFromMemory(MenuEntity, Memory, Buffer);
-        
         MenuEntityAlignButtons(MenuEntity, Buffer->Width, Buffer->Height);
     }
     
@@ -246,17 +244,6 @@ MenuEntityUpdatePositionsPortrait(game_offscreen_buffer *Buffer, menu_entity *Me
         
         MenuEntityAlignButtons(MenuEntity, ActualWidth, ActualHeight);
     }
-}
-
-
-static void 
-MenuInit(menu_entity *MenuEntity, game_memory *Memory, game_offscreen_buffer *Buffer)
-{
-    MenuEntity->MaxVelocity      = 20.0f;
-    MenuEntity->ButtonIndex      = -1;
-    //MenuLoadButtonsFromMemory(MenuEntity, Memory, Buffer);
-    
-    MenuEntity->BackTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
 }
 
 static void
@@ -352,7 +339,7 @@ MenuDeleteLevel(menu_entity *MenuEntity,
 }
 
 static void
-MenuUpdateAndRender(menu_entity *MenuEntity, game_memory *Memory, 
+MenuUpdateAndRender(game_state *GameState, menu_entity *MenuEntity, game_memory *Memory, 
                     game_input *Input, game_offscreen_buffer *Buffer)
 {
     if(!MenuEntity->IsPaused)
@@ -463,7 +450,7 @@ MenuUpdateAndRender(menu_entity *MenuEntity, game_memory *Memory,
                 {
                     LevelEntityUpdateLevelEntityFromMemory(Memory, Index, false,Buffer);
                     
-                    Memory->CurrentState      = LEVEL;
+                    GameState->CurrentMode = LEVEL;
                     Memory->CurrentLevelIndex = Index;
                     
                     MenuEntity->MouseOffsetX = 0;

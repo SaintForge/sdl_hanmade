@@ -27,172 +27,20 @@ SDLSizeOfBinaryFile(const char *FileName)
     return(ByteSize);
 }
 
-#if 0
-static void
-SDLWriteGameSoundToFile(SDL_RWops *&BinaryTarget, const char* SourceFile)
+static void 
+ReadAssetPackageFile(const char *FileName, void *Storage, u64 StorageSize)
 {
-    u64 ByteSize  = 0;
-    void *Samples = 0;
-    SDL_RWops *BinarySource = 0;
+    SDL_RWops *BinaryFile = SDL_RWFromFile(FileName, "rb");
     
-    BinarySource = SDL_RWFromFile(SourceFile, "rb");
-    Assert(BinarySource);
-    
-    ByteSize = SDLSizeOfSDL_RWops(BinarySource);
-    
-    Samples = malloc(ByteSize);
-    Assert(Samples);
-    SDL_RWread(BinarySource, Samples, ByteSize, 1);
-    SDL_RWclose(BinarySource);
-    
-    SDL_RWwrite(BinaryTarget, &ByteSize, sizeof(u64), 1);
-    SDL_RWwrite(BinaryTarget, Samples, ByteSize, 1);
-    free(Samples);
+    SDL_RWread(BinaryFile, Storage, StorageSize, 1);
+    SDL_RWclose(BinaryFile);
 }
-
-static void
-SDLWriteGameBitmapToFile(SDL_RWops *&BinaryFile, const char * FileName)
-{
-    SDL_Surface *Surface = IMG_Load(FileName);
-    Assert(Surface);
-    
-    asset_bitmap BitmapInfo = {};
-    BitmapInfo.Width         = Surface->w;
-    BitmapInfo.Height        = Surface->h;
-    BitmapInfo.Pitch         = Surface->pitch;
-    BitmapInfo.Rmask         = Surface->format->Rmask;
-    BitmapInfo.Gmask         = Surface->format->Gmask;
-    BitmapInfo.Bmask         = Surface->format->Bmask;
-    BitmapInfo.Amask         = Surface->format->Amask;
-    BitmapInfo.BytesPerPixel = Surface->format->BytesPerPixel;
-    BitmapInfo.BitsPerPixel  = Surface->format->BitsPerPixel;
-    
-    SDL_RWwrite(BinaryFile, &BitmapInfo,	sizeof(asset_memory_bitmap), 1);
-    
-    SDL_RWwrite(BinaryFile, Surface->pixels,
-                BitmapInfo.BytesPerPixel * BitmapInfo.Width * BitmapInfo.Height, 1);
-    
-    SDL_FreeSurface(Surface);
-}
-
-static void
-SDLLoadGameSound(SDL_RWops *&BinaryFile, game_sound *&Sound, s64 *ByteCount)
-{
-    // NOTE(Max): For some reason if you load big amount of bytes,
-    // Mix_LoadWAV_RW function sets your SDL_RWops cursor to zero
-    
-    u64 Offset = SDL_RWtell(BinaryFile);
-    u64 ByteSize = 0;
-    SDL_RWread(BinaryFile, &ByteSize, sizeof(u64), 1);
-    
-    Sound = Mix_LoadWAV_RW(BinaryFile, 0);
-    Assert(Sound);
-    
-    Offset = Offset + ByteSize + sizeof(u64);
-    SDL_RWseek(BinaryFile, Offset, RW_SEEK_SET);
-    
-    *ByteCount = Offset;
-}
-
-
-static void
-SDLLoadGameBitmap(SDL_RWops *&BinaryFile, SDL_Renderer *&Renderer, game_texture *&GameBitmap,
-                  s64 *ByteCount)
-{
-    SDL_Surface *TempSurface = 0;
-    asset_memory_bitmap BitmapInfo = {};
-    
-    SDL_RWread(BinaryFile, &BitmapInfo, sizeof(asset_memory_bitmap), 1);
-    
-    void *Pixels = malloc(BitmapInfo.BytesPerPixel * BitmapInfo.Width * BitmapInfo.Height);
-    Assert(Pixels);
-    
-    SDL_RWread(BinaryFile, Pixels,
-               BitmapInfo.BytesPerPixel * BitmapInfo.Width * BitmapInfo.Height, 1);
-    
-    TempSurface =
-        SDL_CreateRGBSurfaceFrom(Pixels, BitmapInfo.Width, BitmapInfo.Height, BitmapInfo.BitsPerPixel, BitmapInfo.Pitch,
-                                 BitmapInfo.Rmask, BitmapInfo.Gmask, BitmapInfo.Bmask, BitmapInfo.Amask);
-    Assert(TempSurface);
-    
-    GameBitmap = SDL_CreateTextureFromSurface(Renderer, TempSurface);
-    Assert(GameBitmap);
-    
-    free(Pixels);
-    SDL_FreeSurface(TempSurface);
-    
-    *ByteCount = SDL_RWtell(BinaryFile);
-}
-
-static void
-SDLLoadGameMusicFromMemory(void *&Memory, game_music *&Music, s64* ByteCount)
-{
-    u64 *ByteSize = (u64*)Memory;
-    Memory = ((u8*) Memory) + sizeof(u64);
-    *ByteCount += sizeof(u64);
-    
-    SDL_RWops *rw = SDL_RWFromConstMem(Memory, *ByteSize);
-    Music  = Mix_LoadMUS_RW(rw, 0);
-    Assert(Music);
-    SDL_RWclose(rw);
-    
-    Memory = ((u8*) Memory) + *ByteSize;
-    *ByteCount += *ByteSize;
-}
-
-static void
-SDLLoadGameSoundFromMemory(void *&Memory, game_sound *&Sound, s64* ByteCount)
-{
-    u64 *ByteSize = (u64*)Memory;
-    Memory = ((u8*) Memory) + sizeof(u64);
-    *ByteCount += sizeof(u64);
-    
-    u8* SoundBuffer = (u8*)Memory;
-    Sound = Mix_QuickLoad_WAV(SoundBuffer);
-    Assert(Sound);
-    
-    Memory = ((u8*) Memory) + *ByteSize;
-    *ByteCount += *ByteSize;
-}
-
-static void
-SDLLoadBitmapFromMemory(void *&Memory, game_texture *& Texture, s64 *ByteOffset,
-                        SDL_Renderer *&Renderer)
-{
-    Assert(Memory);
-    SDL_Surface *TempSurface = 0;
-    asset_memory_bitmap *BitmapInfo = (asset_memory_bitmap*)Memory;
-    
-    u64 BytePerSurface =
-        BitmapInfo->BytesPerPixel * BitmapInfo->Width * BitmapInfo->Height;
-    
-    Memory = ((u8*) Memory) + sizeof(asset_memory_bitmap);
-    *ByteOffset += sizeof(asset_memory_bitmap);
-    
-    TempSurface =
-        SDL_CreateRGBSurfaceFrom(Memory, BitmapInfo->Width, BitmapInfo->Height,
-                                 BitmapInfo->BitsPerPixel, BitmapInfo->Pitch,
-                                 BitmapInfo->Rmask, BitmapInfo->Gmask,
-                                 BitmapInfo->Bmask, BitmapInfo->Amask);
-    Assert(TempSurface);
-    
-    Memory = ((u8*) Memory) + BytePerSurface;
-    *ByteOffset += BytePerSurface;
-    
-    Texture = SDL_CreateTextureFromSurface(Renderer, TempSurface);
-    Assert(Texture);
-    
-    SDL_FreeSurface(TempSurface);
-}
-#endif
-
 
 static void
 SDLReadEntireAssetFile(const char* FileName, game_memory *&Memory)
 {
     SDL_RWops *BinaryFile = SDL_RWFromFile(FileName, "rb");
     Memory->AssetsSpaceAmount = SDLSizeOfSDL_RWops(BinaryFile);
-    // printf("filesize = %llu\n", Memory->AssetsSpace);
     
     Memory->AssetStorage = malloc(Memory->AssetsSpaceAmount);
     Assert(Memory->AssetStorage);
@@ -202,21 +50,11 @@ SDLReadEntireAssetFile(const char* FileName, game_memory *&Memory)
 }
 
 static void
-SDLReadEntireLevelFile(char* FileName, game_memory *&Memory)
-{
-    
-}
-
-
-static void
 SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
 {
     char FullName[128];
     strcpy(FullName, SpritePath);
     strcat(FullName, FileName);
-    
-    printf("FileName = %s\n", FileName);
-    printf("FullName = %s\n", FullName);
     
     SDL_Surface *Surface = IMG_Load(FullName);
     printf("error:\n", IMG_GetError());
@@ -242,7 +80,6 @@ SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
     
     AssetHeader.Bitmap.Data = 0;
     AssetHeader.Bitmap.Header = BitmapHeader;
-    // printf("AssetSize = %u\n", AssetHeader.AssetSize);
     
     SDL_RWwrite(BinaryFile, &AssetHeader, sizeof(asset_header), 1);
     SDL_RWwrite(BinaryFile, Surface->pixels, AssetHeader.AssetSize, 1);
@@ -517,7 +354,99 @@ ConvertLevelMemoryFromRaw(game_memory *&Memory, void *&RawMemory, u32 RawMemoryS
     }
     
     printf("READ %d LEVELS FROM BINARY!!!!!!!!\n",Memory->LevelMemoryAmount);
-    printf("LevelMemory[0].IsLocked = %d\n", LevelMemory[0].IsLocked);
+}
+
+// TODO(msokolov): loading levels from memory needs to be re-implemented using different memory layout!
+
+static void
+ReadLevelsFromFile(const char *FileName, void *Storage, u64 StorageSize)
+{
+    // TODO(msokolov): needs to be implemented
+    SDL_RWops *BinaryFile = SDL_RWFromFile("package2.bin", "rb");
+    if (BinaryFile)
+    {
+        SDL_RWread(BinaryFile, Storage, StorageSize, 1);
+        SDL_RWclose(BinaryFile);
+    }
+    else
+    {
+        printf("ReadLevelPackageFile failed: %s\n", SDL_GetError());
+    }
+    
+}
+
+static void
+WriteLevelsToFile(void *Storage, u64 StorageSize)
+{
+    SDL_RWops *BinaryFile = SDL_RWFromFile("package2.bin", "wb");
+    if (BinaryFile)
+    {
+        SDL_RWwrite(BinaryFile, Storage, StorageSize, 1);
+        SDL_RWclose(BinaryFile);
+    }
+    else
+    {
+        printf("WriteLevelPackageFile failed: %s\n", SDL_GetError());
+    }
+}
+
+static playground_data *
+ReadPlaygroundData()
+{
+    // TODO(msokolov): need to be implemented
+    
+}
+
+static void
+WritePlaygroundData(playground_data *Playground, level_entity *Entity, u32 Index)
+{
+    Assert(Index < PLAYGROUND_MAXIMUM);
+    
+    Playground[Index].IsLocked = 0;
+    Playground[Index].LevelNumber = Entity->LevelNumber;
+    Playground[Index].RowAmount = Entity->GridEntity->RowAmount;
+    Playground[Index].ColumnAmount = Entity->GridEntity->ColumnAmount;
+    Playground[Index].MovingBlocksAmount = Entity->GridEntity->MovingBlocksAmount;
+    Playground[Index].FigureAmount = Entity->FigureEntity->FigureAmount;
+    
+    s32 *UnitFieldSource = Entity->GridEntity->UnitField;
+    s32 *UnitFieldTarget = Playground->UnitField;
+    for (u32 Row = 0; 
+         Row < Playground[Index].RowAmount;
+         ++Row)
+    {
+        for (u32 Column = 0; 
+             Column < Playground[Index].ColumnAmount;
+             ++Column)
+        {
+            s32 UnitIndex = (Row * Playground[Index].ColumnAmount) + Column;
+            UnitFieldTarget[UnitIndex] = UnitFieldSource[UnitIndex];
+        }
+    }
+    
+    moving_block_data *MovingBlocks = Playground[Index].MovingBlocks;
+    
+    for (u32 BlockIndex = 0;
+         BlockIndex < Playground[Index].MovingBlocksAmount;
+         ++BlockIndex)
+    {
+        MovingBlocks[BlockIndex].RowNumber = Entity->GridEntity->MovingBlocks[BlockIndex].RowNumber;
+        MovingBlocks[BlockIndex].ColNumber = Entity->GridEntity->MovingBlocks[BlockIndex].ColNumber;
+        MovingBlocks[BlockIndex].IsVertical = Entity->GridEntity->MovingBlocks[BlockIndex].IsVertical;
+        MovingBlocks[BlockIndex].MoveSwitch = Entity->GridEntity->MovingBlocks[BlockIndex].MoveSwitch;
+        
+    }
+    
+    figure_data *Figures = Playground[Index].Figures;
+    for (u32 FigureIndex = 0;
+         FigureIndex < Playground[Index].FigureAmount;
+         ++FigureIndex)
+    {
+        Figures[FigureIndex].Angle = Entity->FigureEntity->FigureUnit[FigureIndex].Angle;
+        Figures[FigureIndex].Flip  = Entity->FigureEntity->FigureUnit[FigureIndex].Flip;
+        Figures[FigureIndex].Form  = Entity->FigureEntity->FigureUnit[FigureIndex].Form;
+        Figures[FigureIndex].Type  = Entity->FigureEntity->FigureUnit[FigureIndex].Type;
+    }
 }
 
 static void
@@ -621,7 +550,6 @@ SaveLevelToMemory(game_memory *Memory, level_entity* LevelEntity, u32 Index)
         {
             LevelMemory[Index].MovingBlocks = (moving_block_memory*)malloc(sizeof(moving_block_memory) * LevelMemory[Index].MovingBlocksAmount);
             
-            
             for(u32 i = 0; i < LevelMemory[Index].MovingBlocksAmount; ++i)
             {
                 LevelMemory[Index].MovingBlocks[i].RowNumber  = LevelEntity->GridEntity->MovingBlocks[i].RowNumber;
@@ -688,8 +616,6 @@ SDLAssetBuildBinaryFile()
     
     /* Bitmap loading */
     BinaryHeader.BitmapSizeInBytes = 0;
-    
-    //SDLWriteBitmapToFile(BinaryFile, "circle_touch.png");
     
     SDLWriteBitmapToFile(BinaryFile, "grid_cell.png");
     SDLWriteBitmapToFile(BinaryFile, "grid_cell_1.png");

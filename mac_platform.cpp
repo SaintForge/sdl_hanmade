@@ -299,23 +299,7 @@ int main(int argc, char **argv)
     
     TTF_Init();
     
-    // NOTE(msokolov): this is just for testing
     
-    memory_test mem_test = init_memory();
-    write_test_data(&mem_test);
-    level_test *level = (level_test*) mem_test.transient_storage;
-    
-    game_memory some_memory = {};
-    SDLAssetLoadBinaryFile((void*)&some_memory);
-    LoadAllBitmapsFromMemory(&some_memory, level);
-    
-    render_group *RenderGroup = AllocateRenderGroup(&level->MemoryGroup, Kilobytes(500));
-    //Clear(RenderGroup, {255, 255, 0, 255});
-    PushRect(RenderGroup, {0, 0, 200, 300}, {0, 255, 255, 255});
-    PushRectOutline(RenderGroup, {200, 300, 400, 600}, {0, 255, 255, 255});
-    
-    
-    // NOTE(msokolov): this is just for testing
     
     SDL_DisplayMode Display = {};
     SDL_GetDesktopDisplayMode(0, &Display);
@@ -323,8 +307,8 @@ int main(int argc, char **argv)
     b32 VSyncOn = true;
     s32 FrameLimit = 60;
     
-    s32 ScreenWidth  = 800;
-    s32 ScreenHeight = 600;
+    s32 ScreenWidth  = 1920;
+    s32 ScreenHeight = 1080;
     s32 ReferenceWidth  = 800;
     s32 ReferenceHeight = 600;
     
@@ -332,9 +316,11 @@ int main(int argc, char **argv)
                                           SDL_WINDOWPOS_CENTERED,
                                           SDL_WINDOWPOS_CENTERED,
                                           Display.w, Display.h,
-                                          SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
+                                          SDL_WINDOW_RESIZABLE);
     
-    SDL_SetWindowSize(Window, ScreenWidth, ScreenHeight);
+    // NOTE(msokolov): this ideally should be either hardcoded always in the code
+    // or be taken from the user's monitor resolution
+    SDL_SetWindowSize(Window, 1366, 768);
     SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     
     if(Window)
@@ -365,13 +351,34 @@ int main(int argc, char **argv)
             
             game_offscreen_buffer Buffer = {};
             Buffer.Renderer = Renderer;
-            
             Buffer.Width    = BackBuffer.Width;
             Buffer.Height   = BackBuffer.Height;
-            
             Buffer.ReferenceWidth  = ReferenceWidth;
             Buffer.ReferenceHeight = ReferenceHeight;
+            
             printf("Ready!\n");
+            
+#if 0
+            /* NOTE(msokolov): this is just for testing */
+            
+            memory_test mem_test = init_memory();
+            write_test_data(&mem_test);
+            level_test *level = (level_test*) mem_test.transient_storage;
+            
+            game_memory some_memory = {};
+            SDLAssetLoadBinaryFile((void*)&some_memory);
+            LoadAllBitmapsFromMemory(&Buffer, &some_memory, level);
+            
+            render_group *RenderGroup = AllocateRenderGroup(&level->MemoryGroup, Kilobytes(500));
+            
+            Clear(RenderGroup, {255, 255, 0, 255});
+            PushRect(RenderGroup, {0, 0, 200, 300}, {0, 255, 255, 255});
+            PushRectOutline(RenderGroup, {200, 300, 400, 600}, {0, 255, 255, 255});
+            
+            PushBitmap(RenderGroup, level->figures->figure_bitmap[3], {0, 0, 100, 100}, 0, {0,0}, SDL_FLIP_NONE);
+            
+            /* */
+#endif
             
 #if ASSET_BUILD
             // NOTE: This is for packaging data to the disk
@@ -381,51 +388,63 @@ int main(int argc, char **argv)
             printf("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n");
 #endif
             game_memory Memory = {};
+            // TODO(msokolov): these needs to be revised
+            Memory.PermanentStorageSize = Megabytes(10);
+            Memory.TransientStorageSize = Megabytes(5);
+            u64 TotalStorageSize = Memory.PermanentStorageSize + Memory.TransientStorageSize;
             
-            u64 TotalAssetSize = SDLSizeOfBinaryFile("package1.bin");
-            SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread",
-                                                       (void*)&Memory);
-            
-            r32 TimeElapsed = 0.0f;
-            r32 PreviousTimeTick = SDL_GetTicks();
-            
-            s32 OldMouseX = 0;
-            s32 OldMouseY = 0;
-            
-            while (IsRunning)
+            void *MemoryStorage = calloc(1, TotalStorageSize);
+            if (MemoryStorage)
             {
-                PreviousTimeTick = SDL_GetTicks();
+                Memory.PermanentStorage = MemoryStorage;
+                Memory.TransientStorage = ((u8*)Memory.PermanentStorage + Memory.PermanentStorageSize);
                 
-                game_input Input = {};
-                Input.MouseX = OldMouseX;
-                Input.MouseY = OldMouseY;
-                Input.TimeElapsedMs = TimeElapsed;
+                r32 TimeElapsed = 0.0f;
+                r32 PreviousTimeTick = SDL_GetTicks();
                 
-                SDL_Event Event = {};
-                if(SDLHandleEvent(&Event, &Input))
+                s32 OldMouseX = 0;
+                s32 OldMouseY = 0;
+                
+                SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread", (void*)&Memory);
+                
+                while (IsRunning)
                 {
-                    IsRunning = false;
-                }
-                
-                if(Memory.AssetsInitialized)
-                {
-                    if(GameUpdateAndRender(&Memory, &Input, &Buffer))
+                    PreviousTimeTick = SDL_GetTicks();
+                    
+                    game_input Input = {};
+                    Input.MouseX = OldMouseX;
+                    Input.MouseY = OldMouseY;
+                    Input.TimeElapsedMs = TimeElapsed;
+                    
+                    SDL_Event Event = {};
+                    if(SDLHandleEvent(&Event, &Input))
                     {
                         IsRunning = false;
-                        
-                        free(Memory.AssetStorage);
                     }
                     
-                    RenderGroupToOutput(RenderGroup, &Buffer);
+                    if(Memory.AssetsInitialized)
+                    {
+                        if(GameUpdateAndRender(&Memory, &Input, &Buffer))
+                        {
+                            IsRunning = false;
+                            
+                            free(Memory.AssetStorage);
+                        }
+                        
+#if 0
+                        RenderGroupToOutput(RenderGroup, &Buffer);
+#endif
+                    }
+                    
+                    SDLUpdateWindow(Window, Renderer, &BackBuffer);
+                    
+                    OldMouseX = Input.MouseX;
+                    OldMouseY = Input.MouseY;
+                    
+                    r32 CurrentTimeTick = SDL_GetTicks();
+                    TimeElapsed = (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
                 }
                 
-                SDLUpdateWindow(Window, Renderer, &BackBuffer);
-                
-                OldMouseX = Input.MouseX;
-                OldMouseY = Input.MouseY;
-                
-                r32 CurrentTimeTick = SDL_GetTicks();
-                TimeElapsed = (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
             }
         }
     }

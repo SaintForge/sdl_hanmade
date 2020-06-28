@@ -122,39 +122,13 @@ struct game_input
     game_keyboard_input Keyboard;
 };
 
-// TODO(msokolov): this needs to be moved into tetroman.h or something
-enum game_mode
-{
-    LEVEL, LEVEL_MENU, MAIN_MENU
-};
 
 struct game_memory
 {
-    /* DEBUG only code */
-    
-    game_rect PadRect;
-    
-    s32 RefPadWidth;
-    s32 RefPadHeight;
-    
-    s32 RefWidth;
-    s32 RefHeight;
-    
-    b32 EditorMode;
-    
-    /*              */
-    
-    game_mode CurrentState;
-    
+    /* TODO(msokolov): these values needs to be in the game_state */
     u32 CurrentLevelIndex;
     u32 LevelMemoryAmount;
     u32 LevelMemoryReserved;
-    
-    void *TransientStorage;
-    u64 TransientStorageSize;
-    
-    void *PermanentStorage;
-    u64 PermanentStorageSize;
     
     void *LocalMemoryStorage;
     void *GlobalMemoryStorage;
@@ -162,13 +136,22 @@ struct game_memory
     
     void *AssetStorage;
     u32 AssetsSpaceAmount;
+    bool AssetsInitialized;
     
-    // TODO(Max): This should not be here!!!
     game_font *LevelNumberFont;
     
+    /* */
+    
+    void *TransientStorage;
+    u64 TransientStorageSize;
+    
+    void *PermanentStorage;
+    u64 PermanentStorageSize;
+    
+    void *NewAssetStorage;
+    u64 AssetStorageSize;
+    
     bool IsInitialized;
-    bool AssetsInitialized;
-    bool ToggleMenu;
 };
 
 #endif //TETROMAN_PLATFORM_H
