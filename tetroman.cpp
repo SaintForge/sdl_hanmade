@@ -9,11 +9,11 @@
 
 #include "tetroman.h"
 
+#include "tetroman_render_group.cpp"
 #include "tetroman_entity.cpp"
 #include "tetroman_asset.cpp"
 #include "tetroman_menu.cpp"
 #include "tetroman_editor.cpp"
-#include "tetroman_render_group.cpp"
 
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
@@ -27,42 +27,37 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     {
         // TODO(msokolov): should get rid of this initialization
         /* NOTE(msokolov): game_memory initialization starts here */
-        Memory->CurrentLevelIndex = 0;
-        Memory->LevelMemoryAmount = 1;
-        
-        Memory->LevelNumberFont = TTF_OpenFont(FontPath, 50);
-        Assert(Memory->LevelNumberFont);
         
         /* NOTE(msokolov): game_state initialization starts here */
         InitializeMemoryGroup(&GameState->MemoryGroup, Memory->PermanentStorageSize - sizeof(game_state), (u8*)Memory->PermanentStorage + sizeof(game_state));
         
         GameState->EditorMode  = false;
+        GameState->PlaygroundIndex = 0;
         GameState->CurrentMode = game_mode::LEVEL;
         
         /* NOTE(msokolov): level_entity initialization starts here */
-        GameState->LevelEntity = PushStruct(&GameState->MemoryGroup, level_entity);
-        level_entity *LevelEntity = GameState->LevelEntity;
-        LevelEntity->LevelNumber           = 0;
-        LevelEntity->LevelStarted          = true;
-        LevelEntity->LevelFinished         = false;
-        LevelEntity->LevelPaused           = false;
-        LevelEntity->LevelNumberQuad       = {};
-        LevelEntity->LevelNumberShadowQuad = {};
+        GameState->Playground = PushStruct(&GameState->MemoryGroup, playground);
+        playground* Playground = GameState->Playground;
+        Playground->LevelNumber           = 0;
+        Playground->LevelStarted          = true;
+        Playground->LevelFinished         = false;
+        Playground->LevelPaused           = false;
+        Playground->LevelNumberQuad       = {};
+        Playground->LevelNumberShadowQuad = {};
         
-        LevelEntity->Configuration.InActiveBlockSize   = 62;
-        LevelEntity->Configuration.GridBlockSize       = 108;
-        LevelEntity->Configuration.StartUpTimeToFinish = 2.0f;
-        LevelEntity->Configuration.StartUpTimeToFinish = 0.0f;
-        LevelEntity->Configuration.StartUpTimeToFinish = 0.0f; // TODO(msokolov): replace that with overall time accumulator from game_input like TimeElapsed
-        LevelEntity->Configuration.RotationVel         = 600.0f;
-        LevelEntity->Configuration.StartAlphaPerSec    = 500.0f;
-        LevelEntity->Configuration.FlippingAlphaPerSec = 1000.0f;
-        LevelEntity->Configuration.PixelsDrawn         = 0;
-        LevelEntity->Configuration.PixelsToDraw        = 0;
+        Playground->Configuration.InActiveBlockSize   = 62;
+        Playground->Configuration.GridBlockSize       = 108;
+        Playground->Configuration.StartUpTimeToFinish = 2.0f;
+        Playground->Configuration.StartUpTimeToFinish = 0.0f;
+        Playground->Configuration.StartUpTimeToFinish = 0.0f; // TODO(msokolov): replace that with overall time accumulator from game_input like TimeElapsed
+        Playground->Configuration.RotationVel         = 600.0f;
+        Playground->Configuration.StartAlphaPerSec    = 500.0f;
+        Playground->Configuration.FlippingAlphaPerSec = 1000.0f;
+        Playground->Configuration.PixelsDrawn         = 0;
+        Playground->Configuration.PixelsToDraw        = 0;
         
         /* NOTE(msokolov): figure_entity initialization starts here */
-        LevelEntity->FigureEntity   = PushStruct(&GameState->MemoryGroup, figure_entity);
-        figure_entity* FigureEntity = LevelEntity->FigureEntity;
+        figure_entity* FigureEntity = &Playground->FigureEntity;
         FigureEntity->FigureAmount  = 0;
         FigureEntity->ReturnIndex   = -1;
         FigureEntity->FigureActive  = -1;
@@ -82,27 +77,47 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->FigureArea.w = 552;
         FigureEntity->FigureArea.h = 972;
         
-        FigureEntity->FigureUnit = PushArray(&GameState->MemoryGroup, FIGURE_AMOUNT_MAXIMUM, figure_unit);
+        FigureUnitAddNewFigure(FigureEntity, L_figure, classic, Playground->Configuration.InActiveBlockSize);
+        FigureUnitAddNewFigure(FigureEntity, O_figure, stone, Playground->Configuration.InActiveBlockSize);
+        FigureUnitAddNewFigure(FigureEntity, O_figure, mirror, Playground->Configuration.InActiveBlockSize);
         
-        FigureUnitAddNewFigure(FigureEntity, O_figure, classic, 0.0f, LevelEntity->Configuration.InActiveBlockSize, Memory, Buffer);
-        FigureUnitAddNewFigure(FigureEntity, O_figure, stone,   0.0f, LevelEntity->Configuration.InActiveBlockSize, Memory, Buffer);
-        FigureUnitAddNewFigure(FigureEntity, O_figure, mirror,  0.0f, LevelEntity->Configuration.InActiveBlockSize, Memory, Buffer);
+        FigureEntityAlignFigures(&Playground->FigureEntity, Playground->Configuration.InActiveBlockSize);
         
-        FigureEntityAlignFigures(LevelEntity->FigureEntity, LevelEntity->Configuration.InActiveBlockSize);
-        
-        FigureEntity->FigureOrder = PushArray(&GameState->MemoryGroup, FIGURE_AMOUNT_MAXIMUM, u32);
         for(u32 i = 0; i < FIGURE_AMOUNT_MAXIMUM; ++i) 
         {
             FigureEntity->FigureOrder[i] = i;
         }
         
-        FigureEntity->ClassicO_Figure = GetTexture(Memory, "o_d.png", Buffer->Renderer);
-        FigureEntity->StoneO_Figure   = GetTexture(Memory, "o_s.png", Buffer->Renderer);
-        FigureEntity->MirrorO_Figure  = GetTexture(Memory, "o_m.png", Buffer->Renderer);
+        FigureEntity->O_ClassicTexture = GetTexture(Memory, "o_d.png", Buffer->Renderer);
+        FigureEntity->O_StoneTexture   = GetTexture(Memory, "o_s.png", Buffer->Renderer);
+        FigureEntity->O_MirrorTexture  = GetTexture(Memory, "o_m.png", Buffer->Renderer);
+        
+        FigureEntity->I_ClassicTexture = GetTexture(Memory, "i_d.png", Buffer->Renderer);
+        FigureEntity->I_StoneTexture   = GetTexture(Memory, "i_s.png", Buffer->Renderer);
+        FigureEntity->I_MirrorTexture  = GetTexture(Memory, "i_m.png", Buffer->Renderer);
+        
+        FigureEntity->L_ClassicTexture = GetTexture(Memory, "l_d.png", Buffer->Renderer);
+        FigureEntity->L_StoneTexture   = GetTexture(Memory, "l_s.png", Buffer->Renderer);
+        FigureEntity->L_MirrorTexture  = GetTexture(Memory, "l_m.png", Buffer->Renderer);
+        
+        FigureEntity->J_ClassicTexture = GetTexture(Memory, "j_d.png", Buffer->Renderer);
+        FigureEntity->J_StoneTexture   = GetTexture(Memory, "j_s.png", Buffer->Renderer);
+        FigureEntity->J_MirrorTexture  = GetTexture(Memory, "j_m.png", Buffer->Renderer);
+        
+        FigureEntity->Z_ClassicTexture = GetTexture(Memory, "z_d.png", Buffer->Renderer);
+        FigureEntity->Z_StoneTexture   = GetTexture(Memory, "z_s.png", Buffer->Renderer);
+        FigureEntity->Z_MirrorTexture  = GetTexture(Memory, "z_m.png", Buffer->Renderer);
+        
+        FigureEntity->S_ClassicTexture = GetTexture(Memory, "s_d.png", Buffer->Renderer);
+        FigureEntity->S_StoneTexture   = GetTexture(Memory, "s_s.png", Buffer->Renderer);
+        FigureEntity->S_MirrorTexture  = GetTexture(Memory, "s_m.png", Buffer->Renderer);
+        
+        FigureEntity->T_ClassicTexture = GetTexture(Memory, "t_d.png", Buffer->Renderer);
+        FigureEntity->T_StoneTexture   = GetTexture(Memory, "t_s.png", Buffer->Renderer);
+        FigureEntity->T_MirrorTexture  = GetTexture(Memory, "t_m.png", Buffer->Renderer);
         
         /* NOTE(msokolov): grid_entity initialization starts here */
-        LevelEntity->GridEntity = PushStruct(&GameState->MemoryGroup, grid_entity);
-        grid_entity *GridEntity = LevelEntity->GridEntity;
+        grid_entity *GridEntity = &Playground->GridEntity;
         GridEntity->RowAmount           = 8;
         GridEntity->ColumnAmount        = 6;
         GridEntity->StickUnitsAmount    = FigureEntity->FigureAmount;
@@ -113,34 +128,19 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->GridArea.x = 0;
         GridEntity->GridArea.y = 81;
         
-        GridEntity->UnitField = PushArray(&GameState->MemoryGroup, COLUMN_AMOUNT_MAXIMUM * ROW_AMOUNT_MAXIMUM, s32);
-        for (u32 Row = 0; Row < GridEntity->RowAmount; ++Row)
+        for (u32 Row = 0; Row < ROW_AMOUNT_MAXIMUM; ++Row)
         {
-            for (u32 Col = 0; Col < GridEntity->ColumnAmount; ++Col)
+            for (u32 Col = 0; Col < COLUMN_AMOUNT_MAXIMUM; ++Col)
             {
-                GridEntity->UnitField[(Row * GridEntity->ColumnAmount) + Col] = 0;
+                GridEntity->UnitField[(Row * COLUMN_AMOUNT_MAXIMUM) + Col] = 0;
             }
         }
-        
-        GridEntity->UnitSize = PushArray(&GameState->MemoryGroup, COLUMN_AMOUNT_MAXIMUM * ROW_AMOUNT_MAXIMUM, r32);
-        for(u32 Row = 0; Row < GridEntity->RowAmount; ++Row)
-        {
-            for(u32 Col = 0; Col < GridEntity->ColumnAmount; ++Col)
-            {
-                s32 UnitIndex = (Row * GridEntity->ColumnAmount) + Col;
-                GridEntity->UnitSize[UnitIndex] = 0;
-            }
-        }
-        
-        GridEntity->StickUnits = PushArray(&GameState->MemoryGroup, FIGURE_AMOUNT_MAXIMUM, sticked_unit);
         
         for (u32 i = 0; i < FIGURE_AMOUNT_MAXIMUM; ++i)
         {
             GridEntity->StickUnits[i].Index     = -1;
             GridEntity->StickUnits[i].IsSticked = false;
         }
-        
-        GridEntity->MovingBlocks = PushArray(&GameState->MemoryGroup, MOVING_BLOCKS_MAXIMUM, moving_block);
         
         GridEntity->NormalSquareTexture     = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
         GridEntity->VerticalSquareTexture   = GetTexture(Memory, "o_s.png", Buffer->Renderer);
@@ -151,23 +151,20 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->DownRightCornerFrame    = GetTexture(Memory, "frame1.png", Buffer->Renderer);
         
         /* NOTE(msokolov): menu_entity initialization starts here */ 
-        
         GameState->MenuEntity   = PushStruct(&GameState->MemoryGroup, menu_entity);
         menu_entity *MenuEntity = GameState->MenuEntity;
         MenuEntity->MaxVelocity = 20.0f;
         MenuEntity->ButtonIndex = -1;
         MenuEntity->BackTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
         
-        MenuEntityUpdatePositionsLandscape(Buffer, MenuEntity, Memory);
-        
         /* NOTE(msokolov): game_editor initialization starts here */ 
         
-        GameState->GameEditor   = PushStruct(&GameState->MemoryGroup, game_editor);
-        game_editor *GameEditor = GameState->GameEditor;
+        //GameState->GameEditor   = PushStruct(&GameState->MemoryGroup, game_editor);
+        //game_editor *GameEditor = GameState->GameEditor;
         
-        GameEditorInit(Buffer, LevelEntity, MenuEntity, Memory, GameEditor);
+        //GameEditorInit(Buffer, Playground, MenuEntity, Memory, GameEditor);
         
-        Memory->IsInitialized     = true;
+        Memory->IsInitialized = true;
         printf("Memory has been initialized!\n");
     }
     
@@ -177,18 +174,17 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     {
         InitializeMemoryGroup(&TransState->TransGroup, Memory->TransientStorageSize - sizeof(transient_state), (u8*)Memory->TransientStorage + sizeof(transient_state));
         
-        
         TransState->IsInitialized = true;
     }
     
-    level_entity *LevelEntity = GameState->LevelEntity;
-    menu_entity  *MenuEntity  = GameState->MenuEntity;
+    playground *Playground  = GameState->Playground;
+    menu_entity *MenuEntity  = GameState->MenuEntity;
     
-    game_rect FigureArea = LevelEntity->FigureEntity->FigureArea;
-    game_rect GridArea = LevelEntity->GridEntity->GridArea;
+    game_rect FigureArea = Playground->FigureEntity.FigureArea;
+    game_rect GridArea = Playground->GridEntity.GridArea;
     
-    level_config LevelConfig = LevelEntity->Configuration;
-    level_animation LevelAnimation = LevelEntity->AnimationData;
+    level_config LevelConfig = Playground->Configuration;
+    level_animation LevelAnimation = Playground->AnimationData;
     
     if(Input->Keyboard.Tab.EndedDown)
     {
@@ -207,45 +203,38 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         ShouldQuit = true;
     }
     
-    game_mode CurrentMode = GameState->CurrentMode;
-    
-    switch (CurrentMode)
-    {
-        case LEVEL:
-        {
-            // TODO(msokolov): replace that with texture
-            game_rect ScreenArea = { 0, 0, Buffer->Width, Buffer->Height};
-            DEBUGRenderQuadFill(Buffer, &ScreenArea, { 42, 6, 21 }, 255);
-            
-            LevelEntityUpdateAndRender(LevelEntity, Memory, Input, Buffer);
-        } break;
-        
-        case LEVEL_MENU:
-        {
-            MenuUpdateAndRender(GameState, MenuEntity, Memory, Input, Buffer);
-        } break;
-        
-        case MAIN_MENU:
-        {
-            
-        } break;
-    }
-    
     /*
  NOTE(msokolov): Render 
     */
     
     memory_group TemporaryMemory = TransState->TransGroup;
+    render_group *RenderGroup = AllocateRenderGroup(&TransState->TransGroup, Kilobytes(10), Buffer->Width, Buffer->Height);
     
-    render_group *RenderGroup = AllocateRenderGroup(&TransState->TransGroup, Kilobytes(1));
-    Clear(RenderGroup, {255, 255, 0, 255});
-    PushRect(RenderGroup, {0, 0, 100, 100}, {255, 0, 0, 255});
+    game_mode CurrentMode = GameState->CurrentMode;
+    switch (CurrentMode)
+    {
+        case LEVEL:
+        {
+            playground_status PlaygroundStatus = LevelEntityUpdateAndRender(Playground, RenderGroup, Input);
+        } break;
+        
+        case LEVEL_MENU:
+        {
+            //MenuUpdateAndRender(GameState, MenuEntity, Memory, Input, Buffer);
+        } break;
+        
+        case MAIN_MENU:
+        {
+            // TODO(msokolov): do we actually need that?
+        } break;
+    }
     
     RenderGroupToOutput(RenderGroup, Buffer);
     TransState->TransGroup = TemporaryMemory;
     
-    game_editor *GameEditor = GameState->GameEditor;
-    GameEditorUpdateAndRender(Buffer, GameState, Memory, Input, GameEditor, LevelEntity, MenuEntity);
+    
+    //game_editor *GameEditor = GameState->GameEditor;
+    //GameEditorUpdateAndRender(Buffer, GameState, Memory, Input, GameEditor, Playground, MenuEntity);
     
     return(ShouldQuit);
 }

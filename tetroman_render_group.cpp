@@ -1,13 +1,16 @@
 
 
 inline render_group*
-AllocateRenderGroup(memory_group *Space, u64 MaxPushBufferSize)
+AllocateRenderGroup(memory_group *Space, u64 MaxPushBufferSize, s32 Width, s32 Height)
 {
     render_group *Result = PushStruct(Space, render_group);
     
     Result->PushBufferBase = (u8*)PushSize(Space, MaxPushBufferSize);
     Result->MaxPushBufferSize = MaxPushBufferSize;
     Result->PushBufferSize    = 0;
+    
+    Result->Width = Width;
+    Result->Height = Height;
     
     return (Result);
 }
@@ -69,8 +72,23 @@ PushRectOutline(render_group *Group, game_rect Rectangle, v4 Color)
     }
 }
 
+
 inline void
-PushBitmap(render_group *Group, game_texture *Texture, game_rect Rectangle, r32 Angle, v2 RelativeCenter, figure_flip Flip)
+PushBitmap(render_group *Group, game_texture* Texture, game_rect Rectangle)
+{
+    render_entry_texture *Piece = PushRenderElement(Group, render_entry_texture);
+    if(Piece)
+    {
+        Piece->Texture        = Texture;
+        Piece->Rectangle      = Rectangle;
+        Piece->Angle          = 0;
+        Piece->RelativeCenter = {0, 0};
+        Piece->Flip           = SDL_FLIP_NONE;
+    }
+}
+
+inline void
+PushBitmapEx(render_group *Group, game_texture *Texture, game_rect Rectangle, r32 Angle, v2 RelativeCenter, figure_flip Flip)
 {
     render_entry_texture *Piece = PushRenderElement(Group, render_entry_texture);
     if(Piece)

@@ -6,7 +6,7 @@
 // Last-Updated: Пт окт 27 14:17:15 2017 (+0300)
 //           By: Sierra
 //
-
+#if 0
 static void
 MenuMakeTextButton(const char* Text, s32 X, s32 Y, s32 Width, s32 Height,
                    game_rect *ButtonQuad, game_rect *TextureQuad,
@@ -25,45 +25,6 @@ MenuMakeTextButton(const char* Text, s32 X, s32 Y, s32 Width, s32 Height,
     
     TextureQuad->x = ButtonQuad->x + (ButtonQuad->w / 2) - (TextureQuad->w / 2);
     TextureQuad->y = ButtonQuad->y + (ButtonQuad->h / 2) - (TextureQuad->h / 2);
-}
-
-
-static void
-MenuLoadButtonsFromMemory(menu_entity *MenuEntity, game_memory *Memory, 
-                          game_offscreen_buffer *Buffer)
-{
-    level_memory *LevelMemory = (level_memory *) Memory->GlobalMemoryStorage;
-    
-    MenuEntity->ButtonsAmount         = Memory->LevelMemoryAmount;
-    MenuEntity->ButtonsAmountReserved = Memory->LevelMemoryReserved;
-    
-    if(MenuEntity->Buttons)
-    {
-        for(s32 i = 0; i < MenuEntity->ButtonsAmountReserved; ++i)
-        {
-            if(MenuEntity->Buttons[i].LevelNumberTexture)
-            {
-                FreeTexture(MenuEntity->Buttons[i].LevelNumberTexture);
-            }
-        }
-        
-        free(MenuEntity->Buttons);
-    }
-    
-    MenuEntity->Buttons = (menu_button *) calloc (MenuEntity->ButtonsAmountReserved, sizeof(menu_button));
-    Assert(MenuEntity->Buttons);
-    
-    for(u32 i = 0; i < MenuEntity->ButtonsAmountReserved; ++i)
-    {
-        char LevelNumber[3] = {0};
-        sprintf(LevelNumber, "%d", LevelMemory[i].LevelNumber);
-        MenuEntity->Buttons[i].IsLocked = LevelMemory[i].IsLocked;
-        
-        MenuMakeTextButton(LevelNumber, 0, 0, MenuEntity->ButtonSizeWidth, MenuEntity->ButtonSizeHeight,
-                           &MenuEntity->Buttons[i].ButtonQuad, &MenuEntity->Buttons[i].LevelNumberTextureQuad,
-                           MenuEntity->Buttons[i].LevelNumberTexture, MenuEntity->LevelNumberFont, {255, 255, 255}, Buffer);
-        
-    }
 }
 
 
@@ -181,7 +142,7 @@ MenuEntityUpdatePositionsLandscape(game_offscreen_buffer *Buffer, menu_entity *M
             MenuEntity->ButtonsArea[i].h = ButtonsArea.h;
         }
         
-        MenuLoadButtonsFromMemory(MenuEntity, Memory, Buffer);
+        //MenuLoadButtonsFromMemory(MenuEntity, Memory, Buffer);
         MenuEntityAlignButtons(MenuEntity, Buffer->Width, Buffer->Height);
     }
     
@@ -277,66 +238,6 @@ MenuChangeButtonText(game_font *&Font, char *Text,
     
 }
 
-static void
-MenuDeleteLevel(menu_entity *MenuEntity,
-                s32 Index, game_memory *Memory,
-                game_offscreen_buffer *Buffer)
-{
-    if(Index >= (s32)Memory->LevelMemoryAmount) 
-    {
-        return;
-    }
-    
-    level_memory *LevelMemory = (level_memory *)Memory->GlobalMemoryStorage;
-    
-    if(LevelMemory[Index].UnitField)
-    {
-        free(LevelMemory[Index].UnitField);
-    }
-    
-    if(LevelMemory[Index].MovingBlocks)
-    {
-        free(LevelMemory[Index].MovingBlocks);
-    }
-    
-    if(LevelMemory[Index].Figures)
-    {
-        free(LevelMemory[Index].Figures);
-    }
-    
-    if(MenuEntity->Buttons[Index].LevelNumberTexture)
-    {
-        FreeTexture(MenuEntity->Buttons[Index].LevelNumberTexture);
-    }
-    
-    s32 LevelIndex = --Memory->LevelMemoryAmount;
-    
-    for(u32 i = Index, j = i + 1; i < LevelIndex; ++i,++j)
-    {
-        LevelMemory[i].LevelNumber  = LevelMemory[j].LevelNumber;
-        LevelMemory[i].RowAmount    = LevelMemory[j].RowAmount;
-        LevelMemory[i].ColumnAmount = LevelMemory[j].ColumnAmount;
-        LevelMemory[i].MovingBlocksAmount = LevelMemory[j].MovingBlocksAmount;
-        LevelMemory[i].FigureAmount = LevelMemory[j].FigureAmount;
-        
-        LevelMemory[i].UnitField    = LevelMemory[j].UnitField;
-        LevelMemory[i].MovingBlocks = LevelMemory[j].MovingBlocks;
-        LevelMemory[i].Figures      = LevelMemory[j].Figures;
-    }
-    
-    LevelMemory[LevelIndex].LevelNumber = 0;
-    LevelMemory[LevelIndex].RowAmount          = 0;
-    LevelMemory[LevelIndex].ColumnAmount       = 0;
-    LevelMemory[LevelIndex].MovingBlocksAmount = 0;
-    LevelMemory[LevelIndex].FigureAmount       = 0;
-    
-    LevelMemory[LevelIndex].UnitField    = 0;
-    LevelMemory[LevelIndex].MovingBlocks = 0;
-    LevelMemory[LevelIndex].Figures      = 0;
-    
-    MenuLoadButtonsFromMemory(MenuEntity, Memory, Buffer);
-    MenuEntityAlignButtons(MenuEntity, Buffer->Width, Buffer->Height);
-}
 
 static void
 MenuUpdateAndRender(game_state *GameState, menu_entity *MenuEntity, game_memory *Memory, 
@@ -448,10 +349,10 @@ MenuUpdateAndRender(game_state *GameState, menu_entity *MenuEntity, game_memory 
                 s32 Index = MenuEntity->ButtonIndex;
                 if(Index >= 0)
                 {
-                    LevelEntityUpdateLevelEntityFromMemory(Memory, Index, false,Buffer);
+                    //LevelEntityUpdateLevelEntityFromMemory(Memory, Index, false,Buffer);
                     
                     GameState->CurrentMode = LEVEL;
-                    Memory->CurrentLevelIndex = Index;
+                    //Memory->CurrentLevelIndex = Index;
                     
                     MenuEntity->MouseOffsetX = 0;
                     MenuEntity->MouseOffsetY = 0;
@@ -624,3 +525,4 @@ MenuUpdateAndRender(game_state *GameState, menu_entity *MenuEntity, game_memory 
         }
     }
 }
+#endif

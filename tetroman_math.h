@@ -9,18 +9,18 @@
 
 #if !defined(GAME_MATH_H)
 
-struct math_rect
+union v2
 {
-    r32 Left;
-    r32 Top;
-    r32 Right;
-    r32 Bottom;
-};
-
-struct v2
-{
-    r32 x;
-    r32 y;
+    struct 
+    {
+        r32 x, y;
+    };
+    struct
+    {
+        r32 w, h;
+    };
+    r32 E[2];
+    
 };
 
 struct v3
@@ -59,6 +59,102 @@ union v4
         r32 a;        
     };
     r32 E[4];
+};
+
+
+struct rectange2
+{
+    v2 Min;
+    v2 Max;
+};
+
+
+inline v2
+V2(r32 x, r32 y)
+{
+    v2 Result;
+    
+    Result.x = x;
+    Result.y = y;
+    
+    return(Result);
+}
+
+inline v2
+operator*(r32 A, v2 B)
+{
+    v2 Result;
+    
+    Result.x = A*B.x;
+    Result.y = A*B.y;
+    
+    return(Result);
+}
+
+inline v2
+operator*(v2 B, r32 A)
+{
+    v2 Result = A*B;
+    
+    return(Result);
+}
+
+inline v2 &
+operator*=(v2 &B, r32 A)
+{
+    B = A * B;
+    
+    return(B);
+}
+
+inline v2
+operator-(v2 A)
+{
+    v2 Result;
+    
+    Result.x = -A.x;
+    Result.y = -A.y;
+    
+    return(Result);
+}
+
+inline v2
+operator+(v2 A, v2 B)
+{
+    v2 Result;
+    
+    Result.x = A.x + B.x;
+    Result.y = A.y + B.y;
+    
+    return(Result);
+}
+
+inline v2 &
+operator+=(v2 &A, v2 B)
+{
+    A = A + B;
+    
+    return(A);
+}
+
+inline v2
+operator-(v2 A, v2 B)
+{
+    v2 Result;
+    
+    Result.x = A.x - B.x;
+    Result.y = A.y - B.y;
+    
+    return(Result);
+}
+
+
+struct math_rect
+{
+    r32 Left;
+    r32 Top;
+    r32 Right;
+    r32 Bottom;
 };
 
 struct math_point
@@ -106,20 +202,6 @@ enum anchor_presets
     StretchObject,
     StretchAll
 };
-
-static void 
-Vector2Add(vector2 *Vector, r32 x, r32 y)
-{
-    Vector->x += x;
-    Vector->y += y;
-}
-
-static void 
-Vector2Add(vector2 *Vector1, vector2 *Vector2)
-{
-    Vector1->x += Vector2->x;
-    Vector1->y += Vector2->y;
-}
 
 static void 
 Vector2Sub(vector2 *Vector, r32 x, r32 y)

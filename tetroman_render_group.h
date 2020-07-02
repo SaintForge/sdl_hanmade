@@ -50,6 +50,9 @@ struct render_group
     u32 MaxPushBufferSize;
     u32 PushBufferSize;
     u8 *PushBufferBase;
+    
+    u32 Width;
+    u32 Height;
 };
 
 

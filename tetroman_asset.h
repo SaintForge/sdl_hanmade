@@ -67,7 +67,7 @@ struct binary_header
 
 static game_sound*   GetSound(game_memory *Memory, char* FileName);
 static game_music*   GetMusic(game_memory *Memory, char* FileName);
-static game_texture* GetTexture(game_memory *&Memory, const char* FileName, SDL_Renderer*& Renderer);
+static game_texture* GetTexture(game_memory *Memory, const char* FileName, SDL_Renderer* Renderer);
 
 static void FreeSound(game_sound *&Sound)
 {
@@ -111,7 +111,7 @@ struct moving_block_memory
 
 struct level_memory
 {
-    // TODO(Sierra): Add lock/unlock toggle variable
+    // TODO(Sierra): Add lock/unlock toggle variable in editor or main_menu
     u32 IsLocked;
     u32 LevelNumber;
     u32 RowAmount;

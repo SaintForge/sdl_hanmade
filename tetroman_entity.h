@@ -9,6 +9,9 @@
 
 #if !defined(ENTITY_H)
 
+
+
+#define FIGURE_BLOCKS_MAXIMUM 4
 #define FIGURE_AMOUNT_MAXIMUM 20
 #define MOVING_BLOCKS_MAXIMUM 10
 #define COLUMN_AMOUNT_MAXIMUM 10
@@ -26,43 +29,37 @@ enum figure_type
     classic, stone, mirror
 };
 
-#define TilePerRow 5
-#define TilePerColumn 5
-
 struct figure_unit
 {
     bool IsStick;
     bool IsEnlarged; // not sure if we need it
     bool IsIdle;
     
-    u32 Index;     
     r32 Angle;
-    r32 DefaultAngle;
+    r32 HomeAngle;
     
-    game_point Center;
-    game_point DefaultCenter;
-    game_point Shell[4];
-    game_point DefaultShell[4];
-    game_rect AreaQuad;
+    v2 Size;
+    v2 Position;
+    v2 HomePosition;
+    
+    r32 CenterOffset;
+    v2 Shell[FIGURE_BLOCKS_MAXIMUM];
     
     figure_flip Flip;
     figure_form Form;
     figure_type Type;
-    
-    game_texture *Texture;
 };
 
 struct figure_entity
 {
+    game_rect FigureArea;
+    
     u32 ReturnIndex;
     s32 FigureActive;
     
-    u32 *FigureOrder;
-    
     u32 FigureAmount;
-    figure_unit *FigureUnit;
-    
-    game_rect FigureArea;
+    u32 FigureOrder[FIGURE_AMOUNT_MAXIMUM];
+    figure_unit FigureUnit[FIGURE_AMOUNT_MAXIMUM];
     
     bool IsGrabbed;
     bool IsRotating;
@@ -77,23 +74,43 @@ struct figure_entity
     r32 RotationSum;
     s32 FigureVelocity;
     
-    //classic, stone, mirror
-    //O_figure, I_figure, L_figure, J_figure,
-    //Z_figure, S_figure, T_figure
+    game_texture *O_ClassicTexture;
+    game_texture *O_StoneTexture;
+    game_texture *O_MirrorTexture;
     
-    game_texture *ClassicO_Figure;
-    game_texture *StoneO_Figure;
-    game_texture *MirrorO_Figure;
+    game_texture *I_ClassicTexture;
+    game_texture *I_StoneTexture;
+    game_texture *I_MirrorTexture;
+    
+    game_texture *L_ClassicTexture;
+    game_texture *L_StoneTexture;
+    game_texture *L_MirrorTexture;
+    
+    game_texture *J_ClassicTexture;
+    game_texture *J_StoneTexture;
+    game_texture *J_MirrorTexture;
+    
+    game_texture *Z_ClassicTexture;
+    game_texture *Z_StoneTexture;
+    game_texture *Z_MirrorTexture;
+    
+    game_texture *S_ClassicTexture;
+    game_texture *S_StoneTexture;
+    game_texture *S_MirrorTexture;
+    
+    game_texture *T_ClassicTexture;
+    game_texture *T_StoneTexture;
+    game_texture *T_MirrorTexture;
 };
 
 struct sticked_unit
 {
     s32 Index;
-    u32 Row[4];
-    u32 Col[4];
+    u32 Row[FIGURE_BLOCKS_MAXIMUM];
+    u32 Col[FIGURE_BLOCKS_MAXIMUM];
     
     bool IsSticked;
-    game_point Center;
+    v2 Center;
 };
 
 struct moving_block
@@ -112,15 +129,14 @@ struct grid_entity
 {
     game_rect GridArea;
     
-    r32 *UnitSize;
-    s32 *UnitField;
+    s32 UnitField[COLUMN_AMOUNT_MAXIMUM * ROW_AMOUNT_MAXIMUM];
     u32 RowAmount;
     u32 ColumnAmount;
     
-    moving_block *MovingBlocks;
+    moving_block MovingBlocks[COLUMN_AMOUNT_MAXIMUM * ROW_AMOUNT_MAXIMUM];
     u32 MovingBlocksAmount;
     
-    sticked_unit *StickUnits;
+    sticked_unit StickUnits[FIGURE_AMOUNT_MAXIMUM];
     u32 StickUnitsAmount;
     
     game_texture *NormalSquareTexture;
@@ -184,12 +200,19 @@ struct level_animation
     r32 TimeElapsed;
 };
 
+enum playground_status
+{
+    LEVEL_RUNNING,
+    LEVEL_PAUSED,
+    LEVEL_FINISHED,
+};
+
 // TODO(msokolov): name it playground or something
-struct level_entity
+struct playground
 {
     // TODO(msokolov): maybe we should declare them as just non-pointers
-    grid_entity   *GridEntity;
-    figure_entity *FigureEntity;
+    grid_entity GridEntity;
+    figure_entity FigureEntity;
     
     game_texture *LevelNumberTexture;
     game_texture *LevelNumberShadowTexture;

@@ -3,7 +3,6 @@
 #ifndef TETROMAN_PLATFORM_H
 #define TETROMAN_PLATFORM_H
 
-
 #include <stdint.h>
 #include <math.h>
 
@@ -16,6 +15,12 @@
 
 #include <stdint.h>
 #include <stddef.h>
+
+#define WINDOW_WIDTH 1366
+#define WINDOW_HEIGHT 768
+
+#define LOGICAL_GAME_WIDTH 1980
+#define LOGICAL_GAME_HEIGHT 1080
 
 using namespace std;
 
@@ -59,11 +64,11 @@ void LogErrorLine(const char* Message, int Line)
 
 struct game_offscreen_buffer
 {
+    s32 ScreenWidth;
+    s32 ScreenHeight;
+    
     s32 Width;
     s32 Height;
-    
-    s32 ReferenceWidth;
-    s32 ReferenceHeight;
     
     SDL_Renderer *Renderer;
 };
@@ -125,23 +130,6 @@ struct game_input
 
 struct game_memory
 {
-    /* TODO(msokolov): these values needs to be in the game_state */
-    u32 CurrentLevelIndex;
-    u32 LevelMemoryAmount;
-    u32 LevelMemoryReserved;
-    
-    void *LocalMemoryStorage;
-    void *GlobalMemoryStorage;
-    void *EditorMemoryStorage;
-    
-    void *AssetSpace;
-    u32 AssetsSpaceAmount;
-    bool AssetsInitialized;
-    
-    game_font *LevelNumberFont;
-    
-    /* */
-    
     void *TransientStorage;
     u64 TransientStorageSize;
     
