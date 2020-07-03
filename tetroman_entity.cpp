@@ -2173,8 +2173,8 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
                         u32 StickSize = GridEntity->StickUnitsAmount;
                         
                         v2 FigureCenter = {};
-                        FigureCenter.x   = FigureUnit->Position.x + (FigureUnit->Size.w / 2);
-                        FigureCenter.y   = FigureUnit->Position.y + (FigureUnit->Size.h) * FigureUnit->CenterOffset;
+                        FigureCenter.x   = FigureUnit[FigureIndex].Position.x + (FigureUnit[FigureIndex].Size.w / 2);
+                        FigureCenter.y   = FigureUnit[FigureIndex].Position.y + (FigureUnit[FigureIndex].Size.h) * FigureUnit[FigureIndex].CenterOffset;
                         for (u32 i = 0; i < StickSize; ++i)
                         {
                             if(GridEntity->StickUnits[i].Index == -1)
@@ -2193,7 +2193,6 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
                                 break;
                             }
                         }
-                        
                         
                         FigureEntityLowPriority(FigureEntity, FigureIndex);
                         
@@ -2239,8 +2238,8 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
         {
             //v2 FigureCenter = FigureUnit[Index].Center;
             v2 FigureCenter = {};
-            FigureCenter.x   = FigureUnit->Position.x + (FigureUnit->Size.w / 2);
-            FigureCenter.y   = FigureUnit->Position.y + (FigureUnit->Size.h) * FigureUnit->CenterOffset;
+            FigureCenter.x   = FigureUnit[Index].Position.x + (FigureUnit[Index].Size.w / 2);
+            FigureCenter.y   = FigureUnit[Index].Position.y + (FigureUnit[Index].Size.h) * FigureUnit[Index].CenterOffset;
             
             v2 TargetCenter = GridEntity->StickUnits[i].Center;
             
