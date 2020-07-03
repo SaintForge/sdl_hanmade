@@ -1,4 +1,3 @@
-
 #include "win32_platform.h"
 #include "tetroman_platform.h"
 

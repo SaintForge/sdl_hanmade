@@ -19,48 +19,6 @@ SDLChangeBufferColor(sdl_offscreen_buffer *Buffer, u8 Red, u8 Green, u8 Blue, u8
     }
 }
 
-static void
-SDLCreateBufferTexture(sdl_offscreen_buffer *Buffer, SDL_Renderer* Renderer, int Width, int Height)
-{
-    int BytesPerPixel = 4;
-    Buffer->Width  = Width;
-    Buffer->Height = Height;
-    Buffer->Pitch  = Width * BytesPerPixel;
-    
-    Buffer->Memory = (u32*)calloc(Width * Height, BytesPerPixel);
-    if(Buffer->Memory)
-    {
-        Buffer->Texture = SDL_CreateTexture(Renderer, SDL_PIXELFORMAT_RGBA8888,
-                                            SDL_TEXTUREACCESS_TARGET,
-                                            Width, Height);
-        if(Buffer->Texture)
-        {
-        }
-        else
-        {
-            printf("Failed to create SDL_Texture!%s\n", SDL_GetError());
-        }
-    }
-    else
-    {
-        printf("Failed to malloc Buffer->Memory!\n");
-    }
-}
-
-static SDL_Texture*
-SDLUploadTexture(SDL_Renderer *&Renderer, game_rect *Quad, char* FileName)
-{
-    SDL_Surface *Surface = IMG_Load(FileName);
-    Quad->w = Surface->w;
-    Quad->h = Surface->h;
-    SDL_Texture *Texture = SDL_CreateTextureFromSurface(Renderer, Surface);
-    
-    SDL_FreeSurface(Surface);
-    
-    return (Texture);
-}
-
-
 window_dimension SDLGetWindowDimension(SDL_Window* Window)
 {
     window_dimension WindowQuad = {};
@@ -307,11 +265,6 @@ int main(int argc, char **argv)
     b32 VSyncOn = true;
     s32 FrameLimit = 60;
     
-    s32 ScreenWidth  = 1920;
-    s32 ScreenHeight = 1080;
-    s32 ReferenceWidth  = 800;
-    s32 ReferenceHeight = 600;
-    
     SDL_Window* Window = SDL_CreateWindow("This is window",
                                           SDL_WINDOWPOS_CENTERED,
                                           SDL_WINDOWPOS_CENTERED,
@@ -320,14 +273,11 @@ int main(int argc, char **argv)
     
     // NOTE(msokolov): this ideally should be either hardcoded always in the code
     // or be taken from the user's monitor resolution
-    SDL_SetWindowSize(Window, 1366, 768);
+    SDL_SetWindowSize(Window, WINDOW_WIDTH, WINDOW_HEIGHT);
     SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     
     if(Window)
     {
-        //SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
-        //SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
-        
         if(VSyncOn)
         {
             SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
@@ -337,7 +287,7 @@ int main(int argc, char **argv)
                                                     SDL_RENDERER_TARGETTEXTURE|SDL_RENDERER_ACCELERATED);
         
         SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
-        SDL_RenderSetLogicalSize(Renderer, ScreenWidth, ScreenHeight);
+        SDL_RenderSetLogicalSize(Renderer, LOGICAL_GAME_WIDTH, LOGICAL_GAME_HEIGHT);
         
         
         if(Renderer)
@@ -346,39 +296,17 @@ int main(int argc, char **argv)
             window_dimension Dimension = SDLGetWindowDimension(Window);
             
             sdl_offscreen_buffer BackBuffer = {};
-            BackBuffer.Width  = ScreenWidth;
-            BackBuffer.Height = ScreenHeight;
+            BackBuffer.Width  = WINDOW_WIDTH;
+            BackBuffer.Height = WINDOW_HEIGHT;
             
             game_offscreen_buffer Buffer = {};
             Buffer.Renderer = Renderer;
             Buffer.Width    = BackBuffer.Width;
             Buffer.Height   = BackBuffer.Height;
-            Buffer.ReferenceWidth  = ReferenceWidth;
-            Buffer.ReferenceHeight = ReferenceHeight;
+            Buffer.Width    = LOGICAL_GAME_WIDTH;
+            Buffer.Height   = LOGICAL_GAME_HEIGHT;
             
             printf("Ready!\n");
-            
-#if 0
-            /* NOTE(msokolov): this is just for testing */
-            
-            memory_test mem_test = init_memory();
-            write_test_data(&mem_test);
-            level_test *level = (level_test*) mem_test.transient_storage;
-            
-            game_memory some_memory = {};
-            SDLAssetLoadBinaryFile((void*)&some_memory);
-            LoadAllBitmapsFromMemory(&Buffer, &some_memory, level);
-            
-            render_group *RenderGroup = AllocateRenderGroup(&level->MemoryGroup, Kilobytes(500));
-            
-            Clear(RenderGroup, {255, 255, 0, 255});
-            PushRect(RenderGroup, {0, 0, 200, 300}, {0, 255, 255, 255});
-            PushRectOutline(RenderGroup, {200, 300, 400, 600}, {0, 255, 255, 255});
-            
-            PushBitmap(RenderGroup, level->figures->figure_bitmap[3], {0, 0, 100, 100}, 0, {0,0}, SDL_FLIP_NONE);
-            
-            /* */
-#endif
             
 #if ASSET_BUILD
             // NOTE: This is for packaging data to the disk
@@ -411,11 +339,8 @@ int main(int argc, char **argv)
                 s32 OldMouseX = 0;
                 s32 OldMouseY = 0;
                 
-                // TODO(msokolov): we don't need threads
-                SDL_Thread *AssetThread = SDL_CreateThread(SDLAssetLoadBinaryFile, "LoadingThread", (void*)&Memory);
-                
-                //ReadAssetFile("package1.bin", Memory.AssetStorage, Memory.AssetStorageSize);
-                //ReadLevelFile("package2.bin", Memory.PermanentStorage, Memory.PermanentStorageSize);
+                ReadAssetFromFile("package1.bin", Memory.AssetStorage, Memory.AssetStorageSize);
+                ReadLevelFromFile("package2.bin", Memory.LevelStorage, Memory.LevelStorageSize);
                 
                 while (IsRunning)
                 {
@@ -432,16 +357,9 @@ int main(int argc, char **argv)
                         IsRunning = false;
                     }
                     
-                    if(Memory.AssetsInitialized)
+                    if(GameUpdateAndRender(&Memory, &Input, &Buffer))
                     {
-                        if(GameUpdateAndRender(&Memory, &Input, &Buffer))
-                        {
-                            IsRunning = false;
-                        }
-                        
-#if 0
-                        RenderGroupToOutput(RenderGroup, &Buffer);
-#endif
+                        IsRunning = false;
                     }
                     
                     SDLUpdateWindow(Window, Renderer, &BackBuffer);

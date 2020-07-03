@@ -1147,12 +1147,6 @@ FigureEntityAlignFigures(figure_entity *Entity, u32 BlockSize)
     
 }
 
-static v2
-GetDefaultFigureLocation()
-{
-    
-}
-
 inline static bool
 Change1DUnitPerSec(r32 *Unit, r32 MaxValue, r32 ChangePerSec, r32 TimeElapsed)
 {
