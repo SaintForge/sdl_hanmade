@@ -304,6 +304,16 @@ int main(int argc, char **argv)
             Buffer.Width         = LOGICAL_GAME_WIDTH;
             Buffer.Height  = LOGICAL_GAME_HEIGHT;
             
+            u32 RefreshRate = 60;
+            s32 DisplayIndex = 0, ModeIndex = 0;
+            SDL_DisplayMode DisplayMode = {};
+            if (SDL_GetDisplayMode(DisplayIndex, ModeIndex, &DisplayMode) == 0)
+            {
+                RefreshRate = DisplayMode.refresh_rate;
+            }
+            
+            r32 dtForFrame = 1.0f / (r32)RefreshRate;
+            
             printf("Ready!\n");
             
 #if ASSET_BUILD
@@ -349,6 +359,7 @@ int main(int argc, char **argv)
                     Input.MouseX = OldMouseX;
                     Input.MouseY = OldMouseY;
                     Input.TimeElapsedMs = TimeElapsed;
+                    Input.dtForFrame = dtForFrame;
                     
                     SDL_Event Event = {};
                     if(SDLHandleEvent(&Event, &Input))
@@ -367,9 +378,8 @@ int main(int argc, char **argv)
                     OldMouseY = Input.MouseY;
                     
                     r32 CurrentTimeTick = SDL_GetTicks();
-                    TimeElapsed = (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
+                    TimeElapsed += (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
                 }
-                
             }
         }
     }

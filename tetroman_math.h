@@ -62,7 +62,6 @@ union v4
 };
 
 
-
 inline v2
 V2(r32 x, r32 y)
 {
@@ -99,6 +98,25 @@ operator*=(v2 &B, r32 A)
     B = A * B;
     
     return(B);
+}
+
+inline v2
+operator/(v2 A, r32 B)
+{
+    v2 Result;
+    
+    Result.x = A.x / B;
+    Result.y = A.y / B;
+    
+    return(Result);
+}
+
+inline v2 &
+operator/=(v2 &A, r32 B)
+{
+    A = A / B;
+    
+    return(A);
 }
 
 inline v2
@@ -142,6 +160,23 @@ operator-(v2 A, v2 B)
     return(Result);
 }
 
+inline r32
+Square(v2 v)
+{
+    r32 Result = 0.0f;
+    Result = sqrt(v.x * v.x + v.y * v.y);
+    
+    return(Result);
+}
+
+inline v2
+Normalize(v2 A)
+{
+    v2 Result = {};
+    Result = A / Square(A);
+    
+    return(Result);
+}
 
 struct math_rect
 {

@@ -107,6 +107,7 @@ struct game_keyboard_input
 struct game_input
 {
     r32 TimeElapsedMs;
+    r32 dtForFrame;
     
     s32 MouseX, MouseY;
     s32 MouseRelX, MouseRelY;

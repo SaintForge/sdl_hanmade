@@ -50,7 +50,6 @@ struct figure_unit
 
 struct figure_entity
 {
-    //game_rect FigureArea;
     rectangle2 FigureArea;
     
     u32 ReturnIndex;
@@ -60,18 +59,18 @@ struct figure_entity
     u32 FigureOrder[FIGURE_AMOUNT_MAXIMUM];
     figure_unit FigureUnit[FIGURE_AMOUNT_MAXIMUM];
     
-    bool IsGrabbed;
-    bool IsRotating;
-    bool IsFlipping;
-    bool IsReturning;
-    bool IsRestarting;
+    b32 IsGrabbed;
+    b32 IsRotating;
+    b32 IsFlipping;
+    b32 IsReturning;
+    b32 IsRestarting;
     
     r32 AreaAlpha;
     r32 FigureAlpha;
     r32 FadeInSum;
     r32 FadeOutSum;
     r32 RotationSum;
-    s32 FigureVelocity;
+    r32 FigureVelocity;
     
     game_texture *O_ClassicTexture;
     game_texture *O_StoneTexture;
@@ -114,7 +113,7 @@ struct sticked_unit
 
 struct moving_block
 {
-    game_rect AreaQuad;
+    rectangle2 Area;
     
     u32 RowNumber;
     u32 ColNumber;
@@ -126,7 +125,7 @@ struct moving_block
 
 struct grid_entity
 {
-    game_rect GridArea;
+    rectangle2 GridArea;
     
     s32 UnitField[COLUMN_AMOUNT_MAXIMUM * ROW_AMOUNT_MAXIMUM];
     u32 RowAmount;
@@ -164,11 +163,6 @@ struct level_config
     r32 PixelsDrawn;
 };
 
-struct p_texture
-{
-    game_texture *Texture;
-};
-
 struct level_animation
 {
     game_rect FinishQuad;
@@ -191,7 +185,7 @@ struct level_animation
     r32 *TileOffset;
     s32 *TileAlpha;
     v3  *TilePos;
-    p_texture *TileTexture;
+    game_texture *TileTexture;
     game_rect *TileQuad;
     
     game_rect TileRect;
@@ -206,10 +200,8 @@ enum playground_status
     LEVEL_FINISHED,
 };
 
-// TODO(msokolov): name it playground or something
 struct playground
 {
-    // TODO(msokolov): maybe we should declare them as just non-pointers
     grid_entity GridEntity;
     figure_entity FigureEntity;
     

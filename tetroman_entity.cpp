@@ -484,7 +484,7 @@ FigureUnitFlipHorizontally(figure_unit *Unit)
 }
 
 static void
-FigureUnitMove_(figure_unit *Entity, v2 dt)
+FigureUnitMove(figure_unit *Entity, v2 dt)
 {
     Entity->Position += dt;
     
@@ -502,7 +502,6 @@ FigureUnitMove(figure_unit *Entity, r32 XShift, r32 YShift)
     v2 Offset = {XShift, YShift};
     
     Entity->Position += Offset;
-    
     for (u32 i = 0; i < 4; ++i)
     {
         Entity->Shell[i] += Offset;
@@ -781,7 +780,7 @@ FigureUnitMoveToDefaultArea(figure_unit *FigureUnit, u32 ActiveBlockSize)
         Offset.x = roundf(Offset.x);
         Offset.y = roundf(Offset.y);
         
-        FigureUnitMove_(FigureUnit, Offset);
+        FigureUnitMove(FigureUnit, Offset);
     }
 }
 
@@ -800,16 +799,16 @@ GridEntityAddMovingBlock(grid_entity *GridEntity,
     s32 ActualGridWidth = GridBlockSize * GridEntity->ColumnAmount;
     s32 ActualGridHeight = GridBlockSize * GridEntity->RowAmount;
     
-    game_rect GridArea = {};
-    GridArea.w = ActualGridWidth;
-    GridArea.h = ActualGridHeight;
-    GridArea.x = GridEntity->GridArea.x + (GridEntity->GridArea.w / 2) - (ActualGridWidth / 2);
-    GridArea.y = GridEntity->GridArea.y + (GridEntity->GridArea.h / 2) - (ActualGridHeight / 2);
+    rectangle2 GridArea = {};
+    r32 GridAreaWidth = GridEntity->GridArea.Max.x - GridEntity->GridArea.Min.x;
+    r32 GridAreaHeight = GridEntity->GridArea.Max.y - GridEntity->GridArea.Min.y;
+    GridArea.Min.x = GridEntity->GridArea.Min.x + (GridAreaWidth / 2.0f) - (ActualGridWidth / 2);
+    GridArea.Min.y = GridEntity->GridArea.Min.y + (GridAreaHeight / 2.0f) - (ActualGridHeight / 2);
     
-    GridEntity->MovingBlocks[Index].AreaQuad.w = GridBlockSize;
-    GridEntity->MovingBlocks[Index].AreaQuad.h = GridBlockSize;
-    GridEntity->MovingBlocks[Index].AreaQuad.x = GridArea.x + (ColNumber * GridBlockSize);
-    GridEntity->MovingBlocks[Index].AreaQuad.y = GridArea.y + (RowNumber * GridBlockSize);
+    GridEntity->MovingBlocks[Index].Area.Min.x = GridArea.Min.x + (ColNumber * GridBlockSize);
+    GridEntity->MovingBlocks[Index].Area.Min.y = GridArea.Min.y + (RowNumber * GridBlockSize);
+    GridEntity->MovingBlocks[Index].Area.Max.w = GridEntity->MovingBlocks[Index].Area.Min.x + GridBlockSize;
+    GridEntity->MovingBlocks[Index].Area.Max.h = GridEntity->MovingBlocks[Index].Area.Min.y + GridBlockSize;
     
     GridEntity->MovingBlocks[Index].IsMoving   = false;
     GridEntity->MovingBlocks[Index].MoveSwitch = MoveSwitch;
@@ -833,7 +832,7 @@ GridEntityMoveBlockHorizontally(grid_entity *GridEntity, moving_block *MovingBlo
     s32 ColAmount = GridEntity->ColumnAmount;
     u32 RowNumber = MovingBlock->RowNumber;
     u32 ColNumber = MovingBlock->ColNumber;
-    u32 ActiveBlockSize = MovingBlock->AreaQuad.w;
+    u32 ActiveBlockSize = MovingBlock->Area.Max.x - MovingBlock->Area.Min.x;
     s32 OldUnitIndex = (RowNumber * ColAmount) + ColNumber;
     
     NewColNumber = MovingBlock->MoveSwitch
@@ -861,7 +860,7 @@ GridEntityMoveBlockVertically(grid_entity *GridEntity, moving_block *MovingBlock
     u32 ColNumber = MovingBlock->ColNumber;
     s32 RowAmount = GridEntity->RowAmount;
     s32 ColAmount = GridEntity->ColumnAmount;
-    u32 ActiveBlockSize = MovingBlock->AreaQuad.w;
+    u32 ActiveBlockSize = MovingBlock->Area.Max.x - MovingBlock->Area.Min.x;
     s32 OldUnitIndex = (RowNumber * ColAmount) + ColNumber;
     
     NewRowNumber = MovingBlock->MoveSwitch
@@ -989,11 +988,14 @@ GameUpdateEvent(game_input *Input, playground *LevelEntity, u32 ScreenWidth, u32
                     }
                 }
                 
-                if(IsPointInsideRect(MouseX, MouseY, &GridEntity->GridArea))
+                v2 MousePos = {(r32) MouseX, (r32) MouseY};
+                
+                if(IsInRectangle(MousePos, GridEntity->GridArea))
                 {
                     for(u32 i = 0; i < GridEntity->MovingBlocksAmount; i++)
                     {
-                        if(IsPointInsideRect(MouseX, MouseY, &GridEntity->MovingBlocks[i].AreaQuad))
+                        v2 MousePos = {(r32)MouseX, (r32)MouseY};
+                        if (IsInRectangle(MousePos, GridEntity->MovingBlocks[i].Area))
                         {
                             if(!GridEntity->MovingBlocks[i].IsVertical) 
                             {
@@ -1024,7 +1026,7 @@ GameUpdateEvent(game_input *Input, playground *LevelEntity, u32 ScreenWidth, u32
                     Center.y   = FigureUnit[ActiveIndex].Position.y + (FigureUnit[ActiveIndex].Size.h) * FigureUnit[ActiveIndex].CenterOffset;
                     
                     rectangle2 Rectangle = FigureEntity->FigureArea;
-                    b32 HasToReturn = (IsInRectangle(FigureUnit[ActiveIndex].Shell, FIGURE_BLOCKS_MAXIMUM, FigureEntity->FigureArea)) || (IsInRectangle(Center, ScreenArea));
+                    b32 HasToReturn = (IsInRectangle(FigureUnit[ActiveIndex].Shell, FIGURE_BLOCKS_MAXIMUM, FigureEntity->FigureArea)) || (!IsInRectangle(Center, ScreenArea));
                     
                     if (HasToReturn)
                     {
@@ -1085,7 +1087,7 @@ GameUpdateEvent(game_input *Input, playground *LevelEntity, u32 ScreenWidth, u32
             r32 XShift = Input->MouseRelX;
             r32 YShift = Input->MouseRelY;
             
-            FigureUnitMove_(&FigureUnit[ActiveIndex], dt);
+            FigureUnitMove(&FigureUnit[ActiveIndex], dt);
             //FigureUnitMove(&FigureUnit[ActiveIndex], XShift, YShift);
         }
     }
@@ -1196,8 +1198,8 @@ Move2DPointPerSec(v2 p1, v2 p2, r32 MaxVelocity, r32 TimeElapsed)
 {
     v2 Result = {};
     
-    Result.x= p2.x - p1.x;
-    Result.y= p2.y - p1.y;
+    Result.x = p2.x - p1.x;
+    Result.y = p2.y - p1.y;
     
     r32 Distance = sqrt(Result.x * Result.x + Result.y * Result.y);
     if(Distance > MaxVelocity)
@@ -2065,8 +2067,8 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
     game_rect GridArea = {};
     GridArea.w = ActualGridWidth;
     GridArea.h = ActualGridHeight;
-    GridArea.x = GridEntity->GridArea.x + (GridEntity->GridArea.w / 2) - (ActualGridWidth / 2);
-    GridArea.y = GridEntity->GridArea.y + (GridEntity->GridArea.h / 2) - (ActualGridHeight / 2);
+    GridArea.x = GridEntity->GridArea.Min.x;
+    GridArea.y = GridEntity->GridArea.Min.y;
     
     bool ToggleHighlight = false;
     
@@ -2224,9 +2226,8 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
     }
     
     
-    /* StickUnits */
+    /* StickUnits aka figures that are moving to a grid */
     bool IsAllSticked = GridEntity->StickUnitsAmount > 0;
-    
     for(u32 i = 0; i < GridEntity->StickUnitsAmount; ++i)
     {
         bool IsSticked = GridEntity->StickUnits[i].IsSticked;
@@ -2237,20 +2238,27 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
         }
         
         s32 Index = GridEntity->StickUnits[i].Index;
-        
         if(!IsSticked && Index >= 0)
         {
-            //v2 FigureCenter = FigureUnit[Index].Center;
             v2 FigureCenter = {};
             FigureCenter.x   = FigureUnit[Index].Position.x + (FigureUnit[Index].Size.w / 2);
             FigureCenter.y   = FigureUnit[Index].Position.y + (FigureUnit[Index].Size.h) * FigureUnit[Index].CenterOffset;
             
             v2 TargetCenter = GridEntity->StickUnits[i].Center;
             
-            v2 dt = Move2DPointPerSec(FigureCenter, TargetCenter, FigureEntity->FigureVelocity, TimeElapsed);
+            v2 dt = TargetCenter - FigureCenter;
             
-            FigureUnitMove(&FigureUnit[Index], dt.x, dt.y);
+            r32 Distance = Square(dt);
+            r32 DeadZone = 5.0f;
+            if (Distance > DeadZone)
+            {
+                dt  = Normalize(dt);
+                dt *= (FigureEntity->FigureVelocity * Input->dtForFrame);
+            }
             
+            FigureUnitMove(&FigureUnit[Index], dt);
+            
+            FigureCenter += dt;
             if((FigureCenter.x == TargetCenter.x) && (FigureCenter.y == TargetCenter.y))
             {
                 GridEntity->StickUnits[i].IsSticked = true;
@@ -2271,7 +2279,7 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
     if(IsAllSticked)
     {
         /* Level is completed */
-        // TODO(msokolov): also check in there is any figures left??
+        // TODO(msokolov): also check if there is any figures left??
         LevelEntity->LevelFinished = true;
         Result = playground_status::LEVEL_FINISHED;
         //LevelEntityFinishAnimationInit(LevelEntity, Memory, Buffer);
@@ -2294,7 +2302,6 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
             u32 GridUnit = GridEntity->UnitField[(Row * ColumnAmount) + Col];
             if(GridUnit == 0 || GridUnit == 2 || GridUnit == 3)
             {
-                //GameRenderBitmapToBuffer(Buffer, GridEntity->NormalSquareTexture, &AreaQuad);
                 PushBitmap(RenderGroup, GridEntity->NormalSquareTexture, AreaQuad);
             }
         }
@@ -2335,8 +2342,8 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
             s32 ColNumber = GridEntity->MovingBlocks[i].ColNumber;
             
             v2 Center = { 
-                (r32)GridEntity->MovingBlocks[i].AreaQuad.x, 
-                (r32)GridEntity->MovingBlocks[i].AreaQuad.y 
+                (r32)GridEntity->MovingBlocks[i].Area.Min.x, 
+                (r32)GridEntity->MovingBlocks[i].Area.Min.y 
             };
             
             v2 TargetCenter;
@@ -2345,15 +2352,15 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
             
             v2 Velocity = Move2DPointPerSec(Center, TargetCenter, MaxVel, TimeElapsed);
             
-            GridEntity->MovingBlocks[i].AreaQuad.x += Velocity.x;
-            GridEntity->MovingBlocks[i].AreaQuad.y += Velocity.y;
+            GridEntity->MovingBlocks[i].Area.Min.x += Velocity.x;
+            GridEntity->MovingBlocks[i].Area.Min.y += Velocity.y;
             
             if((Center.x == TargetCenter.x) && (Center.y == TargetCenter.y))
             {
                 GridEntity->MovingBlocks[i].IsMoving = false;
-                GridEntity->MovingBlocks[i].AreaQuad.x
+                GridEntity->MovingBlocks[i].Area.Min.x
                     = GridArea.x + (ColNumber * GridBlockSize);
-                GridEntity->MovingBlocks[i].AreaQuad.y
+                GridEntity->MovingBlocks[i].Area.Min.y
                     = GridArea.y + (RowNumber * GridBlockSize);
                 GridEntity->UnitField[(RowNumber * ColumnAmount) + ColNumber] = 1;
             }
@@ -2361,11 +2368,11 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
         
         if(GridEntity->MovingBlocks[i].IsVertical)
         {
-            PushBitmap(RenderGroup, GridEntity->VerticalSquareTexture, GridEntity->MovingBlocks[i].AreaQuad);
+            PushBitmap(RenderGroup, GridEntity->VerticalSquareTexture, GridEntity->MovingBlocks[i].Area);
         }
         else
         {
-            PushBitmap(RenderGroup, GridEntity->HorizontlaSquareTexture, GridEntity->MovingBlocks[i].AreaQuad);
+            PushBitmap(RenderGroup, GridEntity->HorizontlaSquareTexture, GridEntity->MovingBlocks[i].Area);
         }
     }
     
@@ -2457,13 +2464,12 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
             
             HighlightRect.Min.x += 1;
             HighlightRect.Min.y += 1;
-            HighlightRect.Max.w -= 2;
-            HighlightRect.Max.h -= 2;
+            HighlightRect.Max.x -= 1;
+            HighlightRect.Max.y -= 1;
         }
     }
     
     /* Figure returning to the idle zone */
-    
     if(FigureEntity->IsReturning)
     {
         u32 ReturnIndex = FigureEntity->ReturnIndex;
@@ -2485,7 +2491,6 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
     }
     
     /* Rotation Animation */
-    
     if(FigureEntity->IsRotating)
     {
         // TODO(max): Maybe put these values in playground ???
@@ -2504,7 +2509,6 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
     }
     
     /* Flipping Animation */
-    
     if(FigureEntity->IsFlipping)
     {
         if(FigureEntity->FadeInSum > 0)

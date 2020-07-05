@@ -71,12 +71,14 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->FigureAlpha   = 0;
         FigureEntity->FadeInSum     = 0;
         FigureEntity->FadeOutSum    = 0;
-        FigureEntity->FigureVelocity = 12;
+        FigureEntity->FigureVelocity = 400.0f;
         
         FigureEntity->FigureArea.Min.x = 1200;
         FigureEntity->FigureArea.Min.y = 81;
-        FigureEntity->FigureArea.Max.w = 552;
-        FigureEntity->FigureArea.Max.h = 972;
+        //FigureEntity->FigureArea.Max.w = 552;
+        //FigureEntity->FigureArea.Max.h = 972;
+        FigureEntity->FigureArea.Max.x = FigureEntity->FigureArea.Min.x + 552;
+        FigureEntity->FigureArea.Max.y = FigureEntity->FigureArea.Min.y + 972;
         
         FigureUnitAddNewFigure(FigureEntity, L_figure, classic, Playground->Configuration.InActiveBlockSize);
         FigureUnitAddNewFigure(FigureEntity, O_figure, stone, Playground->Configuration.InActiveBlockSize);
@@ -124,10 +126,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->StickUnitsAmount    = FigureEntity->FigureAmount;
         GridEntity->MovingBlocksAmount  = 0;
         
-        GridEntity->GridArea.w = 1128;
-        GridEntity->GridArea.h = 972;
-        GridEntity->GridArea.x = 0;
-        GridEntity->GridArea.y = 81;
+        GridEntity->GridArea.Min.x = 100;
+        GridEntity->GridArea.Min.y = 81;
+        GridEntity->GridArea.Max.x = GridEntity->GridArea.Min.x + 1128;
+        GridEntity->GridArea.Max.y = GridEntity->GridArea.Min.y + 972;
         
         for (u32 Row = 0; Row < ROW_AMOUNT_MAXIMUM; ++Row)
         {
@@ -180,12 +182,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     playground *Playground  = GameState->Playground;
     menu_entity *MenuEntity  = GameState->MenuEntity;
-    
-    rectangle2 FigureArea = Playground->FigureEntity.FigureArea;
-    game_rect GridArea = Playground->GridEntity.GridArea;
-    
-    level_config LevelConfig = Playground->Configuration;
-    level_animation LevelAnimation = Playground->AnimationData;
     
     if(Input->Keyboard.Tab.EndedDown)
     {

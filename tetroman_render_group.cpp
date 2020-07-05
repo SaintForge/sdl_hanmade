@@ -94,6 +94,19 @@ PushRectangleOutline(render_group *Group, rectangle2 Rectangle, v4 Color)
     }
 }
 
+inline static void
+PushBitmap(render_group *Group, game_texture* Texture, rectangle2 Rectangle)
+{
+    render_entry_texture2 *Piece = PushRenderElement(Group, render_entry_texture2);
+    if(Piece)
+    {
+        Piece->Texture        = Texture;
+        Piece->Rectangle      = Rectangle;
+        Piece->Angle          = 0;
+        Piece->RelativeCenter = {0, 0};
+        Piece->Flip           = SDL_FLIP_NONE;
+    }
+}
 
 inline static void
 PushBitmap(render_group *Group, game_texture* Texture, game_rect Rectangle)
@@ -133,6 +146,25 @@ DrawEntryTexture(game_offscreen_buffer *Buffer, render_entry_texture *Entry)
     Center.y = (s32)Entry->RelativeCenter.y;
     
     SDL_RenderCopyEx(Buffer->Renderer, Texture, 0, &Entry->Rectangle, Entry->Angle, &Center, Entry->Flip);
+}
+
+
+static void
+DrawEntryTexture(game_offscreen_buffer *Buffer, render_entry_texture2 *Entry)
+{
+    game_texture *Texture = Entry->Texture;
+    
+    game_point Center;
+    Center.x = (s32)Entry->RelativeCenter.x;
+    Center.y = (s32)Entry->RelativeCenter.y;
+    
+    game_rect Rectangle;
+    Rectangle.x = Entry->Rectangle.Min.x;
+    Rectangle.y = Entry->Rectangle.Min.y;
+    Rectangle.w = Entry->Rectangle.Max.x - Entry->Rectangle.Min.x;
+    Rectangle.h = Entry->Rectangle.Max.y - Entry->Rectangle.Min.y;
+    
+    SDL_RenderCopyEx(Buffer->Renderer, Texture, 0, &Rectangle, Entry->Angle, &Center, Entry->Flip);
 }
 
 
@@ -186,15 +218,30 @@ RenderGroupToOutput(render_group *RenderGroup, game_offscreen_buffer *Buffer)
             {
                 render_entry_rectangle2 *Entry = (render_entry_rectangle2*) Data;
                 
+                DEBUGRenderQuadFill(Buffer, Entry->Rectangle, Entry->Color);
+                
                 BaseAddress += sizeof(*Entry);
             } break;
             
             case RenderGroupEntryType_render_entry_rectangle2_outline:
             {
+                render_entry_rectangle2 *Entry = (render_entry_rectangle2*) Data;
                 
+                DEBUGRenderQuad(Buffer, Entry->Rectangle, Entry->Color);
+                
+                BaseAddress += sizeof(*Entry);
             } break;
             
             case RenderGroupEntryType_render_entry_texture: 
+            {
+                render_entry_texture *Entry = (render_entry_texture*) Data;
+                
+                DrawEntryTexture(Buffer, Entry);
+                
+                BaseAddress += sizeof(*Entry);
+            } break;
+            
+            case RenderGroupEntryType_render_entry_texture2: 
             {
                 render_entry_texture *Entry = (render_entry_texture*) Data;
                 
