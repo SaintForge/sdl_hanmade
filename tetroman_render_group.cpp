@@ -40,7 +40,7 @@ PushRenderElement_(render_group *Group, u32 Size, render_group_entry_type Type)
 }
 
 
-inline void
+inline static void
 Clear(render_group *Group, v4 Color)
 {
     render_entry_clear *Piece = PushRenderElement(Group, render_entry_clear);
@@ -50,7 +50,7 @@ Clear(render_group *Group, v4 Color)
     }
 }
 
-inline void
+inline static void
 PushRect(render_group *Group, game_rect Rectangle, v4 Color) 
 {
     render_entry_rectangle *Piece = PushRenderElement(Group, render_entry_rectangle);
@@ -61,7 +61,7 @@ PushRect(render_group *Group, game_rect Rectangle, v4 Color)
     }
 }
 
-inline void
+inline static void
 PushRectOutline(render_group *Group, game_rect Rectangle, v4 Color) 
 {
     render_entry_rectangle_outline *Piece = PushRenderElement(Group, render_entry_rectangle_outline);
@@ -72,8 +72,30 @@ PushRectOutline(render_group *Group, game_rect Rectangle, v4 Color)
     }
 }
 
+inline static void
+PushRectangle(render_group *Group, rectangle2 Rectangle, v4 Color)
+{
+    render_entry_rectangle2 *Piece = PushRenderElement(Group, render_entry_rectangle2);
+    if (Piece)
+    {
+        Piece->Rectangle = Rectangle;
+        Piece->Color = Color;
+    }
+}
 
-inline void
+inline static void
+PushRectangleOutline(render_group *Group, rectangle2 Rectangle, v4 Color)
+{
+    render_entry_rectangle2_outline *Piece = PushRenderElement(Group, render_entry_rectangle2_outline);
+    if (Piece)
+    {
+        Piece->Rectangle = Rectangle;
+        Piece->Color = Color;
+    }
+}
+
+
+inline static void
 PushBitmap(render_group *Group, game_texture* Texture, game_rect Rectangle)
 {
     render_entry_texture *Piece = PushRenderElement(Group, render_entry_texture);
@@ -87,7 +109,7 @@ PushBitmap(render_group *Group, game_texture* Texture, game_rect Rectangle)
     }
 }
 
-inline void
+inline static void
 PushBitmapEx(render_group *Group, game_texture *Texture, game_rect Rectangle, r32 Angle, v2 RelativeCenter, figure_flip Flip)
 {
     render_entry_texture *Piece = PushRenderElement(Group, render_entry_texture);
@@ -157,6 +179,18 @@ RenderGroupToOutput(render_group *RenderGroup, game_offscreen_buffer *Buffer)
                 DEBUGRenderQuad(Buffer, &Entry->Rectangle, {(u8)Entry->Color.r,(u8)Entry->Color.g, (u8)Entry->Color.b}, (u8)Entry->Color.a);
                 
                 BaseAddress += sizeof(*Entry);
+                
+            } break;
+            
+            case RenderGroupEntryType_render_entry_rectangle2:
+            {
+                render_entry_rectangle2 *Entry = (render_entry_rectangle2*) Data;
+                
+                BaseAddress += sizeof(*Entry);
+            } break;
+            
+            case RenderGroupEntryType_render_entry_rectangle2_outline:
+            {
                 
             } break;
             

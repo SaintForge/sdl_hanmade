@@ -10,6 +10,8 @@
 #if !defined(GAME_H)
 
 #include "tetroman_math.h"
+#include "tetroman_intrinsics.h"
+
 #include "tetroman_entity.h"
 #include "tetroman_asset.h"
 #include "tetroman_editor.h"

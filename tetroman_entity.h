@@ -9,8 +9,6 @@
 
 #if !defined(ENTITY_H)
 
-
-
 #define FIGURE_BLOCKS_MAXIMUM 4
 #define FIGURE_AMOUNT_MAXIMUM 20
 #define MOVING_BLOCKS_MAXIMUM 10
@@ -52,7 +50,8 @@ struct figure_unit
 
 struct figure_entity
 {
-    game_rect FigureArea;
+    //game_rect FigureArea;
+    rectangle2 FigureArea;
     
     u32 ReturnIndex;
     s32 FigureActive;

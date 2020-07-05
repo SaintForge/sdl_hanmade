@@ -72,10 +72,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->FadeInSum     = 0;
         FigureEntity->FadeOutSum    = 0;
         FigureEntity->FigureVelocity = 12;
-        FigureEntity->FigureArea.x = 1200;
-        FigureEntity->FigureArea.y = 81;
-        FigureEntity->FigureArea.w = 552;
-        FigureEntity->FigureArea.h = 972;
+        
+        FigureEntity->FigureArea.Min.x = 1200;
+        FigureEntity->FigureArea.Min.y = 81;
+        FigureEntity->FigureArea.Max.w = 552;
+        FigureEntity->FigureArea.Max.h = 972;
         
         FigureUnitAddNewFigure(FigureEntity, L_figure, classic, Playground->Configuration.InActiveBlockSize);
         FigureUnitAddNewFigure(FigureEntity, O_figure, stone, Playground->Configuration.InActiveBlockSize);
@@ -180,7 +181,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     playground *Playground  = GameState->Playground;
     menu_entity *MenuEntity  = GameState->MenuEntity;
     
-    game_rect FigureArea = Playground->FigureEntity.FigureArea;
+    rectangle2 FigureArea = Playground->FigureEntity.FigureArea;
     game_rect GridArea = Playground->GridEntity.GridArea;
     
     level_config LevelConfig = Playground->Configuration;

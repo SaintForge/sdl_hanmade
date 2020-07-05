@@ -1013,16 +1013,20 @@ GameUpdateEvent(game_input *Input, playground *LevelEntity, u32 ScreenWidth, u32
             {
                 if(!FigureEntity->IsRotating && !FigureEntity->IsFlipping)
                 {
-                    game_rect ScreenArea = {0};
-                    ScreenArea.w = ScreenWidth;
-                    ScreenArea.h = ScreenHeight;
+                    rectangle2 ScreenArea;
+                    ScreenArea.Min.x = 0;
+                    ScreenArea.Min.y = 0;
+                    ScreenArea.Max.x = ScreenWidth;
+                    ScreenArea.Max.y = ScreenHeight;
                     
                     v2 Center = {};
                     Center.x   = FigureUnit[ActiveIndex].Position.x + (FigureUnit[ActiveIndex].Size.w / 2);
                     Center.y   = FigureUnit[ActiveIndex].Position.y + (FigureUnit[ActiveIndex].Size.h) * FigureUnit[ActiveIndex].CenterOffset;
                     
-                    if(IsFigureUnitInsideRect(&FigureUnit[ActiveIndex], &FigureEntity->FigureArea) || 
-                       (!IsPointInsideRect(Center.x,Center.y, &ScreenArea)))
+                    rectangle2 Rectangle = FigureEntity->FigureArea;
+                    b32 HasToReturn = (IsInRectangle(FigureUnit[ActiveIndex].Shell, FIGURE_BLOCKS_MAXIMUM, FigureEntity->FigureArea)) || (IsInRectangle(Center, ScreenArea));
+                    
+                    if (HasToReturn)
                     {
                         FigureUnit[ActiveIndex].IsIdle = true;
                         BlockRatio = InActiveBlockSize / GridBlockSize;
@@ -1098,7 +1102,7 @@ FigureEntityAlignFigures(figure_entity *Entity, u32 BlockSize)
     u32 FigureIntervalY = roundf((r32)BlockSize / 4.0f);
     
     game_rect AreaQuad    = {};
-    game_rect DefaultZone = Entity->FigureArea;
+    rectangle2 DefaultZone = Entity->FigureArea;
     
     for (u32 i = 0; i < Size; ++i)
     {
@@ -1122,21 +1126,21 @@ FigureEntityAlignFigures(figure_entity *Entity, u32 BlockSize)
         AreaQuad = FigureUnitGetArea(&Entity->FigureUnit[i]);
         
         FigureBoxWidth = BlockSize * 4;
-        NewPositionX  = DefaultZone.x + (FigureBoxWidth * PitchX);
+        NewPositionX  = DefaultZone.Min.x + (FigureBoxWidth * PitchX);
         NewPositionX += SpaceBetweenGrid;
         NewPositionX += (FigureBoxWidth / 2 ) - (AreaQuad.w / 2);
         NewPositionX += FigureIntervalX * PitchX;
         
         if(i % 2 == 0)
         {
-            NewPositionY = DefaultZone.y + FigureIntervalY;
+            NewPositionY = DefaultZone.Min.y + FigureIntervalY;
             NewPositionY += CurrentColumnSize1;
             
             CurrentColumnSize1 += AreaQuad.h + FigureIntervalY;
         }
         else
         {
-            NewPositionY = DefaultZone.y + FigureIntervalY;
+            NewPositionY = DefaultZone.Min.y + FigureIntervalY;
             NewPositionY += CurrentColumnSize2;
             
             CurrentColumnSize2 += AreaQuad.h + FigureIntervalY;
@@ -2411,16 +2415,18 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
     
     if(ActiveIndex >= 0)
     {
-        game_rect ScreenArea = {0};
-        ScreenArea.w = RenderGroup->Width;
-        ScreenArea.h = RenderGroup->Height;
+        
+        rectangle2 ScreenArea = {};
+        ScreenArea.Max.w = RenderGroup->Width;
+        ScreenArea.Max.h = RenderGroup->Height;
         
         v2 Center = {};
         Center.x   = FigureUnit[ActiveIndex].Position.x + (FigureUnit[ActiveIndex].Position.w / 2);
         Center.y   = FigureUnit[ActiveIndex].Position.y + (FigureUnit[ActiveIndex].Size.h) * FigureUnit[ActiveIndex].CenterOffset;
         
-        ShouldHighlight = IsFigureUnitInsideRect(&FigureUnit[ActiveIndex], &FigureEntity->FigureArea) || !(IsPointInsideRect(Center.x,  Center.y, &ScreenArea));
-        
+        ShouldHighlight = 
+            IsInRectangle(FigureUnit[ActiveIndex].Shell, FIGURE_BLOCKS_MAXIMUM, FigureEntity->FigureArea) ||
+            IsInRectangle(Center, ScreenArea); 
     }
     
     if(ShouldHighlight) 
@@ -2441,17 +2447,18 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
     if(ToggleHighlight)
     {
         v4 HightlightColor = {255, 255, 255, 255};
-        game_rect HightlightRect = FigureEntity->FigureArea;
+        
+        rectangle2 HighlightRect = FigureEntity->FigureArea;
         
         u32 RectThickness = InActiveBlockSize / 6;
         for(u32 i = 0; i < RectThickness; i ++)
         {
-            PushRectOutline(RenderGroup, HightlightRect, HightlightColor);
+            PushRectangleOutline(RenderGroup, HighlightRect, HightlightColor);
             
-            HightlightRect.x += 1;
-            HightlightRect.y += 1;
-            HightlightRect.w -= 2;
-            HightlightRect.h -= 2;
+            HighlightRect.Min.x += 1;
+            HighlightRect.Min.y += 1;
+            HighlightRect.Max.w -= 2;
+            HighlightRect.Max.h -= 2;
         }
     }
     
