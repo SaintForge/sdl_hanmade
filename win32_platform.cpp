@@ -257,7 +257,6 @@ int main(int argc, char **argv)
     
     TTF_Init();
     
-    
     SDL_DisplayMode Display = {};
     SDL_GetDesktopDisplayMode(0, &Display);
     

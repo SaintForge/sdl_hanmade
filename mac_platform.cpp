@@ -257,13 +257,17 @@ int main(int argc, char **argv)
     
     TTF_Init();
     
-    
-    
     SDL_DisplayMode Display = {};
     SDL_GetDesktopDisplayMode(0, &Display);
     
-    b32 VSyncOn = true;
-    s32 FrameLimit = 60;
+    u32 RefreshRate = 60;
+    s32 DisplayIndex = 0, ModeIndex = 0;
+    if (SDL_GetDisplayMode(DisplayIndex, ModeIndex, &Display) == 0)
+    {
+        RefreshRate = Display.refresh_rate;
+    }
+    
+    r32 dtForFrame = 1.0f / (r32)RefreshRate;
     
     SDL_Window* Window = SDL_CreateWindow("This is window",
                                           SDL_WINDOWPOS_CENTERED,
@@ -278,10 +282,7 @@ int main(int argc, char **argv)
     
     if(Window)
     {
-        if(VSyncOn)
-        {
-            SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
-        }
+        SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
         
         SDL_Renderer* Renderer = SDL_CreateRenderer(Window, -1,
                                                     SDL_RENDERER_TARGETTEXTURE|SDL_RENDERER_ACCELERATED);
@@ -350,6 +351,7 @@ int main(int argc, char **argv)
                     Input.MouseX = OldMouseX;
                     Input.MouseY = OldMouseY;
                     Input.TimeElapsedMs = TimeElapsed;
+                    Input.dtForFrame = dtForFrame;
                     
                     SDL_Event Event = {};
                     if(SDLHandleEvent(&Event, &Input))
@@ -368,9 +370,8 @@ int main(int argc, char **argv)
                     OldMouseY = Input.MouseY;
                     
                     r32 CurrentTimeTick = SDL_GetTicks();
-                    TimeElapsed = (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
+                    TimeElapsed += (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
                 }
-                
             }
         }
     }

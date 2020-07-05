@@ -43,6 +43,13 @@ IsInRectangle(v2 *Position, u32 Amount, rectangle2 Rectangle)
     return (Result);
 }
 
+inline static b32
+IsInRectangle(v2 Position, rectangle2 *Target, u32 TargetAmount)
+{
+    b32 Result = false;
+    
+    return (Result);
+}
 
 
 

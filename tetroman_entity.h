@@ -205,12 +205,6 @@ struct playground
     grid_entity GridEntity;
     figure_entity FigureEntity;
     
-    game_texture *LevelNumberTexture;
-    game_texture *LevelNumberShadowTexture;
-    
-    game_rect LevelNumberQuad;
-    game_rect LevelNumberShadowQuad;
-    
     level_config Configuration;
     level_animation AnimationData;
     
@@ -248,7 +242,7 @@ struct menu_entity
     
     s32 MouseOffsetX;
     s32 MouseOffsetY;
-    vector2 Velocity;
+    v2 Velocity;
     
     game_texture *BackTexture;
     game_texture *FrontTexture;

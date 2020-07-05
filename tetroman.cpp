@@ -42,8 +42,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Playground->LevelStarted          = true;
         Playground->LevelFinished         = false;
         Playground->LevelPaused           = false;
-        Playground->LevelNumberQuad       = {};
-        Playground->LevelNumberShadowQuad = {};
         
         Playground->Configuration.InActiveBlockSize   = 62;
         Playground->Configuration.GridBlockSize       = 108;
@@ -198,6 +196,12 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     if(Input->Keyboard.Escape.EndedDown)
     {
         ShouldQuit = true;
+    }
+    
+    if(Input->Keyboard.BackQuote.EndedDown)
+    {
+        Playground->FigureEntity.IsRestarting = true;
+        RestartLevelEntity(Playground);
     }
     
     /*
