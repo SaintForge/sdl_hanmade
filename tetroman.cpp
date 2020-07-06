@@ -10,7 +10,7 @@
 #include "tetroman.h"
 
 #include "tetroman_render_group.cpp"
-#include "tetroman_entity.cpp"
+#include "tetroman_playground.cpp"
 #include "tetroman_asset.cpp"
 #include "tetroman_menu.cpp"
 #include "tetroman_editor.cpp"
@@ -31,58 +31,55 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         /* NOTE(msokolov): game_state initialization starts here */
         InitializeMemoryGroup(&GameState->MemoryGroup, Memory->PermanentStorageSize - sizeof(game_state), (u8*)Memory->PermanentStorage + sizeof(game_state));
         
-        GameState->EditorMode  = false;
+        GameState->EditorMode      = false;
         GameState->PlaygroundIndex = 0;
-        GameState->CurrentMode = game_mode::LEVEL;
+        GameState->CurrentMode     = game_mode::LEVEL;
+        
+        playground_config *Configuration = &GameState->Configuration;
+        Configuration->InActiveBlockSize   = 62;
+        Configuration->GridBlockSize       = 108;
+        Configuration->StartUpTimeToFinish = 0.0f;
+        Configuration->RotationVel         = 600.0f;
+        Configuration->StartAlphaPerSec    = 500.0f;
+        Configuration->FlippingAlphaPerSec = 1000.0f;
+        Configuration->FigureVelocity      = 400.0f;
         
         /* NOTE(msokolov): level_entity initialization starts here */
-        GameState->Playground = PushStruct(&GameState->MemoryGroup, playground);
-        playground* Playground = GameState->Playground;
+        playground* Playground = &GameState->Playground;
         Playground->LevelNumber           = 0;
         Playground->LevelStarted          = true;
         Playground->LevelFinished         = false;
         Playground->LevelPaused           = false;
         
-        Playground->Configuration.InActiveBlockSize   = 62;
-        Playground->Configuration.GridBlockSize       = 108;
-        Playground->Configuration.StartUpTimeToFinish = 2.0f;
-        Playground->Configuration.StartUpTimeToFinish = 0.0f;
-        Playground->Configuration.StartUpTimeToFinish = 0.0f; // TODO(msokolov): replace that with overall time accumulator from game_input like TimeElapsed
-        Playground->Configuration.RotationVel         = 600.0f;
-        Playground->Configuration.StartAlphaPerSec    = 500.0f;
-        Playground->Configuration.FlippingAlphaPerSec = 1000.0f;
-        Playground->Configuration.PixelsDrawn         = 0;
-        Playground->Configuration.PixelsToDraw        = 0;
-        
         /* NOTE(msokolov): figure_entity initialization starts here */
-        figure_entity* FigureEntity = &Playground->FigureEntity;
-        FigureEntity->FigureAmount  = 0;
-        FigureEntity->ReturnIndex   = -1;
-        FigureEntity->FigureActive  = -1;
-        FigureEntity->IsGrabbed     = false;
-        FigureEntity->IsRotating    = false;
-        FigureEntity->IsReturning   = false;
-        FigureEntity->IsRestarting  = false;
-        FigureEntity->IsFlipping    = false;
-        FigureEntity->RotationSum   = 0;
-        FigureEntity->AreaAlpha     = 0;
-        FigureEntity->FigureAlpha   = 0;
-        FigureEntity->FadeInSum     = 0;
-        FigureEntity->FadeOutSum    = 0;
+        figure_entity* FigureEntity  = &Playground->FigureEntity;
+        FigureEntity->FigureAmount   = 0;
+        FigureEntity->ReturnIndex    = -1;
+        FigureEntity->FigureActive   = -1;
+        FigureEntity->IsGrabbed      = false;
+        FigureEntity->IsRotating     = false;
+        FigureEntity->IsReturning    = false;
+        FigureEntity->IsRestarting   = false;
+        FigureEntity->IsFlipping     = false;
+        FigureEntity->RotationSum    = 0;
+        FigureEntity->AreaAlpha      = 0;
+        FigureEntity->FigureAlpha    = 0;
+        FigureEntity->FadeInSum      = 0;
+        FigureEntity->FadeOutSum     = 0;
         FigureEntity->FigureVelocity = 400.0f;
+        FigureEntity->InActiveBlockSize = Configuration->InActiveBlockSize;
+        FigureEntity->RotationVelocity = Configuration->RotationVel;
         
         FigureEntity->FigureArea.Min.x = 1200;
         FigureEntity->FigureArea.Min.y = 81;
-        //FigureEntity->FigureArea.Max.w = 552;
-        //FigureEntity->FigureArea.Max.h = 972;
         FigureEntity->FigureArea.Max.x = FigureEntity->FigureArea.Min.x + 552;
         FigureEntity->FigureArea.Max.y = FigureEntity->FigureArea.Min.y + 972;
         
-        FigureUnitAddNewFigure(FigureEntity, L_figure, classic, Playground->Configuration.InActiveBlockSize);
-        FigureUnitAddNewFigure(FigureEntity, O_figure, stone, Playground->Configuration.InActiveBlockSize);
-        FigureUnitAddNewFigure(FigureEntity, O_figure, mirror, Playground->Configuration.InActiveBlockSize);
+        FigureUnitAddNewFigure(FigureEntity, L_figure, classic, Configuration->InActiveBlockSize);
+        FigureUnitAddNewFigure(FigureEntity, O_figure, stone, Configuration->InActiveBlockSize);
+        FigureUnitAddNewFigure(FigureEntity, O_figure, mirror, Configuration->InActiveBlockSize);
         
-        FigureEntityAlignFigures(&Playground->FigureEntity, Playground->Configuration.InActiveBlockSize);
+        FigureEntityAlignFigures(&Playground->FigureEntity, Configuration->InActiveBlockSize);
         
         for(u32 i = 0; i < FIGURE_AMOUNT_MAXIMUM; ++i) 
         {
@@ -123,6 +120,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->ColumnAmount        = 6;
         GridEntity->StickUnitsAmount    = FigureEntity->FigureAmount;
         GridEntity->MovingBlocksAmount  = 0;
+        GridEntity->GridBlockSize       = Configuration->GridBlockSize;
         
         GridEntity->GridArea.Min.x = 100;
         GridEntity->GridArea.Min.y = 81;
@@ -167,6 +165,27 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         Memory->IsInitialized = true;
         printf("Memory has been initialized!\n");
+        
+        /* NOTE(msokolov): just for testing */
+        
+        /* playground data from binary initialization */
+        playground_data *PlaygroundData = (playground_data *) Memory->LevelStorage;
+        Assert(PlaygroundData);
+        
+        PlaygroundData[0].FigureAmount = 3;
+        PlaygroundData[0].Figures[0].Form = figure_form::L_figure;
+        PlaygroundData[0].Figures[0].Type = figure_type::classic;
+        
+        PlaygroundData[0].Figures[1].Form = figure_form::O_figure;
+        PlaygroundData[0].Figures[1].Type = figure_type::stone;
+        
+        PlaygroundData[0].Figures[2].Form = figure_form::O_figure;
+        PlaygroundData[0].Figures[2].Type = figure_type::mirror;
+        
+        PlaygroundData[0].RowAmount    = 5;
+        PlaygroundData[0].ColumnAmount = 5;
+        
+        PrepareNextPlayground(Playground, Configuration, PlaygroundData, 0);
     }
     
     Assert(sizeof(transient_state) < Memory->TransientStorageSize);
@@ -178,7 +197,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         TransState->IsInitialized = true;
     }
     
-    playground *Playground  = GameState->Playground;
+    playground *Playground   = &GameState->Playground;
     menu_entity *MenuEntity  = GameState->MenuEntity;
     
     if(Input->Keyboard.Tab.EndedDown)

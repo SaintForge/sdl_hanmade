@@ -380,6 +380,77 @@ WritePlaygroundData(playground_data *Playground, playground *Entity, u32 Index)
 }
 
 static void
+PrepareNextPlayground(playground *Playground, playground_config *Configuration, playground_data *Data, u32 Index)
+{
+    Assert(Index >= 0 || Index < PLAYGROUND_MAXIMUM);
+    
+    playground_data PlaygroundData = ReadPlaygroundData(Data, Index);
+    
+    //*Playground  = {};
+    Playground->LevelStarted = true;
+    Playground->LevelNumber  = PlaygroundData.LevelNumber;
+    
+    Playground->GridEntity.RowAmount          = PlaygroundData.RowAmount;
+    Playground->GridEntity.ColumnAmount       = PlaygroundData.ColumnAmount;
+    Playground->GridEntity.MovingBlocksAmount = PlaygroundData.MovingBlocksAmount;
+    Playground->GridEntity.StickUnitsAmount   = PlaygroundData.FigureAmount;
+    Playground->GridEntity.GridBlockSize      = Configuration->GridBlockSize;
+    
+    s32 *UnitFieldSource = PlaygroundData.UnitField;
+    s32 *UnitFieldTarget = Playground->GridEntity.UnitField;
+    for (u32 Row = 0; 
+         Row < PlaygroundData.RowAmount;
+         ++Row)
+    {
+        for (u32 Column = 0; 
+             Column < PlaygroundData.ColumnAmount;
+             ++Column)
+        {
+            s32 UnitIndex = (Row * PlaygroundData.ColumnAmount) + Column;
+            UnitFieldTarget[UnitIndex] = UnitFieldSource[UnitIndex];
+        }
+    }
+    
+    for (u32 i = 0; i < FIGURE_AMOUNT_MAXIMUM; ++i)
+    {
+        Playground->GridEntity.StickUnits[i].Index = -1;
+    }
+    
+    moving_block *MovingBlocks = Playground->GridEntity.MovingBlocks;
+    for (u32 BlockIndex = 0;
+         BlockIndex < PlaygroundData.MovingBlocksAmount;
+         ++BlockIndex)
+    {
+        MovingBlocks[BlockIndex].RowNumber  = PlaygroundData.MovingBlocks[BlockIndex].RowNumber;
+        MovingBlocks[BlockIndex].ColNumber  = PlaygroundData.MovingBlocks[BlockIndex].ColNumber;
+        MovingBlocks[BlockIndex].IsVertical = PlaygroundData.MovingBlocks[BlockIndex].IsVertical;
+        MovingBlocks[BlockIndex].MoveSwitch = PlaygroundData.MovingBlocks[BlockIndex].MoveSwitch;
+    }
+    
+    Playground->FigureEntity.FigureAmount     = 0;
+    Playground->FigureEntity.ReturnIndex      = -1;
+    Playground->FigureEntity.FigureVelocity   = Configuration->FigureVelocity;
+    Playground->FigureEntity.RotationVelocity = Configuration->RotationVel;
+    Playground->FigureEntity.FigureArea.Min.x = 1200;
+    Playground->FigureEntity.FigureArea.Min.y = 81;
+    Playground->FigureEntity.FigureArea.Max.x = Playground->FigureEntity.FigureArea.Min.x + 552;
+    Playground->FigureEntity.FigureArea.Max.y = Playground->FigureEntity.FigureArea.Min.y + 972;
+    
+    figure_unit *FigureUnits = Playground->FigureEntity.FigureUnit;
+    for (u32 FigureIndex = 0;
+         FigureIndex < PlaygroundData.FigureAmount;
+         ++FigureIndex)
+    {
+        figure_form Form = PlaygroundData.Figures[FigureIndex].Form;
+        figure_type Type = PlaygroundData.Figures[FigureIndex].Type;
+        
+        FigureUnitAddNewFigure(&Playground->FigureEntity, Form, Type, Configuration->InActiveBlockSize);
+    }
+    
+    FigureEntityAlignFigures(&Playground->FigureEntity, Configuration->InActiveBlockSize);
+}
+
+static void
 SDLAssetBuildBinaryFile()
 {
     SDL_RWops *BinaryFile = SDL_RWFromFile("package1.bin", "wb");

@@ -93,37 +93,6 @@ static void FreeTexture(game_texture *&Texture)
     }
 }
 
-struct figure_memory
-{
-    r32 Angle;
-    figure_flip Flip;
-    figure_form Form;
-    figure_type Type;
-};
-
-struct moving_block_memory
-{
-    u32 RowNumber;
-    u32 ColNumber;
-    bool IsVertical;
-    bool MoveSwitch;
-};
-
-struct level_memory
-{
-    // TODO(Sierra): Add lock/unlock toggle variable in editor or main_menu
-    u32 IsLocked;
-    u32 LevelNumber;
-    u32 RowAmount;
-    u32 ColumnAmount;
-    u32 MovingBlocksAmount;
-    u32 FigureAmount;
-    
-    s32 *UnitField;
-    moving_block_memory *MovingBlocks;
-    figure_memory *Figures;
-};
-
 struct figure_data
 {
     r32 Angle;

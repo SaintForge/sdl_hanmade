@@ -121,39 +121,6 @@ DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, u32 B
     SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
 }
 
-
-
-// TODO(Sierra): figure out the way to compute the size also by the row amount
-static s32
-CalculateFigureBlockSizeByWidth(s32 FigureAmount, s32 FigureAreaWidth)
-{
-    s32 Result = {};
-    
-    Result = roundf(((r32)FigureAreaWidth / 9.0f));
-    
-    if(Result % 2)
-    {
-        Result = Result + 1;
-    }
-    
-    return(Result);
-}
-
-static s32 
-CalculateFigureBlockSizeByHeight(s32 FigureAmount, s32 FigureAreaHeight)
-{
-    s32 Result = {};
-    
-    Result = roundf(((r32)FigureAreaHeight / 9.0f));
-    
-    if(Result % 2)
-    {
-        Result = Result + 1;
-    }
-    
-    return(Result);
-}
-
 static void
 FigureEntityHighOrderFigure(figure_entity *FigureEntity, u32 Index)
 {
@@ -215,7 +182,6 @@ FigureEntityLowPriority(figure_entity *FigureEntity, u32 Index)
 static void
 FigureUnitResizeBy(figure_unit *Entity, r32 ScaleFactor)
 {
-    //game_rect *Rectangle = &Entity->AreaQuad;
     game_point OldCenter = {};
     game_point NewCenter = {};
     
@@ -284,14 +250,14 @@ static void
 FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form,
                      figure_type Type, u32 InActiveBlockSize)
 {
-    FigureUnit->IsIdle       = true;
-    FigureUnit->Form         = Form;
-    FigureUnit->Type         = Type;
-    FigureUnit->Flip         = SDL_FLIP_NONE;
+    FigureUnit->IsIdle = true;
+    FigureUnit->Form   = Form;
+    FigureUnit->Type   = Type;
+    FigureUnit->Flip   = SDL_FLIP_NONE;
     
-    u32 RowAmount         = 0;
-    u32 ColumnAmount      = 0;
-    r32 CenterOffset      = 0.5f;
+    u32 RowAmount    = 0;
+    u32 ColumnAmount = 0;
+    r32 CenterOffset = 0.5f;
     
     vector<vector<s32>> matrix(2);
     for(u32 i = 0; i < 2; ++i)
@@ -304,12 +270,14 @@ FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form,
         case I_figure:
         {
             /* TODO(msokolov): Implement something like this instead of using std::vector
+
             v3 MapColor[] =
     {
         {1, 0, 0},
         {0, 1, 0},
         {0, 0, 1},
     };
+
             */
             
             matrix = 
@@ -317,6 +285,7 @@ FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form,
                 {1, 1, 1, 1},
                 {0, 0, 0, 0} 
             };
+            
             RowAmount    = 4;
             ColumnAmount = 1;
         } break;
@@ -328,6 +297,7 @@ FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form,
                 { 1, 1 },
                 { 1, 1 } 
             };
+            
             RowAmount    = 2;
             ColumnAmount = 2;
         }break;
@@ -339,6 +309,7 @@ FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form,
                 {1, 1, 0}, 
                 {0, 1, 1} 
             };
+            
             RowAmount    = 3;
             ColumnAmount = 2;
         }break;
@@ -350,6 +321,7 @@ FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form,
                 {0, 1, 1}, 
                 {1, 1, 0} 
             };
+            
             RowAmount    = 3;
             ColumnAmount = 2;
         }break;
@@ -361,6 +333,7 @@ FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form,
                 {0, 1, 0},
                 {1, 1, 1}
             };
+            
             CenterOffset = 0.75f;
             RowAmount    = 3;
             ColumnAmount = 2;
@@ -373,6 +346,7 @@ FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form,
                 {0, 0, 1},
                 {1, 1, 1}
             };
+            
             CenterOffset = 0.75f;
             RowAmount    = 3;
             ColumnAmount = 2;
@@ -385,9 +359,11 @@ FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form,
                 {1, 0, 0},
                 {1, 1, 1} 
             };
+            
             CenterOffset = 0.75f;
             RowAmount    = 3;
             ColumnAmount = 2;
+            
         }break;
     }
     
@@ -880,8 +856,8 @@ RestartLevelEntity(playground *LevelEntity)
     u32 RowAmount         = GridEntity->RowAmount;
     u32 ColumnAmount      = GridEntity->ColumnAmount;
     u32 FigureAmount      = FigureEntity->FigureAmount;
-    r32 GridBlockSize     = LevelEntity->Configuration.GridBlockSize;
-    r32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
+    r32 GridBlockSize     = LevelEntity->GridEntity.GridBlockSize;
+    r32 InActiveBlockSize = LevelEntity->FigureEntity.InActiveBlockSize;
     
     FigureEntity->IsRestarting = true;
     
@@ -936,8 +912,8 @@ GameUpdateEvent(game_input *Input, playground *LevelEntity, u32 ScreenWidth, u32
     r32 BlockRatio  = 0;
     u32 ActiveIndex = FigureEntity->FigureActive;
     
-    r32 GridBlockSize = LevelEntity->Configuration.GridBlockSize;
-    r32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
+    r32 GridBlockSize = LevelEntity->GridEntity.GridBlockSize;
+    r32 InActiveBlockSize = LevelEntity->FigureEntity.InActiveBlockSize;
     
     if(!LevelEntity->LevelPaused)
     {
@@ -2051,8 +2027,8 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
     figure_entity *FigureEntity = &LevelEntity->FigureEntity;
     figure_unit   *FigureUnit   = FigureEntity->FigureUnit;
     
-    s32 GridBlockSize     = LevelEntity->Configuration.GridBlockSize;
-    u32 InActiveBlockSize = LevelEntity->Configuration.InActiveBlockSize;
+    s32 GridBlockSize     = LevelEntity->GridEntity.GridBlockSize;
+    u32 InActiveBlockSize = LevelEntity->FigureEntity.InActiveBlockSize;
     
     game_rect AreaQuad = {};
     
@@ -2440,11 +2416,12 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
     
     if(ShouldHighlight) 
     {
-        Change1DUnitPerSec(&FigureEntity->AreaAlpha, 255, LevelEntity->Configuration.FlippingAlphaPerSec, Input->dtForFrame);
+        Change1DUnitPerSec(&FigureEntity->AreaAlpha, 255, LevelEntity->FigureEntity.FlippingVelocity, Input->dtForFrame);
+        
     }
     else
     {
-        Change1DUnitPerSec(&FigureEntity->AreaAlpha, 0, LevelEntity->Configuration.FlippingAlphaPerSec, Input->dtForFrame);
+        Change1DUnitPerSec(&FigureEntity->AreaAlpha, 0, LevelEntity->FigureEntity.FlippingVelocity, Input->dtForFrame);
     }
     
     if(FigureEntity->AreaAlpha != 0) 
@@ -2495,7 +2472,7 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
     if(FigureEntity->IsRotating)
     {
         // TODO(max): Maybe put these values in playground ???
-        r32 AngleDt = Input->dtForFrame * LevelEntity->Configuration.RotationVel;
+        r32 AngleDt = Input->dtForFrame * LevelEntity->FigureEntity.RotationVelocity;
         if(FigureEntity->RotationSum < 90.0f && !(FigureEntity->RotationSum + AngleDt >= 90.0f))
         {
             FigureEntity->FigureUnit[ActiveIndex].Angle += AngleDt;
@@ -2514,7 +2491,7 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
     {
         if(FigureEntity->FadeInSum > 0)
         {
-            if(Change1DUnitPerSec(&FigureEntity->FigureAlpha, 0, LevelEntity->Configuration.FlippingAlphaPerSec, TimeElapsed))
+            if(Change1DUnitPerSec(&FigureEntity->FigureAlpha, 0, 10, TimeElapsed))
             {
                 FigureEntity->FigureAlpha = 0;
                 FigureEntity->FadeInSum   = 0;
@@ -2523,7 +2500,7 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
         }
         else if(FigureEntity->FadeOutSum < 255)
         {
-            if(Change1DUnitPerSec(&FigureEntity->FigureAlpha, 255, LevelEntity->Configuration.FlippingAlphaPerSec, TimeElapsed))
+            if(Change1DUnitPerSec(&FigureEntity->FigureAlpha, 255, 10, TimeElapsed))
             {
                 FigureEntity->FigureAlpha = 255;
                 FigureEntity->FadeOutSum  = 255;

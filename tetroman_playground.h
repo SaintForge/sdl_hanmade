@@ -70,7 +70,11 @@ struct figure_entity
     r32 FadeInSum;
     r32 FadeOutSum;
     r32 RotationSum;
+    
     r32 FigureVelocity;
+    r32 InActiveBlockSize;
+    r32 FlippingVelocity;
+    r32 RotationVelocity;
     
     game_texture *O_ClassicTexture;
     game_texture *O_StoneTexture;
@@ -130,6 +134,7 @@ struct grid_entity
     s32 UnitField[COLUMN_AMOUNT_MAXIMUM * ROW_AMOUNT_MAXIMUM];
     u32 RowAmount;
     u32 ColumnAmount;
+    r32 GridBlockSize;
     
     moving_block MovingBlocks[COLUMN_AMOUNT_MAXIMUM * ROW_AMOUNT_MAXIMUM];
     u32 MovingBlocksAmount;
@@ -147,7 +152,7 @@ struct grid_entity
     game_texture *DownRightCornerFrame;
 };
 
-struct level_config
+struct playground_config
 {
     s32 InActiveBlockSize;
     s32 GridBlockSize;
@@ -156,6 +161,8 @@ struct level_config
     r32 StartUpTimeElapsed;
     
     r32 RotationVel;
+    r32 FigureVelocity;
+    
     r32 StartAlphaPerSec;
     r32 FlippingAlphaPerSec;
     r32 GridScalePerSec;
@@ -205,7 +212,7 @@ struct playground
     grid_entity GridEntity;
     figure_entity FigureEntity;
     
-    level_config Configuration;
+    //level_config Configuration;
     level_animation AnimationData;
     
     u32 LevelNumber;

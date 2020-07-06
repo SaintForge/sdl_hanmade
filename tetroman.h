@@ -12,7 +12,7 @@
 #include "tetroman_math.h"
 #include "tetroman_intrinsics.h"
 
-#include "tetroman_entity.h"
+#include "tetroman_playground.h"
 #include "tetroman_asset.h"
 #include "tetroman_editor.h"
 #include "tetroman_render_group.h"
@@ -58,8 +58,9 @@ struct game_state
 {
     memory_group MemoryGroup;
     
-    playground *Playground;
+    playground Playground;
     playground_data *PlaygroundData;
+    playground_config Configuration;
     u32 PlaygroundIndex;
     
     menu_entity *MenuEntity;
