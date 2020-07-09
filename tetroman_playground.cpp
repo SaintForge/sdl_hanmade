@@ -1,5 +1,4 @@
 
-
 static game_rect
 FigureUnitGetArea(figure_unit *Unit)
 {
@@ -134,29 +133,26 @@ FigureUnitRotateShellBy(figure_unit *Entity, float Angle)
 {
     if((s32)Entity->Angle == 0)
     {
-        Entity->Angle = 0;
+        Entity->Angle = 0.0f;
     }
     
     v2 Center = {};
-    Center.x   = Entity->Position.x + (Entity->Size.w / 2);
-    Center.y   = Entity->Position.y + (Entity->Size.h) * Entity->CenterOffset;
+    Center.x  = Entity->Position.x + (Entity->Size.w / 2.0f);
+    Center.y  = Entity->Position.y + (Entity->Size.h) * Entity->CenterOffset;
     
-    for (u32 i = 0; i < 4; ++i)
+    for (u32 i = 0; i < FIGURE_BLOCKS_MAXIMUM; ++i)
     {
-        float Radians = Angle * (M_PI / 180.0f);
-        float Cos = cos(Radians);
-        float Sin = sin(Radians);
+        r32 Radians = Angle * (M_PI / 180.0f);
+        r32 Cos = cos(Radians);
+        r32 Sin = sin(Radians);
         
-        float X = Center.x + (Entity->Shell[i].x - Center.x) * Cos
-            - (Entity->Shell[i].y - Center.y) * Sin;
-        float Y = Center.y + (Entity->Shell[i].x - Center.x) * Sin
-            + (Entity->Shell[i].y - Center.y) * Cos;
+        v2 Position = {};
+        Position.x = Center.x + (Entity->Shell[i].x - Center.x) * Cos - (Entity->Shell[i].y - Center.y) * Sin;
+        Position.y = Center.y + (Entity->Shell[i].x - Center.x) * Sin + (Entity->Shell[i].y - Center.y) * Cos;
         
-        Entity->Shell[i].x = roundf(X);
-        Entity->Shell[i].y = roundf(Y);
+        Entity->Shell[i] = Position;
     }
 }
-
 
 static void
 FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form,
@@ -337,25 +333,19 @@ FigureUnitFlipHorizontally(figure_unit *Unit)
     
     if(AreaQuad.w > AreaQuad.h)
     {
-        for (u32 i = 0; i < 4; ++i)
+        for (u32 i = 0; i < FIGURE_BLOCKS_MAXIMUM; ++i)
         {
             NewX = (AreaQuad.x + AreaQuad.w) - (Unit->Shell[i].x - AreaQuad.x);
             Unit->Shell[i].x = NewX;
         }
-        
-        //NewCenterX = (AreaQuad.x + AreaQuad.w) - (Unit->Center.x - AreaQuad.x);
-        //Unit->Center.x = NewCenterX;
     }
     else
     {
-        for (u32 i = 0; i < 4; ++i)
+        for (u32 i = 0; i < FIGURE_BLOCKS_MAXIMUM; ++i)
         {
             NewY = (AreaQuad.y + AreaQuad.h) - (Unit->Shell[i].y - AreaQuad.y);
             Unit->Shell[i].y = NewY;
         }
-        
-        //NewCenterY = (AreaQuad.y + AreaQuad.h) - (Unit->Center.y - AreaQuad.y);
-        //Unit->Center.y = NewCenterY;
     }
 }
 
@@ -370,62 +360,6 @@ FigureUnitMove(figure_unit *Entity, v2 dt)
     {
         Entity->Shell[Index] += dt;
     }
-}
-
-static void
-FigureUnitMove(figure_unit *Entity, r32 XShift, r32 YShift)
-{
-    v2 Offset = {XShift, YShift};
-    
-    Entity->Position += Offset;
-    for (u32 i = 0; i < 4; ++i)
-    {
-        Entity->Shell[i] += Offset;
-    }
-}
-
-#if 0
-static void
-FigureUnitMoveTo(figure_unit *Entity, s32 NewPointX, s32 NewPointY)
-{
-    s32 XShift = NewPointX - Entity->Center.x;
-    s32 YShift = NewPointY - Entity->Center.y;
-    FigureUnitMove(Entity, XShift, YShift);
-}
-#endif
-
-
-static game_rect 
-ConstructFigureArea(figure_unit *FigureUnit, s32 FigureBlockSize)
-{
-    game_rect Result = {(s32)FigureUnit->Shell[0].x, (s32)FigureUnit->Shell[0].y, -99999, -9999};
-    
-    u32 OffsetX = 0;
-    u32 OffsetY = 0;
-    bool ZeroArea = false;
-    
-    for (u32 i = 0; i < 4; ++i)
-    {
-        if(Result.x >= FigureUnit->Shell[i].x) Result.x = FigureUnit->Shell[i].x;
-        if(Result.y >= FigureUnit->Shell[i].y) Result.y = FigureUnit->Shell[i].y;
-        if(Result.w <= FigureUnit->Shell[i].x) Result.w = FigureUnit->Shell[i].x;
-        if(Result.h <= FigureUnit->Shell[i].y) Result.h = FigureUnit->Shell[i].y;
-    }
-    
-    Result.w -= Result.x;
-    Result.h -= Result.y;
-    Result.w += roundf((r32)FigureBlockSize / 2.0f);
-    Result.h += roundf((r32)FigureBlockSize / 2.0f);
-    
-    if(Result.w == 0 || Result.h == 0)
-    {
-        ZeroArea = true;
-    }
-    
-    Result.x -= roundf((r32)FigureBlockSize / 2.0f);
-    Result.y -= roundf((r32)FigureBlockSize / 2.0f);
-    
-    return(Result);
 }
 
 static game_texture *
@@ -589,22 +523,13 @@ PickFigureTexture(figure_form Form, figure_type Type, figure_entity *FigureEntit
 }
 
 static void
-FigureUnitRenderBitmap(render_group *RenderGroup, figure_unit *Entity, game_texture *Texture)
-{
-    
-}
-
-static void
 FigureUnitSetToDefaultArea(figure_unit* Unit, r32 BlockRatio)
 {
-    s32 ShiftX = 0;
-    s32 ShiftY = 0;
-    
     if(Unit->IsEnlarged)
     {
         r32 Angle     = Unit->Angle;
         r32 HomeAngle = Unit->HomeAngle;
-        r32 AngleDifference      = 0;
+        r32 AngleDifference = 0;
         
         if(Unit->Angle != Unit->HomeAngle)
         {
@@ -614,22 +539,22 @@ FigureUnitSetToDefaultArea(figure_unit* Unit, r32 BlockRatio)
         }
         
         FigureUnitResizeBy(Unit, BlockRatio);
-        
         Unit->IsEnlarged = false;
     }
 }
 
 static void
-FigureUnitDefineDefaultArea(figure_unit *Unit, s32 X, s32 Y)
+FigureUnitDefineDefaultArea(figure_unit *Unit, v2 Position)
 {
     game_rect AreaQuad = FigureUnitGetArea(Unit);
-    s32 ShiftX = X - AreaQuad.x;
-    s32 ShiftY = Y - AreaQuad.y;
+    v2 Offset = {};
+    Offset.x = Position.x - AreaQuad.x;
+    Offset.y = Position.y - AreaQuad.y;
     
-    FigureUnitMove(Unit, ShiftX, ShiftY);
+    FigureUnitMove(Unit, Offset);
     
     Unit->HomePosition = Unit->Position;
-    Unit->HomeAngle  = Unit->Angle;
+    Unit->HomeAngle    = Unit->Angle;
 }
 
 static void
@@ -637,67 +562,16 @@ FigureUnitMoveToDefaultArea(figure_unit *FigureUnit, u32 ActiveBlockSize)
 {
     v2 Offset = FigureUnit->HomePosition - FigureUnit->Position;
     
-    r32 Magnitude = 0.0f;
-    r32 MaxSpeed  = 0.0f;
+    r32 Magnitude = Square(Offset);
+    r32 MaxSpeed  = Magnitude - ActiveBlockSize;
     
-    Magnitude = sqrt(Offset.x*Offset.x + Offset.y*Offset.y);
-    MaxSpeed = Magnitude - ActiveBlockSize;
-    
-    if(Magnitude > (MaxSpeed))
+    if(Magnitude > MaxSpeed)
     {
-        if(Magnitude != 0) 
-        {
-            // TODO(msokolov): add divide operation for vectors
-            Offset.x /= Magnitude;
-            Offset.y /= Magnitude;
-        }
-        
+        Offset = Normalize(Offset);
         Offset *= MaxSpeed;
-        Offset.x = roundf(Offset.x);
-        Offset.y = roundf(Offset.y);
         
         FigureUnitMove(FigureUnit, Offset);
     }
-}
-
-static void
-GridEntityAddMovingBlock(grid_entity *GridEntity,
-                         u32 RowNumber, u32 ColNumber, 
-                         bool IsVertical, bool MoveSwitch, 
-                         u32 GridBlockSize)
-{
-    if(GridEntity->MovingBlocksAmount >= MOVING_BLOCKS_MAXIMUM) return;
-    if((RowNumber >= GridEntity->RowAmount) || RowNumber < 0) return;
-    if((ColNumber >= GridEntity->ColumnAmount) || ColNumber < 0) return;
-    
-    u32 Index = GridEntity->MovingBlocksAmount;
-    
-    s32 ActualGridWidth = GridBlockSize * GridEntity->ColumnAmount;
-    s32 ActualGridHeight = GridBlockSize * GridEntity->RowAmount;
-    
-    rectangle2 GridArea = {};
-    r32 GridAreaWidth = GridEntity->GridArea.Max.x - GridEntity->GridArea.Min.x;
-    r32 GridAreaHeight = GridEntity->GridArea.Max.y - GridEntity->GridArea.Min.y;
-    GridArea.Min.x = GridEntity->GridArea.Min.x + (GridAreaWidth / 2.0f) - (ActualGridWidth / 2);
-    GridArea.Min.y = GridEntity->GridArea.Min.y + (GridAreaHeight / 2.0f) - (ActualGridHeight / 2);
-    
-    GridEntity->MovingBlocks[Index].Area.Min.x = GridArea.Min.x + (ColNumber * GridBlockSize);
-    GridEntity->MovingBlocks[Index].Area.Min.y = GridArea.Min.y + (RowNumber * GridBlockSize);
-    GridEntity->MovingBlocks[Index].Area.Max.w = GridEntity->MovingBlocks[Index].Area.Min.x + GridBlockSize;
-    GridEntity->MovingBlocks[Index].Area.Max.h = GridEntity->MovingBlocks[Index].Area.Min.y + GridBlockSize;
-    
-    GridEntity->MovingBlocks[Index].IsMoving   = false;
-    GridEntity->MovingBlocks[Index].MoveSwitch = MoveSwitch;
-    GridEntity->MovingBlocks[Index].IsVertical = IsVertical;
-    GridEntity->MovingBlocks[Index].RowNumber  = RowNumber;
-    GridEntity->MovingBlocks[Index].ColNumber  = ColNumber;
-    
-    s32 RowAmount = GridEntity->RowAmount;
-    s32 ColAmount = GridEntity->ColumnAmount;
-    
-    GridEntity->UnitField[(RowNumber * ColAmount) + ColNumber] = IsVertical ? 3 : 2;
-    
-    GridEntity->MovingBlocksAmount += 1;
 }
 
 static void
@@ -814,8 +688,8 @@ GameUpdateEvent(game_input *Input, playground *LevelEntity, u32 ScreenWidth, u32
     figure_unit   *FigureUnit   = FigureEntity->FigureUnit;
     
     u32 Size   = FigureEntity->FigureAmount;
-    s32 MouseX = Input->MouseX;
-    s32 MouseY = Input->MouseY;
+    //s32 MouseX = Input->MouseX;
+    //s32 MouseY = Input->MouseY;
     
     v2 MousePos = {};
     MousePos.x = Input->MouseX;
@@ -858,7 +732,6 @@ GameUpdateEvent(game_input *Input, playground *LevelEntity, u32 ScreenWidth, u32
                         }
                     }
                     
-                    //if(IsPointInsideRect(MouseX, MouseY, &AreaQuad))
                     if (IsInShell)
                     {
                         FigureEntity->IsGrabbed = true;
@@ -879,13 +752,10 @@ GameUpdateEvent(game_input *Input, playground *LevelEntity, u32 ScreenWidth, u32
                     }
                 }
                 
-                v2 MousePos = {(r32) MouseX, (r32) MouseY};
-                
                 if(IsInRectangle(MousePos, GridEntity->GridArea))
                 {
                     for(u32 i = 0; i < GridEntity->MovingBlocksAmount; i++)
                     {
-                        v2 MousePos = {(r32)MouseX, (r32)MouseY};
                         if (IsInRectangle(MousePos, GridEntity->MovingBlocks[i].Area))
                         {
                             if(!GridEntity->MovingBlocks[i].IsVertical) 
@@ -979,7 +849,6 @@ GameUpdateEvent(game_input *Input, playground *LevelEntity, u32 ScreenWidth, u32
             r32 YShift = Input->MouseRelY;
             
             FigureUnitMove(&FigureUnit[ActiveIndex], dt);
-            //FigureUnitMove(&FigureUnit[ActiveIndex], XShift, YShift);
         }
     }
 }
@@ -1008,6 +877,8 @@ FigureEntityAlignFigures(figure_entity *Entity, u32 BlockSize)
     u32 PitchX           = 0;
     s32 NewPositionX     = 0;
     s32 NewPositionY     = 0;
+    v2 NewPosition = {};
+    
     u32 CurrentColumnSize1  = 0;
     u32 CurrentColumnSize2  = 0;
     u32 FigureBoxWidth  = 0;
@@ -1019,27 +890,27 @@ FigureEntityAlignFigures(figure_entity *Entity, u32 BlockSize)
         AreaQuad = FigureUnitGetArea(&Entity->FigureUnit[i]);
         
         FigureBoxWidth = BlockSize * 4;
-        NewPositionX  = DefaultZone.Min.x + (FigureBoxWidth * PitchX);
-        NewPositionX += SpaceBetweenGrid;
-        NewPositionX += (FigureBoxWidth / 2 ) - (AreaQuad.w / 2);
-        NewPositionX += FigureIntervalX * PitchX;
+        NewPosition.x  = DefaultZone.Min.x + (FigureBoxWidth * PitchX);
+        NewPosition.x += SpaceBetweenGrid;
+        NewPosition.x += (FigureBoxWidth / 2 ) - (AreaQuad.w / 2);
+        NewPosition.x += FigureIntervalX * PitchX;
         
         if(i % 2 == 0)
         {
-            NewPositionY = DefaultZone.Min.y + FigureIntervalY;
-            NewPositionY += CurrentColumnSize1;
+            NewPosition.y = DefaultZone.Min.y + FigureIntervalY;
+            NewPosition.y += CurrentColumnSize1;
             
             CurrentColumnSize1 += AreaQuad.h + FigureIntervalY;
         }
         else
         {
-            NewPositionY = DefaultZone.Min.y + FigureIntervalY;
-            NewPositionY += CurrentColumnSize2;
+            NewPosition.y = DefaultZone.Min.y + FigureIntervalY;
+            NewPosition.y += CurrentColumnSize2;
             
             CurrentColumnSize2 += AreaQuad.h + FigureIntervalY;
         }
         
-        FigureUnitDefineDefaultArea(&Entity->FigureUnit[i], NewPositionX, NewPositionY);
+        FigureUnitDefineDefaultArea(&Entity->FigureUnit[i], NewPosition);
     }
     
 }
@@ -1054,7 +925,6 @@ Change1DUnitPerSec(r32 *Unit, r32 MaxValue, r32 ChangePerSec, r32 TimeElapsed)
     
     if(MaxValue > 0)
     {
-        
         if(UnitValue < MaxValue)
         {
             UnitValue += TimeElapsed * ChangePerSec;
@@ -2342,8 +2212,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         
         v2 Position = FigureUnit[ReturnIndex].Position;
         v2 Destination = FigureUnit[ReturnIndex].HomePosition;
-        
-        //v2 HomePosition = FigureUnit[ReturnIndex].HomePosition;
         
         v2 dt = Destination - Position;
         r32 Distance = Square(dt);

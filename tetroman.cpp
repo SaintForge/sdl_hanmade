@@ -162,7 +162,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             Block->Area.Max.x = Block->Area.Min.x + GridEntity->GridBlockSize;
             Block->Area.Max.y = Block->Area.Min.y + GridEntity->GridBlockSize;
             
-            GridEntity->UnitField[(Block->RowNumber * COLUMN_AMOUNT_MAXIMUM) + Block->ColNumber] = 1;
+            GridEntity->UnitField[(Block->RowNumber * COLUMN_AMOUNT_MAXIMUM) + Block->ColNumber] = 2;
         }
         
         /* NOTE(msokolov): menu_entity initialization starts here */ 
