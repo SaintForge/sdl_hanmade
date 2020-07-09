@@ -140,10 +140,31 @@ operator+(v2 A, v2 B)
     return(Result);
 }
 
+inline v2
+operator+(v2 A, r32 B)
+{
+    v2 Result;
+    
+    Result.x = A.x + B;
+    Result.y = A.y + B;
+    
+    return(Result);
+}
+
 inline v2 &
 operator+=(v2 &A, v2 B)
 {
     A = A + B;
+    
+    return(A);
+}
+
+
+inline v2 &
+operator+=(v2 &A, r32 B)
+{
+    A.x = A.x + B;
+    A.y = A.y + B;
     
     return(A);
 }

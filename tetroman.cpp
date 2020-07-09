@@ -42,7 +42,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Configuration->RotationVel         = 600.0f;
         Configuration->StartAlphaPerSec    = 500.0f;
         Configuration->FlippingAlphaPerSec = 1000.0f;
-        Configuration->FigureVelocity      = 400.0f;
+        Configuration->FigureVelocity      = 600.0f;
+        Configuration->MovingBlockVelocity = 555.0f;
         
         /* NOTE(msokolov): level_entity initialization starts here */
         playground* Playground = &GameState->Playground;
@@ -119,8 +120,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->RowAmount           = 8;
         GridEntity->ColumnAmount        = 6;
         GridEntity->StickUnitsAmount    = FigureEntity->FigureAmount;
-        GridEntity->MovingBlocksAmount  = 0;
+        GridEntity->MovingBlocksAmount  = 1;
         GridEntity->GridBlockSize       = Configuration->GridBlockSize;
+        GridEntity->MovingBlockVelocity = Configuration->MovingBlockVelocity;
         
         GridEntity->GridArea.Min.x = 100;
         GridEntity->GridArea.Min.y = 81;
@@ -148,6 +150,20 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->TopRightCornerFrame     = GetTexture(Memory, "frame4.png", Buffer->Renderer);
         GridEntity->DownLeftCornerFrame     = GetTexture(Memory, "frame2.png", Buffer->Renderer);
         GridEntity->DownRightCornerFrame    = GetTexture(Memory, "frame1.png", Buffer->Renderer);
+        
+        for (u32 BlockIndex = 0; 
+             BlockIndex < GridEntity->MovingBlocksAmount;
+             ++BlockIndex)
+        {
+            moving_block *Block = &GridEntity->MovingBlocks[BlockIndex];
+            
+            Block->Area.Min.x = GridEntity->GridArea.Min.x + (Block->ColNumber * GridEntity->GridBlockSize);
+            Block->Area.Min.y = GridEntity->GridArea.Min.y + (Block->RowNumber * GridEntity->GridBlockSize);
+            Block->Area.Max.x = Block->Area.Min.x + GridEntity->GridBlockSize;
+            Block->Area.Max.y = Block->Area.Min.y + GridEntity->GridBlockSize;
+            
+            GridEntity->UnitField[(Block->RowNumber * COLUMN_AMOUNT_MAXIMUM) + Block->ColNumber] = 1;
+        }
         
         /* NOTE(msokolov): menu_entity initialization starts here */ 
         GameState->MenuEntity   = PushStruct(&GameState->MemoryGroup, menu_entity);
@@ -184,6 +200,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         PlaygroundData[0].RowAmount    = 5;
         PlaygroundData[0].ColumnAmount = 5;
+        PlaygroundData[0].MovingBlocksAmount = 1;
+        PlaygroundData[0].MovingBlocks[0].RowNumber = 1;
+        PlaygroundData[0].MovingBlocks[0].ColNumber = 1;
         
         PrepareNextPlayground(Playground, Configuration, PlaygroundData, 0);
     }

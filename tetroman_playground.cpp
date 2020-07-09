@@ -1172,29 +1172,6 @@ Change1DUnitPerSec(r32 *Unit, r32 MaxValue, r32 ChangePerSec, r32 TimeElapsed)
     return(IsFinished);
 }
 
-static v2
-Move2DPointPerSec(v2 p1, v2 p2, r32 MaxVelocity, r32 TimeElapsed)
-{
-    v2 Result = {};
-    
-    Result.x = p2.x - p1.x;
-    Result.y = p2.y - p1.y;
-    
-    r32 Distance = sqrt(Result.x * Result.x + Result.y * Result.y);
-    if(Distance > MaxVelocity)
-    {
-        Result.x = Result.x / Distance;
-        Result.y = Result.y / Distance;
-        
-        Result.x = Result.x * MaxVelocity;
-        Result.y = Result.y * MaxVelocity;
-    }
-    
-    Result.x = roundf(Result.x);
-    Result.y = roundf(Result.y);
-    
-    return(Result);
-}
 #if 0
 static void
 LevelEntityUpdateLevelNumber(playground *LevelEntity, game_memory *Memory, game_offscreen_buffer *Buffer)
@@ -2220,8 +2197,8 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
         if(!IsSticked && Index >= 0)
         {
             v2 FigureCenter = {};
-            FigureCenter.x   = FigureUnit[Index].Position.x + (FigureUnit[Index].Size.w / 2);
-            FigureCenter.y   = FigureUnit[Index].Position.y + (FigureUnit[Index].Size.h) * FigureUnit[Index].CenterOffset;
+            FigureCenter.x = FigureUnit[Index].Position.x + (FigureUnit[Index].Size.w / 2.0f);
+            FigureCenter.y = FigureUnit[Index].Position.y + (FigureUnit[Index].Size.h) * FigureUnit[Index].CenterOffset;
             
             // TODO(msokolov): change it to be upper left corner and not center
             v2 TargetCenter = GridEntity->StickUnits[i].Center;
@@ -2267,6 +2244,7 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
     AreaQuad.w = GridBlockSize;
     AreaQuad.h = GridBlockSize;
     
+    printf("-----------------\n");
     for (u32 Row = 0; Row < RowAmount; ++Row)
     {
         StartY = GridArea.y + (GridBlockSize * Row);
@@ -2277,13 +2255,14 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
             
             AreaQuad.x = StartX;
             AreaQuad.y = StartY;
-            
             u32 GridUnit = GridEntity->UnitField[(Row * ColumnAmount) + Col];
+            printf("%d ", GridUnit);
             if(GridUnit == 0 || GridUnit == 2 || GridUnit == 3)
             {
                 PushBitmap(RenderGroup, GridEntity->NormalSquareTexture, AreaQuad);
             }
         }
+        printf("\n");
     }
     
     s32 SpaceOverFrame = GridBlockSize / 4;
@@ -2313,34 +2292,36 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
     
     /* MovingBlocks Update and Rendering */
     
+    moving_block *MovingBlocks = GridEntity->MovingBlocks;
     for(u32 i = 0; i < GridEntity->MovingBlocksAmount; ++i)
     {
         if(GridEntity->MovingBlocks[i].IsMoving)
         {
-            s32 RowNumber = GridEntity->MovingBlocks[i].RowNumber;
-            s32 ColNumber = GridEntity->MovingBlocks[i].ColNumber;
+            s32 RowNumber = MovingBlocks[i].RowNumber;
+            s32 ColNumber = MovingBlocks[i].ColNumber;
+            v2 MovingBlockDim = MovingBlocks[i].Area.Max - MovingBlocks[i].Area.Min;
             
-            v2 Center = { 
-                (r32)GridEntity->MovingBlocks[i].Area.Min.x, 
-                (r32)GridEntity->MovingBlocks[i].Area.Min.y 
-            };
+            v2 Position = MovingBlocks[i].Area.Min;
+            v2 Destination = {};
+            Destination.x = GridArea.x + (ColNumber * GridBlockSize);
+            Destination.y = GridArea.y + (RowNumber * GridBlockSize);
             
-            v2 TargetCenter;
-            TargetCenter.x = GridArea.x + (ColNumber * GridBlockSize);
-            TargetCenter.y = GridArea.y + (RowNumber * GridBlockSize);
-            
-            v2 Velocity = Move2DPointPerSec(Center, TargetCenter, MaxVel, Input->dtForFrame);
-            
-            GridEntity->MovingBlocks[i].Area.Min.x += Velocity.x;
-            GridEntity->MovingBlocks[i].Area.Min.y += Velocity.y;
-            
-            if((Center.x == TargetCenter.x) && (Center.y == TargetCenter.y))
+            v2 dt = Destination - Position;
+            r32 Distance = Square(dt);
+            r32 DeadZone = 5.0f;
+            if (Distance > DeadZone)
             {
-                GridEntity->MovingBlocks[i].IsMoving = false;
-                GridEntity->MovingBlocks[i].Area.Min.x
-                    = GridArea.x + (ColNumber * GridBlockSize);
-                GridEntity->MovingBlocks[i].Area.Min.y
-                    = GridArea.y + (RowNumber * GridBlockSize);
+                dt  = Normalize(dt);
+                dt *= (GridEntity->MovingBlockVelocity * Input->dtForFrame);
+            }
+            
+            Position += dt;
+            MovingBlocks[i].Area.Min = Position;
+            MovingBlocks[i].Area.Max = MovingBlocks[i].Area.Min + MovingBlockDim;
+            
+            if((Position.x == Destination.x) && (Position.y == Destination.y))
+            {
+                MovingBlocks[i].IsMoving = false;
                 GridEntity->UnitField[(RowNumber * ColumnAmount) + ColNumber] = 1;
             }
         }
@@ -2452,16 +2433,24 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
     {
         u32 ReturnIndex = FigureEntity->ReturnIndex;
         
-        v2 Position = {};
-        Position.x = FigureUnit[ReturnIndex].Position.x;
-        Position.y = FigureUnit[ReturnIndex].Position.y;
+        v2 Position = FigureUnit[ReturnIndex].Position;
+        v2 Destination = FigureUnit[ReturnIndex].HomePosition;
         
-        v2 HomePosition = FigureUnit[ReturnIndex].HomePosition;
-        v2 Velocity =  Move2DPointPerSec(Position, HomePosition, MaxVel, TimeElapsed);
+        //v2 HomePosition = FigureUnit[ReturnIndex].HomePosition;
         
-        FigureUnitMove(&FigureUnit[ReturnIndex], Velocity.x, Velocity.y);
+        v2 dt = Destination - Position;
+        r32 Distance = Square(dt);
+        r32 DeadZone = 5.0f;
+        if (Distance > DeadZone)
+        {
+            dt  = Normalize(dt);
+            dt *= (FigureEntity->FigureVelocity * Input->dtForFrame);
+        }
         
-        if(((s32)Position.x == (s32)HomePosition.x) && ((s32)Position.y == (s32)HomePosition.y))
+        Position += dt;
+        FigureUnitMove(&FigureUnit[ReturnIndex], dt);
+        
+        if ((Position.x == Destination.x) && (Position.y == Destination.y))
         {
             FigureEntity->IsReturning = false;
             FigureEntity->ReturnIndex = -1;

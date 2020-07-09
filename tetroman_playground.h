@@ -135,6 +135,7 @@ struct grid_entity
     u32 RowAmount;
     u32 ColumnAmount;
     r32 GridBlockSize;
+    r32 MovingBlockVelocity;
     
     moving_block MovingBlocks[COLUMN_AMOUNT_MAXIMUM * ROW_AMOUNT_MAXIMUM];
     u32 MovingBlocksAmount;
@@ -162,6 +163,7 @@ struct playground_config
     
     r32 RotationVel;
     r32 FigureVelocity;
+    r32 MovingBlockVelocity;
     
     r32 StartAlphaPerSec;
     r32 FlippingAlphaPerSec;

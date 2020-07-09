@@ -243,7 +243,7 @@ RenderGroupToOutput(render_group *RenderGroup, game_offscreen_buffer *Buffer)
             
             case RenderGroupEntryType_render_entry_texture2: 
             {
-                render_entry_texture *Entry = (render_entry_texture*) Data;
+                render_entry_texture2 *Entry = (render_entry_texture2*) Data;
                 
                 DrawEntryTexture(Buffer, Entry);
                 
