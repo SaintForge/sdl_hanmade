@@ -254,7 +254,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     {
         case LEVEL:
         {
-            playground_status PlaygroundStatus = LevelEntityUpdateAndRender(Playground, RenderGroup, Input);
+            playground_status PlaygroundStatus = PlaygroundUpdateAndRender(Playground, RenderGroup, Input);
         } break;
         
         case LEVEL_MENU:

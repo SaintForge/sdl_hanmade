@@ -1,53 +1,4 @@
 
-static s32
-CalculateGridBlockSize(s32 RowAmount, s32 ColumnAmount, 
-                       r32 GridWidth, r32 GridHeight)
-
-{
-    s32 Result = 0;
-    
-    Result = GridWidth < GridHeight ? GridWidth : GridHeight;
-    Result = roundf((r32)Result / 9.0f);
-    
-    if(Result % 2)
-    {
-        Result = Result + 1;
-    }
-    
-    s32 MinRowSize = Result;
-    s32 MinColumnSize = Result;
-    
-    if((Result * (RowAmount + 1)) > GridHeight)
-    {
-        s32 SizeLeft = Result * (RowAmount+1);
-        SizeLeft = SizeLeft - GridHeight;
-        SizeLeft = roundf((r32)SizeLeft / (r32)RowAmount);
-        
-        if(SizeLeft % 2 == 0)
-        {
-            SizeLeft += 1;
-        }
-        
-        MinRowSize = MinRowSize - SizeLeft;
-    }
-    if((Result * (ColumnAmount+1)) > GridWidth)
-    {
-        s32 SizeLeft = Result * (ColumnAmount+1);
-        SizeLeft = SizeLeft - GridWidth;
-        SizeLeft = roundf((r32)SizeLeft / (r32)ColumnAmount);
-        
-        if(SizeLeft % 2 == 0)
-        {
-            SizeLeft += 1;
-        }
-        
-        MinColumnSize = MinColumnSize - SizeLeft;
-    }
-    
-    Result = MinRowSize < MinColumnSize ? MinRowSize : MinColumnSize;
-    
-    return(Result);
-}
 
 static game_rect
 FigureUnitGetArea(figure_unit *Unit)
@@ -96,29 +47,6 @@ FigureUnitGetArea(figure_unit *Unit)
     Area.y -= OffsetX;
     
     return(Area);
-}
-
-static void
-DEBUGRenderFigureShell(game_offscreen_buffer *Buffer, figure_unit *Entity, u32 BlockSize, SDL_Color color, u8 Alpha)
-{
-    u8 r, g, b, a;
-    SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, &a);
-    SDL_SetRenderDrawColor(Buffer->Renderer, color.r, color.g, color.b, Alpha);
-    
-    game_rect Rect = {};
-    
-    for (u32 i = 0; i < 4; ++i)
-    {
-        Rect.w = BlockSize;
-        Rect.h = BlockSize;
-        Rect.x = Entity->Shell[i].x - (Rect.w / 2);
-        Rect.y = Entity->Shell[i].y - (Rect.h / 2);
-        
-        SDL_RenderFillRect(Buffer->Renderer, &Rect);
-    }
-    
-    
-    SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
 }
 
 static void
@@ -180,41 +108,25 @@ FigureEntityLowPriority(figure_entity *FigureEntity, u32 Index)
 }
 
 static void
-FigureUnitResizeBy(figure_unit *Entity, r32 ScaleFactor)
+FigureUnitResizeBy(figure_unit *Figure, r32 Scale)
 {
-    game_point OldCenter = {};
-    game_point NewCenter = {};
+    v2 Center    = Figure->Position + (Figure->Size / 2.0f);
+    v2 Size      = Figure->Size * Scale;
+    v2 NewCenter = Figure->Position + (Size / 2.0f);
     
-    s32 OffsetX = 0;
-    s32 OffsetY = 0;
-    s32 OldX = Entity->Position.x;
-    s32 OldY = Entity->Position.y;
+    v2 FinalOffset = (Center - NewCenter);
     
-    OldCenter.x = Entity->Position.x + roundf((r32)Entity->Size.w / 2.0f);
-    OldCenter.y = Entity->Position.y + roundf((r32)Entity->Size.h / 2.0f);
-    
-    Entity->Size.w = roundf((r32)Entity->Size.w * ScaleFactor);
-    Entity->Size.h = roundf((r32)Entity->Size.h * ScaleFactor);
-    
-    NewCenter.x = Entity->Position.x + roundf((r32)Entity->Size.w / 2.0f);
-    NewCenter.y = Entity->Position.y + roundf((r32)Entity->Size.h / 2.0f);
-    
-    Entity->Position.x += (OldCenter.x - NewCenter.x);
-    Entity->Position.y += (OldCenter.y - NewCenter.y);
-    
-    for (u32 i = 0; i < 4; ++i)
+    for(u32 Index = 0;
+        Index < FIGURE_BLOCKS_MAXIMUM;
+        ++Index)
     {
-        s32 SomeOffsetX = Entity->Shell[i].x - OldX;
-        s32 SomeOffsetY = Entity->Shell[i].y - OldY;
-        
-        OffsetX = roundf((r32)SomeOffsetX * ScaleFactor);
-        OffsetY = roundf((r32)SomeOffsetY * ScaleFactor);
-        Entity->Shell[i].x = OldX + OffsetX;
-        Entity->Shell[i].y = OldY + OffsetY;
-        Entity->Shell[i].x += (OldCenter.x - NewCenter.x);
-        Entity->Shell[i].y += (OldCenter.y - NewCenter.y);
+        v2 ShellOffset = (Figure->Shell[Index] - Figure->Position) * Scale;
+        Figure->Shell[Index] = Figure->Position + ShellOffset;
+        Figure->Shell[Index] += FinalOffset;
     }
     
+    Figure->Position = Figure->Position + FinalOffset;
+    Figure->Size = Size;
 }
 
 static void
@@ -1241,7 +1153,6 @@ LevelEntityFinishAnimationInit(playground *LevelEntity, game_memory *Memory, gam
                     SDL_SetRenderTarget(Buffer->Renderer, AnimationData->TileTexture[i].Texture);
                     
                     // TODO(Sierra): This feels wrong and weird. Color can be also any texture
-                    
                     SDL_SetRenderDrawColor(Buffer->Renderer, 42, 6, 21, 255);
                     SDL_RenderClear(Buffer->Renderer);
                     
@@ -1996,7 +1907,7 @@ RenderFigureStructure(render_group *RenderGroup, figure_unit *Entity)
 }
 
 static playground_status
-LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, game_input *Input)
+PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, game_input *Input)
 {
     playground_status Result = playground_status::LEVEL_RUNNING;
     
@@ -2244,7 +2155,6 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
     AreaQuad.w = GridBlockSize;
     AreaQuad.h = GridBlockSize;
     
-    printf("-----------------\n");
     for (u32 Row = 0; Row < RowAmount; ++Row)
     {
         StartY = GridArea.y + (GridBlockSize * Row);
@@ -2256,13 +2166,11 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
             AreaQuad.x = StartX;
             AreaQuad.y = StartY;
             u32 GridUnit = GridEntity->UnitField[(Row * ColumnAmount) + Col];
-            printf("%d ", GridUnit);
             if(GridUnit == 0 || GridUnit == 2 || GridUnit == 3)
             {
                 PushBitmap(RenderGroup, GridEntity->NormalSquareTexture, AreaQuad);
             }
         }
-        printf("\n");
     }
     
     s32 SpaceOverFrame = GridBlockSize / 4;
@@ -2291,7 +2199,6 @@ LevelEntityUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, g
     PushBitmap(RenderGroup, GridEntity->DownRightCornerFrame, AreaQuad);
     
     /* MovingBlocks Update and Rendering */
-    
     moving_block *MovingBlocks = GridEntity->MovingBlocks;
     for(u32 i = 0; i < GridEntity->MovingBlocksAmount; ++i)
     {
