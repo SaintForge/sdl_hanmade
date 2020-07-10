@@ -8,23 +8,24 @@ struct render_entry_clear
     v4 Color;
 };
 
-struct render_entry_rectangle2
+struct render_entry_rectangle
 {
     rectangle2 Rectangle;
     v4 Color;
 };
 
-struct render_entry_rectangle2_outline
+struct render_entry_rectangle_outline
 {
     rectangle2 Rectangle;
     v4 Color;
 };
 
-struct render_entry_texture2
+struct render_entry_texture
 {
     game_texture *Texture;
     
     rectangle2 Rectangle;
+    rectangle2 ClipRectangle;
     
     r32 Angle;
     v2 RelativeCenter;
@@ -37,11 +38,8 @@ enum render_group_entry_type
 {
     RenderGroupEntryType_render_entry_clear,
     RenderGroupEntryType_render_entry_texture,
-    RenderGroupEntryType_render_entry_texture2,
     RenderGroupEntryType_render_entry_rectangle,
     RenderGroupEntryType_render_entry_rectangle_outline,
-    RenderGroupEntryType_render_entry_rectangle2,
-    RenderGroupEntryType_render_entry_rectangle2_outline
 };
 
 struct render_group_entry_header

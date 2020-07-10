@@ -313,8 +313,6 @@ int main(int argc, char **argv)
             
             r32 dtForFrame = 1.0f / (r32)RefreshRate;
             
-            printf("Ready!\n");
-            
 #if ASSET_BUILD
             // NOTE: This is for packaging data to the disk
             SDLAssetBuildBinaryFile();
@@ -350,6 +348,22 @@ int main(int argc, char **argv)
                 ReadAssetFromFile("package1.bin", Memory.AssetStorage, Memory.AssetStorageSize);
                 ReadLevelFromFile("package2.bin", Memory.LevelStorage, Memory.LevelStorageSize);
                 
+#if DEBUG_BUILD
+                game_texture *Texture = GetTexture(&Memory, "test_animation.png", Renderer);
+                game_texture *Texture2 = GetTexture(&Memory, "test_animation2.png", Renderer);
+                game_texture *Texture3 = GetTexture(&Memory, "light.png", Renderer);
+                
+                s32 FrameIndex = 0;
+                s32 FrameAmount = 12;
+                r32 FrameElapsed = 0.0f;
+                r32 FrameTimeStep = 0.033f;
+                
+                s32 FrameIndex2 = 0;
+                s32 FrameAmount2 = 21;
+                r32 FrameElapsed2 = 0.0f;
+                r32 FrameTimeStep2 = 1.0f / FrameAmount2;
+#endif
+                
                 while (IsRunning)
                 {
                     PreviousTimeTick = SDL_GetTicks();
@@ -370,6 +384,78 @@ int main(int argc, char **argv)
                     {
                         IsRunning = false;
                     }
+                    
+#if DEBUG_BUILD
+                    // 550 width
+                    // 400 heigth
+                    
+                    FrameIndex = FrameIndex % FrameAmount;
+                    
+                    rectangle2 ClipRectangle = {};
+                    ClipRectangle.Min.x = FrameIndex * 550;
+                    ClipRectangle.Min.y = 0;
+                    SetDim(&ClipRectangle, 550, 400);
+                    
+                    rectangle2 Rectangle = {};
+                    Rectangle.Min.x = 0.0f;
+                    Rectangle.Min.y = 0.0f;
+                    SetDim(&Rectangle, 550, 400);
+                    
+                    render_entry_texture Entry = {};
+                    Entry.Texture   = Texture;
+                    Entry.Rectangle = Rectangle;
+                    Entry.ClipRectangle = ClipRectangle;
+                    
+                    if (Input.Keyboard.Q_Button.EndedDown)
+                    {
+                        FrameTimeStep2 += dtForFrame;
+                        printf("Animation 2 FrameTimeStep: %f\n", FrameTimeStep2); 
+                    }
+                    
+                    //DrawEntryTexture(&Buffer, &Entry);
+                    FrameElapsed += dtForFrame;
+                    if (FrameElapsed >= FrameTimeStep)
+                    {
+                        FrameIndex++;
+                        FrameElapsed = 0.0f;
+                    }
+                    
+                    
+                    FrameIndex2 = FrameIndex2 % FrameAmount2;
+                    
+                    ClipRectangle = {};
+                    ClipRectangle.Min.x = FrameIndex2 * 550;
+                    ClipRectangle.Min.y = 0;
+                    SetDim(&ClipRectangle, 550, 400);
+                    
+                    Rectangle = {};
+                    Rectangle.Min.x = 0.0f;
+                    Rectangle.Min.y = 400;
+                    SetDim(&Rectangle, 550, 400);
+                    
+                    Entry = {};
+                    Entry.Texture   = Texture2;
+                    Entry.Rectangle = Rectangle;
+                    Entry.ClipRectangle = ClipRectangle;
+                    //DrawEntryTexture(&Buffer, &Entry);
+                    
+                    FrameElapsed2 += dtForFrame;
+                    if (FrameElapsed2 >= FrameTimeStep2)
+                    {
+                        FrameIndex2++;
+                        FrameElapsed2 = 0.0f;
+                    }
+                    
+                    Rectangle = {};
+                    Rectangle.Min.x = 550;
+                    Rectangle.Min.y = 0;
+                    SetDim(&Rectangle, 512, 512);
+                    
+                    Entry = {};
+                    Entry.Texture   = Texture3;
+                    Entry.Rectangle = Rectangle;
+                    //DrawEntryTexture(&Buffer, &Entry);
+#endif
                     
                     SDLUpdateWindow(Window, Renderer, &BackBuffer);
                     

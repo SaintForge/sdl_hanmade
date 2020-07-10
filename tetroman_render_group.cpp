@@ -50,34 +50,10 @@ Clear(render_group *Group, v4 Color)
     }
 }
 
-#if 0
-inline static void
-PushRect(render_group *Group, game_rect Rectangle, v4 Color) 
-{
-    render_entry_rectangle *Piece = PushRenderElement(Group, render_entry_rectangle);
-    if (Piece) 
-    {
-        Piece->Rectangle = Rectangle;
-        Piece->Color     = Color;
-    }
-}
-
-inline static void
-PushRectOutline(render_group *Group, game_rect Rectangle, v4 Color) 
-{
-    render_entry_rectangle_outline *Piece = PushRenderElement(Group, render_entry_rectangle_outline);
-    if (Piece) 
-    {
-        Piece->Rectangle = Rectangle;
-        Piece->Color     = Color;
-    }
-}
-
-#endif
 inline static void
 PushRectangle(render_group *Group, rectangle2 Rectangle, v4 Color)
 {
-    render_entry_rectangle2 *Piece = PushRenderElement(Group, render_entry_rectangle2);
+    render_entry_rectangle *Piece = PushRenderElement(Group, render_entry_rectangle);
     if (Piece)
     {
         Piece->Rectangle = Rectangle;
@@ -88,7 +64,7 @@ PushRectangle(render_group *Group, rectangle2 Rectangle, v4 Color)
 inline static void
 PushRectangleOutline(render_group *Group, rectangle2 Rectangle, v4 Color)
 {
-    render_entry_rectangle2_outline *Piece = PushRenderElement(Group, render_entry_rectangle2_outline);
+    render_entry_rectangle_outline *Piece = PushRenderElement(Group, render_entry_rectangle_outline);
     if (Piece)
     {
         Piece->Rectangle = Rectangle;
@@ -99,11 +75,12 @@ PushRectangleOutline(render_group *Group, rectangle2 Rectangle, v4 Color)
 inline static void
 PushBitmap(render_group *Group, game_texture* Texture, rectangle2 Rectangle)
 {
-    render_entry_texture2 *Piece = PushRenderElement(Group, render_entry_texture2);
+    render_entry_texture *Piece = PushRenderElement(Group, render_entry_texture);
     if(Piece)
     {
         Piece->Texture        = Texture;
         Piece->Rectangle      = Rectangle;
+        Piece->ClipRectangle  = {};
         Piece->Angle          = 0;
         Piece->RelativeCenter = {0, 0};
         Piece->Flip           = SDL_FLIP_NONE;
@@ -113,11 +90,12 @@ PushBitmap(render_group *Group, game_texture* Texture, rectangle2 Rectangle)
 inline static void
 PushBitmapEx(render_group *Group, game_texture *Texture, rectangle2 Rectangle, r32 Angle, v2 RelativeCenter, figure_flip Flip)
 {
-    render_entry_texture2 *Piece = PushRenderElement(Group, render_entry_texture2);
+    render_entry_texture *Piece = PushRenderElement(Group, render_entry_texture);
     if(Piece)
     {
         Piece->Texture        = Texture;
         Piece->Rectangle      = Rectangle;
+        Piece->ClipRectangle  = {};
         Piece->Angle          = Angle;
         Piece->RelativeCenter = RelativeCenter;
         Piece->Flip           = Flip;
@@ -125,7 +103,7 @@ PushBitmapEx(render_group *Group, game_texture *Texture, rectangle2 Rectangle, r
 }
 
 static void
-DrawEntryTexture(game_offscreen_buffer *Buffer, render_entry_texture2 *Entry)
+DrawEntryTexture(game_offscreen_buffer *Buffer, render_entry_texture *Entry)
 {
     game_texture *Texture = Entry->Texture;
     
@@ -139,7 +117,22 @@ DrawEntryTexture(game_offscreen_buffer *Buffer, render_entry_texture2 *Entry)
     Rectangle.w = roundf(Entry->Rectangle.Max.x - Entry->Rectangle.Min.x);
     Rectangle.h = roundf(Entry->Rectangle.Max.y - Entry->Rectangle.Min.y);
     
-    SDL_RenderCopyEx(Buffer->Renderer, Texture, 0, &Rectangle, Entry->Angle, &Center, Entry->Flip);
+    v2 ClipDim = GetDim(Entry->ClipRectangle);
+    if (ClipDim.w > 0 || ClipDim.h > 0)
+    {
+        game_rect ClipRectangle = {};
+        ClipRectangle.x = Entry->ClipRectangle.Min.x;
+        ClipRectangle.y = Entry->ClipRectangle.Min.y;
+        ClipRectangle.w = ClipDim.w;
+        ClipRectangle.h = ClipDim.h;
+        
+        SDL_RenderCopyEx(Buffer->Renderer, Texture, &ClipRectangle, &Rectangle, Entry->Angle, &Center, Entry->Flip);
+    }
+    else 
+    {
+        SDL_RenderCopyEx(Buffer->Renderer, Texture, 0, &Rectangle, Entry->Angle, &Center, Entry->Flip);
+    }
+    
 }
 
 
@@ -168,27 +161,27 @@ RenderGroupToOutput(render_group *RenderGroup, game_offscreen_buffer *Buffer)
                 
             } break;
             
-            case RenderGroupEntryType_render_entry_rectangle2:
+            case RenderGroupEntryType_render_entry_rectangle:
             {
-                render_entry_rectangle2 *Entry = (render_entry_rectangle2*) Data;
+                render_entry_rectangle *Entry = (render_entry_rectangle*) Data;
                 
                 DEBUGRenderQuadFill(Buffer, Entry->Rectangle, Entry->Color);
                 
                 BaseAddress += sizeof(*Entry);
             } break;
             
-            case RenderGroupEntryType_render_entry_rectangle2_outline:
+            case RenderGroupEntryType_render_entry_rectangle_outline:
             {
-                render_entry_rectangle2 *Entry = (render_entry_rectangle2*) Data;
+                render_entry_rectangle *Entry = (render_entry_rectangle*) Data;
                 
                 DEBUGRenderQuad(Buffer, Entry->Rectangle, Entry->Color);
                 
                 BaseAddress += sizeof(*Entry);
             } break;
             
-            case RenderGroupEntryType_render_entry_texture2: 
+            case RenderGroupEntryType_render_entry_texture: 
             {
-                render_entry_texture2 *Entry = (render_entry_texture2*) Data;
+                render_entry_texture *Entry = (render_entry_texture*) Data;
                 
                 DrawEntryTexture(Buffer, Entry);
                 

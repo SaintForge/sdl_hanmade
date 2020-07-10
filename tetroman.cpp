@@ -36,8 +36,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GameState->CurrentMode     = game_mode::LEVEL;
         
         playground_config *Configuration = &GameState->Configuration;
-        Configuration->InActiveBlockSize   = 62;
-        Configuration->GridBlockSize       = 108;
         Configuration->StartUpTimeToFinish = 0.0f;
         Configuration->RotationVel         = 600.0f;
         Configuration->StartAlphaPerSec    = 500.0f;
@@ -68,19 +66,18 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->FadeInSum      = 0;
         FigureEntity->FadeOutSum     = 0;
         FigureEntity->FigureVelocity = 400.0f;
-        FigureEntity->InActiveBlockSize = Configuration->InActiveBlockSize;
         FigureEntity->RotationVelocity = Configuration->RotationVel;
         
-        FigureEntity->FigureArea.Min.x = 1200;
+        FigureEntity->FigureArea.Min.x = 1500;
         FigureEntity->FigureArea.Min.y = 81;
         FigureEntity->FigureArea.Max.x = FigureEntity->FigureArea.Min.x + 552;
         FigureEntity->FigureArea.Max.y = FigureEntity->FigureArea.Min.y + 972;
         
-        //FigureUnitAddNewFigure(FigureEntity, L_figure, classic, Configuration->InActiveBlockSize);
-        FigureUnitAddNewFigure(FigureEntity, O_figure, stone, Configuration->InActiveBlockSize);
-        FigureUnitAddNewFigure(FigureEntity, O_figure, mirror, Configuration->InActiveBlockSize);
+        FigureUnitAddNewFigure(FigureEntity, L_figure, classic);
+        FigureUnitAddNewFigure(FigureEntity, O_figure, stone);
+        FigureUnitAddNewFigure(FigureEntity, O_figure, mirror);
         
-        FigureEntityAlignFigures(&Playground->FigureEntity, Configuration->InActiveBlockSize);
+        FigureEntityAlignFigures(&Playground->FigureEntity);
         
         for(u32 i = 0; i < FIGURE_AMOUNT_MAXIMUM; ++i) 
         {
@@ -121,7 +118,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GridEntity->ColumnAmount        = 6;
         GridEntity->StickUnitsAmount    = FigureEntity->FigureAmount;
         GridEntity->MovingBlocksAmount  = 1;
-        GridEntity->GridBlockSize       = Configuration->GridBlockSize;
         GridEntity->MovingBlockVelocity = Configuration->MovingBlockVelocity;
         
         GridEntity->GridArea.Min.x = 100;
@@ -157,10 +153,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         {
             moving_block *Block = &GridEntity->MovingBlocks[BlockIndex];
             
-            Block->Area.Min.x = GridEntity->GridArea.Min.x + (Block->ColNumber * GridEntity->GridBlockSize);
-            Block->Area.Min.y = GridEntity->GridArea.Min.y + (Block->RowNumber * GridEntity->GridBlockSize);
-            Block->Area.Max.x = Block->Area.Min.x + GridEntity->GridBlockSize;
-            Block->Area.Max.y = Block->Area.Min.y + GridEntity->GridBlockSize;
+            Block->Area.Min.x = GridEntity->GridArea.Min.x + (Block->ColNumber * GRID_BLOCK_SIZE);
+            Block->Area.Min.y = GridEntity->GridArea.Min.y + (Block->RowNumber * GRID_BLOCK_SIZE);
+            Block->Area.Max.x = Block->Area.Min.x + GRID_BLOCK_SIZE;
+            Block->Area.Max.y = Block->Area.Min.y + GRID_BLOCK_SIZE;
             
             GridEntity->UnitField[(Block->RowNumber * COLUMN_AMOUNT_MAXIMUM) + Block->ColNumber] = 2;
         }
@@ -185,15 +181,15 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         playground_data *PlaygroundData = (playground_data *) Memory->LevelStorage;
         Assert(PlaygroundData);
         
-        PlaygroundData[0].FigureAmount = 2;
-        PlaygroundData[0].Figures[0].Form = figure_form::O_figure;
+        PlaygroundData[0].FigureAmount = 3;
+        PlaygroundData[0].Figures[0].Form = figure_form::I_figure;
         PlaygroundData[0].Figures[0].Type = figure_type::classic;
         
         PlaygroundData[0].Figures[1].Form = figure_form::O_figure;
         PlaygroundData[0].Figures[1].Type = figure_type::classic;
         
-        //PlaygroundData[0].Figures[2].Form = figure_form::O_figure;
-        //PlaygroundData[0].Figures[2].Type = figure_type::mirror;
+        PlaygroundData[0].Figures[2].Form = figure_form::L_figure;
+        PlaygroundData[0].Figures[2].Type = figure_type::classic;
         
         PlaygroundData[0].RowAmount    = 5;
         PlaygroundData[0].ColumnAmount = 5;

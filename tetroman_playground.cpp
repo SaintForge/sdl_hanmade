@@ -1,51 +1,44 @@
 
-static game_rect
-FigureUnitGetArea(figure_unit *Unit)
+
+static rectangle2
+FigureUnitGetArea(figure_unit *Figure)
 {
-    game_rect Area = {(s32)Unit->Shell[0].x, (s32)Unit->Shell[0].y, -500, -500};
-    u32 OffsetX = 0;
-    u32 OffsetY = 0;
-    bool ZeroArea = false;
+    rectangle2 Result = {};
+    Result.Min.x = FLT_MAX;
+    Result.Min.y = FLT_MAX;
+    Result.Max.x = FLT_MIN;
+    Result.Max.y = FLT_MIN;
     
-    for (u32 i = 0; i < 4; ++i)
+    r32 BlockSize = Figure->IsEnlarged ? GRID_BLOCK_SIZE : IDLE_BLOCK_SIZE;
+    
+    for(s32 Index = 0;
+        Index < FIGURE_BLOCKS_MAXIMUM;
+        ++Index)
     {
-        if(Area.x >= Unit->Shell[i].x) Area.x = Unit->Shell[i].x;
-        if(Area.y >= Unit->Shell[i].y) Area.y = Unit->Shell[i].y;
-        if(Area.w <= Unit->Shell[i].x) Area.w = Unit->Shell[i].x;
-        if(Area.h <= Unit->Shell[i].y) Area.h = Unit->Shell[i].y;
+        rectangle2 ShellRectangle;
+        ShellRectangle.Min.x = Figure->Shell[Index].x - (BlockSize / 2.0f);
+        ShellRectangle.Min.y = Figure->Shell[Index].y - (BlockSize / 2.0f);
+        SetDim(&ShellRectangle, BlockSize, BlockSize);
         
+        if (ShellRectangle.Min.x < Result.Min.x)
+        {
+            Result.Min.x = ShellRectangle.Min.x;
+        }
+        if (ShellRectangle.Min.y < Result.Min.y)
+        {
+            Result.Min.y = ShellRectangle.Min.y;
+        }
+        if (ShellRectangle.Max.x > Result.Max.x)
+        {
+            Result.Max.x = ShellRectangle.Max.x;
+        }
+        if (ShellRectangle.Max.y > Result.Max.y)
+        {
+            Result.Max.y = ShellRectangle.Max.y;
+        }
     }
     
-    Area.w -= Area.x;
-    Area.h -= Area.y;
-    
-    if(Area.w == 0 || Area.h == 0)
-    {
-        ZeroArea = true;
-    }
-    
-    if(Area.w >= Unit->Size.h)
-    {
-        Area.h = Unit->Size.h;
-        Area.w = Unit->Size.w;
-        OffsetX = (Area.y + Area.h) - (Area.y + Area.h / 2);
-    }
-    else
-    {
-        Area.h = Unit->Size.w;
-        Area.w = Unit->Size.h;
-        OffsetX = (Area.x + Area.w) - (Area.x + Area.w / 2);
-    }
-    
-    if(!ZeroArea)
-    {
-        OffsetX /= 2;
-    }
-    
-    Area.x -= OffsetX;
-    Area.y -= OffsetX;
-    
-    return(Area);
+    return (Result);
 }
 
 static void
@@ -156,7 +149,7 @@ FigureUnitRotateShellBy(figure_unit *Entity, float Angle)
 
 static void
 FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form,
-                     figure_type Type, u32 InActiveBlockSize)
+                     figure_type Type)
 {
     FigureUnit->IsIdle = true;
     FigureUnit->Form   = Form;
@@ -277,12 +270,12 @@ FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form,
     
     FigureUnit->Position.x = 0;
     FigureUnit->Position.y = 0;
-    FigureUnit->Size.w = RowAmount * InActiveBlockSize;
-    FigureUnit->Size.h = ColumnAmount * InActiveBlockSize;
+    FigureUnit->Size.w = RowAmount * IDLE_BLOCK_SIZE;
+    FigureUnit->Size.h = ColumnAmount * IDLE_BLOCK_SIZE;
     FigureUnit->CenterOffset = CenterOffset;
     
     u32 ShellIndex = 0;
-    u32 HalfBlock  = roundf((r32)InActiveBlockSize / 2.0f);
+    u32 HalfBlock  = roundf(IDLE_BLOCK_SIZE / 2.0f);
     
     for(u32 i = 0; i < 2; i++)
     {
@@ -290,8 +283,8 @@ FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form,
         {
             if(matrix[i][j] == 1)
             {
-                FigureUnit->Shell[ShellIndex].x = FigureUnit->Position.x + (j * InActiveBlockSize) + HalfBlock;
-                FigureUnit->Shell[ShellIndex].y = FigureUnit->Position.y + (i * InActiveBlockSize) + HalfBlock;
+                FigureUnit->Shell[ShellIndex].x = FigureUnit->Position.x + (j * IDLE_BLOCK_SIZE) + HalfBlock;
+                FigureUnit->Shell[ShellIndex].y = FigureUnit->Position.y + (i * IDLE_BLOCK_SIZE) + HalfBlock;
                 
                 ShellIndex++;
             }
@@ -302,7 +295,7 @@ FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form,
 }
 
 static void
-FigureUnitAddNewFigure(figure_entity *FigureEntity, figure_form Form, figure_type Type, u32 InActiveBlockSize)
+FigureUnitAddNewFigure(figure_entity *FigureEntity, figure_form Form, figure_type Type)
 
 {
     if(FigureEntity->FigureAmount >= FIGURE_AMOUNT_MAXIMUM) return;
@@ -310,7 +303,7 @@ FigureUnitAddNewFigure(figure_entity *FigureEntity, figure_form Form, figure_typ
     u32 Index = FigureEntity->FigureAmount;
     FigureEntity->FigureAmount += 1;
     
-    FigureUnitInitFigure(&FigureEntity->FigureUnit[Index], Form, Type, InActiveBlockSize);
+    FigureUnitInitFigure(&FigureEntity->FigureUnit[Index], Form, Type);
 }
 
 static void
@@ -320,7 +313,9 @@ FigureUnitFlipHorizontally(figure_unit *Unit)
     u32 NewY = 0;
     u32 NewCenterX = 0;
     u32 NewCenterY = 0;
-    game_rect AreaQuad = FigureUnitGetArea(Unit);
+    
+    rectangle2 AreaQuad = FigureUnitGetArea(Unit);
+    v2 AreaQuadDimension = GetDim(AreaQuad);
     
     if(Unit->Flip != SDL_FLIP_HORIZONTAL)
     {
@@ -331,11 +326,11 @@ FigureUnitFlipHorizontally(figure_unit *Unit)
         Unit->Flip = SDL_FLIP_NONE;
     }
     
-    if(AreaQuad.w > AreaQuad.h)
+    if(AreaQuadDimension.w > AreaQuadDimension.h)
     {
         for (u32 i = 0; i < FIGURE_BLOCKS_MAXIMUM; ++i)
         {
-            NewX = (AreaQuad.x + AreaQuad.w) - (Unit->Shell[i].x - AreaQuad.x);
+            NewX = (AreaQuad.Min.x + AreaQuadDimension.w) - (Unit->Shell[i].x - AreaQuad.Min.x);
             Unit->Shell[i].x = NewX;
         }
     }
@@ -343,7 +338,7 @@ FigureUnitFlipHorizontally(figure_unit *Unit)
     {
         for (u32 i = 0; i < FIGURE_BLOCKS_MAXIMUM; ++i)
         {
-            NewY = (AreaQuad.y + AreaQuad.h) - (Unit->Shell[i].y - AreaQuad.y);
+            NewY = (AreaQuad.Min.y + AreaQuadDimension.h) - (Unit->Shell[i].y - AreaQuad.Min.y);
             Unit->Shell[i].y = NewY;
         }
     }
@@ -546,10 +541,11 @@ FigureUnitSetToDefaultArea(figure_unit* Unit, r32 BlockRatio)
 static void
 FigureUnitDefineDefaultArea(figure_unit *Unit, v2 Position)
 {
-    game_rect AreaQuad = FigureUnitGetArea(Unit);
+    rectangle2 AreaQuad = FigureUnitGetArea(Unit);
+    
     v2 Offset = {};
-    Offset.x = Position.x - AreaQuad.x;
-    Offset.y = Position.y - AreaQuad.y;
+    Offset.x = Position.x - AreaQuad.Min.x;
+    Offset.y = Position.y - AreaQuad.Min.y;
     
     FigureUnitMove(Unit, Offset);
     
@@ -563,7 +559,7 @@ FigureUnitMoveToDefaultArea(figure_unit *FigureUnit, u32 ActiveBlockSize)
     v2 Offset = FigureUnit->HomePosition - FigureUnit->Position;
     
     r32 Magnitude = Square(Offset);
-    r32 MaxSpeed  = Magnitude - ActiveBlockSize;
+    r32 MaxSpeed  = abs(Magnitude - ActiveBlockSize);
     
     if(Magnitude > MaxSpeed)
     {
@@ -642,8 +638,8 @@ RestartLevelEntity(playground *LevelEntity)
     u32 RowAmount         = GridEntity->RowAmount;
     u32 ColumnAmount      = GridEntity->ColumnAmount;
     u32 FigureAmount      = FigureEntity->FigureAmount;
-    r32 GridBlockSize     = LevelEntity->GridEntity.GridBlockSize;
-    r32 InActiveBlockSize = LevelEntity->FigureEntity.InActiveBlockSize;
+    r32 GridBlockSize     = GRID_BLOCK_SIZE;
+    r32 InActiveBlockSize = IDLE_BLOCK_SIZE;
     
     FigureEntity->IsRestarting = true;
     
@@ -695,8 +691,8 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
     r32 BlockRatio  = 0;
     u32 ActiveIndex = FigureEntity->FigureActive;
     
-    r32 GridBlockSize = LevelEntity->GridEntity.GridBlockSize;
-    r32 InActiveBlockSize = LevelEntity->FigureEntity.InActiveBlockSize;
+    r32 GridBlockSize = GRID_BLOCK_SIZE;
+    r32 InActiveBlockSize = IDLE_BLOCK_SIZE;
     
     if(!LevelEntity->LevelPaused)
     {
@@ -852,23 +848,25 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
 
 
 static void
-FigureEntityAlignFigures(figure_entity *Entity, u32 BlockSize)
+FigureEntityAlignFigures(figure_entity *Entity)
 {
     u32 Size = Entity->FigureAmount;
-    u32 ColumnSize1 = 0;
-    u32 ColumnSize2 = 0;
-    u32 FigureIntervalX = roundf((r32)BlockSize / 4.0f);
-    u32 FigureIntervalY = roundf((r32)BlockSize / 4.0f);
+    r32 ColumnSize1 = 0.0f;
+    r32 ColumnSize2 = 0.0f;
+    u32 FigureIntervalX = roundf(IDLE_BLOCK_SIZE / 4.0f);
+    u32 FigureIntervalY = roundf(IDLE_BLOCK_SIZE / 4.0f);
     
-    game_rect AreaQuad    = {};
+    rectangle2 AreaQuad    = {};
     rectangle2 DefaultZone = Entity->FigureArea;
     
     for (u32 i = 0; i < Size; ++i)
     {
         AreaQuad = FigureUnitGetArea(&Entity->FigureUnit[i]);
+        v2 AreaQuadDimension = GetDim(AreaQuad);
+        
         i % 2 == 0
-            ? ColumnSize1 += AreaQuad.h + FigureIntervalY
-            : ColumnSize2 += AreaQuad.h + FigureIntervalY;
+            ? ColumnSize1 += AreaQuadDimension.h + FigureIntervalY
+            : ColumnSize2 += AreaQuadDimension.h + FigureIntervalY;
     }
     
     u32 PitchX           = 0;
@@ -879,17 +877,18 @@ FigureEntityAlignFigures(figure_entity *Entity, u32 BlockSize)
     u32 CurrentColumnSize1  = 0;
     u32 CurrentColumnSize2  = 0;
     u32 FigureBoxWidth  = 0;
-    s32 SpaceBetweenGrid = roundf((r32)BlockSize / 4.0f);
+    s32 SpaceBetweenGrid = roundf(IDLE_BLOCK_SIZE / 4.0f);
     
     for (u32 i = 0; i < Size; ++i)
     {
         PitchX = i % 2;
         AreaQuad = FigureUnitGetArea(&Entity->FigureUnit[i]);
+        v2 AreaQuadDimension = GetDim(AreaQuad);
         
-        FigureBoxWidth = BlockSize * 4;
+        FigureBoxWidth = IDLE_BLOCK_SIZE * 4;
         NewPosition.x  = DefaultZone.Min.x + (FigureBoxWidth * PitchX);
         NewPosition.x += SpaceBetweenGrid;
-        NewPosition.x += (FigureBoxWidth / 2 ) - (AreaQuad.w / 2);
+        NewPosition.x += (FigureBoxWidth / 2 ) - (AreaQuadDimension.w / 2);
         NewPosition.x += FigureIntervalX * PitchX;
         
         if(i % 2 == 0)
@@ -897,14 +896,14 @@ FigureEntityAlignFigures(figure_entity *Entity, u32 BlockSize)
             NewPosition.y = DefaultZone.Min.y + FigureIntervalY;
             NewPosition.y += CurrentColumnSize1;
             
-            CurrentColumnSize1 += AreaQuad.h + FigureIntervalY;
+            CurrentColumnSize1 += AreaQuadDimension.h + FigureIntervalY;
         }
         else
         {
             NewPosition.y = DefaultZone.Min.y + FigureIntervalY;
             NewPosition.y += CurrentColumnSize2;
             
-            CurrentColumnSize2 += AreaQuad.h + FigureIntervalY;
+            CurrentColumnSize2 += AreaQuadDimension.h + FigureIntervalY;
         }
         
         FigureUnitDefineDefaultArea(&Entity->FigureUnit[i], NewPosition);
@@ -1691,10 +1690,6 @@ LevelEntityUpdateStartAnimation(playground *LevelEntity, game_memory *Memory, ga
     
     s32 CurrentGridHeight = AnimationData->TilePos[((RowAmount - 1) * ColAmount) + ColAmount-1].y - AnimationData->TilePos[0].y;
     
-    game_rect AreaQuad = {};
-    AreaQuad.w = AnimationData->TileRect.w;
-    AreaQuad.h = AnimationData->TileRect.h;
-    
     // Top left corner
     AreaQuad.x = GridCenterX - (CurrentGridWidth / 2) - SpaceOverFrame - FrameSize;
     AreaQuad.y = GridCenterY - (CurrentGridHeight / 2) - SpaceOverFrame - FrameSize;
@@ -1780,8 +1775,8 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     figure_entity *FigureEntity = &LevelEntity->FigureEntity;
     figure_unit   *FigureUnit   = FigureEntity->FigureUnit;
     
-    r32 GridBlockSize     = LevelEntity->GridEntity.GridBlockSize;
-    r32 InActiveBlockSize = LevelEntity->FigureEntity.InActiveBlockSize;
+    r32 GridBlockSize     = GRID_BLOCK_SIZE;
+    r32 InActiveBlockSize = IDLE_BLOCK_SIZE;
     
     r32 TimeElapsed  = Input->TimeElapsedMs;
     r32 MaxVel       = GridBlockSize / 6.0f;
@@ -1793,7 +1788,11 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     r32 ActualGridWidth  = ColumnAmount * GridBlockSize;
     r32 ActualGridHeight = RowAmount * GridBlockSize;
     
+    v2 GridAreaDimension = GetDim(GridEntity->GridArea);
+    
     rectangle2 GridArea = GridEntity->GridArea;
+    GridArea.Min.x = GridArea.Min.x + (GridAreaDimension.w / 2.0f) - (ActualGridWidth / 2.0f);
+    GridArea.Min.y = GridArea.Min.y + (GridAreaDimension.h / 2.0f) - (ActualGridHeight / 2.0f);
     SetDim(&GridArea, ActualGridWidth, ActualGridHeight);
     
     bool ToggleHighlight = false;
@@ -1803,6 +1802,7 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     /* game_input checking */
     PlaygroundUpdateEvents(Input, LevelEntity, RenderGroup->Width, RenderGroup->Height);
     
+    // TODO(msokolov): this should be a texture
     Clear(RenderGroup, {42, 6, 21, 255});
     
     /* GridEntity update and render */
@@ -1922,15 +1922,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                                 GridEntity->StickUnits[i].Center.y  = FigureCenter.y + OffsetY;
                                 GridEntity->StickUnits[i].IsSticked = false;
                                 
-                                // TODO(msokolov): think about workaround for that bug
-                                printf("before sticking\n");
-                                printf("StickUnits.Center.x: %f\n", GridEntity->StickUnits[i].Center.x);
-                                printf("StickUnits.Center.y: %f\n", GridEntity->StickUnits[i].Center.y);
-                                printf("FigureCenter.x: %f\n", FigureCenter.x);
-                                printf("FigureCenter.y: %f\n", FigureCenter.y);
-                                printf("Offset.x: %f\n", OffsetX);
-                                printf("Offset.y: %f\n", OffsetY);
-                                
                                 for (u32 j = 0; j < FIGURE_BLOCKS_MAXIMUM; ++j)
                                 {
                                     GridEntity->StickUnits[i].Row[j] = RowIndex[j];
@@ -1985,7 +1976,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
             FigureCenter.x = FigureUnit[Index].Position.x + (FigureUnit[Index].Size.w / 2.0f);
             FigureCenter.y = FigureUnit[Index].Position.y + (FigureUnit[Index].Size.h) * FigureUnit[Index].CenterOffset;
             
-            // TODO(msokolov): change it to be upper left corner and not center
             v2 TargetCenter = GridEntity->StickUnits[i].Center;
             v2 dt = TargetCenter - FigureCenter;
             
@@ -2003,9 +1993,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
             if((FigureCenter.x == TargetCenter.x) && (FigureCenter.y == TargetCenter.y))
             {
                 GridEntity->StickUnits[i].IsSticked = true;
-                printf("after sticking\n");
-                printf("Position.x: %f\n", FigureUnit[Index].Position.x);
-                printf("Position.y: %f\n", FigureUnit[Index].Position.y);
                 
                 u32 RowIndex = 0;
                 u32 ColIndex = 0;
@@ -2053,7 +2040,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     r32 SpaceOverFrame = GridBlockSize / 4.0f;
     
     // Top left corner
-    // TODO(msokolov): make function for setting rectangle2 dimension
     FrameRectangle.Min.x = GridArea.Min.x - SpaceOverFrame;
     FrameRectangle.Min.y = GridArea.Min.y - SpaceOverFrame;
     SetDim(&FrameRectangle, FrameSize, FrameSize);
@@ -2123,7 +2109,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     }
     
     /* FigureEntity Update and Rendering */
-    
     /* Figure Area Highlight */
     if(FigureEntity->IsRestarting)
     {
@@ -2203,7 +2188,7 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         rectangle2 HighlightRect = FigureEntity->FigureArea;
         
         u32 RectThickness = InActiveBlockSize / 6;
-        for(u32 i = 0; i < RectThickness; i ++)
+        for(u32 i = 0; i < RectThickness; i++)
         {
             PushRectangleOutline(RenderGroup, HighlightRect, HightlightColor);
             
@@ -2244,7 +2229,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     /* Rotation Animation */
     if(FigureEntity->IsRotating)
     {
-        // TODO(max): Maybe put these values in playground ???
         r32 AngleDt = Input->dtForFrame * LevelEntity->FigureEntity.RotationVelocity;
         if(FigureEntity->RotationSum < 90.0f && !(FigureEntity->RotationSum + AngleDt >= 90.0f))
         {
@@ -2311,7 +2295,13 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         PushBitmapEx(RenderGroup, Texture, Rectangle, Entity->Angle, Center, Entity->Flip);
         
         RenderFigureStructure(RenderGroup, Entity);
+        
+        rectangle2 AreaRect = FigureUnitGetArea(Entity);
+        PushRectangleOutline(RenderGroup, AreaRect, {0, 0, 0, 255});
     }
+    
+    PushRectangleOutline(RenderGroup, GridEntity->GridArea, {255, 0, 255, 255});
+    PushRectangleOutline(RenderGroup, FigureEntity->FigureArea, {0, 255, 255, 255});
     
     return (Result);
 }

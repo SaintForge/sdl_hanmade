@@ -16,8 +16,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define WINDOW_WIDTH 1366
-#define WINDOW_HEIGHT 768
+#define WINDOW_WIDTH 1920
+#define WINDOW_HEIGHT 1080
 
 #define LOGICAL_GAME_WIDTH 1980
 #define LOGICAL_GAME_HEIGHT 1080

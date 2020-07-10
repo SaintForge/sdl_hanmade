@@ -33,6 +33,7 @@ struct asset_bitmap_header
     u32 Amask;
     u8 BytesPerPixel;
     u8 BitsPerPixel;
+    SDL_Color Palette[256];
 };
 
 struct asset_audio

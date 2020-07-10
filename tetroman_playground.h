@@ -9,6 +9,9 @@
 
 #if !defined(ENTITY_H)
 
+#define GRID_BLOCK_SIZE 108
+#define IDLE_BLOCK_SIZE 62
+
 #define FIGURE_BLOCKS_MAXIMUM 4
 #define FIGURE_AMOUNT_MAXIMUM 20
 #define MOVING_BLOCKS_MAXIMUM 10
@@ -72,7 +75,6 @@ struct figure_entity
     r32 RotationSum;
     
     r32 FigureVelocity;
-    r32 InActiveBlockSize;
     r32 FlippingVelocity;
     r32 RotationVelocity;
     
@@ -134,7 +136,6 @@ struct grid_entity
     s32 UnitField[COLUMN_AMOUNT_MAXIMUM * ROW_AMOUNT_MAXIMUM];
     u32 RowAmount;
     u32 ColumnAmount;
-    r32 GridBlockSize;
     r32 MovingBlockVelocity;
     
     moving_block MovingBlocks[COLUMN_AMOUNT_MAXIMUM * ROW_AMOUNT_MAXIMUM];
@@ -155,9 +156,6 @@ struct grid_entity
 
 struct playground_config
 {
-    s32 InActiveBlockSize;
-    s32 GridBlockSize;
-    
     r32 StartUpTimeToFinish;
     r32 StartUpTimeElapsed;
     

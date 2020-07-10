@@ -51,7 +51,6 @@ SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
     strcat(FullName, FileName);
     
     SDL_Surface *Surface = IMG_Load(FullName);
-    printf("error:\n", IMG_GetError());
     Assert(Surface);
     
     asset_bitmap_header BitmapHeader;
@@ -65,7 +64,19 @@ SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
     BitmapHeader.BytesPerPixel = Surface->format->BytesPerPixel;
     BitmapHeader.BitsPerPixel  = Surface->format->BitsPerPixel;
     
-    u32 ByteAmount = BitmapHeader.Width * BitmapHeader.Height * BitmapHeader.BytesPerPixel;
+    if (Surface->format->palette)
+    {
+        for (s32 Index = 0;
+             Index < Surface->format->palette->ncolors;
+             ++Index)
+        {
+            BitmapHeader.Palette[Index] = Surface->format->palette->colors[Index];
+        }
+        
+    }
+    
+    
+    u32 ByteAmount = BitmapHeader.Height * BitmapHeader.Pitch;
     
     asset_header AssetHeader = {};
     AssetHeader.AssetSize = ByteAmount;
@@ -250,6 +261,12 @@ GetTexture(game_memory *Memory, const char* FileName, SDL_Renderer *Renderer)
                                      Header->Bmask, Header->Amask);
         Assert(Surface);
         
+        
+        if (Header->BitsPerPixel == 8)
+        {
+            SDL_SetPaletteColors(Surface->format->palette, Header->Palette, 0, 256);
+        }
+        
         Result = SDL_CreateTextureFromSurface(Renderer, Surface);
         Assert(Result);
         
@@ -394,7 +411,6 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
     Playground->GridEntity.ColumnAmount       = PlaygroundData.ColumnAmount;
     Playground->GridEntity.MovingBlocksAmount = PlaygroundData.MovingBlocksAmount;
     Playground->GridEntity.StickUnitsAmount   = PlaygroundData.FigureAmount;
-    Playground->GridEntity.GridBlockSize      = Configuration->GridBlockSize;
     
     s32 *UnitFieldSource = PlaygroundData.UnitField;
     s32 *UnitFieldTarget = Playground->GridEntity.UnitField;
@@ -425,10 +441,10 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
         MovingBlocks[BlockIndex].ColNumber  = PlaygroundData.MovingBlocks[BlockIndex].ColNumber;
         MovingBlocks[BlockIndex].IsVertical = PlaygroundData.MovingBlocks[BlockIndex].IsVertical;
         MovingBlocks[BlockIndex].MoveSwitch = PlaygroundData.MovingBlocks[BlockIndex].MoveSwitch;
-        MovingBlocks[BlockIndex].Area.Min.x = Playground->GridEntity.GridArea.Min.x + (MovingBlocks[BlockIndex].ColNumber * Playground->GridEntity.GridBlockSize);
-        MovingBlocks[BlockIndex].Area.Min.y = Playground->GridEntity.GridArea.Min.y + (MovingBlocks[BlockIndex].RowNumber * Playground->GridEntity.GridBlockSize);
-        MovingBlocks[BlockIndex].Area.Max.x = MovingBlocks[BlockIndex].Area.Min.x + Playground->GridEntity.GridBlockSize;
-        MovingBlocks[BlockIndex].Area.Max.y = MovingBlocks[BlockIndex].Area.Min.y + Playground->GridEntity.GridBlockSize;
+        MovingBlocks[BlockIndex].Area.Min.x = Playground->GridEntity.GridArea.Min.x + (MovingBlocks[BlockIndex].ColNumber * GRID_BLOCK_SIZE);
+        MovingBlocks[BlockIndex].Area.Min.y = Playground->GridEntity.GridArea.Min.y + (MovingBlocks[BlockIndex].RowNumber * GRID_BLOCK_SIZE);
+        MovingBlocks[BlockIndex].Area.Max.x = MovingBlocks[BlockIndex].Area.Min.x + GRID_BLOCK_SIZE;
+        MovingBlocks[BlockIndex].Area.Max.y = MovingBlocks[BlockIndex].Area.Min.y + GRID_BLOCK_SIZE;
         
         Playground->GridEntity.UnitField[(MovingBlocks[BlockIndex].RowNumber * PlaygroundData.ColumnAmount) + MovingBlocks[BlockIndex].ColNumber] = 1;
     }
@@ -437,7 +453,7 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
     Playground->FigureEntity.ReturnIndex      = -1;
     Playground->FigureEntity.FigureVelocity   = Configuration->FigureVelocity;
     Playground->FigureEntity.RotationVelocity = Configuration->RotationVel;
-    Playground->FigureEntity.FigureArea.Min.x = 1200;
+    Playground->FigureEntity.FigureArea.Min.x = 1300;
     Playground->FigureEntity.FigureArea.Min.y = 81;
     Playground->FigureEntity.FigureArea.Max.x = Playground->FigureEntity.FigureArea.Min.x + 552;
     Playground->FigureEntity.FigureArea.Max.y = Playground->FigureEntity.FigureArea.Min.y + 972;
@@ -450,10 +466,10 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
         figure_form Form = PlaygroundData.Figures[FigureIndex].Form;
         figure_type Type = PlaygroundData.Figures[FigureIndex].Type;
         
-        FigureUnitAddNewFigure(&Playground->FigureEntity, Form, Type, Configuration->InActiveBlockSize);
+        FigureUnitAddNewFigure(&Playground->FigureEntity, Form, Type);
     }
     
-    FigureEntityAlignFigures(&Playground->FigureEntity, Configuration->InActiveBlockSize);
+    FigureEntityAlignFigures(&Playground->FigureEntity);
 }
 
 static void
@@ -466,6 +482,12 @@ SDLAssetBuildBinaryFile()
     
     /* Bitmap loading */
     BinaryHeader.BitmapSizeInBytes = 0;
+    
+    SDLWriteBitmapToFile(BinaryFile, "test_animation.png");
+    SDLWriteBitmapToFile(BinaryFile, "test_animation2.png");
+    SDLWriteBitmapToFile(BinaryFile, "light.png");
+    SDLWriteBitmapToFile(BinaryFile, "I_new.png");
+    
     
     SDLWriteBitmapToFile(BinaryFile, "grid_cell.png");
     SDLWriteBitmapToFile(BinaryFile, "grid_cell_1.png");
@@ -519,6 +541,5 @@ SDLAssetBuildBinaryFile()
     SDL_RWwrite(BinaryFile, &BinaryHeader, sizeof(binary_header), 1);
     
     SDL_RWclose(BinaryFile);
-    printf("finish");
 }
 

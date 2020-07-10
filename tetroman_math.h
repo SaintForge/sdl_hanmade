@@ -193,7 +193,12 @@ inline v2
 Normalize(v2 A)
 {
     v2 Result = {};
-    Result = A / Square(A);
+    
+    r32 Magnitude = Square(A);
+    if (Magnitude)
+    {
+        Result = A / Magnitude;
+    }
     
     return(Result);
 }
@@ -210,7 +215,7 @@ GetDim(rectangle2 Rectangle)
     v2 Result = {};
     
     Result.w = Rectangle.Max.x - Rectangle.Min.x;
-    Result.w = Rectangle.Max.y - Rectangle.Min.y;
+    Result.h = Rectangle.Max.y - Rectangle.Min.y;
     
     return (Result);
 }
