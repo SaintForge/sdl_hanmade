@@ -1872,13 +1872,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                                 {
                                     OffsetX = Rect.Min.x + (GridBlockSize / 2.0f) - FigureUnit[FigureIndex].Shell[l].x;
                                     OffsetY = Rect.Min.y + (GridBlockSize / 2.0f) - FigureUnit[FigureIndex].Shell[l].y;
-                                    
-                                    r32 ResOffsetX = OffsetX / (r32)((s32)OffsetX);
-                                    r32 ResOffsetY = OffsetY / (r32)((s32)OffsetY);
-                                    if (ResOffsetX > 1.0f || ResOffsetY > 1.0f)
-                                    {
-                                        printf("got it\n");
-                                    }
                                 }
                                 
                                 RowIndex[l] = i;

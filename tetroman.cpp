@@ -13,7 +13,7 @@
 #include "tetroman_playground.cpp"
 #include "tetroman_asset.cpp"
 #include "tetroman_menu.cpp"
-#include "tetroman_editor.cpp"
+//#include "tetroman_editor.cpp"
 
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
@@ -173,6 +173,12 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         //game_editor *GameEditor = GameState->GameEditor;
         //GameEditorInit(Buffer, Playground, MenuEntity, Memory, GameEditor);
         
+#if DEBUG_BUILD
+        
+        playground_editor *PlaygroundEditor = PushStruct(&GameState->MemoryGroup, playground_editor);
+        
+#endif
+        
         Memory->IsInitialized = true;
         printf("Memory has been initialized!\n");
         
@@ -264,7 +270,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     RenderGroupToOutput(RenderGroup, Buffer);
     TransState->TransGroup = TemporaryMemory;
-    
     
     //game_editor *GameEditor = GameState->GameEditor;
     //GameEditorUpdateAndRender(Buffer, GameState, Memory, Input, GameEditor, Playground, MenuEntity);

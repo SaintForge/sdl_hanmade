@@ -9,6 +9,12 @@
 
 #if !defined(EDITOR_H)
 
+struct playground_editor
+{
+    game_font *Font;
+    
+    b32 IsInitialized;
+};
 
 static char
 GetNumberFromInput(s32 BufferIndex, game_input *Input)

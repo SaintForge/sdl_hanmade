@@ -67,8 +67,10 @@ struct game_state
     game_mode CurrentMode;
     
     /* NOTE(msokolov): Non-release thing only */
-    game_editor *GameEditor;
+#if DEBUG_BUILD
+    game_editor GameEditor;
     b32 EditorMode;
+#endif
 };
 
 struct transient_state

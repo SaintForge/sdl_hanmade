@@ -17,7 +17,7 @@
 #define MOVING_BLOCKS_MAXIMUM 10
 #define COLUMN_AMOUNT_MAXIMUM 10
 #define ROW_AMOUNT_MAXIMUM    10
-#define PLAYGROUND_MAXIMUM    100
+#define PLAYGROUND_MAXIMUM    300
 
 enum figure_form
 {
@@ -211,9 +211,6 @@ struct playground
 {
     grid_entity GridEntity;
     figure_entity FigureEntity;
-    
-    //level_config Configuration;
-    level_animation AnimationData;
     
     u32 LevelNumber;
     b32 LevelStarted;

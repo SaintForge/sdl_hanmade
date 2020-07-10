@@ -1,4 +1,4 @@
-// editor.cpp --- 
+k// editor.cpp --- 
 // 
 // Filename: game.cpp
 // Author: Sierra
@@ -7,8 +7,19 @@
 //           By: Sierra
 //
 
-#if 0
 
+static void
+PlaygroundEditorUpdateAndRender(playground        *Playground, 
+                                playground_data   *PlaygroundData, 
+                                playground_config *PlaygroundConfig,
+                                playground_editor *PlaygroundEditor,
+                                render_group      *RenderGroup,
+                                game_input        *Input)
+{
+    
+}
+
+#if 0
 static void
 EditorMakeTextButton(game_offscreen_buffer *Buffer, game_font *Font, const char* Text,
                      s32 X, s32 Y, s32 Width, s32 Height, 
@@ -3915,4 +3926,5 @@ GameEditorUpdateAndRender(game_offscreen_buffer *Buffer, game_state *GameState, 
 //
 // game_editor end
 //
+
 #endif
