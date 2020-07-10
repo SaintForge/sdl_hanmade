@@ -76,7 +76,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->FigureArea.Max.x = FigureEntity->FigureArea.Min.x + 552;
         FigureEntity->FigureArea.Max.y = FigureEntity->FigureArea.Min.y + 972;
         
-        FigureUnitAddNewFigure(FigureEntity, L_figure, classic, Configuration->InActiveBlockSize);
+        //FigureUnitAddNewFigure(FigureEntity, L_figure, classic, Configuration->InActiveBlockSize);
         FigureUnitAddNewFigure(FigureEntity, O_figure, stone, Configuration->InActiveBlockSize);
         FigureUnitAddNewFigure(FigureEntity, O_figure, mirror, Configuration->InActiveBlockSize);
         
@@ -173,38 +173,36 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         MenuEntity->BackTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
         
         /* NOTE(msokolov): game_editor initialization starts here */ 
-        
         //GameState->GameEditor   = PushStruct(&GameState->MemoryGroup, game_editor);
         //game_editor *GameEditor = GameState->GameEditor;
-        
         //GameEditorInit(Buffer, Playground, MenuEntity, Memory, GameEditor);
         
         Memory->IsInitialized = true;
         printf("Memory has been initialized!\n");
         
         /* NOTE(msokolov): just for testing */
-        
         /* playground data from binary initialization */
         playground_data *PlaygroundData = (playground_data *) Memory->LevelStorage;
         Assert(PlaygroundData);
         
-        PlaygroundData[0].FigureAmount = 3;
-        PlaygroundData[0].Figures[0].Form = figure_form::L_figure;
+        PlaygroundData[0].FigureAmount = 2;
+        PlaygroundData[0].Figures[0].Form = figure_form::O_figure;
         PlaygroundData[0].Figures[0].Type = figure_type::classic;
         
         PlaygroundData[0].Figures[1].Form = figure_form::O_figure;
-        PlaygroundData[0].Figures[1].Type = figure_type::stone;
+        PlaygroundData[0].Figures[1].Type = figure_type::classic;
         
-        PlaygroundData[0].Figures[2].Form = figure_form::O_figure;
-        PlaygroundData[0].Figures[2].Type = figure_type::mirror;
+        //PlaygroundData[0].Figures[2].Form = figure_form::O_figure;
+        //PlaygroundData[0].Figures[2].Type = figure_type::mirror;
         
         PlaygroundData[0].RowAmount    = 5;
         PlaygroundData[0].ColumnAmount = 5;
-        PlaygroundData[0].MovingBlocksAmount = 1;
+        PlaygroundData[0].MovingBlocksAmount = 0;
         PlaygroundData[0].MovingBlocks[0].RowNumber = 1;
         PlaygroundData[0].MovingBlocks[0].ColNumber = 1;
         
         PrepareNextPlayground(Playground, Configuration, PlaygroundData, 0);
+        //WriteLevelsToFile(Memory->LevelStorage, Memory->LevelStorageSize);
     }
     
     Assert(sizeof(transient_state) < Memory->TransientStorageSize);

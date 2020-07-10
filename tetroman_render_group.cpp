@@ -50,6 +50,7 @@ Clear(render_group *Group, v4 Color)
     }
 }
 
+#if 0
 inline static void
 PushRect(render_group *Group, game_rect Rectangle, v4 Color) 
 {
@@ -72,6 +73,7 @@ PushRectOutline(render_group *Group, game_rect Rectangle, v4 Color)
     }
 }
 
+#endif
 inline static void
 PushRectangle(render_group *Group, rectangle2 Rectangle, v4 Color)
 {
@@ -109,23 +111,9 @@ PushBitmap(render_group *Group, game_texture* Texture, rectangle2 Rectangle)
 }
 
 inline static void
-PushBitmap(render_group *Group, game_texture* Texture, game_rect Rectangle)
+PushBitmapEx(render_group *Group, game_texture *Texture, rectangle2 Rectangle, r32 Angle, v2 RelativeCenter, figure_flip Flip)
 {
-    render_entry_texture *Piece = PushRenderElement(Group, render_entry_texture);
-    if(Piece)
-    {
-        Piece->Texture        = Texture;
-        Piece->Rectangle      = Rectangle;
-        Piece->Angle          = 0;
-        Piece->RelativeCenter = {0, 0};
-        Piece->Flip           = SDL_FLIP_NONE;
-    }
-}
-
-inline static void
-PushBitmapEx(render_group *Group, game_texture *Texture, game_rect Rectangle, r32 Angle, v2 RelativeCenter, figure_flip Flip)
-{
-    render_entry_texture *Piece = PushRenderElement(Group, render_entry_texture);
+    render_entry_texture2 *Piece = PushRenderElement(Group, render_entry_texture2);
     if(Piece)
     {
         Piece->Texture        = Texture;
@@ -137,32 +125,19 @@ PushBitmapEx(render_group *Group, game_texture *Texture, game_rect Rectangle, r3
 }
 
 static void
-DrawEntryTexture(game_offscreen_buffer *Buffer, render_entry_texture *Entry)
-{
-    game_texture *Texture = Entry->Texture;
-    
-    game_point Center;
-    Center.x = (s32)Entry->RelativeCenter.x;
-    Center.y = (s32)Entry->RelativeCenter.y;
-    
-    SDL_RenderCopyEx(Buffer->Renderer, Texture, 0, &Entry->Rectangle, Entry->Angle, &Center, Entry->Flip);
-}
-
-
-static void
 DrawEntryTexture(game_offscreen_buffer *Buffer, render_entry_texture2 *Entry)
 {
     game_texture *Texture = Entry->Texture;
     
     game_point Center;
-    Center.x = (s32)Entry->RelativeCenter.x;
-    Center.y = (s32)Entry->RelativeCenter.y;
+    Center.x = roundf(Entry->RelativeCenter.x);
+    Center.y = roundf(Entry->RelativeCenter.y);
     
     game_rect Rectangle;
-    Rectangle.x = Entry->Rectangle.Min.x;
-    Rectangle.y = Entry->Rectangle.Min.y;
-    Rectangle.w = Entry->Rectangle.Max.x - Entry->Rectangle.Min.x;
-    Rectangle.h = Entry->Rectangle.Max.y - Entry->Rectangle.Min.y;
+    Rectangle.x = roundf(Entry->Rectangle.Min.x);
+    Rectangle.y = roundf(Entry->Rectangle.Min.y);
+    Rectangle.w = roundf(Entry->Rectangle.Max.x - Entry->Rectangle.Min.x);
+    Rectangle.h = roundf(Entry->Rectangle.Max.y - Entry->Rectangle.Min.y);
     
     SDL_RenderCopyEx(Buffer->Renderer, Texture, 0, &Rectangle, Entry->Angle, &Center, Entry->Flip);
 }
@@ -193,27 +168,6 @@ RenderGroupToOutput(render_group *RenderGroup, game_offscreen_buffer *Buffer)
                 
             } break;
             
-            case RenderGroupEntryType_render_entry_rectangle: 
-            {
-                render_entry_rectangle *Entry = (render_entry_rectangle*) Data;
-                
-                DEBUGRenderQuadFill(Buffer, &Entry->Rectangle, {(u8)Entry->Color.r,(u8)Entry->Color.g, (u8)Entry->Color.b}, (u8)Entry->Color.a);
-                
-                BaseAddress += sizeof(*Entry);
-                
-            } break;
-            
-            
-            case RenderGroupEntryType_render_entry_rectangle_outline: 
-            {
-                render_entry_rectangle *Entry = (render_entry_rectangle*) Data;
-                
-                DEBUGRenderQuad(Buffer, &Entry->Rectangle, {(u8)Entry->Color.r,(u8)Entry->Color.g, (u8)Entry->Color.b}, (u8)Entry->Color.a);
-                
-                BaseAddress += sizeof(*Entry);
-                
-            } break;
-            
             case RenderGroupEntryType_render_entry_rectangle2:
             {
                 render_entry_rectangle2 *Entry = (render_entry_rectangle2*) Data;
@@ -228,15 +182,6 @@ RenderGroupToOutput(render_group *RenderGroup, game_offscreen_buffer *Buffer)
                 render_entry_rectangle2 *Entry = (render_entry_rectangle2*) Data;
                 
                 DEBUGRenderQuad(Buffer, Entry->Rectangle, Entry->Color);
-                
-                BaseAddress += sizeof(*Entry);
-            } break;
-            
-            case RenderGroupEntryType_render_entry_texture: 
-            {
-                render_entry_texture *Entry = (render_entry_texture*) Data;
-                
-                DrawEntryTexture(Buffer, Entry);
                 
                 BaseAddress += sizeof(*Entry);
             } break;

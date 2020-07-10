@@ -204,6 +204,32 @@ struct rectangle2
     v2 Max;
 };
 
+static v2
+GetDim(rectangle2 Rectangle)
+{
+    v2 Result = {};
+    
+    Result.w = Rectangle.Max.x - Rectangle.Min.x;
+    Result.w = Rectangle.Max.y - Rectangle.Min.y;
+    
+    return (Result);
+}
+
+static void
+SetDim(rectangle2 *Rectangle, v2 Dimension)
+{
+    Rectangle->Max.x = Rectangle->Min.x + Dimension.w;
+    Rectangle->Max.y = Rectangle->Min.y + Dimension.h;
+}
+
+static void
+SetDim(rectangle2 *Rectangle, r32 DimensionWidth, r32 DimensionHeight)
+{
+    Rectangle->Max.x = Rectangle->Min.x + DimensionWidth;
+    Rectangle->Max.y = Rectangle->Min.y + DimensionHeight;
+}
+
+
 inline void
 Swap(r32 *A, r32 *B)
 {

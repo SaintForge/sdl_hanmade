@@ -681,16 +681,13 @@ RestartLevelEntity(playground *LevelEntity)
 }
 
 static void
-GameUpdateEvent(game_input *Input, playground *LevelEntity, u32 ScreenWidth, u32 ScreenHeight)
+PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWidth, u32 ScreenHeight)
 {
     grid_entity   *GridEntity   = &LevelEntity->GridEntity;
     figure_entity *FigureEntity = &LevelEntity->FigureEntity;
     figure_unit   *FigureUnit   = FigureEntity->FigureUnit;
     
     u32 Size   = FigureEntity->FigureAmount;
-    //s32 MouseX = Input->MouseX;
-    //s32 MouseY = Input->MouseY;
-    
     v2 MousePos = {};
     MousePos.x = Input->MouseX;
     MousePos.y = Input->MouseY;
@@ -1742,37 +1739,35 @@ RenderFigureStructure(render_group *RenderGroup, figure_unit *Entity)
 {
     v4 Color = {0, 255, 255, 255};
     
-    game_rect Rectangle = {};
-    Rectangle.x = (s32)Entity->Position.x;
-    Rectangle.y = (s32)Entity->Position.y;
-    Rectangle.w = (s32)Entity->Size.w;
-    Rectangle.h = (s32)Entity->Size.h;
+    rectangle2 Rectangle = {};
+    Rectangle.Min.x = Entity->Position.x;
+    Rectangle.Min.y = Entity->Position.y;
+    Rectangle.Max.x = Rectangle.Min.x + Entity->Size.w;
+    Rectangle.Max.y = Rectangle.Min.y + Entity->Size.h;
     
-    PushRectOutline(RenderGroup, Rectangle, Color);
+    PushRectangleOutline(RenderGroup, Rectangle, Color);
+    
+    r32 BlockSize = 20.0f;
     
     for (u32 Index = 0;
          Index < FIGURE_BLOCKS_MAXIMUM;
          ++Index)
     {
-        game_rect Rectangle = {};
-        Rectangle.w = 20;
-        Rectangle.h = 20;
-        Rectangle.x = Entity->Shell[Index].x - (Rectangle.w / 2);
-        Rectangle.y = Entity->Shell[Index].y - (Rectangle.h / 2);
-        
-        PushRect(RenderGroup, Rectangle, Color);
+        Rectangle.Min.x = Entity->Shell[Index].x - (BlockSize / 2.0f);
+        Rectangle.Min.y = Entity->Shell[Index].y - (BlockSize / 2.0f);
+        Rectangle.Max.x = Rectangle.Min.x + BlockSize;
+        Rectangle.Max.y = Rectangle.Min.y + BlockSize;
+        PushRectangle(RenderGroup, Rectangle, Color);
         
         v2 Center = {};
-        Center.x   = Entity->Position.x + (Entity->Size.w / 2);
-        Center.y   = Entity->Position.y + (Entity->Size.h) * Entity->CenterOffset;
+        Center.x  = Entity->Position.x + (Entity->Size.w / 2);
+        Center.y  = Entity->Position.y + (Entity->Size.h) * Entity->CenterOffset;
         
-        game_rect CenterRectangle = {};
-        CenterRectangle.w = 20;
-        CenterRectangle.h = 20;
-        CenterRectangle.x = Center.x - (CenterRectangle.w / 2);
-        CenterRectangle.y = Center.y - (CenterRectangle.h / 2);
-        
-        PushRect(RenderGroup, CenterRectangle, {255, 0, 0, 255});
+        Rectangle.Min.x = Center.x - (BlockSize / 2.0f);
+        Rectangle.Min.y = Center.y - (BlockSize / 2.0f);
+        Rectangle.Max.x = Rectangle.Min.x + BlockSize;
+        Rectangle.Max.y = Rectangle.Min.y + BlockSize;
+        PushRectangle(RenderGroup, Rectangle, {255, 0, 0, 255});
     }
 }
 
@@ -1785,34 +1780,28 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     figure_entity *FigureEntity = &LevelEntity->FigureEntity;
     figure_unit   *FigureUnit   = FigureEntity->FigureUnit;
     
-    s32 GridBlockSize     = LevelEntity->GridEntity.GridBlockSize;
-    u32 InActiveBlockSize = LevelEntity->FigureEntity.InActiveBlockSize;
-    
-    game_rect AreaQuad = {};
+    r32 GridBlockSize     = LevelEntity->GridEntity.GridBlockSize;
+    r32 InActiveBlockSize = LevelEntity->FigureEntity.InActiveBlockSize;
     
     r32 TimeElapsed  = Input->TimeElapsedMs;
-    r32 MaxVel       = GridBlockSize / 6;
-    s32 RowAmount    = GridEntity->RowAmount;
-    s32 ColumnAmount = GridEntity->ColumnAmount;
+    r32 MaxVel       = GridBlockSize / 6.0f;
+    u32 RowAmount    = GridEntity->RowAmount;
+    u32 ColumnAmount = GridEntity->ColumnAmount;
     u32 FigureAmount = FigureEntity->FigureAmount;
     s32 ActiveIndex  = FigureEntity->FigureActive;
     
-    s32 ActualGridWidth  = ColumnAmount * GridBlockSize;
-    s32 ActualGridHeight = RowAmount * GridBlockSize;
+    r32 ActualGridWidth  = ColumnAmount * GridBlockSize;
+    r32 ActualGridHeight = RowAmount * GridBlockSize;
     
-    game_rect GridArea = {};
-    GridArea.w = ActualGridWidth;
-    GridArea.h = ActualGridHeight;
-    GridArea.x = GridEntity->GridArea.Min.x;
-    GridArea.y = GridEntity->GridArea.Min.y;
+    rectangle2 GridArea = GridEntity->GridArea;
+    SetDim(&GridArea, ActualGridWidth, ActualGridHeight);
     
     bool ToggleHighlight = false;
-    
     s32 StartX = 0;
     s32 StartY = 0;
     
     /* game_input checking */
-    GameUpdateEvent(Input, LevelEntity, RenderGroup->Width, RenderGroup->Height);
+    PlaygroundUpdateEvents(Input, LevelEntity, RenderGroup->Width, RenderGroup->Height);
     
     Clear(RenderGroup, {42, 6, 21, 255});
     
@@ -1863,7 +1852,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                 r32 OffsetY = 0;
                 u32 RowIndex[4] = {0};
                 u32 ColIndex[4] = {0};
-                game_rect Rect = {0, 0, (s32)GridBlockSize, (s32)GridBlockSize};
                 
                 for (u32 i = 0 ; i < RowAmount && Count != 4; ++i)
                 {
@@ -1871,8 +1859,8 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                     {
                         rectangle2 Rect = {};
                         
-                        Rect.Min.x = GridArea.x + (j * GridBlockSize);
-                        Rect.Min.y = GridArea.y + (i * GridBlockSize);
+                        Rect.Min.x = GridArea.Min.x + (j * GridBlockSize);
+                        Rect.Min.y = GridArea.Min.y + (i * GridBlockSize);
                         Rect.Max.x = Rect.Min.x + GridBlockSize;
                         Rect.Max.y = Rect.Min.y + GridBlockSize;
                         
@@ -1884,6 +1872,13 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                                 {
                                     OffsetX = Rect.Min.x + (GridBlockSize / 2.0f) - FigureUnit[FigureIndex].Shell[l].x;
                                     OffsetY = Rect.Min.y + (GridBlockSize / 2.0f) - FigureUnit[FigureIndex].Shell[l].y;
+                                    
+                                    r32 ResOffsetX = OffsetX / (r32)((s32)OffsetX);
+                                    r32 ResOffsetY = OffsetY / (r32)((s32)OffsetY);
+                                    if (ResOffsetX > 1.0f || ResOffsetY > 1.0f)
+                                    {
+                                        printf("got it\n");
+                                    }
                                 }
                                 
                                 RowIndex[l] = i;
@@ -1900,8 +1895,7 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                 {
                     bool IsFree = true;
                     bool IsFull = false;
-                    
-                    for (u32 i = 0; i < 4; ++i)
+                    for (u32 i = 0; i < FIGURE_BLOCKS_MAXIMUM; ++i)
                     {
                         if(GridEntity->UnitField[(RowIndex[i] * ColumnAmount) + ColIndex[i]] > 0)
                         {
@@ -1916,8 +1910,9 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                         u32 StickSize = GridEntity->StickUnitsAmount;
                         
                         v2 FigureCenter = {};
-                        FigureCenter.x   = FigureUnit[FigureIndex].Position.x + (FigureUnit[FigureIndex].Size.w / 2);
+                        FigureCenter.x   = FigureUnit[FigureIndex].Position.x + (FigureUnit[FigureIndex].Size.w / 2.0f);
                         FigureCenter.y   = FigureUnit[FigureIndex].Position.y + (FigureUnit[FigureIndex].Size.h) * FigureUnit[FigureIndex].CenterOffset;
+                        
                         for (u32 i = 0; i < StickSize; ++i)
                         {
                             if(GridEntity->StickUnits[i].Index == -1)
@@ -1927,7 +1922,16 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                                 GridEntity->StickUnits[i].Center.y  = FigureCenter.y + OffsetY;
                                 GridEntity->StickUnits[i].IsSticked = false;
                                 
-                                for (u32 j = 0; j < 4; ++j)
+                                // TODO(msokolov): think about workaround for that bug
+                                printf("before sticking\n");
+                                printf("StickUnits.Center.x: %f\n", GridEntity->StickUnits[i].Center.x);
+                                printf("StickUnits.Center.y: %f\n", GridEntity->StickUnits[i].Center.y);
+                                printf("FigureCenter.x: %f\n", FigureCenter.x);
+                                printf("FigureCenter.y: %f\n", FigureCenter.y);
+                                printf("Offset.x: %f\n", OffsetX);
+                                printf("Offset.y: %f\n", OffsetY);
+                                
+                                for (u32 j = 0; j < FIGURE_BLOCKS_MAXIMUM; ++j)
                                 {
                                     GridEntity->StickUnits[i].Row[j] = RowIndex[j];
                                     GridEntity->StickUnits[i].Col[j] = ColIndex[j];
@@ -1999,11 +2003,13 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
             if((FigureCenter.x == TargetCenter.x) && (FigureCenter.y == TargetCenter.y))
             {
                 GridEntity->StickUnits[i].IsSticked = true;
+                printf("after sticking\n");
+                printf("Position.x: %f\n", FigureUnit[Index].Position.x);
+                printf("Position.y: %f\n", FigureUnit[Index].Position.y);
                 
                 u32 RowIndex = 0;
                 u32 ColIndex = 0;
-                
-                for(u32 j = 0; j < 4; j++)
+                for(u32 j = 0; j < FIGURE_BLOCKS_MAXIMUM; j++)
                 {
                     RowIndex = GridEntity->StickUnits[i].Row[j];
                     ColIndex = GridEntity->StickUnits[i].Col[j];
@@ -2022,51 +2028,54 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         //LevelEntityFinishAnimationInit(LevelEntity, Memory, Buffer);
     }
     
-    AreaQuad.w = GridBlockSize;
-    AreaQuad.h = GridBlockSize;
-    
+    rectangle2 GridCellRectangle = {};
     for (u32 Row = 0; Row < RowAmount; ++Row)
     {
-        StartY = GridArea.y + (GridBlockSize * Row);
+        GridCellRectangle.Min.y = GridArea.Min.y + (GridBlockSize * Row);
         
         for (u32 Col = 0; Col < ColumnAmount; ++Col)
         {
-            StartX = GridArea.x + (GridBlockSize * Col);
+            GridCellRectangle.Min.x = GridArea.Min.x + (GridBlockSize * Col);
             
-            AreaQuad.x = StartX;
-            AreaQuad.y = StartY;
+            GridCellRectangle.Max.x = GridCellRectangle.Min.x + GridBlockSize;
+            GridCellRectangle.Max.y = GridCellRectangle.Min.y + GridBlockSize;
+            
             u32 GridUnit = GridEntity->UnitField[(Row * ColumnAmount) + Col];
             if(GridUnit == 0 || GridUnit == 2 || GridUnit == 3)
             {
-                PushBitmap(RenderGroup, GridEntity->NormalSquareTexture, AreaQuad);
+                PushBitmap(RenderGroup, GridEntity->NormalSquareTexture, GridCellRectangle);
             }
         }
     }
     
-    s32 SpaceOverFrame = GridBlockSize / 4;
-    s32 FrameSize = GridBlockSize / 2;
-    AreaQuad.w = FrameSize;
-    AreaQuad.h = FrameSize;
+    rectangle2 FrameRectangle = {};
+    r32 FrameSize = GridBlockSize / 2.0f;
+    r32 SpaceOverFrame = GridBlockSize / 4.0f;
     
     // Top left corner
-    AreaQuad.x = GridArea.x - SpaceOverFrame;
-    AreaQuad.y = GridArea.y - SpaceOverFrame;
-    PushBitmap(RenderGroup, GridEntity->TopLeftCornerFrame, AreaQuad);
+    // TODO(msokolov): make function for setting rectangle2 dimension
+    FrameRectangle.Min.x = GridArea.Min.x - SpaceOverFrame;
+    FrameRectangle.Min.y = GridArea.Min.y - SpaceOverFrame;
+    SetDim(&FrameRectangle, FrameSize, FrameSize);
+    PushBitmap(RenderGroup, GridEntity->TopLeftCornerFrame, FrameRectangle);
     
     // Top right corner
-    AreaQuad.x = GridArea.x + ActualGridWidth - SpaceOverFrame;
-    AreaQuad.y = GridArea.y - SpaceOverFrame;
-    PushBitmap(RenderGroup, GridEntity->TopRightCornerFrame, AreaQuad);
+    FrameRectangle.Min.x = GridArea.Min.x - SpaceOverFrame + ActualGridWidth;
+    FrameRectangle.Min.y = GridArea.Min.y - SpaceOverFrame;
+    SetDim(&FrameRectangle, FrameSize, FrameSize);
+    PushBitmap(RenderGroup, GridEntity->TopRightCornerFrame, FrameRectangle);
     
     // Down left corner
-    AreaQuad.x = GridArea.x - SpaceOverFrame;
-    AreaQuad.y = GridArea.y + ActualGridHeight - SpaceOverFrame;
-    PushBitmap(RenderGroup, GridEntity->DownLeftCornerFrame, AreaQuad);
+    FrameRectangle.Min.x = GridArea.Min.x - SpaceOverFrame;
+    FrameRectangle.Min.y = GridArea.Min.y - SpaceOverFrame + ActualGridHeight;
+    SetDim(&FrameRectangle, FrameSize, FrameSize);
+    PushBitmap(RenderGroup, GridEntity->DownLeftCornerFrame, FrameRectangle);
     
     // Down right corner
-    AreaQuad.x = GridArea.x + ActualGridWidth - SpaceOverFrame;
-    AreaQuad.y = GridArea.y + ActualGridHeight - SpaceOverFrame;
-    PushBitmap(RenderGroup, GridEntity->DownRightCornerFrame, AreaQuad);
+    FrameRectangle.Min.x = GridArea.Min.x - SpaceOverFrame + ActualGridWidth;
+    FrameRectangle.Min.y = GridArea.Min.y - SpaceOverFrame + ActualGridHeight;
+    SetDim(&FrameRectangle, FrameSize, FrameSize);
+    PushBitmap(RenderGroup, GridEntity->DownRightCornerFrame, FrameRectangle);
     
     /* MovingBlocks Update and Rendering */
     moving_block *MovingBlocks = GridEntity->MovingBlocks;
@@ -2080,8 +2089,8 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
             
             v2 Position = MovingBlocks[i].Area.Min;
             v2 Destination = {};
-            Destination.x = GridArea.x + (ColNumber * GridBlockSize);
-            Destination.y = GridArea.y + (RowNumber * GridBlockSize);
+            Destination.x = GridArea.Min.x + (ColNumber * GridBlockSize);
+            Destination.y = GridArea.Min.y + (RowNumber * GridBlockSize);
             
             v2 dt = Destination - Position;
             r32 Distance = Square(dt);
@@ -2293,11 +2302,11 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         
         game_texture *Texture = PickFigureTexture(Entity->Form, Entity->Type, FigureEntity);
         
-        game_rect Rectangle = {};
-        Rectangle.x = Entity->Position.x;
-        Rectangle.y = Entity->Position.y;
-        Rectangle.w = Entity->Size.w;
-        Rectangle.h = Entity->Size.h;
+        rectangle2 Rectangle = {};
+        Rectangle.Min.x = Entity->Position.x;
+        Rectangle.Min.y = Entity->Position.y;
+        Rectangle.Max.w = Rectangle.Min.x + Entity->Size.w;
+        Rectangle.Max.h = Rectangle.Min.y + Entity->Size.h;
         
         PushBitmapEx(RenderGroup, Texture, Rectangle, Entity->Angle, Center, Entity->Flip);
         
