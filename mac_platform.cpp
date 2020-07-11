@@ -210,28 +210,6 @@ SDLUpdateWindow(SDL_Window* Window, SDL_Renderer *Renderer, sdl_offscreen_buffer
     SDL_RenderClear(Renderer);
 }
 
-static void
-SDLReloadFontTexture(TTF_Font *&Font, SDL_Texture *&Texture, SDL_Rect *Quad,
-                     char* Text, SDL_Renderer*& Renderer)
-{
-    SDL_Surface *Surface = 0;
-    
-    if(Texture)
-    {
-        SDL_DestroyTexture(Texture);
-    }
-    
-    Surface = TTF_RenderUTF8_Blended(Font, Text, {255,255,255});
-    Quad->w = Surface->w;
-    Quad->h = Surface->h;
-    
-    Texture = SDL_CreateTextureFromSurface(Renderer, Surface);
-    Assert(Texture);
-    SDL_FreeSurface(Surface);
-}
-
-
-
 #undef main //NOTE(Max): Because SDL_main doesn't work on some windows versions 
 int main(int argc, char **argv)
 {

@@ -9,9 +9,31 @@
 
 #if !defined(EDITOR_H)
 
+
+enum selected_area
+{
+    GRID_PLAYGROUND, FIGURE_PLAYGROUND
+};
+
 struct playground_editor
 {
     game_font *Font;
+    selected_area SelectedArea;
+    
+    u32 FigureIndex;
+    
+    rectangle2 FigureButtonsArea;
+    rectangle2 GridButtonsArea;
+    
+    game_texture *FigureFormTexture;
+    game_texture *FigureRotateTexture;
+    game_texture *FigureAddTexture;
+    game_texture *FigureDeleteTexture;
+    
+    game_texture *GridRowTexture;
+    game_texture *GridColumnTexture;
+    game_texture *GridPlusTexture;
+    game_texture *GridMinusTexture;
     
     b32 IsInitialized;
 };

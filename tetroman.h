@@ -68,7 +68,7 @@ struct game_state
     
     /* NOTE(msokolov): Non-release thing only */
 #if DEBUG_BUILD
-    game_editor GameEditor;
+    playground_editor *PlaygroundEditor;
     b32 EditorMode;
 #endif
 };

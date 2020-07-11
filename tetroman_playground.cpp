@@ -298,7 +298,7 @@ static void
 FigureUnitAddNewFigure(figure_entity *FigureEntity, figure_form Form, figure_type Type)
 
 {
-    if(FigureEntity->FigureAmount >= FIGURE_AMOUNT_MAXIMUM) return;
+    Assert(FigureEntity->FigureAmount < FIGURE_AMOUNT_MAXIMUM);
     
     u32 Index = FigureEntity->FigureAmount;
     FigureEntity->FigureAmount += 1;

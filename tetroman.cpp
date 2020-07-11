@@ -13,7 +13,7 @@
 #include "tetroman_playground.cpp"
 #include "tetroman_asset.cpp"
 #include "tetroman_menu.cpp"
-//#include "tetroman_editor.cpp"
+#include "tetroman_editor.cpp"
 
 static bool
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
@@ -168,17 +168,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         MenuEntity->ButtonIndex = -1;
         MenuEntity->BackTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
         
-        /* NOTE(msokolov): game_editor initialization starts here */ 
-        //GameState->GameEditor   = PushStruct(&GameState->MemoryGroup, game_editor);
-        //game_editor *GameEditor = GameState->GameEditor;
-        //GameEditorInit(Buffer, Playground, MenuEntity, Memory, GameEditor);
-        
-#if DEBUG_BUILD
-        
-        playground_editor *PlaygroundEditor = PushStruct(&GameState->MemoryGroup, playground_editor);
-        
-#endif
-        
         Memory->IsInitialized = true;
         printf("Memory has been initialized!\n");
         
@@ -205,6 +194,39 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         PrepareNextPlayground(Playground, Configuration, PlaygroundData, 0);
         //WriteLevelsToFile(Memory->LevelStorage, Memory->LevelStorageSize);
+        
+#if DEBUG_BUILD
+        
+        playground_editor *PlaygroundEditor = PushStruct(&GameState->MemoryGroup, playground_editor);
+        GameState->PlaygroundEditor = PlaygroundEditor;
+        
+        PlaygroundEditor->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", 50);
+        Assert(PlaygroundEditor->Font);
+        
+        PlaygroundEditor->SelectedArea = selected_area::FIGURE_PLAYGROUND;
+        PlaygroundEditor->FigureIndex  = 0;
+        
+        PlaygroundEditor->FigureFormTexture   = MakeTextureFromString(Buffer, PlaygroundEditor->Font, "Shape", {255, 255, 255, 255});
+        PlaygroundEditor->FigureRotateTexture = MakeTextureFromString(Buffer, PlaygroundEditor->Font, "Rotate", {255, 255, 255, 255});
+        PlaygroundEditor->FigureAddTexture    = MakeTextureFromString(Buffer, PlaygroundEditor->Font, "Add", {255, 255, 255, 255});
+        PlaygroundEditor->FigureDeleteTexture = MakeTextureFromString(Buffer, PlaygroundEditor->Font, "Delete", {255, 255, 255, 255});
+        
+        PlaygroundEditor->FigureButtonsArea.Min.x = FigureEntity->FigureArea.Min.x - 180.0f; 
+        PlaygroundEditor->FigureButtonsArea.Min.y = FigureEntity->FigureArea.Min.y + (GetDim(FigureEntity->FigureArea).h / 2.0f) - (180.0f / 2.0f); 
+        SetDim(&PlaygroundEditor->FigureButtonsArea, 180, 240);
+        
+        PlaygroundEditor->GridRowTexture = MakeTextureFromString(Buffer, PlaygroundEditor->Font, "Row", {255, 255, 255, 255});;
+        PlaygroundEditor->GridColumnTexture = MakeTextureFromString(Buffer, PlaygroundEditor->Font, "Column", {255, 255, 255, 255});;
+        PlaygroundEditor->GridPlusTexture = MakeTextureFromString(Buffer, PlaygroundEditor->Font, "+", {255, 255, 255, 255});;
+        PlaygroundEditor->GridMinusTexture = MakeTextureFromString(Buffer, PlaygroundEditor->Font, "-", {255, 255, 255, 255});;
+        
+        PlaygroundEditor->GridButtonsArea.Min.x = GridEntity->GridArea.Max.x; 
+        PlaygroundEditor->GridButtonsArea.Min.y = GridEntity->GridArea.Max.y - (GetDim(GridEntity->GridArea).h / 2.0f) - (60.0f);
+        SetDim(&PlaygroundEditor->GridButtonsArea, 180.0f, 120.0f);
+        
+        PlaygroundEditor->IsInitialized = true;
+#endif
+        
     }
     
     Assert(sizeof(transient_state) < Memory->TransientStorageSize);
@@ -238,8 +260,20 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     if(Input->Keyboard.BackQuote.EndedDown)
     {
-        Playground->FigureEntity.IsRestarting = true;
         RestartLevelEntity(Playground);
+        
+#if DEBUG_BUILD
+        if (!GameState->EditorMode)
+        {
+            GameState->EditorMode   = true;
+            Playground->LevelPaused = true;
+        }
+        else
+        {
+            GameState->EditorMode   = false;
+            Playground->LevelPaused = false;
+        }
+#endif
     }
     
     /*
@@ -266,6 +300,12 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         {
             // TODO(msokolov): do we actually need that?
         } break;
+    }
+    
+    if (GameState->EditorMode)
+    {
+        playground_editor *PlaygroundEditor = GameState->PlaygroundEditor;
+        PlaygroundEditorUpdateAndRender(Playground, GameState->PlaygroundData, &GameState->Configuration, GameState->PlaygroundEditor, RenderGroup, Input);
     }
     
     RenderGroupToOutput(RenderGroup, Buffer);

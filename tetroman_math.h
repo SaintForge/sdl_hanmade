@@ -209,7 +209,7 @@ struct rectangle2
     v2 Max;
 };
 
-static v2
+inline static v2
 GetDim(rectangle2 Rectangle)
 {
     v2 Result = {};
@@ -220,14 +220,14 @@ GetDim(rectangle2 Rectangle)
     return (Result);
 }
 
-static void
+inline static void
 SetDim(rectangle2 *Rectangle, v2 Dimension)
 {
     Rectangle->Max.x = Rectangle->Min.x + Dimension.w;
     Rectangle->Max.y = Rectangle->Min.y + Dimension.h;
 }
 
-static void
+inline static void
 SetDim(rectangle2 *Rectangle, r32 DimensionWidth, r32 DimensionHeight)
 {
     Rectangle->Max.x = Rectangle->Min.x + DimensionWidth;
