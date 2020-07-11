@@ -203,7 +203,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundEditor->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", 50);
         Assert(PlaygroundEditor->Font);
         
-        PlaygroundEditor->SelectedArea = selected_area::FIGURE_PLAYGROUND;
+        PlaygroundEditor->SelectedArea = selected_area::GRID_PLAYGROUND;
         PlaygroundEditor->FigureIndex  = 0;
         
         PlaygroundEditor->FigureFormTexture   = MakeTextureFromString(Buffer, PlaygroundEditor->Font, "Shape", {255, 255, 255, 255});
@@ -220,9 +220,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundEditor->GridPlusTexture = MakeTextureFromString(Buffer, PlaygroundEditor->Font, "+", {255, 255, 255, 255});;
         PlaygroundEditor->GridMinusTexture = MakeTextureFromString(Buffer, PlaygroundEditor->Font, "-", {255, 255, 255, 255});;
         
-        PlaygroundEditor->GridButtonsArea.Min.x = GridEntity->GridArea.Max.x; 
-        PlaygroundEditor->GridButtonsArea.Min.y = GridEntity->GridArea.Max.y - (GetDim(GridEntity->GridArea).h / 2.0f) - (60.0f);
-        SetDim(&PlaygroundEditor->GridButtonsArea, 180.0f, 120.0f);
+        PlaygroundEditor->GridButtonsArea.Min.x = FigureEntity->FigureArea.Min.x; 
+        PlaygroundEditor->GridButtonsArea.Min.y = FigureEntity->FigureArea.Max.y - (GetDim(FigureEntity->FigureArea).h / 2.0f) - (60.0f);
+        SetDim(&PlaygroundEditor->GridButtonsArea, 300.0f, 120.0f);
         
         PlaygroundEditor->IsInitialized = true;
 #endif

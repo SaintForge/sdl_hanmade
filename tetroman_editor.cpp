@@ -127,6 +127,48 @@ PlaygroundEditorUpdateAndRender(playground        *Playground,
                 }
             }
         }
+        else if(IsInRectangle(MousePos, GridButtons))
+        {
+            rectangle2 ButtonRectangle = {};
+            
+            // NOTE(msokolov): Add Row in Grid
+            ButtonRectangle.Min = PlaygroundEditor->GridButtonsArea.Min;
+            SetDim(&ButtonRectangle, 60, 60);
+            if(IsInRectangle(MousePos, ButtonRectangle))
+            {
+                if (Playground->GridEntity.RowAmount < ROW_AMOUNT_MAXIMUM)
+                    Playground->GridEntity.RowAmount++;
+            }
+            
+            // NOTE(msokolov): Delete Row in Grid
+            ButtonRectangle.Min.x += 60.0f;
+            SetDim(&ButtonRectangle, 60, 60);
+            if(IsInRectangle(MousePos, ButtonRectangle))
+            {
+                if (Playground->GridEntity.RowAmount > 0)
+                    Playground->GridEntity.RowAmount--;
+            }
+            
+            // NOTE(msokolov): Add Column in Grid
+            ButtonRectangle.Min.x -= 60.0f;
+            ButtonRectangle.Min.y += 60.0f;
+            SetDim(&ButtonRectangle, 60, 60);
+            if(IsInRectangle(MousePos, ButtonRectangle))
+            {
+                if (Playground->GridEntity.ColumnAmount < COLUMN_AMOUNT_MAXIMUM)
+                    Playground->GridEntity.ColumnAmount++;
+            }
+            
+            // NOTE(msokolov): Delete Column in Grid
+            ButtonRectangle.Min.x += 60.0f;
+            SetDim(&ButtonRectangle, 60, 60);
+            if(IsInRectangle(MousePos, ButtonRectangle))
+            {
+                if (Playground->GridEntity.ColumnAmount > 0)
+                    Playground->GridEntity.ColumnAmount--;
+            }
+            
+        }
         else if(IsInRectangle(MousePos, FigureArea))
         {
             PlaygroundEditor->SelectedArea = selected_area::FIGURE_PLAYGROUND;
@@ -146,13 +188,12 @@ PlaygroundEditorUpdateAndRender(playground        *Playground,
                 }
             }
         }
-        else if(IsInRectangle(MousePos, GridButtons))
-        {
-            
-        }
+        
         else if(IsInRectangle(MousePos, GridArea))
         {
             PlaygroundEditor->SelectedArea = selected_area::GRID_PLAYGROUND;
+            
+            
         }
     }
     
@@ -313,6 +354,113 @@ PlaygroundEditorUpdateAndRender(playground        *Playground,
             PushRectangle(RenderGroup, GridArea, Color);
             
             PushRectangleOutline(RenderGroup, PlaygroundEditor->GridButtonsArea, {255, 0, 0, 255});
+            
+            v2 StartingPosition = {};
+            rectangle2 TempRectangle = {};
+            v2 Dim = {};
+            
+            StartingPosition.x = PlaygroundEditor->GridButtonsArea.Min.x;
+            StartingPosition.y = PlaygroundEditor->GridButtonsArea.Min.y;
+            
+            /* + */
+            TempRectangle.Min.x = StartingPosition.x;
+            TempRectangle.Min.y = StartingPosition.y;
+            SetDim(&TempRectangle, 60.0f, 60.0f);
+            
+            Color = {0, 0, 255, 255};
+            PushRectangle(RenderGroup, TempRectangle, Color);
+            Color = {255, 255, 255, 255};
+            PushRectangleOutline(RenderGroup, TempRectangle, Color);
+            
+            Dim = QueryTextureDim(PlaygroundEditor->GridPlusTexture);
+            TempRectangle.Min.x = TempRectangle.Min.x + (GetDim(TempRectangle).w / 2.0f) - (Dim.w / 2.0f); 
+            TempRectangle.Min.y = TempRectangle.Min.y + (GetDim(TempRectangle).h / 2.0f) - (Dim.h / 2.0f); 
+            SetDim(&TempRectangle, Dim);
+            PushBitmap(RenderGroup, PlaygroundEditor->GridPlusTexture, TempRectangle);
+            
+            /* - */
+            TempRectangle.Min.x = StartingPosition.x + 60.0f;
+            TempRectangle.Min.y = StartingPosition.y;
+            SetDim(&TempRectangle, 60.0f, 60.0f);
+            
+            Color = {0, 0, 255, 255};
+            PushRectangle(RenderGroup, TempRectangle, Color);
+            Color = {255, 255, 255, 255};
+            PushRectangleOutline(RenderGroup, TempRectangle, Color);
+            
+            Dim = QueryTextureDim(PlaygroundEditor->GridMinusTexture);
+            TempRectangle.Min.x = TempRectangle.Min.x + (GetDim(TempRectangle).w / 2.0f) - (Dim.w / 2.0f); 
+            TempRectangle.Min.y = TempRectangle.Min.y + (GetDim(TempRectangle).h / 2.0f) - (Dim.h / 2.0f); 
+            SetDim(&TempRectangle, Dim);
+            PushBitmap(RenderGroup, PlaygroundEditor->GridMinusTexture, TempRectangle);
+            
+            /* Row */
+            TempRectangle.Min.x = StartingPosition.x + 120.0f;
+            TempRectangle.Min.y = StartingPosition.y;
+            SetDim(&TempRectangle, 180.0f, 60.0f);
+            
+            Color = {0, 0, 255, 255};
+            PushRectangle(RenderGroup, TempRectangle, Color);
+            Color = {255, 255, 255, 255};
+            PushRectangleOutline(RenderGroup, TempRectangle, Color);
+            
+            Dim = QueryTextureDim(PlaygroundEditor->GridRowTexture);
+            TempRectangle.Min.x = TempRectangle.Min.x + (GetDim(TempRectangle).w / 2.0f) - (Dim.w / 2.0f); 
+            TempRectangle.Min.y = TempRectangle.Min.y + (GetDim(TempRectangle).h / 2.0f) - (Dim.h / 2.0f); 
+            SetDim(&TempRectangle, Dim);
+            PushBitmap(RenderGroup, PlaygroundEditor->GridRowTexture, TempRectangle);
+            
+            StartingPosition.x = PlaygroundEditor->GridButtonsArea.Min.x;
+            StartingPosition.y = PlaygroundEditor->GridButtonsArea.Min.y + 60.0f;
+            
+            /* + */
+            TempRectangle.Min.x = StartingPosition.x;
+            TempRectangle.Min.y = StartingPosition.y;
+            SetDim(&TempRectangle, 60.0f, 60.0f);
+            
+            Color = {0, 0, 255, 255};
+            PushRectangle(RenderGroup, TempRectangle, Color);
+            Color = {255, 255, 255, 255};
+            PushRectangleOutline(RenderGroup, TempRectangle, Color);
+            
+            Dim = QueryTextureDim(PlaygroundEditor->GridPlusTexture);
+            TempRectangle.Min.x = TempRectangle.Min.x + (GetDim(TempRectangle).w / 2.0f) - (Dim.w / 2.0f); 
+            TempRectangle.Min.y = TempRectangle.Min.y + (GetDim(TempRectangle).h / 2.0f) - (Dim.h / 2.0f); 
+            SetDim(&TempRectangle, Dim);
+            PushBitmap(RenderGroup, PlaygroundEditor->GridPlusTexture, TempRectangle);
+            
+            /* - */
+            TempRectangle.Min.x = StartingPosition.x + 60.0f;
+            TempRectangle.Min.y = StartingPosition.y;
+            SetDim(&TempRectangle, 60.0f, 60.0f);
+            
+            Color = {0, 0, 255, 255};
+            PushRectangle(RenderGroup, TempRectangle, Color);
+            Color = {255, 255, 255, 255};
+            PushRectangleOutline(RenderGroup, TempRectangle, Color);
+            
+            Dim = QueryTextureDim(PlaygroundEditor->GridMinusTexture);
+            TempRectangle.Min.x = TempRectangle.Min.x + (GetDim(TempRectangle).w / 2.0f) - (Dim.w / 2.0f); 
+            TempRectangle.Min.y = TempRectangle.Min.y + (GetDim(TempRectangle).h / 2.0f) - (Dim.h / 2.0f); 
+            SetDim(&TempRectangle, Dim);
+            PushBitmap(RenderGroup, PlaygroundEditor->GridMinusTexture, TempRectangle);
+            
+            /* Column */
+            TempRectangle.Min.x = StartingPosition.x + 120.0f;
+            TempRectangle.Min.y = StartingPosition.y;
+            SetDim(&TempRectangle, 180.0f, 60.0f);
+            
+            Color = {0, 0, 255, 255};
+            PushRectangle(RenderGroup, TempRectangle, Color);
+            Color = {255, 255, 255, 255};
+            PushRectangleOutline(RenderGroup, TempRectangle, Color);
+            
+            Dim = QueryTextureDim(PlaygroundEditor->GridColumnTexture);
+            TempRectangle.Min.x = TempRectangle.Min.x + (GetDim(TempRectangle).w / 2.0f) - (Dim.w / 2.0f); 
+            TempRectangle.Min.y = TempRectangle.Min.y + (GetDim(TempRectangle).h / 2.0f) - (Dim.h / 2.0f); 
+            SetDim(&TempRectangle, Dim);
+            PushBitmap(RenderGroup, PlaygroundEditor->GridColumnTexture, TempRectangle);
+            
         } break;
     }
 }
