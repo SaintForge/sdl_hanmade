@@ -1,11 +1,10 @@
-/* assert_game.h --- 
- * 
- * Filename: assert_game.h
- * Author: Sierra
- * Created: Пн окт 16 16:29:29 2017 (+0300)
- * Last-Updated: Ср окт 25 17:18:06 2017 (+0300)
- *           By: Sierra
- */
+/* ========================================= */
+//     $File: tetroman_asset.cpp
+//     $Date: June 16th 2017 10:08 am 
+//     $Creator: Maksim Sokolov
+//     $Revision: $
+//     $Description: $
+/* ========================================= */
 
 #if !defined(ASSERT_GAME_H)
 

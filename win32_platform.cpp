@@ -1,3 +1,11 @@
+/* ========================================= */
+//     $File: win32_platform.cpp
+//     $Date: October 10th 2017 10:32 pm 
+//     $Creator: Maksim Sokolov
+//     $Revision: $
+//     $Description: $
+/* ========================================= */
+
 #include "win32_platform.h"
 #include "tetroman_platform.h"
 
@@ -115,6 +123,10 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input)
                     else if(KeyCode == SDLK_e)
                     {
                         SDLProcessKeyPress(&Input->Keyboard.E_Button, IsDown, WasDown);
+                    }
+                    else if(KeyCode == SDLK_s)
+                    {
+                        SDLProcessKeyPress(&Input->Keyboard.S_Button, IsDown, WasDown);
                     }
                     else if(KeyCode == SDLK_ESCAPE)
                     {
@@ -240,19 +252,20 @@ int main(int argc, char **argv)
     b32 VSyncOn = true;
     s32 FrameLimit = 60;
     
-    SDL_Window* Window = SDL_CreateWindow("This is window",
+    SDL_Window* Window = SDL_CreateWindow("Tetroman",
                                           SDL_WINDOWPOS_CENTERED,
                                           SDL_WINDOWPOS_CENTERED,
                                           Display.w, Display.h,
-                                          SDL_WINDOW_RESIZABLE);
-    
-    // NOTE(msokolov): this ideally should be either hardcoded always in the code
-    // or be taken from the user's monitor resolution
-    SDL_SetWindowSize(Window, WINDOW_WIDTH, WINDOW_HEIGHT);
-    SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+                                          0);
     
     if(Window)
     {
+        
+        // NOTE(msokolov): this ideally should be either hardcoded always in the code
+        // or be taken from the user's monitor resolution
+        SDL_SetWindowSize(Window, WINDOW_WIDTH, WINDOW_HEIGHT);
+        SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+        
         if(VSyncOn)
         {
             SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
@@ -262,7 +275,7 @@ int main(int argc, char **argv)
                                                     SDL_RENDERER_TARGETTEXTURE|SDL_RENDERER_ACCELERATED);
         
         SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
-        SDL_RenderSetLogicalSize(Renderer, LOGICAL_GAME_WIDTH, LOGICAL_GAME_HEIGHT);
+        //SDL_RenderSetLogicalSize(Renderer, LOGICAL_GAME_WIDTH, LOGICAL_GAME_HEIGHT);
         
         if(Renderer)
         {
@@ -278,7 +291,7 @@ int main(int argc, char **argv)
             Buffer.ScreenWidth   = BackBuffer.Width;
             Buffer.ScreenHeight  = BackBuffer.Height;
             Buffer.Width         = LOGICAL_GAME_WIDTH;
-            Buffer.Height  = LOGICAL_GAME_HEIGHT;
+            Buffer.Height        = LOGICAL_GAME_HEIGHT;
             
             u32 RefreshRate = 60;
             s32 DisplayIndex = 0, ModeIndex = 0;
@@ -324,6 +337,11 @@ int main(int argc, char **argv)
                 
                 ReadAssetFromFile("package1.bin", Memory.AssetStorage, Memory.AssetStorageSize);
                 ReadLevelFromFile("package2.bin", Memory.LevelStorage, Memory.LevelStorageSize);
+                
+                game_surface *Surface = GetSurface(&Memory, "grid_cell.png", Renderer);
+                Assert(Surface);
+                SDL_SetWindowIcon(Window, Surface);
+                
                 
 #if DEBUG_BUILD
                 game_texture *Texture = GetTexture(&Memory, "test_animation.png", Renderer);
@@ -386,7 +404,6 @@ int main(int argc, char **argv)
                     if (Input.Keyboard.Q_Button.EndedDown)
                     {
                         FrameTimeStep2 += dtForFrame;
-                        printf("Animation 2 FrameTimeStep: %f\n", FrameTimeStep2); 
                     }
                     
                     //DrawEntryTexture(&Buffer, &Entry);
@@ -396,7 +413,6 @@ int main(int argc, char **argv)
                         FrameIndex++;
                         FrameElapsed = 0.0f;
                     }
-                    
                     
                     FrameIndex2 = FrameIndex2 % FrameAmount2;
                     

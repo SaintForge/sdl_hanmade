@@ -1,3 +1,10 @@
+/* ========================================= */
+//     $File: tetroman_render_group.cpp
+//     $Date: October 10th 2017 10:32 am 
+//     $Creator: Maksim Sokolov
+//     $Revision: $
+//     $Description: $
+/* ========================================= */
 
 
 inline render_group*
@@ -156,6 +163,8 @@ RenderGroupToOutput(render_group *RenderGroup, game_offscreen_buffer *Buffer)
                 
                 game_rect Rectangle = {0, 0, Buffer->Width, Buffer->Height};
                 DEBUGRenderQuadFill(Buffer, &Rectangle, {(u8)Entry->Color.r,(u8)Entry->Color.g, (u8)Entry->Color.b}, (u8)Entry->Color.a);
+                //SDL_SetRenderDrawColor(Buffer->Renderer, 255, 0, 0, 255);
+				//SDL_RenderClear(Buffer->Renderer);
                 
                 BaseAddress += sizeof(*Entry);
                 

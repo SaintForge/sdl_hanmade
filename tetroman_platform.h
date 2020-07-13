@@ -1,4 +1,10 @@
-/* date = June 19th 2020 1:15 pm */
+/* ========================================= */
+//     $File: tetroman_platform.h
+//     $Date: June 19th 2020 1:15 pm 
+//     $Creator: Maksim Sokolov
+//     $Revision: $
+//     $Description: $
+/* ========================================= */
 
 #ifndef TETROMAN_PLATFORM_H
 #define TETROMAN_PLATFORM_H
@@ -72,7 +78,7 @@ struct game_keyboard_input
 {
     union
     {
-        game_button_state Buttons[23];
+        game_button_state Buttons[24];
         struct
         {
             game_button_state Up;
@@ -85,6 +91,7 @@ struct game_keyboard_input
             game_button_state BackQuote;
             game_button_state Q_Button;
             game_button_state E_Button;
+            game_button_state S_Button;
             game_button_state Tab;
             
             game_button_state Zero;

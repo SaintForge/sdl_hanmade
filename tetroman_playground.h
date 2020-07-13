@@ -1,11 +1,10 @@
-/* entity.h --- 
- * 
- * Filename: entity.h
- * Author: 
- * Created: Ср окт 18 20:58:16 2017 (+0400)
- * Last-Updated: Пт окт 20 16:50:56 2017 (+0300)
- *           By: Sierra
- */
+/* ========================================= */
+//     $File: tetroman_playground.h
+//     $Date: October 18th 2017 08:52 pm 
+//     $Creator: Maksim Sokolov
+//     $Revision: $
+//     $Description: $
+/* ========================================= */
 
 #if !defined(ENTITY_H)
 
@@ -213,6 +212,8 @@ struct playground
     figure_entity FigureEntity;
     
     u32 LevelNumber;
+    game_texture *LevelNumberTexture;
+    
     b32 LevelStarted;
     b32 LevelPaused;
     b32 LevelFinished;

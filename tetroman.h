@@ -1,11 +1,10 @@
-/* game.h --- 
- * 
- * Filename: game.h
- * Author: Sierra
- * Created: Пн окт  9 14:15:31 2017 (+0300)
- * Last-Updated: Пт окт 27 10:34:58 2017 (+0300)
- *           By: Sierra
- */
+/* ========================================= */
+//     $File: tetroman.h
+//     $Date: October 9th 2017 07:32 pm 
+//     $Creator: Maksim Sokolov
+//     $Revision: $
+//     $Description: $
+/* ========================================= */
 
 #if !defined(GAME_H)
 
@@ -16,6 +15,7 @@
 #include "tetroman_asset.h"
 #include "tetroman_editor.h"
 #include "tetroman_render_group.h"
+#include "tetroman_menu.h"
 
 #include "tetroman_debug.h"
 
@@ -49,9 +49,17 @@ PushSize_(memory_group *Area, memory_index Size)
 
 enum game_mode
 {
-    LEVEL, 
+    MAIN_MENU,
+    SETTINGS,
+    QUIT,
+    
+    PLAYGROUND, 
     LEVEL_MENU, 
-    MAIN_MENU
+    
+    DIFFICULTY_MENU,
+    EASY_DIFFICULTY,
+    MIDDLE_DIFFICULTY,
+    HARD_DIFFICULTY,
 };
 
 struct game_state
@@ -63,8 +71,9 @@ struct game_state
     playground_config Configuration;
     u32 PlaygroundIndex;
     
-    menu_entity *MenuEntity;
+    playground_menu PlaygroundMenu;
     game_mode CurrentMode;
+    game_font *Font;
     
     /* NOTE(msokolov): Non-release thing only */
 #if DEBUG_BUILD

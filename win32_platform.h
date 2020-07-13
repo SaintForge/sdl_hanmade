@@ -1,11 +1,11 @@
-/* win32_game.h --- 
- * 
- * Filename: win32_game.h
- * Author: 
- * Created: Ср окт 18 20:58:16 2017 (+0400)
- * Last-Updated: Пт окт 20 16:50:56 2017 (+0300)
- *           By: Sierra
- */
+/* ========================================= */
+//     $File: win32_platform.h
+//     $Date: October 18th 2017 08:58 pm 
+//     $Creator: Maksim Sokolov
+//     $Revision: $
+//     $Description: $
+/* ========================================= */
+
 #if !defined(WIN32_GAME_H)
 
 #include <SDL2\SDL.h>

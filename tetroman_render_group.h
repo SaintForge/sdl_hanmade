@@ -1,4 +1,11 @@
-/* date = June 28th 2020 11:55 am */
+/* ========================================= */
+//     $File: tetroman_render_group.h
+//     $Date: June 28th 2020 10:32 am 
+//     $Creator: Maksim Sokolov
+//     $Revision: $
+//     $Description: $
+/* ========================================= */
+
 
 #ifndef TETROMAN_RENDER_GROUP_H
 #define TETROMAN_RENDER_GROUP_H

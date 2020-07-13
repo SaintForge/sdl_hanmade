@@ -1,11 +1,11 @@
-/* asset_game.cpp --- 
- * 
- * Filename: asset_game.h
- * Author: Sierra
- * Created: Пн окт 16 10:08:17 2017 (+0300)
- * Last-Updated: Пт окт 27 10:15:58 2017 (+0300)
- *           By: Sierra
- */
+/* ========================================= */
+//     $File: tetroman_asset.cpp
+//     $Date: June 16th 2017 10:08 am 
+//     $Creator: Maksim Sokolov
+//     $Revision: $
+//     $Description: $
+/* ========================================= */
+
 
 static u64
 SDLSizeOfSDL_RWops(SDL_RWops *&BinaryFile)
@@ -237,6 +237,39 @@ GetSound(game_memory *Memory, char* FileName)
     return(Sound);
 }
 
+static game_surface*
+GetSurface(game_memory *Memory, const char* FileName, SDL_Renderer *Renderer)
+{
+    game_surface *Result = NULL;
+    
+    binary_header *BinaryHeader = (binary_header*)Memory->AssetStorage;
+    u32 ByteOffset = sizeof(binary_header) + BinaryHeader->BitmapSizeInBytes;
+    
+    asset_header *AssetHeader = GetAssetHeader(Memory, AssetType_Bitmap, FileName, ByteOffset);
+    if(AssetHeader)
+    {
+        asset_bitmap *Bitmap = &AssetHeader->Bitmap;
+        asset_bitmap_header *Header = &Bitmap->Header;
+        
+        Bitmap->Data = (void*)AssetHeader;
+        Bitmap->Data = ((u8*)Bitmap->Data) + sizeof(asset_header);
+        Result = SDL_CreateRGBSurfaceFrom(Bitmap->Data,
+                                          Header->Width, Header->Height,
+                                          Header->BitsPerPixel, Header->Pitch,
+                                          Header->Rmask, Header->Gmask,
+                                          Header->Bmask, Header->Amask);
+        Assert(Result);
+        
+        
+        if (Header->BitsPerPixel == 8)
+        {
+            SDL_SetPaletteColors(Result->format->palette, Header->Palette, 0, 256);
+        }
+    }
+    
+    return(Result);
+}
+
 static game_texture*
 GetTexture(game_memory *Memory, const char* FileName, SDL_Renderer *Renderer)
 {
@@ -405,7 +438,7 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
     
     //*Playground  = {};
     Playground->LevelStarted = true;
-    Playground->LevelNumber  = PlaygroundData.LevelNumber;
+    Playground->LevelNumber  = Index + 1;
     
     Playground->GridEntity.RowAmount          = PlaygroundData.RowAmount;
     Playground->GridEntity.ColumnAmount       = PlaygroundData.ColumnAmount;
@@ -430,6 +463,8 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
     for (u32 i = 0; i < FIGURE_AMOUNT_MAXIMUM; ++i)
     {
         Playground->GridEntity.StickUnits[i].Index = -1;
+        Playground->GridEntity.StickUnits[i].IsSticked = false;
+        
     }
     
     moving_block *MovingBlocks = Playground->GridEntity.MovingBlocks;
@@ -449,7 +484,7 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
         Playground->GridEntity.UnitField[(MovingBlocks[BlockIndex].RowNumber * PlaygroundData.ColumnAmount) + MovingBlocks[BlockIndex].ColNumber] = 1;
     }
     
-    Playground->FigureEntity.FigureAmount     = 0;
+    Playground->FigureEntity.FigureAmount     = PlaygroundData.FigureAmount;
     Playground->FigureEntity.ReturnIndex      = -1;
     Playground->FigureEntity.FigureVelocity   = Configuration->FigureVelocity;
     Playground->FigureEntity.RotationVelocity = Configuration->RotationVel;
@@ -466,7 +501,13 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
         figure_form Form = PlaygroundData.Figures[FigureIndex].Form;
         figure_type Type = PlaygroundData.Figures[FigureIndex].Type;
         
-        FigureUnitAddNewFigure(&Playground->FigureEntity, Form, Type);
+        Playground->FigureEntity.FigureUnit[FigureIndex].Angle = PlaygroundData.Figures[FigureIndex].Angle;
+        FigureUnitInitFigure(&Playground->FigureEntity.FigureUnit[FigureIndex], Form, Type);
+    }
+    
+    for(u32 i = 0; i < FIGURE_AMOUNT_MAXIMUM; ++i) 
+    {
+        Playground->FigureEntity.FigureOrder[i] = i;
     }
     
     FigureEntityAlignFigures(&Playground->FigureEntity);

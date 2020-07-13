@@ -1,4 +1,10 @@
-/* date = June 29th 2020 7:24 pm */
+/* ========================================= */
+//     $File: tetroman_debug.cpp
+//     $Date: June 29th 2020 10:32 pm 
+//     $Creator: Maksim Sokolov
+//     $Revision: $
+//     $Description: $
+/* ========================================= */
 
 #ifndef TETROMAN_DEBUG_H
 #define TETROMAN_DEBUG_H

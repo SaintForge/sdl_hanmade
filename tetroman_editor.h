@@ -1,14 +1,12 @@
-// editor.h --- 
-// 
-// Filename: editor.h
-// Author: Sierra
-// Created: Вт окт 10 10:32:14 2017 (+0300)
-// Last-Updated: Пт окт 27 14:17:15 2017 (+0300)
-//           By: Sierra
-//
+/* ========================================= */
+//     $File: tetroman_editor.h
+//     $Date: October 9th 2017 07:32 pm 
+//     $Creator: Maksim Sokolov
+//     $Revision: $
+//     $Description: $
+/* ========================================= */
 
 #if !defined(EDITOR_H)
-
 
 enum selected_area
 {

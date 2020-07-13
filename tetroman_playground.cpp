@@ -1,4 +1,10 @@
-
+/* ========================================= */
+//     $File: tetroman_playground.cpp
+//     $Date: October 18th 2017 08:52 pm 
+//     $Creator: Maksim Sokolov
+//     $Revision: $
+//     $Description: $
+/* ========================================= */
 
 static rectangle2
 FigureUnitGetArea(figure_unit *Figure)
@@ -1887,7 +1893,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                 if(Count == 4)
                 {
                     bool IsFree = true;
-                    bool IsFull = false;
                     for (u32 i = 0; i < FIGURE_BLOCKS_MAXIMUM; ++i)
                     {
                         if(GridEntity->UnitField[(RowIndex[i] * ColumnAmount) + ColIndex[i]] > 0)
@@ -1926,24 +1931,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                         }
                         
                         FigureEntityLowPriority(FigureEntity, FigureIndex);
-                        
-                        for (u32 Row = 0; Row < RowAmount; ++Row)
-                        {
-                            for (u32 Col = 0; Col < ColumnAmount; ++Col)
-                            {
-                                if(GridEntity->UnitField[(Row * ColumnAmount) + Col] == 1)
-                                {
-                                    IsFull = true;
-                                }
-                            }
-                        }
-                        
-                        
-                        if(IsFull == true)
-                        {
-                            /* the grid is full and level is complete */
-                            printf("Level is complete \n");
-                        }
                     }
                 }
             }
@@ -2005,6 +1992,7 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         // TODO(msokolov): also check if there is any figures left??
         LevelEntity->LevelFinished = true;
         Result = playground_status::LEVEL_FINISHED;
+        printf("level is completed\n");
         //LevelEntityFinishAnimationInit(LevelEntity, Memory, Buffer);
     }
     
@@ -2295,6 +2283,11 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     
     PushRectangleOutline(RenderGroup, GridEntity->GridArea, {255, 0, 255, 255});
     PushRectangleOutline(RenderGroup, FigureEntity->FigureArea, {0, 255, 255, 255});
+    
+    /* Level Number Rendering */
+    
+    v2 Dim = QueryTextureDim(LevelEntity->LevelNumberTexture);
+    PushBitmap(RenderGroup, LevelEntity->LevelNumberTexture, {0.0f, 0.0f, Dim.w, Dim.h});
     
     return (Result);
 }

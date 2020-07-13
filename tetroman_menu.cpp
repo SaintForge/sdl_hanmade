@@ -1,11 +1,102 @@
-// menu.cpp --- 
-// 
-// Filename: game.cpp
-// Author: Sierra
-// Created: Вт окт 10 10:32:14 2017 (+0300)
-// Last-Updated: Пт окт 27 14:17:15 2017 (+0300)
-//           By: Sierra
-//
+/* ========================================= */
+//     $File: tetroman_menu.cpp
+//     $Date: October 10th 2017 10:32 pm 
+//     $Creator: Maksim Sokolov
+//     $Revision: $
+//     $Description: $
+/* ========================================= */
+
+static u32
+PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input, render_group *RenderGroup)
+{
+    s32 Result = -1;
+    
+    //r32 MenuButtonSize = 100.0f;
+    v2 MenuButtonSize = {};
+    MenuButtonSize.w  = 200.0f;
+    MenuButtonSize.h  = 100.0f;
+    
+    u32 RowAmount = 4;
+    u32 ColumnAmount = 8;
+    
+    v2 InitialPosition = {};
+    InitialPosition.x = LOGICAL_GAME_WIDTH / 2.0f - ((ColumnAmount * MenuButtonSize.w) / 2.0f) - ((10.0f * (ColumnAmount - 1)) / 2.0f);
+    InitialPosition.y = LOGICAL_GAME_HEIGHT / 2.0f - ((RowAmount * MenuButtonSize.h) / 2.0f) + (LOGICAL_GAME_HEIGHT / 4.0f) - ((10.0f * RowAmount) / 2.0f);
+    
+    if (Input->MouseButtons[0].EndedDown)
+    {
+        v2 MousePos = {};
+        MousePos.x = Input->MouseX;
+        MousePos.y = Input->MouseY;
+        
+        b32 FoundLevel = false;
+        
+        rectangle2 ButtonRectangle = {};
+        for (u32 Row = 0; Row < RowAmount; ++Row)
+        {
+            ButtonRectangle.Min.y = InitialPosition.y + (MenuButtonSize.h * Row);
+            for (u32 Column = 0; Column < ColumnAmount; ++Column)
+            {
+                ButtonRectangle.Min.x = InitialPosition.x + (MenuButtonSize.w * Column);
+                
+                ButtonRectangle.Max.x = ButtonRectangle.Min.x + MenuButtonSize.w - 10.0f;
+                ButtonRectangle.Max.y = ButtonRectangle.Min.y + MenuButtonSize.h - 10.0f;
+                
+                if (IsInRectangle(MousePos, ButtonRectangle))
+                {
+                    Result = (Row * ColumnAmount) + Column;
+                    printf("LevelIndex: %d\n", Result);
+                    
+                    FoundLevel = true;
+                    break;
+                }
+            }
+            
+            if (FoundLevel) break;
+        }
+    }
+    
+    
+    //v4 Color = {0, 0, 0, 255};
+    //PushRectangle(RenderGroup, {0.0f, 0.0f, LOGICAL_GAME_WIDTH, LOGICAL_GAME_HEIGHT}, Color);
+    Clear(RenderGroup, {42, 6, 21, 255});
+    
+    rectangle2 ButtonRectangle = {};
+    for (u32 Row = 0; Row < RowAmount; ++Row)
+    {
+        ButtonRectangle.Min.y = InitialPosition.y + (MenuButtonSize.h * Row);
+        
+        for (u32 Col = 0; Col < ColumnAmount; ++Col)
+        {
+            ButtonRectangle.Min.x = InitialPosition.x + (MenuButtonSize.w * Col);
+            
+            ButtonRectangle.Max.x = ButtonRectangle.Min.x + MenuButtonSize.w - 10.0f;
+            ButtonRectangle.Max.y = ButtonRectangle.Min.y + MenuButtonSize.h - 10.0f;
+            
+            //PushBitmap(RenderGroup, PlaygroundMenu->LevelButtonTexture, ButtonRectangle);
+            v4 Color = {128, 128, 128, 255};
+            PushRectangle(RenderGroup, ButtonRectangle, Color);
+            Color = {255, 255, 255, 255};
+            PushRectangleOutline(RenderGroup, ButtonRectangle, Color);
+            
+            u32 LevelIndex = (Row * ColumnAmount) + Col;
+            
+            rectangle2 LevelRectangle = {};
+            v2 Dim = QueryTextureDim(PlaygroundMenu->LevelNumberTexture[LevelIndex]);
+            LevelRectangle.Min.x = ButtonRectangle.Min.x + (GetDim(ButtonRectangle).w / 2.0f) - (Dim.w / 2.0f);
+            LevelRectangle.Min.y = ButtonRectangle.Min.y + (GetDim(ButtonRectangle).h / 2.0f) - (Dim.h / 2.0f);
+            SetDim(&LevelRectangle, Dim);
+            
+            PushBitmap(RenderGroup, PlaygroundMenu->LevelNumberTexture[LevelIndex], LevelRectangle);
+            
+            
+        }
+    }
+    
+    
+    return (Result);
+}
+
 #if 0
 static void
 MenuMakeTextButton(const char* Text, s32 X, s32 Y, s32 Width, s32 Height,
