@@ -49,30 +49,24 @@ PushSize_(memory_group *Area, memory_index Size)
 
 enum game_mode
 {
-    MAIN_MENU,
-    SETTINGS,
-    QUIT,
-    
-    PLAYGROUND, 
-    LEVEL_MENU, 
-    
-    DIFFICULTY_MENU,
-    EASY_DIFFICULTY,
-    MIDDLE_DIFFICULTY,
-    HARD_DIFFICULTY,
+    MENU,
+    PLAYGROUND
 };
 
 struct game_state
 {
     memory_group MemoryGroup;
     
+    game_mode CurrentMode;
+    
     playground Playground;
     playground_data *PlaygroundData;
     playground_config Configuration;
+    
+    // TODO(msokolov): Should PlaygroundIndex be in the playground structure??
     u32 PlaygroundIndex;
     
     playground_menu PlaygroundMenu;
-    game_mode CurrentMode;
     game_font *Font;
     
     /* NOTE(msokolov): Non-release thing only */

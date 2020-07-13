@@ -221,6 +221,34 @@ SDLUpdateWindow(SDL_Window* Window, SDL_Renderer *Renderer, sdl_offscreen_buffer
     SDL_RenderClear(Renderer);
 }
 
+static resolution_standard
+GetResolutionStandard(u32 ScreenWidth, u32 ScreenHeight)
+{
+    resolution_standard Result = {};
+    
+    u32 ScreenPixelAmount = ScreenWidth * ScreenHeight;
+    
+    if (ScreenPixelAmount < (1600 * 900))
+    {
+        Result = resolution_standard::HD;
+    }
+    else if (ScreenPixelAmount < (1920 * 1080))
+    {
+        Result = resolution_standard::HDPLUS;
+    }
+    else if (ScreenPixelAmount < (2560 * 1440))
+    {
+        Result = resolution_standard::FULLHD;
+    }
+    else 
+    {
+        Result = resolution_standard::QFULLHD;
+    }
+    
+    
+    return(Result);
+}
+
 #undef main //NOTE(Max): Because SDL_main doesn't work on some windows versions 
 int main(int argc, char **argv)
 {
@@ -256,13 +284,14 @@ int main(int argc, char **argv)
                                           SDL_WINDOWPOS_CENTERED,
                                           SDL_WINDOWPOS_CENTERED,
                                           Display.w, Display.h,
-                                          0);
+                                          SDL_WINDOW_RESIZABLE);
     
     if(Window)
     {
+        //GetResolutionStandard(Display.w, Display.h);
         
         // NOTE(msokolov): this ideally should be either hardcoded always in the code
-        // or be taken from the user's monitor resolution
+        //or be taken from the user's monitor resolution
         SDL_SetWindowSize(Window, WINDOW_WIDTH, WINDOW_HEIGHT);
         SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
         
@@ -275,7 +304,7 @@ int main(int argc, char **argv)
                                                     SDL_RENDERER_TARGETTEXTURE|SDL_RENDERER_ACCELERATED);
         
         SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
-        //SDL_RenderSetLogicalSize(Renderer, LOGICAL_GAME_WIDTH, LOGICAL_GAME_HEIGHT);
+        SDL_RenderSetLogicalSize(Renderer, VIRTUAL_GAME_WIDTH, VIRTUAL_GAME_HEIGHT);
         
         if(Renderer)
         {
@@ -290,8 +319,8 @@ int main(int argc, char **argv)
             Buffer.Renderer      = Renderer;
             Buffer.ScreenWidth   = BackBuffer.Width;
             Buffer.ScreenHeight  = BackBuffer.Height;
-            Buffer.Width         = LOGICAL_GAME_WIDTH;
-            Buffer.Height        = LOGICAL_GAME_HEIGHT;
+            Buffer.Width         = VIRTUAL_GAME_WIDTH;
+            Buffer.Height        = VIRTUAL_GAME_HEIGHT;
             
             u32 RefreshRate = 60;
             s32 DisplayIndex = 0, ModeIndex = 0;
@@ -373,6 +402,40 @@ int main(int argc, char **argv)
                     if(SDLHandleEvent(&Event, &Input))
                     {
                         IsRunning = false;
+                    }
+                    
+                    static resolution_standard CurrentResolution = resolution_standard::FULLHD;
+                    if (Input.Keyboard.Zero.EndedDown)
+                    {
+                        switch(CurrentResolution)
+                        {
+                            case HD:
+                            {
+                                CurrentResolution = resolution_standard::HDPLUS;
+                                SDL_SetWindowSize(Window, 1600, 900);
+                                SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+                            } break;
+                            
+                            case HDPLUS:
+                            {
+                                CurrentResolution = resolution_standard::FULLHD;
+                                SDL_SetWindowSize(Window, 1920, 1080);
+                                SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+                            } break;
+                            case FULLHD:
+                            {
+                                CurrentResolution = resolution_standard::QFULLHD;
+                                SDL_SetWindowSize(Window, 2560, 1440);
+                                SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+                            } break;
+                            case QFULLHD:
+                            {
+                                CurrentResolution = resolution_standard::HD;
+                                SDL_SetWindowSize(Window, 1280, 720);
+                                SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+                            } break;
+                        }
+                        
                     }
                     
                     if(GameUpdateAndRender(&Memory, &Input, &Buffer))

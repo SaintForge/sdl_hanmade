@@ -25,8 +25,18 @@
 #define WINDOW_WIDTH 1920
 #define WINDOW_HEIGHT 1080
 
-#define LOGICAL_GAME_WIDTH 1980
-#define LOGICAL_GAME_HEIGHT 1080
+// TODO(msokolov): rename it to virtual
+#define VIRTUAL_GAME_WIDTH 1920
+#define VIRTUAL_GAME_HEIGHT 1080
+
+// TODO(msokolov): I don't know whether we should consider this or not
+enum resolution_standard
+{
+    HD,      // 1280x720    
+    HDPLUS,  // 1600x900
+    FULLHD,  // 1920x1080
+    QFULLHD  // 2560x1440
+};
 
 using namespace std;
 

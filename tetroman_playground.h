@@ -16,7 +16,7 @@
 #define MOVING_BLOCKS_MAXIMUM 10
 #define COLUMN_AMOUNT_MAXIMUM 10
 #define ROW_AMOUNT_MAXIMUM    10
-#define PLAYGROUND_MAXIMUM    300
+#define PLAYGROUND_MAXIMUM    100
 
 enum figure_form
 {
@@ -204,6 +204,7 @@ enum playground_status
     LEVEL_RUNNING,
     LEVEL_PAUSED,
     LEVEL_FINISHED,
+    LEVEL_QUIT
 };
 
 struct playground

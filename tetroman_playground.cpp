@@ -682,9 +682,11 @@ RestartLevelEntity(playground *LevelEntity)
     }
 }
 
-static void
+static b32
 PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWidth, u32 ScreenHeight)
 {
+    b32 ShouldExit = false;
+    
     grid_entity   *GridEntity   = &LevelEntity->GridEntity;
     figure_entity *FigureEntity = &LevelEntity->FigureEntity;
     figure_unit   *FigureUnit   = FigureEntity->FigureUnit;
@@ -699,6 +701,11 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
     
     r32 GridBlockSize = GRID_BLOCK_SIZE;
     r32 InActiveBlockSize = IDLE_BLOCK_SIZE;
+    
+    if(Input->Keyboard.Escape.EndedDown)
+    {
+        ShouldExit = true;
+    }
     
     if(!LevelEntity->LevelPaused)
     {
@@ -747,7 +754,7 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
                         FigureEntityHighOrderFigure(FigureEntity, ActiveIndex);
                         SDL_ShowCursor(SDL_DISABLE);
                         
-                        return;
+                        return ShouldExit;
                     }
                 }
                 
@@ -766,7 +773,7 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
                                 GridEntityMoveBlockVertically(GridEntity, &GridEntity->MovingBlocks[i]);
                             }
                             
-                            return;
+                            return ShouldExit;
                         }
                     }
                 }
@@ -850,6 +857,8 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
             FigureUnitMove(&FigureUnit[ActiveIndex], dt);
         }
     }
+    
+    return (ShouldExit);
 }
 
 
@@ -1806,7 +1815,11 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     s32 StartY = 0;
     
     /* game_input checking */
-    PlaygroundUpdateEvents(Input, LevelEntity, RenderGroup->Width, RenderGroup->Height);
+    b32 ShouldExit = PlaygroundUpdateEvents(Input, LevelEntity, RenderGroup->Width, RenderGroup->Height);
+    if (ShouldExit)
+    {
+        Result = playground_status::LEVEL_QUIT;
+    }
     
     // TODO(msokolov): this should be a texture
     Clear(RenderGroup, {42, 6, 21, 255});

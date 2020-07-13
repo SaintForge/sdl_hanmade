@@ -35,7 +35,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         GameState->EditorMode      = false;
         GameState->PlaygroundIndex = 0;
-        GameState->CurrentMode     = game_mode::PLAYGROUND;
+        GameState->CurrentMode     = game_mode::MENU;
         
         playground_config *Configuration = &GameState->Configuration;
         Configuration->StartUpTimeToFinish = 0.0f;
@@ -165,15 +165,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             GridEntity->UnitField[(Block->RowNumber * COLUMN_AMOUNT_MAXIMUM) + Block->ColNumber] = 2;
         }
         
-        /* NOTE(msokolov): menu_entity initialization starts here */ 
-#if 0
-        GameState->MenuEntity   = PushStruct(&GameState->MemoryGroup, menu_entity);
-        menu_entity *MenuEntity = GameState->MenuEntity;
-        MenuEntity->MaxVelocity = 20.0f;
-        MenuEntity->ButtonIndex = -1;
-        MenuEntity->BackTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
-#endif
-        
         Memory->IsInitialized = true;
         printf("Memory has been initialized!\n");
         
@@ -213,8 +204,13 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         //WriteLevelsToFile(Memory->LevelStorage, Memory->LevelStorageSize);
         
         /* NOTE(msokolov): playground_menu initialization */
-        GameState->PlaygroundMenu.LevelButtonTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
-        Assert(GameState->PlaygroundMenu.LevelButtonTexture);
+        
+        playground_menu *PlaygroundMenu = &GameState->PlaygroundMenu;
+        PlaygroundMenu->MenuPage = menu_page::MAIN_PAGE;
+        PlaygroundMenu->DiffMode = difficulty_mode::EASY;
+        
+        PlaygroundMenu->LevelButtonTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
+        Assert(PlaygroundMenu->LevelButtonTexture);
         
         for(u32 Index = 0;
             Index < 100;
@@ -223,13 +219,21 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             char LevelString[3] = {};
             sprintf(LevelString, "%d", Index + 1);
             
-            if (GameState->PlaygroundMenu.LevelNumberTexture[Index])
+            if (PlaygroundMenu->LevelNumberTexture[Index])
             {
-                SDL_DestroyTexture(GameState->PlaygroundMenu.LevelNumberTexture[Index]);
+                SDL_DestroyTexture(PlaygroundMenu->LevelNumberTexture[Index]);
             }
             
             GameState->PlaygroundMenu.LevelNumberTexture[Index] = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
         }
+        
+        PlaygroundMenu->DifficultyTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Easy", {255, 255, 255, 255});
+        PlaygroundMenu->DifficultyTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "Medium", {255, 255, 255, 255});
+        PlaygroundMenu->DifficultyTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "Hard", {255, 255, 255, 255});
+        
+        PlaygroundMenu->MainMenuTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Play", {255, 255, 255, 255});
+        PlaygroundMenu->MainMenuTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "Settings", {255, 255, 255, 255});
+        PlaygroundMenu->MainMenuTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "Quit", {255, 255, 255, 255});
         
 #if DEBUG_BUILD
         
@@ -276,40 +280,22 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         TransState->IsInitialized = true;
     }
     
-    playground *Playground   = &GameState->Playground;
-    //menu_entity *MenuEntity  = GameState->MenuEntity;
-    
-    if(Input->Keyboard.Tab.EndedDown)
-    {
-        if(GameState->CurrentMode == PLAYGROUND) 
-        {
-            GameState->CurrentMode = LEVEL_MENU;
-        }
-        else if(GameState->CurrentMode == LEVEL_MENU)
-        {
-            GameState->CurrentMode = PLAYGROUND;
-        }
-    }
-    
-    if(Input->Keyboard.Escape.EndedDown)
-    {
-        ShouldQuit = true;
-    }
+    //playground *Playground   = &GameState->Playground;
     
     if(Input->Keyboard.BackQuote.EndedDown)
     {
-        RestartLevelEntity(Playground);
+        RestartLevelEntity(&GameState->Playground);
         
 #if DEBUG_BUILD
         if (!GameState->EditorMode)
         {
             GameState->EditorMode   = true;
-            Playground->LevelPaused = true;
+            GameState->Playground.LevelPaused = true;
         }
         else
         {
             GameState->EditorMode   = false;
-            Playground->LevelPaused = false;
+            GameState->Playground.LevelPaused = false;
         }
 #endif
     }
@@ -323,23 +309,23 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             u32 PlaygroundIndex = GameState->PlaygroundIndex;
             if (PlaygroundIndex < PLAYGROUND_MAXIMUM)
             {
-                RestartLevelEntity(Playground);
+                RestartLevelEntity(&GameState->Playground);
                 PlaygroundIndex++;
                 
                 playground_data *PlaygroundData = GameState->PlaygroundData;
                 Assert(PlaygroundData);
                 
-                PrepareNextPlayground(Playground, &GameState->Configuration, PlaygroundData, PlaygroundIndex);
+                PrepareNextPlayground(&GameState->Playground, &GameState->Configuration, PlaygroundData, PlaygroundIndex);
                 
                 char LevelString[3] = {};
-                sprintf(LevelString, "%d", Playground->LevelNumber);
-                if (Playground->LevelNumberTexture)
+                sprintf(LevelString, "%d", GameState->Playground.LevelNumber);
+                if (GameState->Playground.LevelNumberTexture)
                 {
-                    SDL_DestroyTexture(Playground->LevelNumberTexture);
+                    SDL_DestroyTexture(GameState->Playground.LevelNumberTexture);
                 }
                 
-                Playground->LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
-                Assert(Playground->LevelNumberTexture);
+                GameState->Playground.LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
+                Assert(GameState->Playground.LevelNumberTexture);
                 
                 printf("LevelIndex = %d\n", PlaygroundIndex);
             }
@@ -353,24 +339,24 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             u32 PlaygroundIndex = GameState->PlaygroundIndex;
             if (PlaygroundIndex > 0)
             {
-                RestartLevelEntity(Playground);
+                RestartLevelEntity(&GameState->Playground);
                 
                 PlaygroundIndex--;
                 
                 playground_data *PlaygroundData = GameState->PlaygroundData;
                 Assert(PlaygroundData);
                 
-                PrepareNextPlayground(Playground, &GameState->Configuration, PlaygroundData, PlaygroundIndex);
+                PrepareNextPlayground(&GameState->Playground, &GameState->Configuration, PlaygroundData, PlaygroundIndex);
                 
                 char LevelString[3] = {};
-                sprintf(LevelString, "%d", Playground->LevelNumber);
-                if (Playground->LevelNumberTexture)
+                sprintf(LevelString, "%d", GameState->Playground.LevelNumber);
+                if (GameState->Playground.LevelNumberTexture)
                 {
-                    SDL_DestroyTexture(Playground->LevelNumberTexture);
+                    SDL_DestroyTexture(GameState->Playground.LevelNumberTexture);
                 }
                 
-                Playground->LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
-                Assert(Playground->LevelNumberTexture);
+                GameState->Playground.LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
+                Assert(GameState->Playground.LevelNumberTexture);
                 printf("LevelIndex = %d\n", PlaygroundIndex);
             }
             
@@ -380,7 +366,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         if(Input->Keyboard.S_Button.EndedDown)
         {
-            WritePlaygroundData(GameState->PlaygroundData, Playground, GameState->PlaygroundIndex);
+            WritePlaygroundData(GameState->PlaygroundData, &GameState->Playground, GameState->PlaygroundIndex);
             WriteLevelsToFile(Memory->LevelStorage, Memory->LevelStorageSize);
             printf("saved.\n");
         }
@@ -400,77 +386,79 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     {
         case PLAYGROUND:
         {
-            playground_status PlaygroundStatus = PlaygroundUpdateAndRender(Playground, RenderGroup, Input);
+            playground_status PlaygroundStatus = PlaygroundUpdateAndRender(&GameState->Playground, RenderGroup, Input);
             if (PlaygroundStatus == playground_status::LEVEL_FINISHED)
             {
                 if (GameState->PlaygroundIndex < PLAYGROUND_MAXIMUM)
                 {
                     GameState->PlaygroundIndex++;
                     
-                    RestartLevelEntity(Playground);
+                    RestartLevelEntity(&GameState->Playground);
                     playground_data *PlaygroundData = GameState->PlaygroundData;
                     Assert(PlaygroundData);
                     
-                    PrepareNextPlayground(Playground, &GameState->Configuration, PlaygroundData, GameState->PlaygroundIndex);
+                    PrepareNextPlayground(&GameState->Playground, &GameState->Configuration, PlaygroundData, GameState->PlaygroundIndex);
                     
                     char LevelString[3] = {};
-                    sprintf(LevelString, "%d", Playground->LevelNumber);
-                    if (Playground->LevelNumberTexture)
+                    sprintf(LevelString, "%d", GameState->Playground.LevelNumber);
+                    if (GameState->Playground.LevelNumberTexture)
                     {
-                        SDL_DestroyTexture(Playground->LevelNumberTexture);
+                        SDL_DestroyTexture(GameState->Playground.LevelNumberTexture);
                     }
                     
-                    Playground->LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
-                    Assert(Playground->LevelNumberTexture);
+                    GameState->Playground.LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
+                    Assert(GameState->Playground.LevelNumberTexture);
                 }
+            }
+            else if (PlaygroundStatus == playground_status::LEVEL_QUIT)
+            {
+                GameState->CurrentMode = MENU;
             }
             
             if (GameState->EditorMode)
             {
                 playground_editor *PlaygroundEditor = GameState->PlaygroundEditor;
-                PlaygroundEditorUpdateAndRender(Playground, GameState->PlaygroundData, &GameState->Configuration, GameState->PlaygroundEditor, RenderGroup, Input);
+                PlaygroundEditorUpdateAndRender(&GameState->Playground, GameState->PlaygroundData, &GameState->Configuration, GameState->PlaygroundEditor, RenderGroup, Input);
             }
+            
         } break;
         
-        case LEVEL_MENU:
+        case MENU:
         {
-            s32 ResultLevelIndex = PlaygroundMenuUpdateAndRender(&GameState->PlaygroundMenu, Input, RenderGroup);
+            menu_result_option ResultOption = PlaygroundMenuUpdateAndRender(&GameState->PlaygroundMenu, Input, RenderGroup);
             
-            if (ResultLevelIndex >= 0)
+            if (ResultOption.SwitchToPlayground)
             {
-                RestartLevelEntity(Playground);
+                u32 ResultLevelIndex = ResultOption.PlaygroundIndex;
+                RestartLevelEntity(&GameState->Playground);
                 GameState->PlaygroundIndex = ResultLevelIndex;
                 
                 playground_data *PlaygroundData = GameState->PlaygroundData;
                 Assert(PlaygroundData);
                 
-                PrepareNextPlayground(Playground, &GameState->Configuration, PlaygroundData, ResultLevelIndex);
+                PrepareNextPlayground(&GameState->Playground, &GameState->Configuration, PlaygroundData, ResultLevelIndex);
                 
                 char LevelString[3] = {};
-                sprintf(LevelString, "%d", Playground->LevelNumber);
-                if (Playground->LevelNumberTexture)
+                sprintf(LevelString, "%d", GameState->Playground.LevelNumber);
+                if (GameState->Playground.LevelNumberTexture)
                 {
-                    SDL_DestroyTexture(Playground->LevelNumberTexture);
+                    SDL_DestroyTexture(GameState->Playground.LevelNumberTexture);
                 }
                 
-                Playground->LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
-                Assert(Playground->LevelNumberTexture);
+                GameState->Playground.LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
+                Assert(GameState->Playground.LevelNumberTexture);
                 
                 GameState->CurrentMode = PLAYGROUND;
             }
-        } break;
-        
-        case MAIN_MENU:
-        {
-            
+            else if (ResultOption.QuitGame)
+            {
+                ShouldQuit = true;
+            }
         } break;
     }
     
     RenderGroupToOutput(RenderGroup, Buffer);
     TransState->TransGroup = TemporaryMemory;
-    
-    //game_editor *GameEditor = GameState->GameEditor;
-    //GameEditorUpdateAndRender(Buffer, GameState, Memory, Input, GameEditor, Playground, MenuEntity);
     
     return(ShouldQuit);
 }
