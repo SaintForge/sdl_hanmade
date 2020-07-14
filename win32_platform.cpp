@@ -221,34 +221,6 @@ SDLUpdateWindow(SDL_Window* Window, SDL_Renderer *Renderer, sdl_offscreen_buffer
     SDL_RenderClear(Renderer);
 }
 
-static resolution_standard
-GetResolutionStandard(u32 ScreenWidth, u32 ScreenHeight)
-{
-    resolution_standard Result = {};
-    
-    u32 ScreenPixelAmount = ScreenWidth * ScreenHeight;
-    
-    if (ScreenPixelAmount < (1600 * 900))
-    {
-        Result = resolution_standard::HD;
-    }
-    else if (ScreenPixelAmount < (1920 * 1080))
-    {
-        Result = resolution_standard::HDPLUS;
-    }
-    else if (ScreenPixelAmount < (2560 * 1440))
-    {
-        Result = resolution_standard::FULLHD;
-    }
-    else 
-    {
-        Result = resolution_standard::QFULLHD;
-    }
-    
-    
-    return(Result);
-}
-
 #undef main //NOTE(Max): Because SDL_main doesn't work on some windows versions 
 int main(int argc, char **argv)
 {
@@ -277,7 +249,8 @@ int main(int argc, char **argv)
     SDL_DisplayMode Display = {};
     SDL_GetDesktopDisplayMode(0, &Display);
     
-    b32 VSyncOn = true;
+    b32 VSyncOn    = true;
+    b32 FullScreen = false;
     s32 FrameLimit = 60;
     
     SDL_Window* Window = SDL_CreateWindow("Tetroman",
@@ -295,6 +268,9 @@ int main(int argc, char **argv)
         SDL_SetWindowSize(Window, WINDOW_WIDTH, WINDOW_HEIGHT);
         SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
         
+        if (FullScreen)
+            SDL_SetWindowFullscreen(Window, SDL_WINDOW_FULLSCREEN);
+        
         if(VSyncOn)
         {
             SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
@@ -308,6 +284,8 @@ int main(int argc, char **argv)
         
         if(Renderer)
         {
+            SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+            
             bool IsRunning = true;
             window_dimension Dimension = SDLGetWindowDimension(Window);
             
@@ -404,43 +382,51 @@ int main(int argc, char **argv)
                         IsRunning = false;
                     }
                     
-                    static resolution_standard CurrentResolution = resolution_standard::FULLHD;
-                    if (Input.Keyboard.Zero.EndedDown)
+                    game_return_values GameResult = GameUpdateAndRender(&Memory, &Input, &Buffer);
+                    
+                    if(GameResult.ShouldQuit)
                     {
-                        switch(CurrentResolution)
+                        IsRunning = false;
+                    }
+                    
+                    if (GameResult.ChangeResolution)
+                    {
+                        switch(GameResult.Resolution)
                         {
                             case HD:
                             {
-                                CurrentResolution = resolution_standard::HDPLUS;
-                                SDL_SetWindowSize(Window, 1600, 900);
+                                printf("HD\n");
+                                SDL_SetWindowSize(Window, 1280, 720);
                                 SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
                             } break;
                             
-                            case HDPLUS:
-                            {
-                                CurrentResolution = resolution_standard::FULLHD;
-                                SDL_SetWindowSize(Window, 1920, 1080);
-                                SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-                            } break;
                             case FULLHD:
                             {
-                                CurrentResolution = resolution_standard::QFULLHD;
-                                SDL_SetWindowSize(Window, 2560, 1440);
+                                printf("FULLHD\n");
+                                SDL_SetWindowSize(Window, 1920, 1080);
                                 SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
                             } break;
                             case QFULLHD:
                             {
-                                CurrentResolution = resolution_standard::HD;
-                                SDL_SetWindowSize(Window, 1280, 720);
+                                printf("QFULLHD\n");
+                                SDL_SetWindowSize(Window, 2560, 1440);
                                 SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
                             } break;
                         }
-                        
                     }
                     
-                    if(GameUpdateAndRender(&Memory, &Input, &Buffer))
+                    if (GameResult.ToggleFullScreen)
                     {
-                        IsRunning = false;
+                        if (FullScreen)
+                        {
+                            SDL_SetWindowFullscreen(Window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                            FullScreen = false;
+                        }
+                        else
+                        {
+                            SDL_SetWindowFullscreen(Window, SDL_WINDOW_FULLSCREEN);
+                            FullScreen = true;
+                        }
                     }
                     
 #if DEBUG_BUILD

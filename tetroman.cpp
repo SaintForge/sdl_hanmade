@@ -14,17 +14,22 @@
 #include "tetroman_menu.cpp"
 #include "tetroman_editor.cpp"
 
-static bool
+static game_return_values
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
-    bool ShouldQuit = false;
+    game_return_values Result = {};
     
     Assert(sizeof(game_state) <= Memory->PermanentStorageSize);    
     game_state *GameState = (game_state *) Memory->PermanentStorage;
     
     if(!Memory->IsInitialized)
     {
-        // TODO(msokolov): should get rid of this initialization
+        // NOTE(msokolov): figure colors 
+        // 212, 151, 0
+        // 212, 10,  128
+        // 116, 0,   40
+        // 23,  156, 234
+        // 108, 174, 0
         /* NOTE(msokolov): game_memory initialization starts here */
         
         /* NOTE(msokolov): game_state initialization starts here */
@@ -35,7 +40,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         GameState->EditorMode      = false;
         GameState->PlaygroundIndex = 0;
-        GameState->CurrentMode     = game_mode::MENU;
+        GameState->CurrentMode     = game_mode::PLAYGROUND;
         
         playground_config *Configuration = &GameState->Configuration;
         Configuration->StartUpTimeToFinish = 0.0f;
@@ -51,8 +56,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Playground->LevelStarted          = true;
         Playground->LevelFinished         = false;
         Playground->LevelPaused           = false;
-        
-        
+        Playground->CornerLeftTopTexture      = GetTexture(Memory, "corner_left_top.png", Buffer->Renderer);
+        Playground->CornerLeftBottomTexture   = GetTexture(Memory, "corner_left_bottom.png", Buffer->Renderer);
+        Playground->CornerRightTopTexture     = GetTexture(Memory, "corner_right_top.png", Buffer->Renderer);
+        Playground->CornerRightBottomTexture  = GetTexture(Memory, "corner_right_bottom.png", Buffer->Renderer);
+        Playground->VerticalBorderTexture     = GetTexture(Memory, "vertical_border.png", Buffer->Renderer);
         
         /* NOTE(msokolov): figure_entity initialization starts here */
         figure_entity* FigureEntity  = &Playground->FigureEntity;
@@ -88,33 +96,26 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             FigureEntity->FigureOrder[i] = i;
         }
         
-        FigureEntity->O_ClassicTexture = GetTexture(Memory, "o_d.png", Buffer->Renderer);
-        FigureEntity->O_StoneTexture   = GetTexture(Memory, "o_s.png", Buffer->Renderer);
-        FigureEntity->O_MirrorTexture  = GetTexture(Memory, "o_m.png", Buffer->Renderer);
+        FigureEntity->O_ClassicTexture = GetTexture(Memory, "o_d_new.png", Buffer->Renderer);
+        FigureEntity->O_ShadowTexture  = GetTexture(Memory, "o_d_new_shadow.png", Buffer->Renderer);
         
-        FigureEntity->I_ClassicTexture = GetTexture(Memory, "i_d.png", Buffer->Renderer);
-        FigureEntity->I_StoneTexture   = GetTexture(Memory, "i_s.png", Buffer->Renderer);
-        FigureEntity->I_MirrorTexture  = GetTexture(Memory, "i_m.png", Buffer->Renderer);
+        FigureEntity->I_ClassicTexture = GetTexture(Memory, "i_d_new.png", Buffer->Renderer);
+        FigureEntity->I_ShadowTexture  = GetTexture(Memory, "i_d_new_shadow.png", Buffer->Renderer);
         
-        FigureEntity->L_ClassicTexture = GetTexture(Memory, "l_d.png", Buffer->Renderer);
-        FigureEntity->L_StoneTexture   = GetTexture(Memory, "l_s.png", Buffer->Renderer);
-        FigureEntity->L_MirrorTexture  = GetTexture(Memory, "l_m.png", Buffer->Renderer);
+        FigureEntity->L_ClassicTexture = GetTexture(Memory, "l_d_new.png", Buffer->Renderer);
+        FigureEntity->L_ShadowTexture  = GetTexture(Memory, "l_d_new_shadow.png", Buffer->Renderer);
         
-        FigureEntity->J_ClassicTexture = GetTexture(Memory, "j_d.png", Buffer->Renderer);
-        FigureEntity->J_StoneTexture   = GetTexture(Memory, "j_s.png", Buffer->Renderer);
-        FigureEntity->J_MirrorTexture  = GetTexture(Memory, "j_m.png", Buffer->Renderer);
+        FigureEntity->J_ClassicTexture = GetTexture(Memory, "j_d_new.png", Buffer->Renderer);
+        FigureEntity->J_ShadowTexture  = GetTexture(Memory, "j_d_new_shadow.png", Buffer->Renderer);
         
-        FigureEntity->Z_ClassicTexture = GetTexture(Memory, "z_d.png", Buffer->Renderer);
-        FigureEntity->Z_StoneTexture   = GetTexture(Memory, "z_s.png", Buffer->Renderer);
-        FigureEntity->Z_MirrorTexture  = GetTexture(Memory, "z_m.png", Buffer->Renderer);
+        FigureEntity->Z_ClassicTexture = GetTexture(Memory, "z_d_new.png", Buffer->Renderer);
+        FigureEntity->Z_ShadowTexture = GetTexture(Memory, "z_d_new_shadow.png", Buffer->Renderer);
         
-        FigureEntity->S_ClassicTexture = GetTexture(Memory, "s_d.png", Buffer->Renderer);
-        FigureEntity->S_StoneTexture   = GetTexture(Memory, "s_s.png", Buffer->Renderer);
-        FigureEntity->S_MirrorTexture  = GetTexture(Memory, "s_m.png", Buffer->Renderer);
+        FigureEntity->S_ClassicTexture = GetTexture(Memory, "s_d_new.png", Buffer->Renderer);
+        FigureEntity->S_ShadowTexture  = GetTexture(Memory, "s_d_new_shadow.png", Buffer->Renderer);
         
-        FigureEntity->T_ClassicTexture = GetTexture(Memory, "t_d.png", Buffer->Renderer);
-        FigureEntity->T_StoneTexture   = GetTexture(Memory, "t_s.png", Buffer->Renderer);
-        FigureEntity->T_MirrorTexture  = GetTexture(Memory, "t_m.png", Buffer->Renderer);
+        FigureEntity->T_ClassicTexture = GetTexture(Memory, "t_d_new.png", Buffer->Renderer);
+        FigureEntity->T_ShadowTexture  = GetTexture(Memory, "t_d_new_shadow.png", Buffer->Renderer);
         
         /* NOTE(msokolov): grid_entity initialization starts here */
         grid_entity *GridEntity = &Playground->GridEntity;
@@ -144,6 +145,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         }
         
         GridEntity->NormalSquareTexture     = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
+        GridEntity->GridCell1Texture        = GetTexture(Memory, "grid_cell_new.png", Buffer->Renderer);
+        GridEntity->GridCell2Texture        = GetTexture(Memory, "grid_cell_new2.png", Buffer->Renderer);
+        
         GridEntity->VerticalSquareTexture   = GetTexture(Memory, "o_s.png", Buffer->Renderer);
         GridEntity->HorizontlaSquareTexture = GetTexture(Memory, "o_m.png", Buffer->Renderer);
         GridEntity->TopLeftCornerFrame      = GetTexture(Memory, "frame3.png", Buffer->Renderer);
@@ -174,7 +178,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Assert(PlaygroundData);
         
         GameState->PlaygroundData = PlaygroundData;
-        PlaygroundData[0].FigureAmount = 3;
+        PlaygroundData[0].FigureAmount = 4;
         PlaygroundData[0].Figures[0].Form = figure_form::I_figure;
         PlaygroundData[0].Figures[0].Type = figure_type::classic;
         
@@ -183,6 +187,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         PlaygroundData[0].Figures[2].Form = figure_form::L_figure;
         PlaygroundData[0].Figures[2].Type = figure_type::classic;
+        
+        PlaygroundData[0].Figures[3].Form = figure_form::J_figure;
+        PlaygroundData[0].Figures[3].Type = figure_type::classic;
         
         PlaygroundData[0].RowAmount    = 5;
         PlaygroundData[0].ColumnAmount = 5;
@@ -208,6 +215,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         playground_menu *PlaygroundMenu = &GameState->PlaygroundMenu;
         PlaygroundMenu->MenuPage = menu_page::MAIN_PAGE;
         PlaygroundMenu->DiffMode = difficulty_mode::EASY;
+        PlaygroundMenu->Resolution = resolution_standard::FULLHD;
+        PlaygroundMenu->IsFullScreen = false;
         
         PlaygroundMenu->LevelButtonTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
         Assert(PlaygroundMenu->LevelButtonTexture);
@@ -234,6 +243,13 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundMenu->MainMenuTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Play", {255, 255, 255, 255});
         PlaygroundMenu->MainMenuTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "Settings", {255, 255, 255, 255});
         PlaygroundMenu->MainMenuTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "Quit", {255, 255, 255, 255});
+        
+        PlaygroundMenu->ResolutionTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "720p", {255, 255, 255, 255});
+        PlaygroundMenu->ResolutionTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "1080p", {255, 255, 255, 255});
+        PlaygroundMenu->ResolutionTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "1440p", {255, 255, 255, 255});
+        
+        PlaygroundMenu->FullScreenTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "FullScreen: Off", {255, 255, 255, 255});
+        PlaygroundMenu->FullScreenTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "FullScreen: On", {255, 255, 255, 255});
         
 #if DEBUG_BUILD
         
@@ -425,11 +441,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         case MENU:
         {
-            menu_result_option ResultOption = PlaygroundMenuUpdateAndRender(&GameState->PlaygroundMenu, Input, RenderGroup);
+            menu_result_option MenuResult = PlaygroundMenuUpdateAndRender(&GameState->PlaygroundMenu, Input, RenderGroup);
             
-            if (ResultOption.SwitchToPlayground)
+            if (MenuResult.SwitchToPlayground)
             {
-                u32 ResultLevelIndex = ResultOption.PlaygroundIndex;
+                u32 ResultLevelIndex = MenuResult.PlaygroundIndex;
                 RestartLevelEntity(&GameState->Playground);
                 GameState->PlaygroundIndex = ResultLevelIndex;
                 
@@ -450,9 +466,18 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 
                 GameState->CurrentMode = PLAYGROUND;
             }
-            else if (ResultOption.QuitGame)
+            if (MenuResult.QuitGame)
             {
-                ShouldQuit = true;
+                Result.ShouldQuit = true;
+            }
+            if (MenuResult.ToggleFullScreen)
+            {
+                Result.ToggleFullScreen = MenuResult.ToggleFullScreen;
+            }
+            if (MenuResult.ChangeResolution)
+            {
+                Result.ChangeResolution = true;
+                Result.Resolution = MenuResult.Resolution;
             }
         } break;
     }
@@ -460,5 +485,5 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     RenderGroupToOutput(RenderGroup, Buffer);
     TransState->TransGroup = TemporaryMemory;
     
-    return(ShouldQuit);
+    return(Result);
 }

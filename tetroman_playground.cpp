@@ -523,6 +523,54 @@ PickFigureTexture(figure_form Form, figure_type Type, figure_entity *FigureEntit
     return(Result);
 }
 
+
+static game_texture*
+PickFigureShadowTexture(figure_form Form, figure_entity *FigureEntity)
+{
+    game_texture *Result = NULL;
+    
+    switch(Form)
+    {
+        case O_figure:
+        {
+            Result = FigureEntity->O_ShadowTexture;
+        } break;
+        
+        case I_figure:
+        {
+            Result = FigureEntity->I_ShadowTexture;
+        } break;
+        
+        case L_figure:
+        {
+            Result = FigureEntity->L_ShadowTexture;
+        } break;
+        
+        case J_figure:
+        {
+            Result = FigureEntity->J_ShadowTexture;
+        } break;
+        
+        case Z_figure:
+        {
+            Result = FigureEntity->Z_ShadowTexture;
+        } break;
+        
+        case S_figure:
+        {
+            Result = FigureEntity->S_ShadowTexture;
+        } break;
+        
+        case T_figure:
+        {
+            Result = FigureEntity->T_ShadowTexture;
+        } break;
+    }
+    
+    
+    return(Result);
+}
+
 static void
 FigureUnitSetToDefaultArea(figure_unit* Unit, r32 BlockRatio)
 {
@@ -1822,7 +1870,11 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     }
     
     // TODO(msokolov): this should be a texture
-    Clear(RenderGroup, {42, 6, 21, 255});
+    //Clear(RenderGroup, {42, 6, 21, 255});
+    //Clear(RenderGroup, {51, 14, 5, 255});
+    Clear(RenderGroup, {51, 8, 23, 255});
+    
+    //PushBitmap(RenderGroup, LevelEntity->BackgroundTexture, ScreenRectangle);
     
     /* GridEntity update and render */
     for (u32 Index = 0; Index < FigureAmount; ++Index)
@@ -2009,10 +2061,14 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         //LevelEntityFinishAnimationInit(LevelEntity, Memory, Buffer);
     }
     
+    u32 CellCounter = 0;
     rectangle2 GridCellRectangle = {};
     for (u32 Row = 0; Row < RowAmount; ++Row)
     {
         GridCellRectangle.Min.y = GridArea.Min.y + (GridBlockSize * Row);
+        
+        if (CellCounter != 0 && ColumnAmount % 2 == 0)
+            CellCounter -= 1;
         
         for (u32 Col = 0; Col < ColumnAmount; ++Col)
         {
@@ -2021,14 +2077,59 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
             GridCellRectangle.Max.x = GridCellRectangle.Min.x + GridBlockSize;
             GridCellRectangle.Max.y = GridCellRectangle.Min.y + GridBlockSize;
             
+            if (CellCounter++ % 2 == 0) continue;
+            
             u32 GridUnit = GridEntity->UnitField[(Row * ColumnAmount) + Col];
             if(GridUnit == 0 || GridUnit == 2 || GridUnit == 3)
             {
-                PushBitmap(RenderGroup, GridEntity->NormalSquareTexture, GridCellRectangle);
+                rectangle2 TextureRectangle = {};
+                TextureRectangle.Min.x = GridCellRectangle.Min.x - (25.0f / 2.0f);
+                TextureRectangle.Min.y = GridCellRectangle.Min.y - (25.0f / 2.0f);
+                SetDim(&TextureRectangle, GetDim(GridCellRectangle).w + 25.0f, GetDim(GridCellRectangle).h + 25.0f);
+                PushBitmap(RenderGroup, GridEntity->GridCell2Texture, TextureRectangle);
+                
+                //PushRectangle(RenderGroup, GridCellRectangle, {255, 255, 255, 50});
+                //PushRectangleOutline(RenderGroup, GridCellRectangle, {255, 255, 255, 255});
             }
         }
     }
     
+    CellCounter = 0;
+    GridCellRectangle = {};
+    for (u32 Row = 0; Row < RowAmount; ++Row)
+    {
+        GridCellRectangle.Min.y = GridArea.Min.y + (GridBlockSize * Row);
+        
+        if (CellCounter != 0 && ColumnAmount % 2 == 0)
+            CellCounter -= 1;
+        
+        for (u32 Col = 0; Col < ColumnAmount; ++Col)
+        {
+            GridCellRectangle.Min.x = GridArea.Min.x + (GridBlockSize * Col);
+            
+            GridCellRectangle.Max.x = GridCellRectangle.Min.x + GridBlockSize;
+            GridCellRectangle.Max.y = GridCellRectangle.Min.y + GridBlockSize;
+            
+            if (CellCounter++ % 2 != 0) continue;
+            
+            u32 GridUnit = GridEntity->UnitField[(Row * ColumnAmount) + Col];
+            if(GridUnit == 0 || GridUnit == 2 || GridUnit == 3)
+            {
+                rectangle2 TextureRectangle = {};
+                TextureRectangle.Min.x = GridCellRectangle.Min.x - (25.0f / 2.0f);
+                TextureRectangle.Min.y = GridCellRectangle.Min.y - (25.0f / 2.0f);
+                SetDim(&TextureRectangle, GetDim(GridCellRectangle).w + 25.0f, GetDim(GridCellRectangle).h + 25.0f);
+                PushBitmap(RenderGroup, GridEntity->GridCell1Texture, TextureRectangle);
+                
+                //PushRectangle(RenderGroup, GridCellRectangle, {255, 255, 255, 50});
+                //PushRectangleOutline(RenderGroup, GridCellRectangle, {255, 255, 255, 255});
+            }
+        }
+    }
+    
+    
+    
+#if 0
     rectangle2 FrameRectangle = {};
     r32 FrameSize = GridBlockSize / 2.0f;
     r32 SpaceOverFrame = GridBlockSize / 4.0f;
@@ -2056,6 +2157,7 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     FrameRectangle.Min.y = GridArea.Min.y - SpaceOverFrame + ActualGridHeight;
     SetDim(&FrameRectangle, FrameSize, FrameSize);
     PushBitmap(RenderGroup, GridEntity->DownRightCornerFrame, FrameRectangle);
+#endif
     
     /* MovingBlocks Update and Rendering */
     moving_block *MovingBlocks = GridEntity->MovingBlocks;
@@ -2263,7 +2365,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     }
     
     /* Figure Rendering */
-    
     for(u32 i = 0; i < FigureAmount; ++i)
     {
         u32 Index = FigureEntity->FigureOrder[i];
@@ -2278,7 +2379,11 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         Center.x = FigureCenter.x - Entity->Position.x;
         Center.y = FigureCenter.y - Entity->Position.y;
         
-        game_texture *Texture = PickFigureTexture(Entity->Form, Entity->Type, FigureEntity);
+        v2 ShadowOffset = {};
+        if (!Entity->IsStick)
+        {
+            ShadowOffset += 8.0f;
+        }
         
         rectangle2 Rectangle = {};
         Rectangle.Min.x = Entity->Position.x;
@@ -2286,22 +2391,249 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         Rectangle.Max.w = Rectangle.Min.x + Entity->Size.w;
         Rectangle.Max.h = Rectangle.Min.y + Entity->Size.h;
         
+        v2 Dim = QueryTextureDim(FigureEntity->O_ShadowTexture);
+        
+        rectangle2 ShadowRectangle = {};
+        ShadowRectangle.Min = Rectangle.Min + ShadowOffset;
+        ShadowRectangle.Max = Rectangle.Max + ShadowOffset;
+        
+        game_texture *Texture = PickFigureTexture(Entity->Form, Entity->Type, FigureEntity);
+        game_texture *ShadowTexture = PickFigureShadowTexture(Entity->Form, FigureEntity);
+        
+        PushBitmapEx(RenderGroup, ShadowTexture, ShadowRectangle, Entity->Angle, Center, Entity->Flip);
         PushBitmapEx(RenderGroup, Texture, Rectangle, Entity->Angle, Center, Entity->Flip);
         
-        RenderFigureStructure(RenderGroup, Entity);
+        //PushRectangleOutline(RenderGroup, Rectangle, {0, 0, 255, 255});
+        //PushRectangleOutline(RenderGroup, ShadowRectangle, {0, 255, 0, 255});
         
-        rectangle2 AreaRect = FigureUnitGetArea(Entity);
-        PushRectangleOutline(RenderGroup, AreaRect, {0, 0, 0, 255});
+        
+        //RenderFigureStructure(RenderGroup, Entity);
+        
+        //rectangle2 AreaRect = FigureUnitGetArea(Entity);
+        //PushRectangleOutline(RenderGroup, AreaRect, {0, 0, 0, 255});
     }
     
-    PushRectangleOutline(RenderGroup, GridEntity->GridArea, {255, 0, 255, 255});
-    PushRectangleOutline(RenderGroup, FigureEntity->FigureArea, {0, 255, 255, 255});
+    //PushRectangleOutline(RenderGroup, GridEntity->GridArea, {255, 0, 255, 255});
+    //PushRectangleOutline(RenderGroup, FigureEntity->FigureArea, {0, 255, 255, 255});
+    
+    /* Corner Rendering */ 
+    
+    /* Top Left */
+    rectangle2 BorderRectangle = {};
+    BorderRectangle.Min.x = 20.0f; 
+    BorderRectangle.Min.y = 20.0f;
+    SetDim(&BorderRectangle, 410.0f, 410.0f);
+    PushBitmap(RenderGroup, LevelEntity->CornerLeftTopTexture, BorderRectangle);
+    //PushRectangleOutline(RenderGroup, BorderRectangle, {255, 255, 255, 255});
+    
+    /* Bottom Left */
+    BorderRectangle.Min.x = 20.0f; 
+    BorderRectangle.Min.y = VIRTUAL_GAME_HEIGHT - 410.0f - 20.0f;
+    SetDim(&BorderRectangle, 410.0f, 410.0f);
+    PushBitmap(RenderGroup, LevelEntity->CornerLeftBottomTexture, BorderRectangle);
+    
+    /* Top Right */
+    BorderRectangle.Min.x = VIRTUAL_GAME_WIDTH  - 410.0f - 20.0f; 
+    BorderRectangle.Min.y = 20.0f;
+    SetDim(&BorderRectangle, 410.0f, 410.0f);
+    PushBitmap(RenderGroup, LevelEntity->CornerRightTopTexture, BorderRectangle);
+    
+    /* Bottom Right */
+    BorderRectangle.Min.x = VIRTUAL_GAME_WIDTH  - 410.0f - 20.0f; 
+    BorderRectangle.Min.y = VIRTUAL_GAME_HEIGHT - 410.0f - 20.0f;
+    SetDim(&BorderRectangle, 410.0f, 410.0f);
+    PushBitmap(RenderGroup, LevelEntity->CornerRightBottomTexture, BorderRectangle);
+    
+    /* Vertical Border*/
+    BorderRectangle.Min.x = 1200.0f; 
+    BorderRectangle.Min.y = 100.0f;
+    v2 Dim = QueryTextureDim(LevelEntity->VerticalBorderTexture);
+    SetDim(&BorderRectangle, Dim.w, Dim.h);
+    PushBitmap(RenderGroup, LevelEntity->VerticalBorderTexture, BorderRectangle);
     
     /* Level Number Rendering */
-    
-    v2 Dim = QueryTextureDim(LevelEntity->LevelNumberTexture);
+    Dim = QueryTextureDim(LevelEntity->LevelNumberTexture);
     PushBitmap(RenderGroup, LevelEntity->LevelNumberTexture, {0.0f, 0.0f, Dim.w, Dim.h});
     
     return (Result);
+}
+
+
+static playground_data
+ReadPlaygroundData(playground_data *Playground, u32 Index)
+{
+    Assert(Index < PLAYGROUND_MAXIMUM);
+    
+    playground_data Result = {};
+    Result.IsLocked = Playground[Index].IsLocked;
+    Result.LevelNumber = Playground[Index].LevelNumber;
+    Result.RowAmount = Playground[Index].RowAmount;
+    Result.ColumnAmount = Playground[Index].ColumnAmount;
+    Result.MovingBlocksAmount = Playground[Index].MovingBlocksAmount;
+    Result.FigureAmount = Playground[Index].FigureAmount;
+    
+    for(u32 UnitIndex = 0; 
+        UnitIndex < Result.RowAmount * Result.ColumnAmount;
+        ++UnitIndex)
+    {
+        Result.UnitField[UnitIndex] = Playground[Index].UnitField[UnitIndex];
+    }
+    
+    for(u32 BlockIndex = 0;
+        BlockIndex < Result.MovingBlocksAmount;
+        ++BlockIndex)
+    {
+        Result.MovingBlocks[BlockIndex] = Playground[Index].MovingBlocks[BlockIndex];
+    }
+    
+    for(u32 FigureIndex = 0;
+        FigureIndex < Result.FigureAmount;
+        ++FigureIndex)
+    {
+        Result.Figures[FigureIndex] = Playground[Index].Figures[FigureIndex];
+    }
+    
+    return (Result);
+}
+
+static void
+WritePlaygroundData(playground_data *Playground, playground *Entity, u32 Index)
+{
+    Assert(Index < PLAYGROUND_MAXIMUM);
+    
+    Playground[Index].IsLocked = 0;
+    Playground[Index].LevelNumber = Entity->LevelNumber;
+    Playground[Index].RowAmount = Entity->GridEntity.RowAmount;
+    Playground[Index].ColumnAmount = Entity->GridEntity.ColumnAmount;
+    Playground[Index].MovingBlocksAmount = Entity->GridEntity.MovingBlocksAmount;
+    Playground[Index].FigureAmount = Entity->FigureEntity.FigureAmount;
+    
+    s32 *UnitFieldSource = Entity->GridEntity.UnitField;
+    s32 *UnitFieldTarget = Playground->UnitField;
+    for (u32 Row = 0; 
+         Row < Playground[Index].RowAmount;
+         ++Row)
+    {
+        for (u32 Column = 0; 
+             Column < Playground[Index].ColumnAmount;
+             ++Column)
+        {
+            s32 UnitIndex = (Row * Playground[Index].ColumnAmount) + Column;
+            UnitFieldTarget[UnitIndex] = UnitFieldSource[UnitIndex];
+        }
+    }
+    
+    moving_block_data *MovingBlocks = Playground[Index].MovingBlocks;
+    
+    for (u32 BlockIndex = 0;
+         BlockIndex < Playground[Index].MovingBlocksAmount;
+         ++BlockIndex)
+    {
+        MovingBlocks[BlockIndex].RowNumber = Entity->GridEntity.MovingBlocks[BlockIndex].RowNumber;
+        MovingBlocks[BlockIndex].ColNumber = Entity->GridEntity.MovingBlocks[BlockIndex].ColNumber;
+        MovingBlocks[BlockIndex].IsVertical = Entity->GridEntity.MovingBlocks[BlockIndex].IsVertical;
+        MovingBlocks[BlockIndex].MoveSwitch = Entity->GridEntity.MovingBlocks[BlockIndex].MoveSwitch;
+        
+    }
+    
+    figure_data *Figures = Playground[Index].Figures;
+    for (u32 FigureIndex = 0;
+         FigureIndex < Playground[Index].FigureAmount;
+         ++FigureIndex)
+    {
+        Figures[FigureIndex].Angle = Entity->FigureEntity.FigureUnit[FigureIndex].Angle;
+        Figures[FigureIndex].Flip  = Entity->FigureEntity.FigureUnit[FigureIndex].Flip;
+        Figures[FigureIndex].Form  = Entity->FigureEntity.FigureUnit[FigureIndex].Form;
+        Figures[FigureIndex].Type  = Entity->FigureEntity.FigureUnit[FigureIndex].Type;
+    }
+}
+
+static void
+PrepareNextPlayground(playground *Playground, playground_config *Configuration, playground_data *Data, u32 Index)
+{
+    Assert(Index >= 0 || Index < PLAYGROUND_MAXIMUM);
+    
+    playground_data PlaygroundData = ReadPlaygroundData(Data, Index);
+    
+    //*Playground  = {};
+    Playground->LevelStarted = true;
+    Playground->LevelNumber  = Index + 1;
+    
+    Playground->GridEntity.RowAmount          = PlaygroundData.RowAmount;
+    Playground->GridEntity.ColumnAmount       = PlaygroundData.ColumnAmount;
+    Playground->GridEntity.MovingBlocksAmount = PlaygroundData.MovingBlocksAmount;
+    Playground->GridEntity.StickUnitsAmount   = PlaygroundData.FigureAmount;
+    
+    Playground->GridEntity.GridArea.Min.x = 100;
+    Playground->GridEntity.GridArea.Min.y = 81;
+    Playground->GridEntity.GridArea.Max.x = Playground->GridEntity.GridArea.Min.x + 1128;
+    Playground->GridEntity.GridArea.Max.y = Playground->GridEntity.GridArea.Min.y + 930;
+    
+    s32 *UnitFieldSource = PlaygroundData.UnitField;
+    s32 *UnitFieldTarget = Playground->GridEntity.UnitField;
+    for (u32 Row = 0; 
+         Row < PlaygroundData.RowAmount;
+         ++Row)
+    {
+        for (u32 Column = 0; 
+             Column < PlaygroundData.ColumnAmount;
+             ++Column)
+        {
+            s32 UnitIndex = (Row * PlaygroundData.ColumnAmount) + Column;
+            UnitFieldTarget[UnitIndex] = UnitFieldSource[UnitIndex];
+        }
+    }
+    
+    for (u32 i = 0; i < FIGURE_AMOUNT_MAXIMUM; ++i)
+    {
+        Playground->GridEntity.StickUnits[i].Index = -1;
+        Playground->GridEntity.StickUnits[i].IsSticked = false;
+        
+    }
+    
+    moving_block *MovingBlocks = Playground->GridEntity.MovingBlocks;
+    for (u32 BlockIndex = 0;
+         BlockIndex < PlaygroundData.MovingBlocksAmount;
+         ++BlockIndex)
+    {
+        MovingBlocks[BlockIndex].RowNumber  = PlaygroundData.MovingBlocks[BlockIndex].RowNumber;
+        MovingBlocks[BlockIndex].ColNumber  = PlaygroundData.MovingBlocks[BlockIndex].ColNumber;
+        MovingBlocks[BlockIndex].IsVertical = PlaygroundData.MovingBlocks[BlockIndex].IsVertical;
+        MovingBlocks[BlockIndex].MoveSwitch = PlaygroundData.MovingBlocks[BlockIndex].MoveSwitch;
+        MovingBlocks[BlockIndex].Area.Min.x = Playground->GridEntity.GridArea.Min.x + (MovingBlocks[BlockIndex].ColNumber * GRID_BLOCK_SIZE);
+        MovingBlocks[BlockIndex].Area.Min.y = Playground->GridEntity.GridArea.Min.y + (MovingBlocks[BlockIndex].RowNumber * GRID_BLOCK_SIZE);
+        MovingBlocks[BlockIndex].Area.Max.x = MovingBlocks[BlockIndex].Area.Min.x + GRID_BLOCK_SIZE;
+        MovingBlocks[BlockIndex].Area.Max.y = MovingBlocks[BlockIndex].Area.Min.y + GRID_BLOCK_SIZE;
+        
+        Playground->GridEntity.UnitField[(MovingBlocks[BlockIndex].RowNumber * PlaygroundData.ColumnAmount) + MovingBlocks[BlockIndex].ColNumber] = 1;
+    }
+    
+    Playground->FigureEntity.FigureAmount     = PlaygroundData.FigureAmount;
+    Playground->FigureEntity.ReturnIndex      = -1;
+    Playground->FigureEntity.FigureVelocity   = Configuration->FigureVelocity;
+    Playground->FigureEntity.RotationVelocity = Configuration->RotationVel;
+    Playground->FigureEntity.FigureArea.Min.x = 1300;
+    Playground->FigureEntity.FigureArea.Min.y = 81;
+    Playground->FigureEntity.FigureArea.Max.x = Playground->FigureEntity.FigureArea.Min.x + 552;
+    Playground->FigureEntity.FigureArea.Max.y = Playground->FigureEntity.FigureArea.Min.y + 930;
+    
+    figure_unit *FigureUnits = Playground->FigureEntity.FigureUnit;
+    for (u32 FigureIndex = 0;
+         FigureIndex < PlaygroundData.FigureAmount;
+         ++FigureIndex)
+    {
+        figure_form Form = PlaygroundData.Figures[FigureIndex].Form;
+        figure_type Type = PlaygroundData.Figures[FigureIndex].Type;
+        
+        Playground->FigureEntity.FigureUnit[FigureIndex].Angle = PlaygroundData.Figures[FigureIndex].Angle;
+        FigureUnitInitFigure(&Playground->FigureEntity.FigureUnit[FigureIndex], Form, Type);
+    }
+    
+    for(u32 i = 0; i < FIGURE_AMOUNT_MAXIMUM; ++i) 
+    {
+        Playground->FigureEntity.FigureOrder[i] = i;
+    }
+    
+    FigureEntityAlignFigures(&Playground->FigureEntity);
 }
 

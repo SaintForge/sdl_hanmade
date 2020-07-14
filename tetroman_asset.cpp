@@ -340,179 +340,6 @@ WriteLevelsToFile(void *Storage, u64 StorageSize)
     }
 }
 
-static playground_data
-ReadPlaygroundData(playground_data *Playground, u32 Index)
-{
-    Assert(Index < PLAYGROUND_MAXIMUM);
-    
-    playground_data Result = {};
-    Result.IsLocked = Playground[Index].IsLocked;
-    Result.LevelNumber = Playground[Index].LevelNumber;
-    Result.RowAmount = Playground[Index].RowAmount;
-    Result.ColumnAmount = Playground[Index].ColumnAmount;
-    Result.MovingBlocksAmount = Playground[Index].MovingBlocksAmount;
-    Result.FigureAmount = Playground[Index].FigureAmount;
-    
-    for(u32 UnitIndex = 0; 
-        UnitIndex < Result.RowAmount * Result.ColumnAmount;
-        ++UnitIndex)
-    {
-        Result.UnitField[UnitIndex] = Playground[Index].UnitField[UnitIndex];
-    }
-    
-    for(u32 BlockIndex = 0;
-        BlockIndex < Result.MovingBlocksAmount;
-        ++BlockIndex)
-    {
-        Result.MovingBlocks[BlockIndex] = Playground[Index].MovingBlocks[BlockIndex];
-    }
-    
-    for(u32 FigureIndex = 0;
-        FigureIndex < Result.FigureAmount;
-        ++FigureIndex)
-    {
-        Result.Figures[FigureIndex] = Playground[Index].Figures[FigureIndex];
-    }
-    
-    return (Result);
-}
-
-static void
-WritePlaygroundData(playground_data *Playground, playground *Entity, u32 Index)
-{
-    Assert(Index < PLAYGROUND_MAXIMUM);
-    
-    Playground[Index].IsLocked = 0;
-    Playground[Index].LevelNumber = Entity->LevelNumber;
-    Playground[Index].RowAmount = Entity->GridEntity.RowAmount;
-    Playground[Index].ColumnAmount = Entity->GridEntity.ColumnAmount;
-    Playground[Index].MovingBlocksAmount = Entity->GridEntity.MovingBlocksAmount;
-    Playground[Index].FigureAmount = Entity->FigureEntity.FigureAmount;
-    
-    s32 *UnitFieldSource = Entity->GridEntity.UnitField;
-    s32 *UnitFieldTarget = Playground->UnitField;
-    for (u32 Row = 0; 
-         Row < Playground[Index].RowAmount;
-         ++Row)
-    {
-        for (u32 Column = 0; 
-             Column < Playground[Index].ColumnAmount;
-             ++Column)
-        {
-            s32 UnitIndex = (Row * Playground[Index].ColumnAmount) + Column;
-            UnitFieldTarget[UnitIndex] = UnitFieldSource[UnitIndex];
-        }
-    }
-    
-    moving_block_data *MovingBlocks = Playground[Index].MovingBlocks;
-    
-    for (u32 BlockIndex = 0;
-         BlockIndex < Playground[Index].MovingBlocksAmount;
-         ++BlockIndex)
-    {
-        MovingBlocks[BlockIndex].RowNumber = Entity->GridEntity.MovingBlocks[BlockIndex].RowNumber;
-        MovingBlocks[BlockIndex].ColNumber = Entity->GridEntity.MovingBlocks[BlockIndex].ColNumber;
-        MovingBlocks[BlockIndex].IsVertical = Entity->GridEntity.MovingBlocks[BlockIndex].IsVertical;
-        MovingBlocks[BlockIndex].MoveSwitch = Entity->GridEntity.MovingBlocks[BlockIndex].MoveSwitch;
-        
-    }
-    
-    figure_data *Figures = Playground[Index].Figures;
-    for (u32 FigureIndex = 0;
-         FigureIndex < Playground[Index].FigureAmount;
-         ++FigureIndex)
-    {
-        Figures[FigureIndex].Angle = Entity->FigureEntity.FigureUnit[FigureIndex].Angle;
-        Figures[FigureIndex].Flip  = Entity->FigureEntity.FigureUnit[FigureIndex].Flip;
-        Figures[FigureIndex].Form  = Entity->FigureEntity.FigureUnit[FigureIndex].Form;
-        Figures[FigureIndex].Type  = Entity->FigureEntity.FigureUnit[FigureIndex].Type;
-    }
-}
-
-static void
-PrepareNextPlayground(playground *Playground, playground_config *Configuration, playground_data *Data, u32 Index)
-{
-    Assert(Index >= 0 || Index < PLAYGROUND_MAXIMUM);
-    
-    playground_data PlaygroundData = ReadPlaygroundData(Data, Index);
-    
-    //*Playground  = {};
-    Playground->LevelStarted = true;
-    Playground->LevelNumber  = Index + 1;
-    
-    Playground->GridEntity.RowAmount          = PlaygroundData.RowAmount;
-    Playground->GridEntity.ColumnAmount       = PlaygroundData.ColumnAmount;
-    Playground->GridEntity.MovingBlocksAmount = PlaygroundData.MovingBlocksAmount;
-    Playground->GridEntity.StickUnitsAmount   = PlaygroundData.FigureAmount;
-    
-    s32 *UnitFieldSource = PlaygroundData.UnitField;
-    s32 *UnitFieldTarget = Playground->GridEntity.UnitField;
-    for (u32 Row = 0; 
-         Row < PlaygroundData.RowAmount;
-         ++Row)
-    {
-        for (u32 Column = 0; 
-             Column < PlaygroundData.ColumnAmount;
-             ++Column)
-        {
-            s32 UnitIndex = (Row * PlaygroundData.ColumnAmount) + Column;
-            UnitFieldTarget[UnitIndex] = UnitFieldSource[UnitIndex];
-        }
-    }
-    
-    for (u32 i = 0; i < FIGURE_AMOUNT_MAXIMUM; ++i)
-    {
-        Playground->GridEntity.StickUnits[i].Index = -1;
-        Playground->GridEntity.StickUnits[i].IsSticked = false;
-        
-    }
-    
-    moving_block *MovingBlocks = Playground->GridEntity.MovingBlocks;
-    for (u32 BlockIndex = 0;
-         BlockIndex < PlaygroundData.MovingBlocksAmount;
-         ++BlockIndex)
-    {
-        MovingBlocks[BlockIndex].RowNumber  = PlaygroundData.MovingBlocks[BlockIndex].RowNumber;
-        MovingBlocks[BlockIndex].ColNumber  = PlaygroundData.MovingBlocks[BlockIndex].ColNumber;
-        MovingBlocks[BlockIndex].IsVertical = PlaygroundData.MovingBlocks[BlockIndex].IsVertical;
-        MovingBlocks[BlockIndex].MoveSwitch = PlaygroundData.MovingBlocks[BlockIndex].MoveSwitch;
-        MovingBlocks[BlockIndex].Area.Min.x = Playground->GridEntity.GridArea.Min.x + (MovingBlocks[BlockIndex].ColNumber * GRID_BLOCK_SIZE);
-        MovingBlocks[BlockIndex].Area.Min.y = Playground->GridEntity.GridArea.Min.y + (MovingBlocks[BlockIndex].RowNumber * GRID_BLOCK_SIZE);
-        MovingBlocks[BlockIndex].Area.Max.x = MovingBlocks[BlockIndex].Area.Min.x + GRID_BLOCK_SIZE;
-        MovingBlocks[BlockIndex].Area.Max.y = MovingBlocks[BlockIndex].Area.Min.y + GRID_BLOCK_SIZE;
-        
-        Playground->GridEntity.UnitField[(MovingBlocks[BlockIndex].RowNumber * PlaygroundData.ColumnAmount) + MovingBlocks[BlockIndex].ColNumber] = 1;
-    }
-    
-    Playground->FigureEntity.FigureAmount     = PlaygroundData.FigureAmount;
-    Playground->FigureEntity.ReturnIndex      = -1;
-    Playground->FigureEntity.FigureVelocity   = Configuration->FigureVelocity;
-    Playground->FigureEntity.RotationVelocity = Configuration->RotationVel;
-    Playground->FigureEntity.FigureArea.Min.x = 1300;
-    Playground->FigureEntity.FigureArea.Min.y = 81;
-    Playground->FigureEntity.FigureArea.Max.x = Playground->FigureEntity.FigureArea.Min.x + 552;
-    Playground->FigureEntity.FigureArea.Max.y = Playground->FigureEntity.FigureArea.Min.y + 972;
-    
-    figure_unit *FigureUnits = Playground->FigureEntity.FigureUnit;
-    for (u32 FigureIndex = 0;
-         FigureIndex < PlaygroundData.FigureAmount;
-         ++FigureIndex)
-    {
-        figure_form Form = PlaygroundData.Figures[FigureIndex].Form;
-        figure_type Type = PlaygroundData.Figures[FigureIndex].Type;
-        
-        Playground->FigureEntity.FigureUnit[FigureIndex].Angle = PlaygroundData.Figures[FigureIndex].Angle;
-        FigureUnitInitFigure(&Playground->FigureEntity.FigureUnit[FigureIndex], Form, Type);
-    }
-    
-    for(u32 i = 0; i < FIGURE_AMOUNT_MAXIMUM; ++i) 
-    {
-        Playground->FigureEntity.FigureOrder[i] = i;
-    }
-    
-    FigureEntityAlignFigures(&Playground->FigureEntity);
-}
-
 static void
 SDLAssetBuildBinaryFile()
 {
@@ -530,6 +357,21 @@ SDLAssetBuildBinaryFile()
     SDLWriteBitmapToFile(BinaryFile, "I_new.png");
     
     
+    SDLWriteBitmapToFile(BinaryFile, "level_background.png");
+    SDLWriteBitmapToFile(BinaryFile, "level_background2.png");
+    SDLWriteBitmapToFile(BinaryFile, "level_background3.png");
+    SDLWriteBitmapToFile(BinaryFile, "vertical_border.png");
+    
+    /* new */
+    SDLWriteBitmapToFile(BinaryFile, "corner_left_top.png");
+    SDLWriteBitmapToFile(BinaryFile, "corner_left_bottom.png");
+    SDLWriteBitmapToFile(BinaryFile, "corner_right_top.png");
+    SDLWriteBitmapToFile(BinaryFile, "corner_right_bottom.png");
+    
+    SDLWriteBitmapToFile(BinaryFile, "grid_cell_new.png");
+    SDLWriteBitmapToFile(BinaryFile, "grid_cell_new2.png");
+    SDLWriteBitmapToFile(BinaryFile, "border_vertical.png");
+    
     SDLWriteBitmapToFile(BinaryFile, "grid_cell.png");
     SDLWriteBitmapToFile(BinaryFile, "grid_cell_1.png");
     SDLWriteBitmapToFile(BinaryFile, "grid_cell_2.png");
@@ -539,33 +381,26 @@ SDLAssetBuildBinaryFile()
     SDLWriteBitmapToFile(BinaryFile, "frame3.png");
     SDLWriteBitmapToFile(BinaryFile, "frame4.png");
     
-    SDLWriteBitmapToFile(BinaryFile, "i_d.png");
-    SDLWriteBitmapToFile(BinaryFile, "i_m.png");
-    SDLWriteBitmapToFile(BinaryFile, "i_s.png");
+    SDLWriteBitmapToFile(BinaryFile, "i_d_new.png");
+    SDLWriteBitmapToFile(BinaryFile, "i_d_new_shadow.png");
     
-    SDLWriteBitmapToFile(BinaryFile, "o_d.png");
-    SDLWriteBitmapToFile(BinaryFile, "o_m.png");
-    SDLWriteBitmapToFile(BinaryFile, "o_s.png");
+    SDLWriteBitmapToFile(BinaryFile, "o_d_new.png");
+    SDLWriteBitmapToFile(BinaryFile, "o_d_new_shadow.png");
     
-    SDLWriteBitmapToFile(BinaryFile, "l_d.png");
-    SDLWriteBitmapToFile(BinaryFile, "l_m.png");
-    SDLWriteBitmapToFile(BinaryFile, "l_s.png");
+    SDLWriteBitmapToFile(BinaryFile, "l_d_new.png");
+    SDLWriteBitmapToFile(BinaryFile, "l_d_new_shadow.png");
     
-    SDLWriteBitmapToFile(BinaryFile, "j_d.png");
-    SDLWriteBitmapToFile(BinaryFile, "j_m.png");
-    SDLWriteBitmapToFile(BinaryFile, "j_s.png");
+    SDLWriteBitmapToFile(BinaryFile, "j_d_new.png");
+    SDLWriteBitmapToFile(BinaryFile, "j_d_new_shadow.png");
     
-    SDLWriteBitmapToFile(BinaryFile, "s_d.png");
-    SDLWriteBitmapToFile(BinaryFile, "s_m.png");
-    SDLWriteBitmapToFile(BinaryFile, "s_s.png");
+    SDLWriteBitmapToFile(BinaryFile, "s_d_new.png");
+    SDLWriteBitmapToFile(BinaryFile, "s_d_new_shadow.png");
     
-    SDLWriteBitmapToFile(BinaryFile, "z_d.png");
-    SDLWriteBitmapToFile(BinaryFile, "z_m.png");
-    SDLWriteBitmapToFile(BinaryFile, "z_s.png");
+    SDLWriteBitmapToFile(BinaryFile, "z_d_new.png");
+    SDLWriteBitmapToFile(BinaryFile, "z_d_new_shadow.png");
     
-    SDLWriteBitmapToFile(BinaryFile, "t_d.png");
-    SDLWriteBitmapToFile(BinaryFile, "t_m.png");
-    SDLWriteBitmapToFile(BinaryFile, "t_s.png");
+    SDLWriteBitmapToFile(BinaryFile, "t_d_new.png");
+    SDLWriteBitmapToFile(BinaryFile, "t_d_new_shadow.png");
     
     SDLWriteBitmapToFile(BinaryFile, "left_arrow.png");
     SDLWriteBitmapToFile(BinaryFile, "right_arrow.png");
@@ -573,9 +408,9 @@ SDLAssetBuildBinaryFile()
     /* Audio loading */
     BinaryHeader.AudioSizeInBytes = SDL_RWtell(BinaryFile) - sizeof(binary_header);
     
-    SDLWriteSoundToFile(BinaryFile, "focus.wav");
-    SDLWriteSoundToFile(BinaryFile, "chunk.wav");
-    SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
+    //SDLWriteSoundToFile(BinaryFile, "focus.wav");
+    //SDLWriteSoundToFile(BinaryFile, "chunk.wav");
+    //SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
     
     SDL_RWseek(BinaryFile, 0, RW_SEEK_SET);
     

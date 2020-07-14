@@ -8,7 +8,7 @@
 
 #if !defined(ENTITY_H)
 
-#define GRID_BLOCK_SIZE 108
+#define GRID_BLOCK_SIZE 100
 #define IDLE_BLOCK_SIZE 62
 
 #define FIGURE_BLOCKS_MAXIMUM 4
@@ -80,30 +80,37 @@ struct figure_entity
     game_texture *O_ClassicTexture;
     game_texture *O_StoneTexture;
     game_texture *O_MirrorTexture;
+    game_texture *O_ShadowTexture;
     
     game_texture *I_ClassicTexture;
     game_texture *I_StoneTexture;
     game_texture *I_MirrorTexture;
+    game_texture *I_ShadowTexture;
     
     game_texture *L_ClassicTexture;
     game_texture *L_StoneTexture;
     game_texture *L_MirrorTexture;
+    game_texture *L_ShadowTexture;
     
     game_texture *J_ClassicTexture;
+    game_texture *J_ShadowTexture;
     game_texture *J_StoneTexture;
     game_texture *J_MirrorTexture;
     
     game_texture *Z_ClassicTexture;
     game_texture *Z_StoneTexture;
     game_texture *Z_MirrorTexture;
+    game_texture *Z_ShadowTexture;
     
     game_texture *S_ClassicTexture;
     game_texture *S_StoneTexture;
     game_texture *S_MirrorTexture;
+    game_texture *S_ShadowTexture;
     
     game_texture *T_ClassicTexture;
     game_texture *T_StoneTexture;
     game_texture *T_MirrorTexture;
+    game_texture *T_ShadowTexture;
 };
 
 struct sticked_unit
@@ -144,6 +151,9 @@ struct grid_entity
     u32 StickUnitsAmount;
     
     game_texture *NormalSquareTexture;
+    game_texture *GridCell1Texture;
+    game_texture *GridCell2Texture;
+    
     game_texture *VerticalSquareTexture;
     game_texture *HorizontlaSquareTexture;
     
@@ -213,11 +223,17 @@ struct playground
     figure_entity FigureEntity;
     
     u32 LevelNumber;
-    game_texture *LevelNumberTexture;
-    
     b32 LevelStarted;
     b32 LevelPaused;
     b32 LevelFinished;
+    
+    game_texture *CornerLeftTopTexture;
+    game_texture *CornerLeftBottomTexture;
+    game_texture *CornerRightTopTexture;
+    game_texture *CornerRightBottomTexture;
+    game_texture *VerticalBorderTexture;
+    
+    game_texture *LevelNumberTexture;
 };
 
 struct menu_button

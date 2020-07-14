@@ -32,6 +32,11 @@ struct menu_result_option
     b32 MusicOff;
     b32 SoundOn;
     b32 SoundOff;
+    
+    b32 ToggleFullScreen;
+    b32 ChangeResolution;
+    resolution_standard Resolution;
+    
     b32 SwitchToPlayground;
     u32 PlaygroundIndex;
 };
@@ -41,7 +46,17 @@ struct playground_menu
     menu_page MenuPage;
     difficulty_mode DiffMode;
     
+    b32 IsFullScreen;
+    resolution_standard Resolution;
+    
+    /* Main Menu textures*/
     game_texture *MainMenuTexture[3];
+    
+    /* Settings textures*/
+    game_texture *FullScreenTexture[2];
+    game_texture *ResolutionTexture[3];
+    
+    /* Playground Menu textures*/
     game_texture *DifficultyTexture[3];
     game_texture *LevelButtonTexture;
     game_texture *LevelNumberTexture[100];

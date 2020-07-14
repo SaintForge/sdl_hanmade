@@ -102,6 +102,9 @@ PlaygroundEditorUpdateAndRender(playground        *Playground,
                     
                     FigureUnitAddNewFigure(&Playground->FigureEntity, figure_form::O_figure, figure_type::classic);
                     FigureEntityAlignFigures(&Playground->FigureEntity);
+                    
+                    if (Playground->GridEntity.StickUnitsAmount < FIGURE_AMOUNT_MAXIMUM)
+                        Playground->GridEntity.StickUnitsAmount += 1;
                 }
                 
                 // NOTE(msokolov): Delete Figure Button

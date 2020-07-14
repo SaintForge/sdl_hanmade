@@ -86,6 +86,50 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
                 }
             } break;
             
+            case SETTINGS_PAGE:
+            {
+                rectangle2 ButtonRectangle = {};
+                ButtonRectangle.Min.x = MainMenuPosition.x;
+                ButtonRectangle.Min.y = MainMenuPosition.y;
+                SetDim(&ButtonRectangle, MainMenuButtonSize.w, MainMenuButtonSize.h - 10.0f);
+                
+                if (IsInRectangle(MousePos, ButtonRectangle))
+                {
+                    resolution_standard Resolution = PlaygroundMenu->Resolution;
+                    switch(Resolution)
+                    {
+                        case HD:
+                        {
+                            Resolution = resolution_standard::FULLHD;
+                        } break;
+                        case FULLHD:
+                        {
+                            Resolution = resolution_standard::QFULLHD;
+                        } break;
+                        case QFULLHD:
+                        {
+                            Resolution = resolution_standard::HD;
+                        } break;
+                        
+                    }
+                    
+                    PlaygroundMenu->Resolution = Resolution;
+                    Result.ChangeResolution = true;
+                    Result.Resolution = Resolution;
+                }
+                
+                ButtonRectangle.Min.x = MainMenuPosition.x;
+                ButtonRectangle.Min.y = MainMenuPosition.y + MainMenuButtonSize.h + 10.0f;
+                SetDim(&ButtonRectangle, MainMenuButtonSize.w, MainMenuButtonSize.h);
+                
+                if (IsInRectangle(MousePos, ButtonRectangle))
+                {
+                    PlaygroundMenu->IsFullScreen = PlaygroundMenu->IsFullScreen ? false : true;
+                    Result.ToggleFullScreen = true;
+                }
+                
+            } break;
+            
             case DIFFICULTY_PAGE:
             {
                 rectangle2 DifficultyRectangle = {};
@@ -169,6 +213,43 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
                 SetDim(&TextRectangle, Dim);
                 PushBitmap(RenderGroup, PlaygroundMenu->MainMenuTexture[Index], TextRectangle);
             }
+            
+        } break;
+        
+        case SETTINGS_PAGE:
+        {
+            rectangle2 ButtonRectangle = {};
+            ButtonRectangle.Min.x = MainMenuPosition.x;
+            ButtonRectangle.Min.y = MainMenuPosition.y;
+            SetDim(&ButtonRectangle, MainMenuButtonSize.w, MainMenuButtonSize.h - 10.0f);
+            
+            v4 Color = {128, 128, 128, 255};
+            PushRectangleOutline(RenderGroup, ButtonRectangle, Color);
+            
+            u32 Index = (u32)PlaygroundMenu->Resolution;
+            
+            rectangle2 TextRectangle = {};
+            v2 Dim = QueryTextureDim(PlaygroundMenu->ResolutionTexture[Index]);
+            TextRectangle.Min.x = ButtonRectangle.Min.x + (GetDim(ButtonRectangle).w / 2.0f) - (Dim.w / 2.0f);
+            TextRectangle.Min.y = ButtonRectangle.Min.y + (GetDim(ButtonRectangle).h / 2.0f) - (Dim.h / 2.0f);
+            SetDim(&TextRectangle, Dim);
+            PushBitmap(RenderGroup, PlaygroundMenu->ResolutionTexture[Index], TextRectangle);
+            
+            ButtonRectangle.Min.x = MainMenuPosition.x;
+            ButtonRectangle.Min.y = MainMenuPosition.y + (MainMenuButtonSize.h + 10.0f);
+            SetDim(&ButtonRectangle, MainMenuButtonSize.w, MainMenuButtonSize.h - 10.0f);
+            
+            Color = {128, 128, 128, 255};
+            PushRectangleOutline(RenderGroup, ButtonRectangle, Color);
+            
+            Index = (u32)PlaygroundMenu->IsFullScreen;
+            
+            TextRectangle = {};
+            Dim = QueryTextureDim(PlaygroundMenu->FullScreenTexture[Index]);
+            TextRectangle.Min.x = ButtonRectangle.Min.x + (GetDim(ButtonRectangle).w / 2.0f) - (Dim.w / 2.0f);
+            TextRectangle.Min.y = ButtonRectangle.Min.y + (GetDim(ButtonRectangle).h / 2.0f) - (Dim.h / 2.0f);
+            SetDim(&TextRectangle, Dim);
+            PushBitmap(RenderGroup, PlaygroundMenu->FullScreenTexture[Index], TextRectangle);
             
         } break;
         
