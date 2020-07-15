@@ -47,6 +47,8 @@ struct playground_menu
     difficulty_mode DiffMode;
     
     b32 IsFullScreen;
+    b32 PlaygroundSwitch;
+    
     resolution_standard Resolution;
     
     /* Main Menu textures*/

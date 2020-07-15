@@ -48,9 +48,16 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
             case DIFFICULTY_PAGE:
             case SETTINGS_PAGE:
             {
-                PlaygroundMenu->MenuPage = MAIN_PAGE;
+                if (PlaygroundMenu->PlaygroundSwitch)
+                {
+                    Result.SwitchToPlayground = true;
+                    return (Result);
+                }
+                else
+                {
+                    PlaygroundMenu->MenuPage = MAIN_PAGE;
+                }
             } break;
-            
         }
     }
     

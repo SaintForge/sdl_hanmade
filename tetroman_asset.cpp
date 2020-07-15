@@ -361,12 +361,18 @@ SDLAssetBuildBinaryFile()
     SDLWriteBitmapToFile(BinaryFile, "level_background2.png");
     SDLWriteBitmapToFile(BinaryFile, "level_background3.png");
     SDLWriteBitmapToFile(BinaryFile, "vertical_border.png");
+    SDLWriteBitmapToFile(BinaryFile, "horizontal_border.png");
+    SDLWriteBitmapToFile(BinaryFile, "horizontal_border_2.png");
     
     /* new */
     SDLWriteBitmapToFile(BinaryFile, "corner_left_top.png");
     SDLWriteBitmapToFile(BinaryFile, "corner_left_bottom.png");
     SDLWriteBitmapToFile(BinaryFile, "corner_right_top.png");
     SDLWriteBitmapToFile(BinaryFile, "corner_right_bottom.png");
+    
+    SDLWriteBitmapToFile(BinaryFile, "gear_new.png");
+    SDLWriteBitmapToFile(BinaryFile, "gear_new_shadow.png");
+    
     
     SDLWriteBitmapToFile(BinaryFile, "grid_cell_new.png");
     SDLWriteBitmapToFile(BinaryFile, "grid_cell_new2.png");

@@ -62,6 +62,25 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Playground->CornerRightBottomTexture  = GetTexture(Memory, "corner_right_bottom.png", Buffer->Renderer);
         Playground->VerticalBorderTexture     = GetTexture(Memory, "vertical_border.png", Buffer->Renderer);
         
+        /* Playground Option Menu */ 
+        playground_options *PlaygroundOptions = &Playground->Options;
+        PlaygroundOptions->ToggleMenu  = false;
+        PlaygroundOptions->Choice      = options_choice::RESTART_OPTION;
+        PlaygroundOptions->MenuPosition = { 1500.0f, 650.0f };
+        PlaygroundOptions->ButtonDimension = { 180.0f, 80.0f };
+        PlaygroundOptions->GearTexture = GetTexture(Memory, "gear_new.png", Buffer->Renderer);
+        PlaygroundOptions->GearShadowTexture = GetTexture(Memory, "gear_new_shadow.png", Buffer->Renderer);
+        PlaygroundOptions->HorizontalLineTexture = GetTexture(Memory, "horizontal_border_2.png", Buffer->Renderer);
+        PlaygroundOptions->MenuTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Restart", {255, 255, 255, 255});
+        PlaygroundOptions->MenuTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "Settings", {255, 255, 255, 255});
+        PlaygroundOptions->MenuTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "Menu", {255, 255, 255, 255});
+        PlaygroundOptions->MenuTexture[3] = MakeTextureFromString(Buffer, GameState->Font, "Quit", {255, 255, 255, 255});
+        
+        PlaygroundOptions->MenuShadowTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Restart", {0, 0, 0, 127});
+        PlaygroundOptions->MenuShadowTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "Settings", {0, 0, 0, 127});
+        PlaygroundOptions->MenuShadowTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "Menu", {0, 0, 0, 127});
+        PlaygroundOptions->MenuShadowTexture[3] = MakeTextureFromString(Buffer, GameState->Font, "Quit", {0, 0, 0, 127});
+        
         /* NOTE(msokolov): figure_entity initialization starts here */
         figure_entity* FigureEntity  = &Playground->FigureEntity;
         FigureEntity->FigureAmount   = 0;
@@ -213,10 +232,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         /* NOTE(msokolov): playground_menu initialization */
         
         playground_menu *PlaygroundMenu = &GameState->PlaygroundMenu;
-        PlaygroundMenu->MenuPage = menu_page::MAIN_PAGE;
+        PlaygroundMenu->MenuPage = menu_page::DIFFICULTY_PAGE;
         PlaygroundMenu->DiffMode = difficulty_mode::EASY;
         PlaygroundMenu->Resolution = resolution_standard::FULLHD;
         PlaygroundMenu->IsFullScreen = false;
+        PlaygroundMenu->PlaygroundSwitch = false;
         
         PlaygroundMenu->LevelButtonTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
         Assert(PlaygroundMenu->LevelButtonTexture);
@@ -426,9 +446,24 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                     Assert(GameState->Playground.LevelNumberTexture);
                 }
             }
-            else if (PlaygroundStatus == playground_status::LEVEL_QUIT)
+            else if (PlaygroundStatus == playground_status::LEVEL_MENU_QUIT)
             {
                 GameState->CurrentMode = MENU;
+                GameState->PlaygroundMenu.MenuPage = menu_page::DIFFICULTY_PAGE;
+            }
+            else if (PlaygroundStatus == playground_status::LEVEL_GAME_QUIT)
+            {
+                Result.ShouldQuit = true;
+            }
+            else if (PlaygroundStatus == playground_status::LEVEL_SETTINGS_QUIT)
+            {
+                GameState->CurrentMode = MENU;
+                GameState->PlaygroundMenu.MenuPage = menu_page::SETTINGS_PAGE;
+                GameState->PlaygroundMenu.PlaygroundSwitch = true;
+            }
+            else if (PlaygroundStatus == playground_status::LEVEL_RESTARTED)
+            {
+                RestartLevelEntity(&GameState->Playground);
             }
             
             if (GameState->EditorMode)
@@ -445,24 +480,31 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             
             if (MenuResult.SwitchToPlayground)
             {
-                u32 ResultLevelIndex = MenuResult.PlaygroundIndex;
-                RestartLevelEntity(&GameState->Playground);
-                GameState->PlaygroundIndex = ResultLevelIndex;
-                
-                playground_data *PlaygroundData = GameState->PlaygroundData;
-                Assert(PlaygroundData);
-                
-                PrepareNextPlayground(&GameState->Playground, &GameState->Configuration, PlaygroundData, ResultLevelIndex);
-                
-                char LevelString[3] = {};
-                sprintf(LevelString, "%d", GameState->Playground.LevelNumber);
-                if (GameState->Playground.LevelNumberTexture)
+                if (GameState->PlaygroundMenu.PlaygroundSwitch)
                 {
-                    SDL_DestroyTexture(GameState->Playground.LevelNumberTexture);
+                    GameState->PlaygroundMenu.PlaygroundSwitch = false;
                 }
-                
-                GameState->Playground.LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
-                Assert(GameState->Playground.LevelNumberTexture);
+                else
+                {
+                    u32 ResultLevelIndex = MenuResult.PlaygroundIndex;
+                    RestartLevelEntity(&GameState->Playground);
+                    GameState->PlaygroundIndex = ResultLevelIndex;
+                    
+                    playground_data *PlaygroundData = GameState->PlaygroundData;
+                    Assert(PlaygroundData);
+                    
+                    PrepareNextPlayground(&GameState->Playground, &GameState->Configuration, PlaygroundData, ResultLevelIndex);
+                    
+                    char LevelString[3] = {};
+                    sprintf(LevelString, "%d", GameState->Playground.LevelNumber);
+                    if (GameState->Playground.LevelNumberTexture)
+                    {
+                        SDL_DestroyTexture(GameState->Playground.LevelNumberTexture);
+                    }
+                    
+                    GameState->Playground.LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
+                    Assert(GameState->Playground.LevelNumberTexture);
+                }
                 
                 GameState->CurrentMode = PLAYGROUND;
             }

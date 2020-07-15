@@ -730,11 +730,12 @@ RestartLevelEntity(playground *LevelEntity)
     }
 }
 
-static b32
+static options_choice
 PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWidth, u32 ScreenHeight)
 {
-    b32 ShouldExit = false;
+    options_choice Result = options_choice::NONE_OPTION;
     
+    b32 ToggleMenuOption  = LevelEntity->Options.ToggleMenu;
     grid_entity   *GridEntity   = &LevelEntity->GridEntity;
     figure_entity *FigureEntity = &LevelEntity->FigureEntity;
     figure_unit   *FigureUnit   = FigureEntity->FigureUnit;
@@ -752,13 +753,24 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
     
     if(Input->Keyboard.Escape.EndedDown)
     {
-        ShouldExit = true;
+        Result = options_choice::QUIT_OPTION;
     }
     
     if(!LevelEntity->LevelPaused)
     {
         if(Input->MouseButtons[0].EndedDown)
         {
+            rectangle2 GearRectangle = {};
+            GearRectangle.Min.x = VIRTUAL_GAME_WIDTH  - 200.0f;
+            GearRectangle.Min.y = VIRTUAL_GAME_HEIGHT - 200.0f;
+            SetDim(&GearRectangle, 100.0f, 100.0f);
+            
+            if (IsInRectangle(MousePos, GearRectangle))
+            {
+                ToggleMenuOption = LevelEntity->Options.ToggleMenu ? false : true;
+                LevelEntity->Options.Choice = options_choice::RESTART_OPTION;
+            }
+            
             if(!FigureEntity->IsGrabbed)
             {
                 for (s32 i = Size - 1; i >= 0; --i)
@@ -802,7 +814,7 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
                         FigureEntityHighOrderFigure(FigureEntity, ActiveIndex);
                         SDL_ShowCursor(SDL_DISABLE);
                         
-                        return ShouldExit;
+                        //return ShouldExit;
                     }
                 }
                 
@@ -821,7 +833,7 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
                                 GridEntityMoveBlockVertically(GridEntity, &GridEntity->MovingBlocks[i]);
                             }
                             
-                            return ShouldExit;
+                            //return ShouldExit;
                         }
                     }
                 }
@@ -896,6 +908,7 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
                 }
             }
         } 
+        
         if(FigureEntity->IsGrabbed)
         {
             v2 dt = {(r32)Input->MouseRelX, (r32)Input->MouseRelY};
@@ -906,7 +919,80 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
         }
     }
     
-    return (ShouldExit);
+    if (LevelEntity->Options.ToggleMenu)
+    {
+        v2 ButtonRectangleDim = LevelEntity->Options.ButtonDimension;
+        v2 MenuPosition = LevelEntity->Options.MenuPosition;
+        
+        rectangle2 ButtonRectangle = {};
+        rectangle2 TextRectangle = {};
+        
+        b32 ButtonWasPressed = false;
+        
+        for (u32 Index = 0;
+             Index < 4;
+             ++Index)
+        {
+            ButtonRectangle.Min.x = MenuPosition.x;
+            ButtonRectangle.Min.y = MenuPosition.y + (ButtonRectangleDim.h * Index);
+            SetDim(&ButtonRectangle, ButtonRectangleDim);
+            
+            v2 TextureDim   = QueryTextureDim(LevelEntity->Options.MenuTexture[Index]);
+            TextRectangle.Min.x = ButtonRectangle.Min.x + (ButtonRectangleDim.w / 2.0f) - (TextureDim.w / 2.0f);
+            TextRectangle.Min.y = ButtonRectangle.Min.y + (ButtonRectangleDim.h / 2.0f) - (TextureDim.h / 2.0f);
+            SetDim(&TextRectangle, TextureDim);
+            
+            if (IsInRectangle(MousePos, ButtonRectangle))
+            {
+                options_choice NewChoice = (options_choice)Index;
+
+                if (NewChoice != LevelEntity->Options.Choice)
+                {
+                    LevelEntity->Options.Choice = NewChoice;
+                }
+                
+                if (Input->MouseButtons[0].EndedDown)
+                {
+                    if (IsInRectangle(MousePos, ButtonRectangle))
+                    {
+                        options_choice OptionChoice = (options_choice) Index;
+                        switch(OptionChoice)
+                        {
+                            case RESTART_OPTION:
+                            {
+                                Result = options_choice::RESTART_OPTION;
+                            } break;
+                            case SETTINGS_OPTION:
+                            {
+                                Result = options_choice::SETTINGS_OPTION;
+                            } break;
+                            case MAINMENU_OPTION:
+                            {
+                                Result = options_choice::MAINMENU_OPTION;
+                            } break;
+                            case QUIT_OPTION:
+                            {
+                                Result = options_choice::QUIT_OPTION;
+                            } break;
+                        }
+                        
+                        ButtonWasPressed = true;
+                        ToggleMenuOption = false;
+                        LevelEntity->Options.Choice = OptionChoice;
+                    }
+                }
+            }
+        }
+        
+        if (Input->MouseButtons[0].EndedDown && !ButtonWasPressed)
+        {
+            ToggleMenuOption = false;
+        }
+    }
+    
+    LevelEntity->Options.ToggleMenu = ToggleMenuOption;
+    
+    return (Result);
 }
 
 
@@ -1863,11 +1949,24 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     s32 StartY = 0;
     
     /* game_input checking */
-    b32 ShouldExit = PlaygroundUpdateEvents(Input, LevelEntity, RenderGroup->Width, RenderGroup->Height);
-    if (ShouldExit)
+    options_choice OptionChoice = PlaygroundUpdateEvents(Input, LevelEntity, RenderGroup->Width, RenderGroup->Height);
+    if (OptionChoice == options_choice::QUIT_OPTION)
     {
-        Result = playground_status::LEVEL_QUIT;
+        Result = playground_status::LEVEL_GAME_QUIT;
     }
+    else if (OptionChoice == options_choice::MAINMENU_OPTION)
+    {
+        Result = playground_status::LEVEL_MENU_QUIT;
+    }
+    else if (OptionChoice == options_choice::RESTART_OPTION)
+    {
+        Result = playground_status::LEVEL_RESTARTED;
+    }
+    else if (OptionChoice == options_choice::SETTINGS_OPTION)
+    {
+        Result = playground_status::LEVEL_SETTINGS_QUIT;
+    }
+    
     
     // TODO(msokolov): this should be a texture
     //Clear(RenderGroup, {42, 6, 21, 255});
@@ -2416,44 +2515,109 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     //PushRectangleOutline(RenderGroup, GridEntity->GridArea, {255, 0, 255, 255});
     //PushRectangleOutline(RenderGroup, FigureEntity->FigureArea, {0, 255, 255, 255});
     
-    /* Corner Rendering */ 
+    {
+        /* Corner Rendering */ 
+        
+        /* Top Left */
+        rectangle2 BorderRectangle = {};
+        BorderRectangle.Min.x = 20.0f; 
+        BorderRectangle.Min.y = 20.0f;
+        SetDim(&BorderRectangle, 410.0f, 410.0f);
+        PushBitmap(RenderGroup, LevelEntity->CornerLeftTopTexture, BorderRectangle);
+        //PushRectangleOutline(RenderGroup, BorderRectangle, {255, 255, 255, 255});
+        
+        /* Bottom Left */
+        BorderRectangle.Min.x = 20.0f; 
+        BorderRectangle.Min.y = VIRTUAL_GAME_HEIGHT - 410.0f - 20.0f;
+        SetDim(&BorderRectangle, 410.0f, 410.0f);
+        PushBitmap(RenderGroup, LevelEntity->CornerLeftBottomTexture, BorderRectangle);
+        
+        /* Top Right */
+        BorderRectangle.Min.x = VIRTUAL_GAME_WIDTH  - 410.0f - 20.0f; 
+        BorderRectangle.Min.y = 20.0f;
+        SetDim(&BorderRectangle, 410.0f, 410.0f);
+        PushBitmap(RenderGroup, LevelEntity->CornerRightTopTexture, BorderRectangle);
+        
+        /* Bottom Right */
+        BorderRectangle.Min.x = VIRTUAL_GAME_WIDTH  - 410.0f - 20.0f; 
+        BorderRectangle.Min.y = VIRTUAL_GAME_HEIGHT - 410.0f - 20.0f;
+        SetDim(&BorderRectangle, 410.0f, 410.0f);
+        PushBitmap(RenderGroup, LevelEntity->CornerRightBottomTexture, BorderRectangle);
+        
+        /* Vertical Border*/
+        BorderRectangle.Min.x = 1200.0f; 
+        BorderRectangle.Min.y = 100.0f;
+        v2 Dim = QueryTextureDim(LevelEntity->VerticalBorderTexture);
+        SetDim(&BorderRectangle, Dim.w, Dim.h);
+        PushBitmap(RenderGroup, LevelEntity->VerticalBorderTexture, BorderRectangle);
+        
+        /* Level Number Rendering */
+        Dim = QueryTextureDim(LevelEntity->LevelNumberTexture);
+        PushBitmap(RenderGroup, LevelEntity->LevelNumberTexture, {0.0f, 0.0f, Dim.w, Dim.h});
+    }
     
-    /* Top Left */
-    rectangle2 BorderRectangle = {};
-    BorderRectangle.Min.x = 20.0f; 
-    BorderRectangle.Min.y = 20.0f;
-    SetDim(&BorderRectangle, 410.0f, 410.0f);
-    PushBitmap(RenderGroup, LevelEntity->CornerLeftTopTexture, BorderRectangle);
-    //PushRectangleOutline(RenderGroup, BorderRectangle, {255, 255, 255, 255});
-    
-    /* Bottom Left */
-    BorderRectangle.Min.x = 20.0f; 
-    BorderRectangle.Min.y = VIRTUAL_GAME_HEIGHT - 410.0f - 20.0f;
-    SetDim(&BorderRectangle, 410.0f, 410.0f);
-    PushBitmap(RenderGroup, LevelEntity->CornerLeftBottomTexture, BorderRectangle);
-    
-    /* Top Right */
-    BorderRectangle.Min.x = VIRTUAL_GAME_WIDTH  - 410.0f - 20.0f; 
-    BorderRectangle.Min.y = 20.0f;
-    SetDim(&BorderRectangle, 410.0f, 410.0f);
-    PushBitmap(RenderGroup, LevelEntity->CornerRightTopTexture, BorderRectangle);
-    
-    /* Bottom Right */
-    BorderRectangle.Min.x = VIRTUAL_GAME_WIDTH  - 410.0f - 20.0f; 
-    BorderRectangle.Min.y = VIRTUAL_GAME_HEIGHT - 410.0f - 20.0f;
-    SetDim(&BorderRectangle, 410.0f, 410.0f);
-    PushBitmap(RenderGroup, LevelEntity->CornerRightBottomTexture, BorderRectangle);
-    
-    /* Vertical Border*/
-    BorderRectangle.Min.x = 1200.0f; 
-    BorderRectangle.Min.y = 100.0f;
-    v2 Dim = QueryTextureDim(LevelEntity->VerticalBorderTexture);
-    SetDim(&BorderRectangle, Dim.w, Dim.h);
-    PushBitmap(RenderGroup, LevelEntity->VerticalBorderTexture, BorderRectangle);
-    
-    /* Level Number Rendering */
-    Dim = QueryTextureDim(LevelEntity->LevelNumberTexture);
-    PushBitmap(RenderGroup, LevelEntity->LevelNumberTexture, {0.0f, 0.0f, Dim.w, Dim.h});
+    {
+        /* Playground Options */
+        playground_options *Options = &LevelEntity->Options;
+        
+        rectangle2 GearRectangle = {};
+        GearRectangle.Min.x = VIRTUAL_GAME_WIDTH  - 200.0f + 8.0f;
+        GearRectangle.Min.y = VIRTUAL_GAME_HEIGHT - 200.0f + 8.0f;
+        SetDim(&GearRectangle, 100.0f, 100.0f);
+        PushBitmap(RenderGroup, Options->GearShadowTexture, GearRectangle);
+        
+        GearRectangle.Min.x = VIRTUAL_GAME_WIDTH  - 200.0f;
+        GearRectangle.Min.y = VIRTUAL_GAME_HEIGHT - 200.0f;
+        SetDim(&GearRectangle, 100.0f, 100.0f);
+        PushBitmap(RenderGroup, Options->GearTexture, GearRectangle);
+        
+        if (Options->ToggleMenu)
+        {
+            v2 ButtonRectangleDim = Options->ButtonDimension;
+            v2 MenuPosition       = Options->MenuPosition;
+            v2 TextureDim         = {};
+            
+            rectangle2 ButtonRectangle = {};
+            rectangle2 TextRectangle = {};
+            rectangle2 TextShadowRectangle = {};
+            
+            for (u32 Index = 0;
+                 Index < 4;
+                 ++Index)
+            {
+                ButtonRectangle.Min.x = MenuPosition.x;
+                ButtonRectangle.Min.y = MenuPosition.y + (ButtonRectangleDim.h * Index);
+                SetDim(&ButtonRectangle, ButtonRectangleDim);
+                
+                TextureDim   = QueryTextureDim(LevelEntity->Options.MenuTexture[Index]);
+                TextRectangle.Min.x = ButtonRectangle.Min.x + (ButtonRectangleDim.w / 2.0f) - (TextureDim.w / 2.0f);
+                TextRectangle.Min.y = ButtonRectangle.Min.y + (ButtonRectangleDim.h / 2.0f) - (TextureDim.h / 2.0f);
+                SetDim(&TextRectangle, TextureDim);
+                //PushRectangleOutline(RenderGroup, TextRectangle, { 0, 255, 255, 255});
+                //PushRectangleOutline(RenderGroup, ButtonRectangle, { 255, 255, 255, 255});
+                
+                TextShadowRectangle.Min = TextRectangle.Min + 5.0f;
+                SetDim(&TextShadowRectangle, TextureDim);
+                
+                PushBitmap(RenderGroup, Options->MenuShadowTexture[Index], TextShadowRectangle);
+                PushBitmap(RenderGroup, Options->MenuTexture[Index], TextRectangle);
+            }
+            
+            if (Options->Choice != options_choice::NONE_OPTION)
+            {
+                TextureDim = QueryTextureDim(Options->HorizontalLineTexture);
+                r32 Ratio  = TextureDim.w / TextureDim.h;
+                
+                u32 ButtonIndex  = (u32)Options->Choice;
+                
+                v2 LineDim = {200.0f, 33.0f};
+                TextRectangle.Min.x = MenuPosition.x + (GetDim(ButtonRectangle).w / 2.0f) - (LineDim.w / 2.0f);
+                TextRectangle.Min.y = MenuPosition.y + (ButtonRectangleDim.h * (ButtonIndex + 1)) - (LineDim.h * 0.8f);
+                SetDim(&TextRectangle, LineDim);
+                PushBitmap(RenderGroup, Options->HorizontalLineTexture, TextRectangle);
+            }
+        }
+    }
     
     return (Result);
 }

@@ -139,7 +139,6 @@ DrawEntryTexture(game_offscreen_buffer *Buffer, render_entry_texture *Entry)
     {
         SDL_RenderCopyEx(Buffer->Renderer, Texture, 0, &Rectangle, Entry->Angle, &Center, Entry->Flip);
     }
-    
 }
 
 

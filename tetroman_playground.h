@@ -214,13 +214,43 @@ enum playground_status
     LEVEL_RUNNING,
     LEVEL_PAUSED,
     LEVEL_FINISHED,
-    LEVEL_QUIT
+    
+    LEVEL_RESTARTED,
+    LEVEL_SETTINGS_QUIT,
+    LEVEL_MENU_QUIT,
+    LEVEL_GAME_QUIT
+};
+
+enum options_choice
+{
+    RESTART_OPTION  = 0,
+    SETTINGS_OPTION = 1,
+    MAINMENU_OPTION = 2,
+    QUIT_OPTION     = 3,
+    NONE_OPTION     = 4
+};
+
+struct playground_options
+{
+    b32 ToggleMenu;
+    options_choice Choice;
+    
+    v2 MenuPosition;
+    v2 ButtonDimension;
+    
+    game_texture *GearTexture;
+    game_texture *GearShadowTexture;
+    game_texture *HorizontalLineTexture;
+    
+    game_texture *MenuTexture[4];
+    game_texture *MenuShadowTexture[4];
 };
 
 struct playground
 {
     grid_entity GridEntity;
     figure_entity FigureEntity;
+    playground_options Options;
     
     u32 LevelNumber;
     b32 LevelStarted;
@@ -232,7 +262,6 @@ struct playground
     game_texture *CornerRightTopTexture;
     game_texture *CornerRightBottomTexture;
     game_texture *VerticalBorderTexture;
-    
     game_texture *LevelNumberTexture;
 };
 
