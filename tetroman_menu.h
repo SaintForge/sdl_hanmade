@@ -60,7 +60,6 @@ struct playground_menu
     
     game_texture *FullScreenNameTexture;
     game_texture *FullScreenTexture[2];
-    
     game_texture *ResolutionNameTexture;
     game_texture *ResolutionTexture[3];
     
@@ -68,7 +67,11 @@ struct playground_menu
     game_texture *DifficultyTexture[3];
     game_texture *LevelButtonTexture;
     game_texture *LevelNumberTexture[100];
+    game_texture *LevelCornerTexture[4];
+    game_texture *SquareFrame;
+    game_texture *ColorBarTexture[4];
     
+    /* Miscellaneous */
     game_texture *HorizontalLineTexture;
     game_texture *BackTexture;
 };

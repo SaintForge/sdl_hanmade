@@ -370,6 +370,18 @@ SDLAssetBuildBinaryFile()
     SDLWriteBitmapToFile(BinaryFile, "corner_right_top.png");
     SDLWriteBitmapToFile(BinaryFile, "corner_right_bottom.png");
     
+    SDLWriteBitmapToFile(BinaryFile, "corner_menu_1.png");
+    SDLWriteBitmapToFile(BinaryFile, "corner_menu_2.png");
+    SDLWriteBitmapToFile(BinaryFile, "corner_menu_3.png");
+    SDLWriteBitmapToFile(BinaryFile, "corner_menu_4.png");
+    
+    SDLWriteBitmapToFile(BinaryFile, "square_frame.png");
+    
+    SDLWriteBitmapToFile(BinaryFile, "green_bar.png");
+    SDLWriteBitmapToFile(BinaryFile, "blue_bar.png");
+    SDLWriteBitmapToFile(BinaryFile, "orange_bar.png");
+    SDLWriteBitmapToFile(BinaryFile, "red_bar.png");
+    
     SDLWriteBitmapToFile(BinaryFile, "gear_new.png");
     SDLWriteBitmapToFile(BinaryFile, "gear_new_shadow.png");
     

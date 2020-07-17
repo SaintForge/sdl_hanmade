@@ -32,14 +32,12 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
     MenuButtonSize.h  = 100.0f;
     
     v2 DifficultyButtonSize = {};
-    DifficultyButtonSize.w = 500.0f;
-    DifficultyButtonSize.h = 200.0f;
+    DifficultyButtonSize.w = 400.0f;
+    DifficultyButtonSize.h = 150.0f;
     
     v2 MainMenuButtonSize = DifficultyButtonSize;
     MainMenuButtonSize.w = 500.0f;
     MainMenuButtonSize.h = 100.0f;
-    
-    
     
     u32 RowAmount = 4;
     u32 ColumnAmount = 8;
@@ -49,8 +47,8 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
     InitialPosition.y = VIRTUAL_GAME_HEIGHT / 2.0f - ((RowAmount * MenuButtonSize.h) / 2.0f) + (VIRTUAL_GAME_HEIGHT / 4.0f);
     
     v2 DifficultyPosition = {};
-    DifficultyPosition.x = VIRTUAL_GAME_WIDTH / 2.0f - ((DifficultyButtonSize.w * 3.0f) / 2.0f);
-    DifficultyPosition.y = VIRTUAL_GAME_HEIGHT / 2.0f - ((DifficultyButtonSize.h) / 2.0f) - (VIRTUAL_GAME_HEIGHT / 4.0f);
+    DifficultyPosition.x = (VIRTUAL_GAME_WIDTH * 0.5f) - (DifficultyButtonSize.w * 0.5f);
+    DifficultyPosition.y = (VIRTUAL_GAME_HEIGHT * 0.5f) - (DifficultyButtonSize.h * 0.5f) - (VIRTUAL_GAME_HEIGHT * 0.4f);
     
     v2 MainMenuPosition = {};
     MainMenuPosition.x = VIRTUAL_GAME_WIDTH / 2.0f - (MainMenuButtonSize.w / 2.0f);
@@ -211,15 +209,15 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
         
         case DIFFICULTY_PAGE:
         {
-            // TODO(msokolov): 
+            
             rectangle2 DifficultyRectangle = {};
             for (u32 Index = 0;
                  Index < 3;
                  ++Index)
             {
-                DifficultyRectangle.Min.x = DifficultyPosition.x + (Index * DifficultyButtonSize.w);
-                DifficultyRectangle.Min.y = DifficultyPosition.y;
-                SetDim(&DifficultyRectangle, DifficultyButtonSize.w - 10.0f, DifficultyButtonSize.h);
+                DifficultyRectangle.Min.x = DifficultyPosition.x;
+                DifficultyRectangle.Min.y = DifficultyPosition.y  + (Index * DifficultyButtonSize.h);
+                SetDim(&DifficultyRectangle, 400, 150);
                 
                 if (IsInRectangle(MousePos, DifficultyRectangle))
                 {
@@ -460,91 +458,84 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
                 SetDim(&TextRectangle, LineDim);
                 PushBitmap(RenderGroup, PlaygroundMenu->HorizontalLineTexture, TextRectangle);
             }
-            
-#if 0            
-            /* Resolution Option Rendering */
-            {
-                ButtonRectangle.Min.x = SettingsButtonPosition.x;
-                ButtonRectangle.Min.y = SettingsButtonPosition.y;
-                SetDim(&ButtonRectangle, SettingsButtonSize.w, SettingsButtonSize.h);
-                PushRectangleOutline(RenderGroup, ButtonRectangle, V4(128, 128, 128, 255));
-                
-                v2 Dim = QueryTextureDim(PlaygroundMenu->ResolutionNameTexture);
-                TextRectangle.Min.x = ButtonRectangle.Min.x + (GetDim(ButtonRectangle).w / 2.0f) - (Dim.w / 2.0f);
-                TextRectangle.Min.y = ButtonRectangle.Min.y + (GetDim(ButtonRectangle).h / 2.0f) - (Dim.h / 2.0f);
-                SetDim(&TextRectangle, Dim);
-                PushBitmap(RenderGroup, PlaygroundMenu->ResolutionNameTexture, TextRectangle);
-                
-                ButtonRectangle.Min += V2(SettingsButtonSize.w, 0.0f);
-                SetDim(&ButtonRectangle, ValueButtonSize);
-                PushRectangleOutline(RenderGroup, ButtonRectangle, {128, 128, 128, 255});
-                
-                u32 Index = (u32)PlaygroundMenu->Resolution;
-                Dim = QueryTextureDim(PlaygroundMenu->ResolutionTexture[Index]);
-                TextRectangle.Min.x = ButtonRectangle.Min.x + (GetDim(ButtonRectangle).w / 2.0f) - (Dim.w / 2.0f);
-                TextRectangle.Min.y = ButtonRectangle.Min.y + (GetDim(ButtonRectangle).h / 2.0f) - (Dim.h / 2.0f);
-                SetDim(&TextRectangle, Dim);
-                PushBitmap(RenderGroup, PlaygroundMenu->ResolutionTexture[Index], TextRectangle);
-            }
-            
-            /* FullScreen option Rendering */
-            {
-                ButtonRectangle.Min.x = SettingsButtonPosition.x;
-                ButtonRectangle.Min.y = SettingsButtonPosition.y + (SettingsButtonSize.h);
-                SetDim(&ButtonRectangle, SettingsButtonSize.w, SettingsButtonSize.h);
-                PushRectangleOutline(RenderGroup, ButtonRectangle, V4(128, 128, 128, 255));
-                
-                v2 Dim = QueryTextureDim(PlaygroundMenu->FullScreenNameTexture);
-                TextRectangle.Min.x = ButtonRectangle.Min.x + (GetDim(ButtonRectangle).w / 2.0f) - (Dim.w / 2.0f);
-                TextRectangle.Min.y = ButtonRectangle.Min.y + (GetDim(ButtonRectangle).h / 2.0f) - (Dim.h / 2.0f);
-                SetDim(&TextRectangle, Dim);
-                PushBitmap(RenderGroup, PlaygroundMenu->FullScreenNameTexture, TextRectangle);
-                
-                ButtonRectangle.Min.x = SettingsButtonPosition.x + SettingsButtonSize.w;
-                ButtonRectangle.Min.y = SettingsButtonPosition.y + (SettingsButtonSize.h);
-                SetDim(&ButtonRectangle, ValueButtonSize);
-                PushRectangleOutline(RenderGroup, ButtonRectangle, V4(128, 128, 128, 255));
-                
-                u32 Index = (u32)PlaygroundMenu->IsFullScreen;
-                Dim = QueryTextureDim(PlaygroundMenu->FullScreenTexture[Index]);
-                TextRectangle.Min.x = ButtonRectangle.Min.x + (GetDim(ButtonRectangle).w / 2.0f) - (Dim.w / 2.0f);
-                TextRectangle.Min.y = ButtonRectangle.Min.y + (GetDim(ButtonRectangle).h / 2.0f) - (Dim.h / 2.0f);
-                SetDim(&TextRectangle, Dim);
-                PushBitmap(RenderGroup, PlaygroundMenu->FullScreenTexture[Index], TextRectangle);
-            }
-#endif
-            
-            
         } break;
         
         case DIFFICULTY_PAGE:
         {
+            rectangle2 DarkEmptyRectangle = {};
+            SetDim(&DarkEmptyRectangle, 300.0f, VIRTUAL_GAME_HEIGHT);
+            PushRectangle(RenderGroup, DarkEmptyRectangle, {0, 0, 0, 255});
+            
+            
+            v2 CornerDim = {200.0f, 200.0f};
+            
+            rectangle2 CornerRectangle = {};
+            CornerRectangle.Min.x = DarkEmptyRectangle.Max.x;
+            SetDim(&CornerRectangle, CornerDim);
+            PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[0], CornerRectangle);
+            
+            CornerRectangle.Min.x = DarkEmptyRectangle.Max.x;
+            CornerRectangle.Min.y = DarkEmptyRectangle.Max.y - (CornerDim.h);
+            SetDim(&CornerRectangle, CornerDim);
+            PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[1], CornerRectangle);
+            
+            DarkEmptyRectangle = {};
+            DarkEmptyRectangle.Min.x = VIRTUAL_GAME_WIDTH - 300.0f;
+            SetDim(&DarkEmptyRectangle, 300.0f, VIRTUAL_GAME_HEIGHT);
+            PushRectangle(RenderGroup, DarkEmptyRectangle, {0, 0, 0, 255});
+            PushRectangle(RenderGroup, DarkEmptyRectangle, {0, 0, 0, 255});
+            
+            CornerRectangle.Min.x = DarkEmptyRectangle.Min.x - 200.0f;
+            CornerRectangle.Min.y = DarkEmptyRectangle.Min.y;
+            SetDim(&CornerRectangle, CornerDim);
+            PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[2], CornerRectangle);
+            
+            CornerRectangle.Min.y = DarkEmptyRectangle.Max.y - (CornerDim.h);
+            SetDim(&CornerRectangle, CornerDim);
+            PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[3], CornerRectangle);
+            
             rectangle2 DifficultyRectangle = {};
             for (u32 Index = 0;
                  Index < 3;
                  ++Index)
             {
-                DifficultyRectangle.Min.x = DifficultyPosition.x + (Index * DifficultyButtonSize.w);
-                DifficultyRectangle.Min.y = DifficultyPosition.y;
-                SetDim(&DifficultyRectangle, DifficultyButtonSize.w - 10.0f, DifficultyButtonSize.h);
+                DifficultyRectangle.Min.x = DifficultyPosition.x;
+                DifficultyRectangle.Min.y = DifficultyPosition.y + ((Index * DifficultyButtonSize.h));
+                SetDim(&DifficultyRectangle, 400, 150);
                 
                 v4 Color = {128, 128, 128, 255};
-                PushRectangle(RenderGroup, DifficultyRectangle, Color);
+                //PushRectangle(RenderGroup, DifficultyRectangle, Color);
                 
                 Color = {255, 255, 255, 255};
-                PushRectangleOutline(RenderGroup, DifficultyRectangle, Color);
+                //PushRectangleOutline(RenderGroup, DifficultyRectangle, Color);
                 
-                rectangle2 TextRectangle = {};
-                v2 Dim = QueryTextureDim(PlaygroundMenu->DifficultyTexture[Index]);
-                TextRectangle.Min.x = DifficultyRectangle.Min.x + (GetDim(DifficultyRectangle).w / 2.0f) - (Dim.w / 2.0f);
-                TextRectangle.Min.y = DifficultyRectangle.Min.y + (GetDim(DifficultyRectangle).h / 2.0f) - (Dim.h / 2.0f);
-                SetDim(&TextRectangle, Dim);
+                rectangle2 TextRectangle = GetTextOnTheCenterOfRectangle(DifficultyRectangle, PlaygroundMenu->DifficultyTexture[Index]);
                 PushBitmap(RenderGroup, PlaygroundMenu->DifficultyTexture[Index], TextRectangle);
                 
                 if (Index == (s32)PlaygroundMenu->DiffMode)
                 {
                     Color = {255, 255, 0, 128};
-                    PushRectangle(RenderGroup, DifficultyRectangle, Color);
+                    //PushRectangle(RenderGroup, DifficultyRectangle, Color);
+                    
+                    v2 CornerDim = V2(150.0f * 0.4f, 150.0f * 0.4f);
+                    
+                    rectangle2 CornerRectangle = {};
+                    CornerRectangle.Min.x = DifficultyRectangle.Min.x;
+                    CornerRectangle.Min.y = DifficultyRectangle.Max.y - CornerDim.h;
+                    SetDim(&CornerRectangle, CornerDim);
+                    PushBitmap(RenderGroup, PlaygroundMenu->LevelCornerTexture[0], CornerRectangle);
+                    
+                    CornerRectangle.Min.y = DifficultyRectangle.Min.y;
+                    SetDim(&CornerRectangle, CornerDim);
+                    PushBitmap(RenderGroup, PlaygroundMenu->LevelCornerTexture[1], CornerRectangle);
+                    
+                    CornerRectangle.Min.x = DifficultyRectangle.Max.x - (CornerDim.w);
+                    SetDim(&CornerRectangle, CornerDim);
+                    PushBitmap(RenderGroup, PlaygroundMenu->LevelCornerTexture[2], CornerRectangle);
+                    
+                    CornerRectangle.Min.y = DifficultyRectangle.Max.y - (CornerDim.h);
+                    SetDim(&CornerRectangle, CornerDim);
+                    PushBitmap(RenderGroup, PlaygroundMenu->LevelCornerTexture[3], CornerRectangle);
                 }
             }
             
@@ -554,32 +545,52 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
             else if (PlaygroundMenu->DiffMode == difficulty::HARD)
                 InitialLevelIndex = 64;
             
+            v2 LevelPosition = {};
+            LevelPosition.x = VIRTUAL_GAME_WIDTH * 0.5f - (((ColumnAmount * 150.0f) + 30.0f) * 0.5f);
+            LevelPosition.y = VIRTUAL_GAME_HEIGHT * 0.5f - ((RowAmount * 100.0f) * 0.5f) + (VIRTUAL_GAME_HEIGHT * 0.2f);
+            
+            v2 ButtonDim = V2(150.0f, 86.0f);
+            // 840x480
+            
             rectangle2 ButtonRectangle = {};
             for (u32 Row = 0; Row < RowAmount; ++Row)
             {
-                ButtonRectangle.Min.y = InitialPosition.y + (MenuButtonSize.h * Row);
+                rectangle2 ColorRectangle = {};
+                ColorRectangle.Min.x = LevelPosition.x;
+                ColorRectangle.Min.y = LevelPosition.y + (MenuButtonSize.h * Row);
+                SetDim(&ColorRectangle, 30.0f, MenuButtonSize.h);
+                
+                //PushRectangleOutline(RenderGroup, ColorRectangle, {255, 255, 255, 255});
+                PushBitmap(RenderGroup, PlaygroundMenu->ColorBarTexture[Row], ColorRectangle);
+                
+                ButtonRectangle.Min.y = LevelPosition.y + (MenuButtonSize.h * Row);
                 
                 for (u32 Col = 0; Col < ColumnAmount; ++Col)
                 {
-                    ButtonRectangle.Min.x = InitialPosition.x + (MenuButtonSize.w * Col);
+                    ButtonRectangle.Min.x = LevelPosition.x + (GetDim(ColorRectangle).w) + (150.0f * Col) + 10.0f;
                     
-                    ButtonRectangle.Max.x = ButtonRectangle.Min.x + MenuButtonSize.w - 10.0f;
-                    ButtonRectangle.Max.y = ButtonRectangle.Min.y + MenuButtonSize.h - 10.0f;
+                    ButtonRectangle.Max.x = ButtonRectangle.Min.x + 150.0f;
+                    ButtonRectangle.Max.y = ButtonRectangle.Min.y + 100.0f;
                     
                     v4 Color = {128, 128, 128, 255};
-                    PushRectangle(RenderGroup, ButtonRectangle, Color);
+                    //PushRectangle(RenderGroup, ButtonRectangle, Color);
                     Color = {255, 255, 255, 255};
-                    PushRectangleOutline(RenderGroup, ButtonRectangle, Color);
+                    
                     
                     u32 LevelIndex = InitialLevelIndex + (Row * ColumnAmount) + Col;
                     
-                    rectangle2 LevelRectangle = {};
-                    v2 Dim = QueryTextureDim(PlaygroundMenu->LevelNumberTexture[LevelIndex]);
-                    LevelRectangle.Min.x = ButtonRectangle.Min.x + (GetDim(ButtonRectangle).w / 2.0f) - (Dim.w / 2.0f);
-                    LevelRectangle.Min.y = ButtonRectangle.Min.y + (GetDim(ButtonRectangle).h / 2.0f) - (Dim.h / 2.0f);
-                    SetDim(&LevelRectangle, Dim);
+                    rectangle2 LevelRectangle = GetTextOnTheCenterOfRectangle(ButtonRectangle, PlaygroundMenu->LevelNumberTexture[LevelIndex]);
+                    //PushBitmap(RenderGroup, PlaygroundMenu->LevelNumberTexture[LevelIndex], LevelRectangle);
                     
-                    PushBitmap(RenderGroup, PlaygroundMenu->LevelNumberTexture[LevelIndex], LevelRectangle);
+                    //PushRectangleOutline(RenderGroup, ButtonRectangle, Color);
+                    
+                    v2 CornerDim = V2(150.0f * 0.2f, 150.0f * 0.2f);
+                    
+                    LevelRectangle.Min.x = ButtonRectangle.Min.x + (GetDim(ButtonRectangle).w * 0.5f) - (ButtonDim.w * 0.5f);
+                    LevelRectangle.Min.y = ButtonRectangle.Min.y + (GetDim(ButtonRectangle).h * 0.5f) - (ButtonDim.h * 0.5f);
+                    SetDim(&LevelRectangle, ButtonDim);
+                    
+                    PushBitmap(RenderGroup, PlaygroundMenu->SquareFrame, LevelRectangle);
                 }
             }
         } break;

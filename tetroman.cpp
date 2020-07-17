@@ -232,7 +232,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         /* NOTE(msokolov): playground_menu initialization */
         
         playground_menu *PlaygroundMenu = &GameState->PlaygroundMenu;
-        PlaygroundMenu->MenuPage = menu_page::SETTINGS_PAGE;
+        PlaygroundMenu->MenuPage = menu_page::DIFFICULTY_PAGE;
         PlaygroundMenu->DiffMode = difficulty::EASY;
         PlaygroundMenu->Resolution = resolution_standard::FULLHD;
         PlaygroundMenu->IsFullScreen = false;
@@ -271,6 +271,16 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundMenu->CornerTexture[3] = GetTexture(Memory, "corner_right_bottom.png", Buffer->Renderer);
         PlaygroundMenu->HorizontalLineTexture = GetTexture(Memory, "horizontal_border_2.png", Buffer->Renderer);
         
+        PlaygroundMenu->LevelCornerTexture[0] = GetTexture(Memory, "corner_menu_1.png", Buffer->Renderer);
+        PlaygroundMenu->LevelCornerTexture[1] = GetTexture(Memory, "corner_menu_2.png", Buffer->Renderer);
+        PlaygroundMenu->LevelCornerTexture[2] = GetTexture(Memory, "corner_menu_3.png", Buffer->Renderer);
+        PlaygroundMenu->LevelCornerTexture[3] = GetTexture(Memory, "corner_menu_4.png", Buffer->Renderer);
+        PlaygroundMenu->SquareFrame = GetTexture(Memory, "square_frame.png", Buffer->Renderer);
+        
+        PlaygroundMenu->ColorBarTexture[0] = GetTexture(Memory, "green_bar.png", Buffer->Renderer);
+        PlaygroundMenu->ColorBarTexture[1] = GetTexture(Memory, "blue_bar.png", Buffer->Renderer);
+        PlaygroundMenu->ColorBarTexture[2] = GetTexture(Memory, "orange_bar.png", Buffer->Renderer);
+        PlaygroundMenu->ColorBarTexture[3] = GetTexture(Memory, "red_bar.png", Buffer->Renderer);
         
         PlaygroundMenu->ResolutionNameTexture = MakeTextureFromString(Buffer, GameState->Font, "Resolution: ", {255, 255, 255, 255});
         PlaygroundMenu->ResolutionTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "720p", {255, 255, 255, 255});
