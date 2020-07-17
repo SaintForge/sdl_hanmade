@@ -61,6 +61,7 @@ union v4
     r32 E[4];
 };
 
+
 inline v2
 V2(r32 x, r32 y)
 {
@@ -68,6 +69,20 @@ V2(r32 x, r32 y)
     
     Result.x = x;
     Result.y = y;
+    
+    return(Result);
+}
+
+
+inline v4
+V4(r32 x, r32 y, r32 z, r32 w)
+{
+    v4 Result;
+    
+    Result.x = x;
+    Result.y = y;
+    Result.z = z;
+    Result.w = w;
     
     return(Result);
 }

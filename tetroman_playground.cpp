@@ -753,7 +753,7 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
     
     if(Input->Keyboard.Escape.EndedDown)
     {
-        Result = options_choice::QUIT_OPTION;
+        Result = options_choice::MAINMENU_OPTION;
     }
     
     if(!LevelEntity->LevelPaused)
@@ -945,7 +945,7 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
             if (IsInRectangle(MousePos, ButtonRectangle))
             {
                 options_choice NewChoice = (options_choice)Index;
-
+                
                 if (NewChoice != LevelEntity->Options.Choice)
                 {
                     LevelEntity->Options.Choice = NewChoice;

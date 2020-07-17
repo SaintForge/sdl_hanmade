@@ -40,7 +40,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         GameState->EditorMode      = false;
         GameState->PlaygroundIndex = 0;
-        GameState->CurrentMode     = game_mode::PLAYGROUND;
+        GameState->CurrentMode     = game_mode::MENU;
         
         playground_config *Configuration = &GameState->Configuration;
         Configuration->StartUpTimeToFinish = 0.0f;
@@ -232,11 +232,12 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         /* NOTE(msokolov): playground_menu initialization */
         
         playground_menu *PlaygroundMenu = &GameState->PlaygroundMenu;
-        PlaygroundMenu->MenuPage = menu_page::DIFFICULTY_PAGE;
-        PlaygroundMenu->DiffMode = difficulty_mode::EASY;
+        PlaygroundMenu->MenuPage = menu_page::SETTINGS_PAGE;
+        PlaygroundMenu->DiffMode = difficulty::EASY;
         PlaygroundMenu->Resolution = resolution_standard::FULLHD;
         PlaygroundMenu->IsFullScreen = false;
         PlaygroundMenu->PlaygroundSwitch = false;
+        PlaygroundMenu->ButtonIndex = 1;
         
         PlaygroundMenu->LevelButtonTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
         Assert(PlaygroundMenu->LevelButtonTexture);
@@ -264,12 +265,24 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundMenu->MainMenuTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "Settings", {255, 255, 255, 255});
         PlaygroundMenu->MainMenuTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "Quit", {255, 255, 255, 255});
         
+        PlaygroundMenu->CornerTexture[0] = GetTexture(Memory, "corner_left_top.png", Buffer->Renderer);
+        PlaygroundMenu->CornerTexture[1] = GetTexture(Memory, "corner_left_bottom.png", Buffer->Renderer);
+        PlaygroundMenu->CornerTexture[2] = GetTexture(Memory, "corner_right_top.png", Buffer->Renderer);
+        PlaygroundMenu->CornerTexture[3] = GetTexture(Memory, "corner_right_bottom.png", Buffer->Renderer);
+        PlaygroundMenu->HorizontalLineTexture = GetTexture(Memory, "horizontal_border_2.png", Buffer->Renderer);
+        
+        
+        PlaygroundMenu->ResolutionNameTexture = MakeTextureFromString(Buffer, GameState->Font, "Resolution: ", {255, 255, 255, 255});
         PlaygroundMenu->ResolutionTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "720p", {255, 255, 255, 255});
         PlaygroundMenu->ResolutionTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "1080p", {255, 255, 255, 255});
         PlaygroundMenu->ResolutionTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "1440p", {255, 255, 255, 255});
         
-        PlaygroundMenu->FullScreenTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "FullScreen: Off", {255, 255, 255, 255});
-        PlaygroundMenu->FullScreenTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "FullScreen: On", {255, 255, 255, 255});
+        PlaygroundMenu->FullScreenNameTexture = MakeTextureFromString(Buffer, GameState->Font, "FullScreen: ", {255, 255, 255, 255});
+        PlaygroundMenu->FullScreenTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Off", {255, 255, 255, 255});
+        PlaygroundMenu->FullScreenTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "On", {255, 255, 255, 255});
+        
+        PlaygroundMenu->BackTexture = MakeTextureFromString(Buffer, GameState->Font, "Back", {255, 255, 255, 255});
+        
         
 #if DEBUG_BUILD
         

@@ -18,7 +18,7 @@ enum menu_page
     IDLE_PAGE       = 4
 };
 
-enum difficulty_mode
+enum difficulty
 {
     EASY   = 0,
     MEDIUM = 1,
@@ -44,24 +44,33 @@ struct menu_result_option
 struct playground_menu
 {
     menu_page MenuPage;
-    difficulty_mode DiffMode;
+    difficulty DiffMode;
     
     b32 IsFullScreen;
     b32 PlaygroundSwitch;
+    u32 ButtonIndex;
     
     resolution_standard Resolution;
     
     /* Main Menu textures*/
     game_texture *MainMenuTexture[3];
+    game_texture *CornerTexture[4];
     
     /* Settings textures*/
+    
+    game_texture *FullScreenNameTexture;
     game_texture *FullScreenTexture[2];
+    
+    game_texture *ResolutionNameTexture;
     game_texture *ResolutionTexture[3];
     
     /* Playground Menu textures*/
     game_texture *DifficultyTexture[3];
     game_texture *LevelButtonTexture;
     game_texture *LevelNumberTexture[100];
+    
+    game_texture *HorizontalLineTexture;
+    game_texture *BackTexture;
 };
 
 #endif //TETROMAN_MENU_H
