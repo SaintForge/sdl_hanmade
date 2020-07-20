@@ -257,12 +257,18 @@ struct playground
     b32 LevelPaused;
     b32 LevelFinished;
     
+    r32 TimeElapsed;
+    b32 ShowTimer;
+    
     game_texture *CornerLeftTopTexture;
     game_texture *CornerLeftBottomTexture;
     game_texture *CornerRightTopTexture;
     game_texture *CornerRightBottomTexture;
     game_texture *VerticalBorderTexture;
     game_texture *LevelNumberTexture;
+    
+    game_texture *TimerTexture;
+    game_texture *TimerShadowTexture;
 };
 
 struct menu_button

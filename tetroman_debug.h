@@ -9,6 +9,18 @@
 #ifndef TETROMAN_DEBUG_H
 #define TETROMAN_DEBUG_H
 
+void PrintMatrix(u32 Matrix[4][4])
+{
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+            printf("%d\t", Matrix[i][j]);
+        
+        printf("\n");
+    }
+    printf("\n");
+}
+
 static void
 DEBUGPrintArray1D(u32 *Array, u32 Size)
 {

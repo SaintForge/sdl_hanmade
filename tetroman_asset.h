@@ -111,7 +111,7 @@ struct moving_block_data
 
 struct playground_data
 {
-    b32 IsLocked;
+    b32 IsUnlocked;
     u32 LevelNumber;
     u32 RowAmount;
     u32 ColumnAmount;

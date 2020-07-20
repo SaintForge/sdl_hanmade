@@ -23,7 +23,7 @@ GetTextOnTheCenterOfRectangle(rectangle2 Rectangle, game_texture *Texture)
 
 
 static menu_result_option
-PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input, render_group *RenderGroup)
+PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, playground_data *PlaygroundData, game_input *Input, render_group *RenderGroup)
 {
     menu_result_option Result = {};
     
@@ -114,6 +114,7 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
                         PlaygroundMenu->ButtonIndex = 0;
                     }
                 }
+                
             }
         } break;
         
@@ -221,6 +222,7 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
                 
                 if (IsInRectangle(MousePos, DifficultyRectangle))
                 {
+                    PlaygroundMenu->ButtonIndex = Index;
                     if (Input->MouseButtons[0].EndedDown)
                     {
                         difficulty DiffMode = (difficulty)Index;
@@ -236,16 +238,23 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
                 InitialLevelIndex = 64;
             
             b32 FoundLevel = false;
+            v2 LevelPosition = 
+            {
+                LevelPosition.x = VIRTUAL_GAME_WIDTH * 0.5f - (((ColumnAmount * 150.0f) + 30.0f) * 0.5f),
+                LevelPosition.y = VIRTUAL_GAME_HEIGHT * 0.5f - ((RowAmount * 100.0f) * 0.5f) + (VIRTUAL_GAME_HEIGHT * 0.2f)
+            };
+            
             rectangle2 ButtonRectangle = {};
             for (u32 Row = 0; Row < RowAmount; ++Row)
             {
-                ButtonRectangle.Min.y = InitialPosition.y + (MenuButtonSize.h * Row);
+                ButtonRectangle.Min.y = LevelPosition.y + (MenuButtonSize.h * Row);
+                
                 for (u32 Column = 0; Column < ColumnAmount; ++Column)
                 {
-                    ButtonRectangle.Min.x = InitialPosition.x + (MenuButtonSize.w * Column);
+                    ButtonRectangle.Min.x = LevelPosition.x + (30.0f) + (150.0f * Column) + 10.0f;
                     
-                    ButtonRectangle.Max.x = ButtonRectangle.Min.x + MenuButtonSize.w - 10.0f;
-                    ButtonRectangle.Max.y = ButtonRectangle.Min.y + MenuButtonSize.h - 10.0f;
+                    ButtonRectangle.Max.x = ButtonRectangle.Min.x + 150.0f;
+                    ButtonRectangle.Max.y = ButtonRectangle.Min.y + 100.0f;
                     
                     if (IsInRectangle(MousePos, ButtonRectangle))
                     {
@@ -262,6 +271,23 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
                 
                 if (FoundLevel) break;
             }
+            
+            /* Back Button */
+            ButtonRectangle.Min.x = 320.0f;
+            ButtonRectangle.Min.y = VIRTUAL_GAME_HEIGHT - (120.0f);
+            SetDim(&ButtonRectangle, 200.0f, 100.0f);
+            
+            if (IsInRectangle(MousePos, ButtonRectangle))
+            {
+                PlaygroundMenu->ButtonIndex = 3;
+                
+                if (Input->MouseButtons[0].EndedDown)
+                {
+                    PlaygroundMenu->ButtonIndex = 0;
+                    PlaygroundMenu->MenuPage = MAIN_PAGE;
+                }
+            }
+            
         } break;
     }
     
@@ -322,6 +348,12 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
                 TextRectangle.Min.x = ButtonRectangle.Min.x + (GetDim(ButtonRectangle).w / 2.0f) - (Dim.w / 2.0f);
                 TextRectangle.Min.y = ButtonRectangle.Min.y + (GetDim(ButtonRectangle).h / 2.0f) - (Dim.h / 2.0f);
                 SetDim(&TextRectangle, Dim);
+                
+                rectangle2 ShadowRectangle = TextRectangle;
+                ShadowRectangle.Min += 5.0f;
+                ShadowRectangle.Max += 5.0f;
+                
+                PushBitmap(RenderGroup, PlaygroundMenu->MainMenuShadowTexture[Index], ShadowRectangle);
                 PushBitmap(RenderGroup, PlaygroundMenu->MainMenuTexture[Index], TextRectangle);
                 
                 if (PlaygroundMenu->ButtonIndex == Index)
@@ -381,6 +413,7 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
             rectangle2 OptionRectangle = {};
             rectangle2 ValueRectangle = {};
             rectangle2 TextRectangle = {};
+            rectangle2 TextShadowRectangle = {};
             
             for (u32 Index = 0;
                  Index < 2;
@@ -399,10 +432,22 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
                 if (Index == 0)
                 {
                     TextRectangle = GetTextOnTheCenterOfRectangle(OptionRectangle, PlaygroundMenu->ResolutionNameTexture);
+                    
+                    TextShadowRectangle = TextRectangle;
+                    TextShadowRectangle.Min += 5.0f;
+                    TextShadowRectangle.Max += 5.0f;
+                    
+                    PushBitmap(RenderGroup, PlaygroundMenu->ResolutionNameShadowTexture, TextShadowRectangle);
                     PushBitmap(RenderGroup, PlaygroundMenu->ResolutionNameTexture, TextRectangle);
                     
                     u32 OptionIndex = (u32)PlaygroundMenu->Resolution;
                     TextRectangle = GetTextOnTheCenterOfRectangle(ValueRectangle, PlaygroundMenu->ResolutionTexture[OptionIndex]);
+                    
+                    TextShadowRectangle = TextRectangle;
+                    TextShadowRectangle.Min += 5.0f;
+                    TextShadowRectangle.Max += 5.0f;
+                    
+                    PushBitmap(RenderGroup, PlaygroundMenu->ResolutionShadowTexture[OptionIndex], TextShadowRectangle);
                     PushBitmap(RenderGroup, PlaygroundMenu->ResolutionTexture[OptionIndex], TextRectangle);
                     
                     if (Index == PlaygroundMenu->ButtonIndex)
@@ -418,11 +463,22 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
                 }
                 else if (Index == 1)
                 {
-                    TextRectangle = GetTextOnTheCenterOfRectangle(OptionRectangle, PlaygroundMenu->ResolutionNameTexture);
+                    TextRectangle = GetTextOnTheCenterOfRectangle(OptionRectangle, PlaygroundMenu->FullScreenNameTexture);
+                    
+                    TextShadowRectangle = TextRectangle;
+                    TextShadowRectangle.Min += 5.0f;
+                    TextShadowRectangle.Max += 5.0f;
+                    
+                    PushBitmap(RenderGroup, PlaygroundMenu->FullScreenNameShadowTexture, TextShadowRectangle);
                     PushBitmap(RenderGroup, PlaygroundMenu->FullScreenNameTexture, TextRectangle);
                     
                     u32 OptionIndex = (u32)PlaygroundMenu->IsFullScreen;
                     TextRectangle = GetTextOnTheCenterOfRectangle(ValueRectangle, PlaygroundMenu->FullScreenTexture[OptionIndex]);
+                    
+                    TextShadowRectangle = TextRectangle;
+                    TextShadowRectangle.Min += 5.0f;
+                    TextShadowRectangle.Max += 5.0f;
+                    PushBitmap(RenderGroup, PlaygroundMenu->FullScreenShadowTexture[OptionIndex], TextShadowRectangle);
                     PushBitmap(RenderGroup, PlaygroundMenu->FullScreenTexture[OptionIndex], TextRectangle);
                     
                     if (Index == PlaygroundMenu->ButtonIndex)
@@ -446,6 +502,12 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
             //PushRectangleOutline(RenderGroup, ButtonRectangle, V4(128, 128, 128, 255));
             
             TextRectangle = GetTextOnTheCenterOfRectangle(ButtonRectangle, PlaygroundMenu->BackTexture);
+            
+            TextShadowRectangle = TextRectangle;
+            TextShadowRectangle.Min += 5.0f;
+            TextShadowRectangle.Max += 5.0f;
+            
+            PushBitmap(RenderGroup, PlaygroundMenu->BackShadowTexture, TextShadowRectangle);
             PushBitmap(RenderGroup, PlaygroundMenu->BackTexture, TextRectangle);
             
             if (PlaygroundMenu->ButtonIndex > 1)
@@ -465,7 +527,6 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
             rectangle2 DarkEmptyRectangle = {};
             SetDim(&DarkEmptyRectangle, 300.0f, VIRTUAL_GAME_HEIGHT);
             PushRectangle(RenderGroup, DarkEmptyRectangle, {0, 0, 0, 255});
-            
             
             v2 CornerDim = {200.0f, 200.0f};
             
@@ -503,20 +564,28 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
                 DifficultyRectangle.Min.y = DifficultyPosition.y + ((Index * DifficultyButtonSize.h));
                 SetDim(&DifficultyRectangle, 400, 150);
                 
-                v4 Color = {128, 128, 128, 255};
-                //PushRectangle(RenderGroup, DifficultyRectangle, Color);
-                
-                Color = {255, 255, 255, 255};
-                //PushRectangleOutline(RenderGroup, DifficultyRectangle, Color);
-                
                 rectangle2 TextRectangle = GetTextOnTheCenterOfRectangle(DifficultyRectangle, PlaygroundMenu->DifficultyTexture[Index]);
+                
+                rectangle2 TextShadowRectangle = TextRectangle;
+                TextShadowRectangle.Min += 5.0f;
+                TextShadowRectangle.Max += 5.0f;
+                
+                PushBitmap(RenderGroup, PlaygroundMenu->DifficultyShadowTexture[Index], TextShadowRectangle);
                 PushBitmap(RenderGroup, PlaygroundMenu->DifficultyTexture[Index], TextRectangle);
+                
+                if (Index == PlaygroundMenu->ButtonIndex)
+                {
+                    /* Hightlight Line*/
+                    v2 LineDim = {200.0f, 33.0f};
+                    v2 Dim = QueryTextureDim(PlaygroundMenu->HorizontalLineTexture);
+                    TextRectangle.Min.x = DifficultyRectangle.Min.x + (GetDim(DifficultyRectangle).w * 0.5f) - (LineDim.w * 0.5f);
+                    TextRectangle.Min.y = DifficultyRectangle.Min.y + (GetDim(DifficultyRectangle).h) - (LineDim.h * 0.8f);
+                    SetDim(&TextRectangle, LineDim);
+                    PushBitmap(RenderGroup, PlaygroundMenu->HorizontalLineTexture, TextRectangle);
+                }
                 
                 if (Index == (s32)PlaygroundMenu->DiffMode)
                 {
-                    Color = {255, 255, 0, 128};
-                    //PushRectangle(RenderGroup, DifficultyRectangle, Color);
-                    
                     v2 CornerDim = V2(150.0f * 0.4f, 150.0f * 0.4f);
                     
                     rectangle2 CornerRectangle = {};
@@ -550,7 +619,6 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
             LevelPosition.y = VIRTUAL_GAME_HEIGHT * 0.5f - ((RowAmount * 100.0f) * 0.5f) + (VIRTUAL_GAME_HEIGHT * 0.2f);
             
             v2 ButtonDim = V2(150.0f, 86.0f);
-            // 840x480
             
             rectangle2 ButtonRectangle = {};
             for (u32 Row = 0; Row < RowAmount; ++Row)
@@ -560,7 +628,6 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
                 ColorRectangle.Min.y = LevelPosition.y + (MenuButtonSize.h * Row);
                 SetDim(&ColorRectangle, 30.0f, MenuButtonSize.h);
                 
-                //PushRectangleOutline(RenderGroup, ColorRectangle, {255, 255, 255, 255});
                 PushBitmap(RenderGroup, PlaygroundMenu->ColorBarTexture[Row], ColorRectangle);
                 
                 ButtonRectangle.Min.y = LevelPosition.y + (MenuButtonSize.h * Row);
@@ -572,26 +639,55 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, game_input *Input
                     ButtonRectangle.Max.x = ButtonRectangle.Min.x + 150.0f;
                     ButtonRectangle.Max.y = ButtonRectangle.Min.y + 100.0f;
                     
-                    v4 Color = {128, 128, 128, 255};
-                    //PushRectangle(RenderGroup, ButtonRectangle, Color);
-                    Color = {255, 255, 255, 255};
-                    
-                    
                     u32 LevelIndex = InitialLevelIndex + (Row * ColumnAmount) + Col;
+                    b32 IsUnlocked = PlaygroundData[LevelIndex].IsUnlocked;
                     
-                    rectangle2 LevelRectangle = GetTextOnTheCenterOfRectangle(ButtonRectangle, PlaygroundMenu->LevelNumberTexture[LevelIndex]);
-                    //PushBitmap(RenderGroup, PlaygroundMenu->LevelNumberTexture[LevelIndex], LevelRectangle);
-                    
-                    //PushRectangleOutline(RenderGroup, ButtonRectangle, Color);
-                    
-                    v2 CornerDim = V2(150.0f * 0.2f, 150.0f * 0.2f);
-                    
-                    LevelRectangle.Min.x = ButtonRectangle.Min.x + (GetDim(ButtonRectangle).w * 0.5f) - (ButtonDim.w * 0.5f);
-                    LevelRectangle.Min.y = ButtonRectangle.Min.y + (GetDim(ButtonRectangle).h * 0.5f) - (ButtonDim.h * 0.5f);
-                    SetDim(&LevelRectangle, ButtonDim);
-                    
-                    PushBitmap(RenderGroup, PlaygroundMenu->SquareFrame, LevelRectangle);
+                    rectangle2 LevelRectangle = {}; 
+                    if (IsUnlocked)
+                    {
+                        LevelRectangle.Min.x = ButtonRectangle.Min.x + (GetDim(ButtonRectangle).w * 0.5f) - (ButtonDim.w * 0.5f);
+                        LevelRectangle.Min.y = ButtonRectangle.Min.y + (GetDim(ButtonRectangle).h * 0.5f) - (ButtonDim.h * 0.5f);
+                        SetDim(&LevelRectangle, ButtonDim);
+                        PushBitmap(RenderGroup, PlaygroundMenu->SquareFrameUnlocked, LevelRectangle);
+                        
+                        LevelRectangle = GetTextOnTheCenterOfRectangle(ButtonRectangle, PlaygroundMenu->LevelNumberTexture[LevelIndex]);
+                        PushBitmap(RenderGroup, PlaygroundMenu->LevelNumberTexture[LevelIndex], LevelRectangle);
+                    }
+                    else
+                    {
+                        LevelRectangle.Min.x = ButtonRectangle.Min.x + (GetDim(ButtonRectangle).w * 0.5f) - (ButtonDim.w * 0.5f);
+                        LevelRectangle.Min.y = ButtonRectangle.Min.y + (GetDim(ButtonRectangle).h * 0.5f) - (ButtonDim.h * 0.5f);
+                        SetDim(&LevelRectangle, ButtonDim);
+                        PushBitmap(RenderGroup, PlaygroundMenu->SquareFrameLocked, LevelRectangle);
+                    }
                 }
+            }
+            
+            /* Back Button */
+            ButtonRectangle.Min.x = 350.0f;
+            ButtonRectangle.Min.y = VIRTUAL_GAME_HEIGHT - (120.0f);
+            SetDim(&ButtonRectangle, 200.0f, 80.0f);
+            
+            rectangle2 TextRectangle = GetTextOnTheCenterOfRectangle(ButtonRectangle, PlaygroundMenu->BackTexture);
+            
+            rectangle2 TextShadowRectangle = TextRectangle;
+            TextShadowRectangle.Min += 5.0f;
+            TextShadowRectangle.Max += 5.0f;
+            
+            PushBitmap(RenderGroup, PlaygroundMenu->BackShadowTexture, TextShadowRectangle);
+            PushBitmap(RenderGroup, PlaygroundMenu->BackTexture, TextRectangle);
+            
+            //PushRectangleOutline(RenderGroup, ButtonRectangle, V4(255, 255, 255, 255));
+            
+            if (PlaygroundMenu->ButtonIndex == 3)
+            {
+                /* Hightlight Line*/
+                v2 LineDim = {200.0f, 33.0f};
+                v2 Dim = QueryTextureDim(PlaygroundMenu->HorizontalLineTexture);
+                TextRectangle.Min.x = ButtonRectangle.Min.x + (GetDim(ButtonRectangle).w * 0.5f) - (LineDim.w * 0.5f);
+                TextRectangle.Min.y = ButtonRectangle.Min.y + (GetDim(ButtonRectangle).h) - (LineDim.h * 0.8f);
+                SetDim(&TextRectangle, LineDim);
+                PushBitmap(RenderGroup, PlaygroundMenu->HorizontalLineTexture, TextRectangle);
             }
         } break;
     }

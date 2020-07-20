@@ -68,6 +68,8 @@ MakeTextureFromString(game_offscreen_buffer *Buffer, game_font *Font,
     Result = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
     Assert(Result);
     
+    SDL_FreeSurface(Surface);
+    
     return (Result);
 }
 

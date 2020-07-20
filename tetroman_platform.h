@@ -10,7 +10,9 @@
 #define TETROMAN_PLATFORM_H
 
 #include <stdint.h>
+#include <time.h>
 #include <math.h>
+#include <stddef.h>
 
 // TODO(msokolov): this 2 need to be resolved
 #include <string.h>
@@ -18,9 +20,6 @@
 
 // TODO(msokolov): we need to get rid of this
 #include <vector>
-
-#include <stdint.h>
-#include <stddef.h>
 
 #define WINDOW_WIDTH 1920
 #define WINDOW_HEIGHT 1080
@@ -133,7 +132,7 @@ struct game_keyboard_input
 
 struct game_input
 {
-    r32 TimeElapsedMs;
+    r32 TimeElapsed;
     r32 dtForFrame;
     
     s32 MouseX, MouseY;

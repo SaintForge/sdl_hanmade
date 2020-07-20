@@ -373,7 +373,7 @@ int main(int argc, char **argv)
                     game_input Input = {};
                     Input.MouseX = OldMouseX;
                     Input.MouseY = OldMouseY;
-                    Input.TimeElapsedMs = TimeElapsed;
+                    Input.TimeElapsed = TimeElapsed;
                     Input.dtForFrame = dtForFrame;
                     
                     SDL_Event Event = {};

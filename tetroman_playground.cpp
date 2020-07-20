@@ -741,6 +741,7 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
     figure_unit   *FigureUnit   = FigureEntity->FigureUnit;
     
     u32 Size   = FigureEntity->FigureAmount;
+    
     v2 MousePos = {};
     MousePos.x = Input->MouseX;
     MousePos.y = Input->MouseY;
@@ -813,8 +814,6 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
                         FigureEntity->FigureActive = ActiveIndex;
                         FigureEntityHighOrderFigure(FigureEntity, ActiveIndex);
                         SDL_ShowCursor(SDL_DISABLE);
-                        
-                        //return ShouldExit;
                     }
                 }
                 
@@ -911,9 +910,10 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
         
         if(FigureEntity->IsGrabbed)
         {
-            v2 dt = {(r32)Input->MouseRelX, (r32)Input->MouseRelY};
-            r32 XShift = Input->MouseRelX;
-            r32 YShift = Input->MouseRelY;
+            v2 dt = 
+            {
+                (r32) Input->MouseRelX, (r32) Input->MouseRelY
+            };
             
             FigureUnitMove(&FigureUnit[ActiveIndex], dt);
         }
@@ -1927,7 +1927,7 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     r32 GridBlockSize     = GRID_BLOCK_SIZE;
     r32 InActiveBlockSize = IDLE_BLOCK_SIZE;
     
-    r32 TimeElapsed  = Input->TimeElapsedMs;
+    r32 TimeElapsed  = Input->TimeElapsed;
     r32 MaxVel       = GridBlockSize / 6.0f;
     u32 RowAmount    = GridEntity->RowAmount;
     u32 ColumnAmount = GridEntity->ColumnAmount;
@@ -1966,7 +1966,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     {
         Result = playground_status::LEVEL_SETTINGS_QUIT;
     }
-    
     
     // TODO(msokolov): this should be a texture
     //Clear(RenderGroup, {42, 6, 21, 255});
@@ -2028,7 +2027,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                     for (u32 j = 0; j < ColumnAmount && Count != 4; ++j)
                     {
                         rectangle2 Rect = {};
-                        
                         Rect.Min.x = GridArea.Min.x + (j * GridBlockSize);
                         Rect.Min.y = GridArea.Min.y + (i * GridBlockSize);
                         Rect.Max.x = Rect.Min.x + GridBlockSize;
@@ -2040,8 +2038,8 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                             {
                                 if(Count == 0)
                                 {
-                                    OffsetX = Rect.Min.x + (GridBlockSize / 2.0f) - FigureUnit[FigureIndex].Shell[l].x;
-                                    OffsetY = Rect.Min.y + (GridBlockSize / 2.0f) - FigureUnit[FigureIndex].Shell[l].y;
+                                    OffsetX = Rect.Min.x + (GridBlockSize * 0.5f) - FigureUnit[FigureIndex].Shell[l].x;
+                                    OffsetY = Rect.Min.y + (GridBlockSize * 0.5f) - FigureUnit[FigureIndex].Shell[l].y;
                                 }
                                 
                                 RowIndex[l] = i;
@@ -2052,7 +2050,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                         }
                     }
                 }
-                
                 
                 if(Count == 4)
                 {
@@ -2072,7 +2069,7 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                         u32 StickSize = GridEntity->StickUnitsAmount;
                         
                         v2 FigureCenter = {};
-                        FigureCenter.x   = FigureUnit[FigureIndex].Position.x + (FigureUnit[FigureIndex].Size.w / 2.0f);
+                        FigureCenter.x   = FigureUnit[FigureIndex].Position.x + (FigureUnit[FigureIndex].Size.w *0.5f);
                         FigureCenter.y   = FigureUnit[FigureIndex].Position.y + (FigureUnit[FigureIndex].Size.h) * FigureUnit[FigureIndex].CenterOffset;
                         
                         for (u32 i = 0; i < StickSize; ++i)
@@ -2099,14 +2096,16 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                 }
             }
         }
+        
+        
     }
     
     
     /* StickUnits aka figures that are moving to a grid */
-    bool IsAllSticked = GridEntity->StickUnitsAmount > 0;
+    b32 IsAllSticked = GridEntity->StickUnitsAmount > 0;
     for(u32 i = 0; i < GridEntity->StickUnitsAmount; ++i)
     {
-        bool IsSticked = GridEntity->StickUnits[i].IsSticked;
+        b32 IsSticked = GridEntity->StickUnits[i].IsSticked;
         
         if(!IsSticked)
         {
@@ -2117,7 +2116,7 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         if(!IsSticked && Index >= 0)
         {
             v2 FigureCenter = {};
-            FigureCenter.x = FigureUnit[Index].Position.x + (FigureUnit[Index].Size.w / 2.0f);
+            FigureCenter.x = FigureUnit[Index].Position.x + (FigureUnit[Index].Size.w * 0.5f);
             FigureCenter.y = FigureUnit[Index].Position.y + (FigureUnit[Index].Size.h) * FigureUnit[Index].CenterOffset;
             
             v2 TargetCenter = GridEntity->StickUnits[i].Center;
@@ -2129,6 +2128,9 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
             {
                 dt  = Normalize(dt);
                 dt *= (FigureEntity->FigureVelocity * Input->dtForFrame);
+                
+                dt.x = roundf(dt.x);
+                dt.y = roundf(dt.y);
             }
             
             FigureUnitMove(&FigureUnit[Index], dt);
@@ -2160,6 +2162,167 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         //LevelEntityFinishAnimationInit(LevelEntity, Memory, Buffer);
     }
     
+    /* Check if a player is left with only one figure */
+    {
+        u32 RowIndex[FIGURE_BLOCKS_MAXIMUM] = {};
+        u32 ColumnIndex[FIGURE_BLOCKS_MAXIMUM] = {};
+        u32 CellCounter = 0;
+        u32 LeastRowIndex    = GridEntity->RowAmount - 1;
+        u32 LeastColumnIndex = GridEntity->ColumnAmount - 1;
+        
+        for (u32 Row = 0; Row < RowAmount; ++Row)
+        {
+            for (u32 Column = 0; Column < ColumnAmount; ++Column)
+            {
+                u32 Value = GridEntity->UnitField[(Row * GridEntity->ColumnAmount) + Column];
+                if (Value == 0)
+                {
+                    RowIndex[CellCounter]    = Row;
+                    ColumnIndex[CellCounter] = Column;
+                    
+                    if (LeastColumnIndex > Column) 
+                        LeastColumnIndex = Column;
+                    
+                    if (LeastRowIndex > Row)
+                        LeastRowIndex = Row;
+                    
+                    ++CellCounter;
+                }
+                
+            }
+        }
+        
+        if (CellCounter == 4 && !LevelEntity->ShowTimer)
+        {
+            for (u32 Index = 0;
+                 Index < FIGURE_BLOCKS_MAXIMUM;
+                 ++Index)
+            {
+                RowIndex[Index] -= LeastRowIndex;
+                ColumnIndex[Index] -= LeastColumnIndex;
+            }
+            
+            u32 LastFigureIndex = FigureAmount;
+            for (u32 FigureIndex = 0; 
+                 FigureIndex < FigureAmount; 
+                 ++FigureIndex)
+            {
+                if (!FigureUnit[FigureIndex].IsStick) 
+                    LastFigureIndex = FigureIndex;
+            }
+            
+            if (LastFigureIndex < FigureAmount)
+            {
+                u32 BlockSize = (FigureEntity->FigureUnit[LastFigureIndex].IsEnlarged) ? GRID_BLOCK_SIZE : IDLE_BLOCK_SIZE;
+                
+                rectangle2 FigureUnitArea = FigureUnitGetArea(&FigureEntity->FigureUnit[LastFigureIndex]);
+                
+                rectangle2 NormFigureArea = {};
+                NormFigureArea.Max -= FigureUnitArea.Min;
+                NormFigureArea.Min -= FigureUnitArea.Min;
+                
+                u32 FigureRowIndex[FIGURE_BLOCKS_MAXIMUM] = {};
+                u32 FigureColumnIndex[FIGURE_BLOCKS_MAXIMUM] = {};
+                
+                b32 IsIdentical = true;
+                
+                v2 FigureShell[FIGURE_BLOCKS_MAXIMUM] = {};
+                for (u32 Index = 0;
+                     Index < FIGURE_BLOCKS_MAXIMUM;
+                     ++Index)
+                {
+                    FigureShell[Index].x = FigureEntity->FigureUnit[LastFigureIndex].Shell[Index].x - FigureUnitArea.Min.x;
+                    FigureShell[Index].y = FigureEntity->FigureUnit[LastFigureIndex].Shell[Index].y - FigureUnitArea.Min.y;
+                    
+                    FigureRowIndex[Index] = FigureShell[Index].y / BlockSize;
+                    FigureColumnIndex[Index] = FigureShell[Index].x / BlockSize;
+                    
+                    rectangle2 ShellRectangle = {};
+                    ShellRectangle.Min.x = FigureShell[Index].x - (BlockSize * 0.5f);
+                    ShellRectangle.Min.y = FigureShell[Index].y - (BlockSize * 0.5f);
+                    SetDim(&ShellRectangle, BlockSize, BlockSize);
+                }
+                
+                for (u32 Index = 0; 
+                     Index < FIGURE_BLOCKS_MAXIMUM;
+                     ++Index)
+                {
+                    u32 OverlapCounter = 0;
+                    for (u32 A = 0;
+                         A < FIGURE_BLOCKS_MAXIMUM;
+                         A++)
+                    {
+                        for (u32 B = 0;
+                             B < FIGURE_BLOCKS_MAXIMUM;
+                             ++B)
+                        {
+                            if ((RowIndex[A] == FigureRowIndex[B]) && (ColumnIndex[A] == FigureColumnIndex[B]))
+                                OverlapCounter++;
+                        }
+                    }
+                    
+                    if (OverlapCounter == 4)
+                    {
+                        printf("Show timer\n");
+                        LevelEntity->ShowTimer = true;
+                        break;
+                    }
+                    
+                    u32 FigureMatrix[4][4] = {};
+                    for (u32 CellIndex = 0;
+                         CellIndex < FIGURE_BLOCKS_MAXIMUM;
+                         ++CellIndex)
+                    {
+                        FigureMatrix[FigureRowIndex[CellIndex]][FigureColumnIndex[CellIndex]] = 1;
+                    }
+                    
+                    RotateMatrixClockwise(FigureMatrix);
+                    
+                    u32 CellCounter = 0;
+                    LeastColumnIndex = FIGURE_BLOCKS_MAXIMUM;
+                    LeastRowIndex = FIGURE_BLOCKS_MAXIMUM;
+                    for (u32 Row = 0;
+                         Row < FIGURE_BLOCKS_MAXIMUM;
+                         ++Row)
+                    {
+                        for (u32 Column = 0;
+                             Column < FIGURE_BLOCKS_MAXIMUM;
+                             ++Column)
+                        {
+                            if (FigureMatrix[Row][Column] == 1)
+                            {
+                                FigureRowIndex[CellCounter] = Row;
+                                FigureColumnIndex[CellCounter] = Column;
+                                
+                                if (LeastRowIndex > Row)
+                                    LeastRowIndex = Row;
+                                
+                                if (LeastColumnIndex > Column)
+                                    LeastColumnIndex = Column;
+                                
+                                CellCounter++;
+                            }
+                        }
+                    }
+                    
+                    for (u32 Index = 0;
+                         Index < FIGURE_BLOCKS_MAXIMUM;
+                         ++Index)
+                    {
+                        FigureRowIndex[Index] -= LeastRowIndex;
+                        FigureColumnIndex[Index] -= LeastColumnIndex;
+                    }
+                    
+                }
+            }
+        }
+        else if (CellCounter > 4)
+        {
+            LevelEntity->ShowTimer = false;
+        }
+    }
+    
+    
     u32 CellCounter = 0;
     rectangle2 GridCellRectangle = {};
     for (u32 Row = 0; Row < RowAmount; ++Row)
@@ -2186,9 +2349,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                 TextureRectangle.Min.y = GridCellRectangle.Min.y - (25.0f / 2.0f);
                 SetDim(&TextureRectangle, GetDim(GridCellRectangle).w + 25.0f, GetDim(GridCellRectangle).h + 25.0f);
                 PushBitmap(RenderGroup, GridEntity->GridCell2Texture, TextureRectangle);
-                
-                //PushRectangle(RenderGroup, GridCellRectangle, {255, 255, 255, 50});
-                //PushRectangleOutline(RenderGroup, GridCellRectangle, {255, 255, 255, 255});
             }
         }
     }
@@ -2325,6 +2485,9 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                 {
                     dt  = Normalize(dt);
                     dt *= (FigureEntity->FigureVelocity * Input->dtForFrame);
+                    
+                    dt.x = roundf(dt.x);
+                    dt.y = roundf(dt.y);
                 }
                 
                 FigureUnitMove(&FigureUnit[i], dt);
@@ -2409,6 +2572,9 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         {
             dt  = Normalize(dt);
             dt *= (FigureEntity->FigureVelocity * Input->dtForFrame);
+            
+            dt.x = roundf(dt.x);
+            dt.y = roundf(dt.y);
         }
         
         Position += dt;
@@ -2619,6 +2785,8 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         }
     }
     
+    
+    
     return (Result);
 }
 
@@ -2629,7 +2797,7 @@ ReadPlaygroundData(playground_data *Playground, u32 Index)
     Assert(Index < PLAYGROUND_MAXIMUM);
     
     playground_data Result = {};
-    Result.IsLocked = Playground[Index].IsLocked;
+    Result.IsUnlocked = Playground[Index].IsUnlocked;
     Result.LevelNumber = Playground[Index].LevelNumber;
     Result.RowAmount = Playground[Index].RowAmount;
     Result.ColumnAmount = Playground[Index].ColumnAmount;
@@ -2665,7 +2833,7 @@ WritePlaygroundData(playground_data *Playground, playground *Entity, u32 Index)
 {
     Assert(Index < PLAYGROUND_MAXIMUM);
     
-    Playground[Index].IsLocked = 0;
+    Playground[Index].IsUnlocked = 0;
     Playground[Index].LevelNumber = Entity->LevelNumber;
     Playground[Index].RowAmount = Entity->GridEntity.RowAmount;
     Playground[Index].ColumnAmount = Entity->GridEntity.ColumnAmount;
@@ -2719,9 +2887,10 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
     
     playground_data PlaygroundData = ReadPlaygroundData(Data, Index);
     
-    //*Playground  = {};
+    
     Playground->LevelStarted = true;
     Playground->LevelNumber  = Index + 1;
+    Playground->TimeElapsed  = 0.0f;
     
     Playground->GridEntity.RowAmount          = PlaygroundData.RowAmount;
     Playground->GridEntity.ColumnAmount       = PlaygroundData.ColumnAmount;
@@ -2752,7 +2921,6 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
     {
         Playground->GridEntity.StickUnits[i].Index = -1;
         Playground->GridEntity.StickUnits[i].IsSticked = false;
-        
     }
     
     moving_block *MovingBlocks = Playground->GridEntity.MovingBlocks;

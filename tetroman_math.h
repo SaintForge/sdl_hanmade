@@ -145,6 +145,26 @@ operator-(v2 A)
 }
 
 inline v2
+operator-(v2 A, v2 B)
+{
+    v2 Result;
+    
+    Result.x = A.x - B.x;
+    Result.y = A.y - B.y;
+    
+    return(Result);
+}
+
+inline v2 &
+operator-=(v2 &A, v2 B)
+{
+    A = A - B;
+    
+    return(A);
+}
+
+
+inline v2
 operator+(v2 A, v2 B)
 {
     v2 Result;
@@ -182,17 +202,6 @@ operator+=(v2 &A, r32 B)
     A.y = A.y + B;
     
     return(A);
-}
-
-inline v2
-operator-(v2 A, v2 B)
-{
-    v2 Result;
-    
-    Result.x = A.x - B.x;
-    Result.y = A.y - B.y;
-    
-    return(Result);
 }
 
 inline r32
@@ -274,6 +283,43 @@ inline static s32
 Min3(s32 a, s32 b, s32 c)
 {
     return fmin(fmin(a,b),c);
+}
+
+inline static void
+TransposeMatrix(u32 Matrix[4][4])
+{
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = i; j < 4; j++)
+        {
+            u32 Value = Matrix[i][j];
+            Matrix[i][j] = Matrix[j][i];
+            Matrix[j][i] = Value;
+        }
+    }
+}
+
+inline static void
+ReverseMatrix(u32 Matrix[4][4])
+{
+    for (int i = 0; i < 4; i++)
+    {
+        u32 k = 3;
+        for (int j = 0; j < k; j++)
+        {
+            u32 Value = Matrix[i][j];
+            Matrix[i][j] = Matrix[i][k];
+            Matrix[i][k] = Value;
+            k--;
+        }
+    }
+}
+
+inline static void
+RotateMatrixClockwise(u32 Matrix[4][4])
+{
+    TransposeMatrix(Matrix);
+    ReverseMatrix(Matrix);
 }
 
 #define GAME_MATH_H

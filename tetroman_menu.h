@@ -54,26 +54,37 @@ struct playground_menu
     
     /* Main Menu textures*/
     game_texture *MainMenuTexture[3];
+    game_texture *MainMenuShadowTexture[3];
     game_texture *CornerTexture[4];
     
     /* Settings textures*/
-    
     game_texture *FullScreenNameTexture;
+    game_texture *FullScreenNameShadowTexture;
+    
     game_texture *FullScreenTexture[2];
+    game_texture *FullScreenShadowTexture[2];
+    
     game_texture *ResolutionNameTexture;
+    game_texture *ResolutionNameShadowTexture;
+    
     game_texture *ResolutionTexture[3];
+    game_texture *ResolutionShadowTexture[3];
     
     /* Playground Menu textures*/
     game_texture *DifficultyTexture[3];
+    game_texture *DifficultyShadowTexture[3];
+    
     game_texture *LevelButtonTexture;
     game_texture *LevelNumberTexture[100];
     game_texture *LevelCornerTexture[4];
-    game_texture *SquareFrame;
+    game_texture *SquareFrameLocked;
+    game_texture *SquareFrameUnlocked;
     game_texture *ColorBarTexture[4];
     
     /* Miscellaneous */
     game_texture *HorizontalLineTexture;
     game_texture *BackTexture;
+    game_texture *BackShadowTexture;
 };
 
 #endif //TETROMAN_MENU_H

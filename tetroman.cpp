@@ -35,8 +35,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         /* NOTE(msokolov): game_state initialization starts here */
         InitializeMemoryGroup(&GameState->MemoryGroup, Memory->PermanentStorageSize - sizeof(game_state), (u8*)Memory->PermanentStorage + sizeof(game_state));
         
-        GameState->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", 50);
+        GameState->Font = TTF_OpenFont(FontPath, 50);
         Assert(GameState->Font);
+        
+        GameState->TimerFont = TTF_OpenFont(FontPath, 80);
+        Assert(GameState->TimerFont);
         
         GameState->EditorMode      = false;
         GameState->PlaygroundIndex = 0;
@@ -197,6 +200,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Assert(PlaygroundData);
         
         GameState->PlaygroundData = PlaygroundData;
+        PlaygroundData[0].IsUnlocked   = true;
         PlaygroundData[0].FigureAmount = 4;
         PlaygroundData[0].Figures[0].Form = figure_form::I_figure;
         PlaygroundData[0].Figures[0].Type = figure_type::classic;
@@ -232,7 +236,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         /* NOTE(msokolov): playground_menu initialization */
         
         playground_menu *PlaygroundMenu = &GameState->PlaygroundMenu;
-        PlaygroundMenu->MenuPage = menu_page::DIFFICULTY_PAGE;
+        PlaygroundMenu->MenuPage = menu_page::MAIN_PAGE;
         PlaygroundMenu->DiffMode = difficulty::EASY;
         PlaygroundMenu->Resolution = resolution_standard::FULLHD;
         PlaygroundMenu->IsFullScreen = false;
@@ -241,6 +245,16 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         PlaygroundMenu->LevelButtonTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
         Assert(PlaygroundMenu->LevelButtonTexture);
+        
+        
+        PlaygroundMenu->DifficultyTexture[0] = MakeTextureFromString(Buffer, GameState->TimerFont, "I", V4(255, 255, 255, 255));
+        PlaygroundMenu->DifficultyShadowTexture[0] = MakeTextureFromString(Buffer, GameState->TimerFont, "I", V4(0, 0, 0, 128));
+        
+        PlaygroundMenu->DifficultyTexture[1] = MakeTextureFromString(Buffer, GameState->TimerFont, "II", V4(255, 255, 255, 255));
+        PlaygroundMenu->DifficultyShadowTexture[1] = MakeTextureFromString(Buffer, GameState->TimerFont, "II", V4(0, 0, 0, 128));
+        
+        PlaygroundMenu->DifficultyTexture[2] = MakeTextureFromString(Buffer, GameState->TimerFont, "III", V4(255, 255, 255, 255));
+        PlaygroundMenu->DifficultyShadowTexture[2] = MakeTextureFromString(Buffer, GameState->TimerFont, "III", V4(0, 0, 0, 128));
         
         for(u32 Index = 0;
             Index < 100;
@@ -257,13 +271,16 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             GameState->PlaygroundMenu.LevelNumberTexture[Index] = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
         }
         
-        PlaygroundMenu->DifficultyTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Easy", {255, 255, 255, 255});
-        PlaygroundMenu->DifficultyTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "Medium", {255, 255, 255, 255});
-        PlaygroundMenu->DifficultyTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "Hard", {255, 255, 255, 255});
         
-        PlaygroundMenu->MainMenuTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Play", {255, 255, 255, 255});
-        PlaygroundMenu->MainMenuTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "Settings", {255, 255, 255, 255});
-        PlaygroundMenu->MainMenuTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "Quit", {255, 255, 255, 255});
+        {
+            PlaygroundMenu->MainMenuTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Play", V4(255, 255, 255, 255));
+            PlaygroundMenu->MainMenuTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "Settings", V4(255, 255, 255, 255));
+            PlaygroundMenu->MainMenuTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "Quit", V4(255, 255, 255, 255));
+            
+            PlaygroundMenu->MainMenuShadowTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Play", V4(0, 0, 0, 128));
+            PlaygroundMenu->MainMenuShadowTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "Settings", V4(0, 0, 0, 128));
+            PlaygroundMenu->MainMenuShadowTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "Quit", V4(0, 0, 0, 128));
+        }
         
         PlaygroundMenu->CornerTexture[0] = GetTexture(Memory, "corner_left_top.png", Buffer->Renderer);
         PlaygroundMenu->CornerTexture[1] = GetTexture(Memory, "corner_left_bottom.png", Buffer->Renderer);
@@ -275,23 +292,37 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundMenu->LevelCornerTexture[1] = GetTexture(Memory, "corner_menu_2.png", Buffer->Renderer);
         PlaygroundMenu->LevelCornerTexture[2] = GetTexture(Memory, "corner_menu_3.png", Buffer->Renderer);
         PlaygroundMenu->LevelCornerTexture[3] = GetTexture(Memory, "corner_menu_4.png", Buffer->Renderer);
-        PlaygroundMenu->SquareFrame = GetTexture(Memory, "square_frame.png", Buffer->Renderer);
+        PlaygroundMenu->SquareFrameLocked = GetTexture(Memory, "square_frame_locked.png", Buffer->Renderer);
+        PlaygroundMenu->SquareFrameUnlocked = GetTexture(Memory, "square_frame_unlocked.png", Buffer->Renderer);
         
         PlaygroundMenu->ColorBarTexture[0] = GetTexture(Memory, "green_bar.png", Buffer->Renderer);
         PlaygroundMenu->ColorBarTexture[1] = GetTexture(Memory, "blue_bar.png", Buffer->Renderer);
         PlaygroundMenu->ColorBarTexture[2] = GetTexture(Memory, "orange_bar.png", Buffer->Renderer);
         PlaygroundMenu->ColorBarTexture[3] = GetTexture(Memory, "red_bar.png", Buffer->Renderer);
         
-        PlaygroundMenu->ResolutionNameTexture = MakeTextureFromString(Buffer, GameState->Font, "Resolution: ", {255, 255, 255, 255});
-        PlaygroundMenu->ResolutionTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "720p", {255, 255, 255, 255});
-        PlaygroundMenu->ResolutionTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "1080p", {255, 255, 255, 255});
-        PlaygroundMenu->ResolutionTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "1440p", {255, 255, 255, 255});
+        PlaygroundMenu->ResolutionNameTexture = MakeTextureFromString(Buffer, GameState->Font, "Resolution: ", V4(255, 255, 255, 128));
+        PlaygroundMenu->ResolutionNameShadowTexture = MakeTextureFromString(Buffer, GameState->Font, "Resolution: ", V4(0, 0, 0, 255));
         
-        PlaygroundMenu->FullScreenNameTexture = MakeTextureFromString(Buffer, GameState->Font, "FullScreen: ", {255, 255, 255, 255});
-        PlaygroundMenu->FullScreenTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Off", {255, 255, 255, 255});
-        PlaygroundMenu->FullScreenTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "On", {255, 255, 255, 255});
+        PlaygroundMenu->ResolutionTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "720p", V4(255, 255, 255, 255));
+        PlaygroundMenu->ResolutionShadowTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "720p", V4(0, 0, 0, 128));
         
-        PlaygroundMenu->BackTexture = MakeTextureFromString(Buffer, GameState->Font, "Back", {255, 255, 255, 255});
+        PlaygroundMenu->ResolutionTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "1080p", V4(255, 255, 255, 255));
+        PlaygroundMenu->ResolutionShadowTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "1080p", V4(0, 0, 0, 128));
+        
+        PlaygroundMenu->ResolutionTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "1440p", V4(255, 255, 255, 255));
+        PlaygroundMenu->ResolutionShadowTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "1440p", V4(0, 0, 0, 128));
+        
+        PlaygroundMenu->FullScreenNameTexture = MakeTextureFromString(Buffer, GameState->Font, "FullScreen: ", V4(255, 255, 255, 255));
+        PlaygroundMenu->FullScreenNameShadowTexture = MakeTextureFromString(Buffer, GameState->Font, "FullScreen: ", V4(0, 0, 0, 128));
+        
+        PlaygroundMenu->FullScreenTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Off", V4(255, 255, 255, 255));
+        PlaygroundMenu->FullScreenShadowTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Off", V4(0, 0, 0, 128));
+        
+        PlaygroundMenu->FullScreenTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "On", V4(255, 255, 255, 255));
+        PlaygroundMenu->FullScreenShadowTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "On", V4(0, 0, 0, 128));
+        
+        PlaygroundMenu->BackTexture = MakeTextureFromString(Buffer, GameState->Font, "Back", V4(255, 255, 255, 255));
+        PlaygroundMenu->BackShadowTexture = MakeTextureFromString(Buffer, GameState->Font, "Back", V4(0, 0, 0, 128));
         
         
 #if DEBUG_BUILD
@@ -434,7 +465,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 #endif
     
     /*
- NOTE(msokolov): Render 
+    NOTE(msokolov): Render 
     */
     
     memory_group TemporaryMemory = TransState->TransGroup;
@@ -446,7 +477,47 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         case PLAYGROUND:
         {
             playground_status PlaygroundStatus = PlaygroundUpdateAndRender(&GameState->Playground, RenderGroup, Input);
-            if (PlaygroundStatus == playground_status::LEVEL_FINISHED)
+            
+            if (PlaygroundStatus == playground_status::LEVEL_RUNNING)
+            {
+                GameState->Playground.TimeElapsed += Input->dtForFrame;
+                
+                if (GameState->Playground.ShowTimer)
+                {
+                    u32 Minutes = (u32)GameState->Playground.TimeElapsed / 60;
+                    u32 Seconds = (u32)GameState->Playground.TimeElapsed % 60;
+                    
+                    char TimeString[16] = {};
+                    
+                    sprintf(TimeString, "%02d:%02d", Minutes, Seconds);
+                    
+                    if (GameState->Playground.TimerShadowTexture)
+                        SDL_DestroyTexture(GameState->Playground.TimerShadowTexture);
+                    
+                    if (GameState->Playground.TimerTexture)
+                        SDL_DestroyTexture(GameState->Playground.TimerTexture);
+                    
+                    GameState->Playground.TimerShadowTexture = MakeTextureFromString(Buffer, GameState->TimerFont, TimeString, V4(0, 0, 0, 128));
+                    
+                    GameState->Playground.TimerTexture = MakeTextureFromString(Buffer, GameState->TimerFont, TimeString, V4(255, 255, 255, 255));
+                    
+                    rectangle2 TimerRectangle = {};
+                    TimerRectangle.Min.x = (VIRTUAL_GAME_WIDTH * 0.5f) - (25.0f);
+                    TimerRectangle.Min.y = 50.0f;
+                    SetDim(&TimerRectangle, 50.0f, 50.0f);
+                    
+                    TimerRectangle = GetTextOnTheCenterOfRectangle(TimerRectangle, GameState->Playground.TimerTexture);
+                    
+                    TimerRectangle.Min += V2(5.0f, 5.0f);
+                    TimerRectangle.Max += V2(5.0f, 5.0f);
+                    PushBitmap(RenderGroup, GameState->Playground.TimerShadowTexture, TimerRectangle);
+                    
+                    TimerRectangle.Min -= V2(5.0f, 5.0f);
+                    TimerRectangle.Max -= V2(5.0f, 5.0f);
+                    PushBitmap(RenderGroup, GameState->Playground.TimerTexture, TimerRectangle);
+                }
+            }
+            else if (PlaygroundStatus == playground_status::LEVEL_FINISHED)
             {
                 if (GameState->PlaygroundIndex < PLAYGROUND_MAXIMUM)
                 {
@@ -499,7 +570,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         case MENU:
         {
-            menu_result_option MenuResult = PlaygroundMenuUpdateAndRender(&GameState->PlaygroundMenu, Input, RenderGroup);
+            menu_result_option MenuResult = PlaygroundMenuUpdateAndRender(&GameState->PlaygroundMenu, GameState->PlaygroundData, Input, RenderGroup);
             
             if (MenuResult.SwitchToPlayground)
             {
