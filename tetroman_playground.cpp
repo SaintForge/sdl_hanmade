@@ -350,7 +350,7 @@ FigureUnitFlipHorizontally(figure_unit *Unit)
     }
 }
 
-static void
+static inline v2
 FigureUnitMove(figure_unit *Entity, v2 dt)
 {
     Entity->Position += dt;
@@ -361,6 +361,8 @@ FigureUnitMove(figure_unit *Entity, v2 dt)
     {
         Entity->Shell[Index] += dt;
     }
+    
+    return (Entity->Position);
 }
 
 static game_texture *
@@ -612,7 +614,7 @@ FigureUnitMoveToDefaultArea(figure_unit *FigureUnit, u32 ActiveBlockSize)
 {
     v2 Offset = FigureUnit->HomePosition - FigureUnit->Position;
     
-    r32 Magnitude = Square(Offset);
+    r32 Magnitude = SquareRoot(Offset);
     r32 MaxSpeed  = abs(Magnitude - ActiveBlockSize);
     
     if(Magnitude > MaxSpeed)
@@ -774,6 +776,7 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
             
             if(!FigureEntity->IsGrabbed)
             {
+                
                 for (s32 i = Size - 1; i >= 0; --i)
                 {
                     ActiveIndex = FigureEntity->FigureOrder[i];
@@ -814,6 +817,8 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
                         FigureEntity->FigureActive = ActiveIndex;
                         FigureEntityHighOrderFigure(FigureEntity, ActiveIndex);
                         SDL_ShowCursor(SDL_DISABLE);
+                        
+                        break;
                     }
                 }
                 
@@ -1159,7 +1164,6 @@ LevelEntityFinishAnimationInit(playground *LevelEntity, game_memory *Memory, gam
     {
         if(AnimationData->FinishTexture)
         {
-            printf("deleting animation data\n");
             s32 CommonAmount = OldRowAmount * OldColAmount;
             for(s32 i = 0; i < CommonAmount; ++i)
             {
@@ -1188,8 +1192,6 @@ LevelEntityFinishAnimationInit(playground *LevelEntity, game_memory *Memory, gam
             
             SDL_SetRenderTarget(Buffer->Renderer, NULL);
             SDL_SetRenderDrawColor(Buffer->Renderer, 0, 0, 0, 255);
-            
-            printf("finished deletion\n");
         }
     }
     
@@ -1878,6 +1880,20 @@ LevelEntityUpdateStartAnimation(playground *LevelEntity, game_memory *Memory, ga
 
 #endif 
 
+static inline v2
+MoveObject2D(v2 Position, v2 TargetPosition, r32 dtForFrame, r32 Speed)
+{
+    v2 Result = TargetPosition - Position;
+    v2 Step = Normalize(Result) * (Speed * dtForFrame);
+    
+    if (SquareRoot(Result) > (Square(SquareRoot(Step))))
+    {
+        Result = Step;
+    }
+    
+    return (Result);
+}
+
 static void
 RenderFigureStructure(render_group *RenderGroup, figure_unit *Entity)
 {
@@ -1927,8 +1943,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     r32 GridBlockSize     = GRID_BLOCK_SIZE;
     r32 InActiveBlockSize = IDLE_BLOCK_SIZE;
     
-    r32 TimeElapsed  = Input->TimeElapsed;
-    r32 MaxVel       = GridBlockSize / 6.0f;
     u32 RowAmount    = GridEntity->RowAmount;
     u32 ColumnAmount = GridEntity->ColumnAmount;
     u32 FigureAmount = FigureEntity->FigureAmount;
@@ -1938,15 +1952,10 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     r32 ActualGridHeight = RowAmount * GridBlockSize;
     
     v2 GridAreaDimension = GetDim(GridEntity->GridArea);
-    
     rectangle2 GridArea = GridEntity->GridArea;
     GridArea.Min.x = GridArea.Min.x + (GridAreaDimension.w / 2.0f) - (ActualGridWidth / 2.0f);
     GridArea.Min.y = GridArea.Min.y + (GridAreaDimension.h / 2.0f) - (ActualGridHeight / 2.0f);
     SetDim(&GridArea, ActualGridWidth, ActualGridHeight);
-    
-    bool ToggleHighlight = false;
-    s32 StartX = 0;
-    s32 StartY = 0;
     
     /* game_input checking */
     options_choice OptionChoice = PlaygroundUpdateEvents(Input, LevelEntity, RenderGroup->Width, RenderGroup->Height);
@@ -1968,11 +1977,7 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     }
     
     // TODO(msokolov): this should be a texture
-    //Clear(RenderGroup, {42, 6, 21, 255});
-    //Clear(RenderGroup, {51, 14, 5, 255});
     Clear(RenderGroup, {51, 8, 23, 255});
-    
-    //PushBitmap(RenderGroup, LevelEntity->BackgroundTexture, ScreenRectangle);
     
     /* GridEntity update and render */
     for (u32 Index = 0; Index < FigureAmount; ++Index)
@@ -2016,9 +2021,9 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
             if(!FigureEntity->IsRotating && !FigureEntity->IsFlipping)
             {
                 /* Check if we can stick it! */
+                v2 Offset = {};
+                
                 u32 Count   = 0;
-                r32 OffsetX = 0;
-                r32 OffsetY = 0;
                 u32 RowIndex[4] = {0};
                 u32 ColIndex[4] = {0};
                 
@@ -2036,15 +2041,12 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                         {
                             if (IsInRectangle(FigureUnit[FigureIndex].Shell[l], Rect))
                             {
-                                if(Count == 0)
-                                {
-                                    OffsetX = Rect.Min.x + (GridBlockSize * 0.5f) - FigureUnit[FigureIndex].Shell[l].x;
-                                    OffsetY = Rect.Min.y + (GridBlockSize * 0.5f) - FigureUnit[FigureIndex].Shell[l].y;
-                                }
+                                Offset = Rect.Min + (GridBlockSize * 0.5f) - FigureUnit[FigureIndex].Shell[l];
                                 
                                 RowIndex[l] = i;
                                 ColIndex[l] = j;
-                                Count = Count + 1;
+                                
+                                Count++;
                                 break;
                             }    
                         }
@@ -2065,20 +2067,14 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                     if(IsFree)
                     {
                         FigureUnit[FigureIndex].IsStick = true;
+                        v2 NewPosition = FigureUnit[FigureIndex].Position + Offset;
                         
-                        u32 StickSize = GridEntity->StickUnitsAmount;
-                        
-                        v2 FigureCenter = {};
-                        FigureCenter.x   = FigureUnit[FigureIndex].Position.x + (FigureUnit[FigureIndex].Size.w *0.5f);
-                        FigureCenter.y   = FigureUnit[FigureIndex].Position.y + (FigureUnit[FigureIndex].Size.h) * FigureUnit[FigureIndex].CenterOffset;
-                        
-                        for (u32 i = 0; i < StickSize; ++i)
+                        for (u32 i = 0; i < GridEntity->StickUnitsAmount; ++i)
                         {
                             if(GridEntity->StickUnits[i].Index == -1)
                             {
                                 GridEntity->StickUnits[i].Index     = FigureIndex;
-                                GridEntity->StickUnits[i].Center.x  = FigureCenter.x + OffsetX;
-                                GridEntity->StickUnits[i].Center.y  = FigureCenter.y + OffsetY;
+                                GridEntity->StickUnits[i].Center    = NewPosition;
                                 GridEntity->StickUnits[i].IsSticked = false;
                                 
                                 for (u32 j = 0; j < FIGURE_BLOCKS_MAXIMUM; ++j)
@@ -2100,7 +2096,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         
     }
     
-    
     /* StickUnits aka figures that are moving to a grid */
     b32 IsAllSticked = GridEntity->StickUnitsAmount > 0;
     for(u32 i = 0; i < GridEntity->StickUnitsAmount; ++i)
@@ -2115,28 +2110,13 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         s32 Index = GridEntity->StickUnits[i].Index;
         if(!IsSticked && Index >= 0)
         {
-            v2 FigureCenter = {};
-            FigureCenter.x = FigureUnit[Index].Position.x + (FigureUnit[Index].Size.w * 0.5f);
-            FigureCenter.y = FigureUnit[Index].Position.y + (FigureUnit[Index].Size.h) * FigureUnit[Index].CenterOffset;
+            v2 Position = FigureUnit[Index].Position;
+            v2 TargetPosition = GridEntity->StickUnits[i].Center;
             
-            v2 TargetCenter = GridEntity->StickUnits[i].Center;
-            v2 dt = TargetCenter - FigureCenter;
+            v2 dt = MoveObject2D(Position, TargetPosition, Input->dtForFrame, FigureEntity->FigureVelocity);
             
-            r32 Distance = Square(dt);
-            r32 DeadZone = 5.0f;
-            if (Distance > DeadZone)
-            {
-                dt  = Normalize(dt);
-                dt *= (FigureEntity->FigureVelocity * Input->dtForFrame);
-                
-                dt.x = roundf(dt.x);
-                dt.y = roundf(dt.y);
-            }
-            
-            FigureUnitMove(&FigureUnit[Index], dt);
-            
-            FigureCenter += dt;
-            if((FigureCenter.x == TargetCenter.x) && (FigureCenter.y == TargetCenter.y))
+            Position = FigureUnitMove(&FigureUnit[Index], dt);
+            if(Position == TargetPosition)
             {
                 GridEntity->StickUnits[i].IsSticked = true;
                 
@@ -2155,11 +2135,9 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     if(IsAllSticked)
     {
         /* Level is completed */
-        // TODO(msokolov): also check if there is any figures left??
         LevelEntity->LevelFinished = true;
         Result = playground_status::LEVEL_FINISHED;
         printf("level is completed\n");
-        //LevelEntityFinishAnimationInit(LevelEntity, Memory, Buffer);
     }
     
     /* Check if a player is left with only one figure */
@@ -2322,7 +2300,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         }
     }
     
-    
     u32 CellCounter = 0;
     rectangle2 GridCellRectangle = {};
     for (u32 Row = 0; Row < RowAmount; ++Row)
@@ -2379,44 +2356,9 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                 TextureRectangle.Min.y = GridCellRectangle.Min.y - (25.0f / 2.0f);
                 SetDim(&TextureRectangle, GetDim(GridCellRectangle).w + 25.0f, GetDim(GridCellRectangle).h + 25.0f);
                 PushBitmap(RenderGroup, GridEntity->GridCell1Texture, TextureRectangle);
-                
-                //PushRectangle(RenderGroup, GridCellRectangle, {255, 255, 255, 50});
-                //PushRectangleOutline(RenderGroup, GridCellRectangle, {255, 255, 255, 255});
             }
         }
     }
-    
-    
-    
-#if 0
-    rectangle2 FrameRectangle = {};
-    r32 FrameSize = GridBlockSize / 2.0f;
-    r32 SpaceOverFrame = GridBlockSize / 4.0f;
-    
-    // Top left corner
-    FrameRectangle.Min.x = GridArea.Min.x - SpaceOverFrame;
-    FrameRectangle.Min.y = GridArea.Min.y - SpaceOverFrame;
-    SetDim(&FrameRectangle, FrameSize, FrameSize);
-    PushBitmap(RenderGroup, GridEntity->TopLeftCornerFrame, FrameRectangle);
-    
-    // Top right corner
-    FrameRectangle.Min.x = GridArea.Min.x - SpaceOverFrame + ActualGridWidth;
-    FrameRectangle.Min.y = GridArea.Min.y - SpaceOverFrame;
-    SetDim(&FrameRectangle, FrameSize, FrameSize);
-    PushBitmap(RenderGroup, GridEntity->TopRightCornerFrame, FrameRectangle);
-    
-    // Down left corner
-    FrameRectangle.Min.x = GridArea.Min.x - SpaceOverFrame;
-    FrameRectangle.Min.y = GridArea.Min.y - SpaceOverFrame + ActualGridHeight;
-    SetDim(&FrameRectangle, FrameSize, FrameSize);
-    PushBitmap(RenderGroup, GridEntity->DownLeftCornerFrame, FrameRectangle);
-    
-    // Down right corner
-    FrameRectangle.Min.x = GridArea.Min.x - SpaceOverFrame + ActualGridWidth;
-    FrameRectangle.Min.y = GridArea.Min.y - SpaceOverFrame + ActualGridHeight;
-    SetDim(&FrameRectangle, FrameSize, FrameSize);
-    PushBitmap(RenderGroup, GridEntity->DownRightCornerFrame, FrameRectangle);
-#endif
     
     /* MovingBlocks Update and Rendering */
     moving_block *MovingBlocks = GridEntity->MovingBlocks;
@@ -2434,7 +2376,7 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
             Destination.y = GridArea.Min.y + (RowNumber * GridBlockSize);
             
             v2 dt = Destination - Position;
-            r32 Distance = Square(dt);
+            r32 Distance = SquareRoot(dt);
             r32 DeadZone = 5.0f;
             if (Distance > DeadZone)
             {
@@ -2464,36 +2406,22 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     }
     
     /* FigureEntity Update and Rendering */
-    /* Figure Area Highlight */
     if(FigureEntity->IsRestarting)
     {
         bool AllFiguresReturned = true;
         for(u32 i = 0; i < FigureAmount; ++i)
         {
             v2 Position = FigureUnit[i].Position;
-            v2 HomePosition = FigureUnit[i].HomePosition;
+            v2 TargetPosition = FigureUnit[i].HomePosition;
             
             if(!FigureUnit[i].IsIdle)
             {
                 AllFiguresReturned = false;
                 
-                v2 dt = HomePosition - Position;
-                r32 Distance = Square(dt);
-                r32 DeadZone = 5.0f;
+                v2 dt = MoveObject2D(Position, TargetPosition, Input->dtForFrame, FigureEntity->FigureVelocity);
                 
-                if (Distance > DeadZone)
-                {
-                    dt  = Normalize(dt);
-                    dt *= (FigureEntity->FigureVelocity * Input->dtForFrame);
-                    
-                    dt.x = roundf(dt.x);
-                    dt.y = roundf(dt.y);
-                }
-                
-                FigureUnitMove(&FigureUnit[i], dt);
-                
-                Position += dt;
-                if((Position.x == HomePosition.x) && (Position.y == HomePosition.y))
+                Position = FigureUnitMove(&FigureUnit[i], dt);
+                if(Position == TargetPosition)
                 {
                     FigureEntity->FigureUnit[i].IsIdle = true;
                 }
@@ -2507,80 +2435,18 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         }
     }
     
-    bool ShouldHighlight = false;
-    
-    if(ActiveIndex >= 0)
-    {
-        rectangle2 ScreenArea = {};
-        ScreenArea.Max.w = RenderGroup->Width;
-        ScreenArea.Max.h = RenderGroup->Height;
-        
-        v2 Center = {};
-        Center.x   = FigureUnit[ActiveIndex].Position.x + (FigureUnit[ActiveIndex].Position.w / 2);
-        Center.y   = FigureUnit[ActiveIndex].Position.y + (FigureUnit[ActiveIndex].Size.h) * FigureUnit[ActiveIndex].CenterOffset;
-        
-        ShouldHighlight = 
-            IsInRectangle(FigureUnit[ActiveIndex].Shell, FIGURE_BLOCKS_MAXIMUM, FigureEntity->FigureArea) ||
-            IsInRectangle(Center, ScreenArea); 
-    }
-    
-    if(ShouldHighlight) 
-    {
-        Change1DUnitPerSec(&FigureEntity->AreaAlpha, 255, LevelEntity->FigureEntity.FlippingVelocity, Input->dtForFrame);
-        
-    }
-    else
-    {
-        Change1DUnitPerSec(&FigureEntity->AreaAlpha, 0, LevelEntity->FigureEntity.FlippingVelocity, Input->dtForFrame);
-    }
-    
-    if(FigureEntity->AreaAlpha != 0) 
-    {
-        ToggleHighlight = true;
-    }
-    
-    if(ToggleHighlight)
-    {
-        v4 HightlightColor = {255, 255, 255, 255};
-        
-        rectangle2 HighlightRect = FigureEntity->FigureArea;
-        
-        u32 RectThickness = InActiveBlockSize / 6;
-        for(u32 i = 0; i < RectThickness; i++)
-        {
-            PushRectangleOutline(RenderGroup, HighlightRect, HightlightColor);
-            
-            HighlightRect.Min.x += 1;
-            HighlightRect.Min.y += 1;
-            HighlightRect.Max.x -= 1;
-            HighlightRect.Max.y -= 1;
-        }
-    }
-    
     /* Figure returning to the idle zone */
     if(FigureEntity->IsReturning)
     {
         u32 ReturnIndex = FigureEntity->ReturnIndex;
         
         v2 Position = FigureUnit[ReturnIndex].Position;
-        v2 Destination = FigureUnit[ReturnIndex].HomePosition;
+        v2 TargetPosition = FigureUnit[ReturnIndex].HomePosition;
         
-        v2 dt = Destination - Position;
-        r32 Distance = Square(dt);
-        r32 DeadZone = 5.0f;
-        if (Distance > DeadZone)
-        {
-            dt  = Normalize(dt);
-            dt *= (FigureEntity->FigureVelocity * Input->dtForFrame);
-            
-            dt.x = roundf(dt.x);
-            dt.y = roundf(dt.y);
-        }
+        v2 dt = MoveObject2D(Position, TargetPosition, Input->dtForFrame, FigureEntity->FigureVelocity);
+        Position = FigureUnitMove(&FigureUnit[ReturnIndex], dt);
         
-        Position += dt;
-        FigureUnitMove(&FigureUnit[ReturnIndex], dt);
-        
-        if ((Position.x == Destination.x) && (Position.y == Destination.y))
+        if (Position == TargetPosition)
         {
             FigureEntity->IsReturning = false;
             FigureEntity->ReturnIndex = -1;
@@ -2602,31 +2468,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
             FigureEntity->RotationSum = 0;
             FigureEntity->IsRotating = false;
         }
-    }
-    
-    /* Flipping Animation */
-    if(FigureEntity->IsFlipping)
-    {
-        if(FigureEntity->FadeInSum > 0)
-        {
-            if(Change1DUnitPerSec(&FigureEntity->FigureAlpha, 0, 10, TimeElapsed))
-            {
-                FigureEntity->FigureAlpha = 0;
-                FigureEntity->FadeInSum   = 0;
-                FigureUnitFlipHorizontally(&FigureUnit[ActiveIndex]);
-            }
-        }
-        else if(FigureEntity->FadeOutSum < 255)
-        {
-            if(Change1DUnitPerSec(&FigureEntity->FigureAlpha, 255, 10, TimeElapsed))
-            {
-                FigureEntity->FigureAlpha = 255;
-                FigureEntity->FadeOutSum  = 255;
-                FigureEntity->IsFlipping  = false;
-            }
-        }
-        
-        //SDL_SetTextureAlphaMod(FigureUnit[ActiveIndex].Texture, FigureEntity->FigureAlpha);
     }
     
     /* Figure Rendering */
@@ -2784,8 +2625,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
             }
         }
     }
-    
-    
     
     return (Result);
 }

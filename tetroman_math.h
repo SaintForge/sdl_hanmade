@@ -195,6 +195,7 @@ operator+=(v2 &A, v2 B)
 }
 
 
+
 inline v2 &
 operator+=(v2 &A, r32 B)
 {
@@ -204,8 +205,36 @@ operator+=(v2 &A, r32 B)
     return(A);
 }
 
+inline b32
+operator==(v2 &A, v2 &B)
+{
+    b32 Result;
+    
+    Result = (A.x == B.x && A.y == B.y);
+    
+    return (Result);
+}
+
+inline b32
+operator!=(v2 &A, v2 &B)
+{
+    b32 Result;
+    
+    Result = !(A == B);
+    
+    return (Result);
+}
+
 inline r32
-Square(v2 v)
+Square(r32 A)
+{
+    r32 Result = A * A;
+    
+    return (Result);
+}
+
+inline r32
+SquareRoot(v2 v)
 {
     r32 Result = 0.0f;
     Result = sqrt(v.x * v.x + v.y * v.y);
@@ -218,7 +247,7 @@ Normalize(v2 A)
 {
     v2 Result = {};
     
-    r32 Magnitude = Square(A);
+    r32 Magnitude = SquareRoot(A);
     if (Magnitude)
     {
         Result = A / Magnitude;

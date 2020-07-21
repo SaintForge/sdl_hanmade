@@ -54,7 +54,7 @@ struct figure_entity
 {
     rectangle2 FigureArea;
     
-    u32 ReturnIndex;
+    s32 ReturnIndex;
     s32 FigureActive;
     
     u32 FigureAmount;

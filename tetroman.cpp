@@ -43,7 +43,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         GameState->EditorMode      = false;
         GameState->PlaygroundIndex = 0;
-        GameState->CurrentMode     = game_mode::MENU;
+        GameState->CurrentMode     = game_mode::PLAYGROUND;
         
         playground_config *Configuration = &GameState->Configuration;
         Configuration->StartUpTimeToFinish = 0.0f;
