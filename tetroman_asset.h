@@ -105,13 +105,15 @@ struct moving_block_data
 {
     u32 RowNumber;
     u32 ColNumber;
-    bool IsVertical;
-    bool MoveSwitch;
+    b32 IsVertical;
+    b32 MoveSwitch;
 };
 
 struct playground_data
 {
     b32 IsUnlocked;
+    
+    r32 TimeElapsed; // In seconds
     u32 LevelNumber;
     u32 RowAmount;
     u32 ColumnAmount;

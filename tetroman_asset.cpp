@@ -427,8 +427,10 @@ SDLAssetBuildBinaryFile()
     /* Audio loading */
     BinaryHeader.AudioSizeInBytes = SDL_RWtell(BinaryFile) - sizeof(binary_header);
     
-    //SDLWriteSoundToFile(BinaryFile, "focus.wav");
-    //SDLWriteSoundToFile(BinaryFile, "chunk.wav");
+    SDLWriteSoundToFile(BinaryFile, "figure_pick.wav");
+    SDLWriteSoundToFile(BinaryFile, "figure_stick.wav");
+    SDLWriteSoundToFile(BinaryFile, "figure_rotate.wav");
+    
     //SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
     
     SDL_RWseek(BinaryFile, 0, RW_SEEK_SET);

@@ -224,8 +224,16 @@ SDLUpdateWindow(SDL_Window* Window, SDL_Renderer *Renderer, sdl_offscreen_buffer
 #undef main //NOTE(Max): Because SDL_main doesn't work on some windows versions 
 int main(int argc, char **argv)
 {
-    SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
-    Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096);
+    if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO) == -1)
+    {
+        printf("Error in SDL_Init: %s", SDL_GetError());
+        return 1;
+    }
+    
+    if (Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 2, 1024) == -1)
+    {
+        printf("Error in Mix_OpenAudio: %s", Mix_GetError());
+    }
     
     s32 img_flags = IMG_INIT_PNG;
     s32 return_flags = IMG_Init(img_flags);

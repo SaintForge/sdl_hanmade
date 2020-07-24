@@ -41,9 +41,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GameState->TimerFont = TTF_OpenFont(FontPath, 80);
         Assert(GameState->TimerFont);
         
-        GameState->EditorMode      = false;
+        GameState->MenuTimerFont = TTF_OpenFont(FontPath, 40);
+        Assert(GameState->MenuTimerFont);
+        
         GameState->PlaygroundIndex = 0;
-        GameState->CurrentMode     = game_mode::PLAYGROUND;
+        GameState->CurrentMode     = game_mode::MENU;
         
         playground_config *Configuration = &GameState->Configuration;
         Configuration->StartUpTimeToFinish = 0.0f;
@@ -64,6 +66,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Playground->CornerRightTopTexture     = GetTexture(Memory, "corner_right_top.png", Buffer->Renderer);
         Playground->CornerRightBottomTexture  = GetTexture(Memory, "corner_right_bottom.png", Buffer->Renderer);
         Playground->VerticalBorderTexture     = GetTexture(Memory, "vertical_border.png", Buffer->Renderer);
+        
+        Playground->PickSound = GetSound(Memory, "figure_pick.wav");
+        Playground->StickSound = GetSound(Memory, "figure_stick.wav");
+        Playground->RotateSound = GetSound(Memory, "figure_rotate.wav");
         
         /* Playground Option Menu */ 
         playground_options *PlaygroundOptions = &Playground->Options;
@@ -200,43 +206,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Assert(PlaygroundData);
         
         GameState->PlaygroundData = PlaygroundData;
-        PlaygroundData[0].IsUnlocked   = true;
-        PlaygroundData[0].FigureAmount = 4;
-        PlaygroundData[0].Figures[0].Form = figure_form::I_figure;
-        PlaygroundData[0].Figures[0].Type = figure_type::classic;
-        
-        PlaygroundData[0].Figures[1].Form = figure_form::O_figure;
-        PlaygroundData[0].Figures[1].Type = figure_type::classic;
-        
-        PlaygroundData[0].Figures[2].Form = figure_form::L_figure;
-        PlaygroundData[0].Figures[2].Type = figure_type::classic;
-        
-        PlaygroundData[0].Figures[3].Form = figure_form::J_figure;
-        PlaygroundData[0].Figures[3].Type = figure_type::classic;
-        
-        PlaygroundData[0].RowAmount    = 5;
-        PlaygroundData[0].ColumnAmount = 5;
-        PlaygroundData[0].MovingBlocksAmount = 0;
-        PlaygroundData[0].MovingBlocks[0].RowNumber = 1;
-        PlaygroundData[0].MovingBlocks[0].ColNumber = 1;
-        
-        PrepareNextPlayground(Playground, Configuration, PlaygroundData, 0);
-        
-        char LevelString[3] = {};
-        sprintf(LevelString, "%d", Playground->LevelNumber);
-        if (Playground->LevelNumberTexture)
-        {
-            SDL_DestroyTexture(Playground->LevelNumberTexture);
-        }
-        
-        Playground->LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
-        Assert(Playground->LevelNumberTexture);
-        //WriteLevelsToFile(Memory->LevelStorage, Memory->LevelStorageSize);
         
         /* NOTE(msokolov): playground_menu initialization */
-        
         playground_menu *PlaygroundMenu = &GameState->PlaygroundMenu;
-        PlaygroundMenu->MenuPage = menu_page::MAIN_PAGE;
+        PlaygroundMenu->MenuPage = menu_page::DIFFICULTY_PAGE;
         PlaygroundMenu->DiffMode = difficulty::EASY;
         PlaygroundMenu->Resolution = resolution_standard::FULLHD;
         PlaygroundMenu->IsFullScreen = false;
@@ -257,18 +230,15 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundMenu->DifficultyShadowTexture[2] = MakeTextureFromString(Buffer, GameState->TimerFont, "III", V4(0, 0, 0, 128));
         
         for(u32 Index = 0;
-            Index < 100;
+            Index < PLAYGROUND_MAXIMUM;
             ++Index)
         {
-            char LevelString[3] = {};
-            sprintf(LevelString, "%d", Index + 1);
+            char TimeString[64] = {};
+            GetTimeString(TimeString, GameState->PlaygroundData[Index].TimeElapsed);
             
-            if (PlaygroundMenu->LevelNumberTexture[Index])
-            {
-                SDL_DestroyTexture(PlaygroundMenu->LevelNumberTexture[Index]);
-            }
+            GameState->PlaygroundMenu.LevelNumberTexture[Index] = MakeTextureFromString(Buffer, GameState->MenuTimerFont, TimeString, {255, 255, 255, 255});
             
-            GameState->PlaygroundMenu.LevelNumberTexture[Index] = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
+            GameState->PlaygroundMenu.LevelNumberShadowTexture[Index] = MakeTextureFromString(Buffer, GameState->MenuTimerFont, TimeString, {0, 0, 0, 255});
         }
         
         
@@ -327,10 +297,12 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
 #if DEBUG_BUILD
         
+        GameState->EditorMode      = false;
+        
         playground_editor *PlaygroundEditor = PushStruct(&GameState->MemoryGroup, playground_editor);
         GameState->PlaygroundEditor = PlaygroundEditor;
         
-        PlaygroundEditor->Font = TTF_OpenFont("..\\data\\Karmina-Bold.otf", 50);
+        PlaygroundEditor->Font = TTF_OpenFont(FontPath, 50);
         Assert(PlaygroundEditor->Font);
         
         PlaygroundEditor->SelectedArea = selected_area::GRID_PLAYGROUND;
@@ -356,10 +328,48 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         //PlaygroundEditor->SavedTexture = MakeTextureFromString(Buffer, PlaygroundEditor->Font, "Saved.", {255, 255, 255, 255});
         
+        // NOTE(msokolov): temporary
+        PlaygroundData[0].IsUnlocked   = true;
+        PlaygroundData[0].FigureAmount = 4;
+        PlaygroundData[0].Figures[0].Form = figure_form::I_figure;
+        PlaygroundData[0].Figures[0].Type = figure_type::classic;
+        
+        PlaygroundData[0].Figures[1].Form = figure_form::O_figure;
+        PlaygroundData[0].Figures[1].Type = figure_type::classic;
+        
+        PlaygroundData[0].Figures[2].Form = figure_form::L_figure;
+        PlaygroundData[0].Figures[2].Type = figure_type::classic;
+        
+        PlaygroundData[0].Figures[3].Form = figure_form::J_figure;
+        PlaygroundData[0].Figures[3].Type = figure_type::classic;
+        
+        PlaygroundData[0].TimeElapsed  = 2.36f;
+        PlaygroundData[0].RowAmount    = 4;
+        PlaygroundData[0].ColumnAmount = 4;
+        PlaygroundData[0].MovingBlocksAmount = 0;
+        PlaygroundData[0].MovingBlocks[0].RowNumber = 1;
+        PlaygroundData[0].MovingBlocks[0].ColNumber = 1;
+        
+        PrepareNextPlayground(Playground, Configuration, PlaygroundData, 0);
+        
+        char LevelString[64] = {};
+        sprintf(LevelString, "%d", Playground->LevelNumber);
+        
+        Playground->LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
+        Assert(Playground->LevelNumberTexture);
+        
+        for (s32 Index = 0;
+             Index < PLAYGROUND_MAXIMUM;
+             ++Index)
+        {
+            PlaygroundData[Index].IsUnlocked = true;
+        }
+        
+        //WriteLevelsToFile(Memory->LevelStorage, Memory->LevelStorageSize);
+        
         PlaygroundEditor->IsInitialized = true;
 #endif
-        
-    }
+    } // if (!Memory->IsInitialized)
     
     Assert(sizeof(transient_state) < Memory->TransientStorageSize);
     transient_state *TransState = (transient_state *)Memory->TransientStorage;
@@ -370,27 +380,27 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         TransState->IsInitialized = true;
     }
     
-    //playground *Playground   = &GameState->Playground;
+    playground *Playground   = &GameState->Playground;
+    playground_menu *PlaygroundMenu = &GameState->PlaygroundMenu;
+    playground_data *PlaygroundData = GameState->PlaygroundData;
     
+#if DEBUG_BUILD
     if(Input->Keyboard.BackQuote.EndedDown)
     {
-        RestartLevelEntity(&GameState->Playground);
+        RestartLevelEntity(Playground);
         
-#if DEBUG_BUILD
+        
         if (!GameState->EditorMode)
         {
             GameState->EditorMode   = true;
-            GameState->Playground.LevelPaused = true;
+            Playground->LevelPaused = true;
         }
         else
         {
             GameState->EditorMode   = false;
-            GameState->Playground.LevelPaused = false;
+            Playground->LevelPaused = false;
         }
-#endif
     }
-    
-#if DEBUG_BUILD
     
     if (GameState->EditorMode)
     {
@@ -399,29 +409,26 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             u32 PlaygroundIndex = GameState->PlaygroundIndex;
             if (PlaygroundIndex < PLAYGROUND_MAXIMUM)
             {
-                RestartLevelEntity(&GameState->Playground);
+                RestartLevelEntity(Playground);
                 PlaygroundIndex++;
                 
-                playground_data *PlaygroundData = GameState->PlaygroundData;
-                Assert(PlaygroundData);
+                PrepareNextPlayground(Playground, &GameState->Configuration, PlaygroundData, PlaygroundIndex);
                 
-                PrepareNextPlayground(&GameState->Playground, &GameState->Configuration, PlaygroundData, PlaygroundIndex);
-                
-                char LevelString[3] = {};
-                sprintf(LevelString, "%d", GameState->Playground.LevelNumber);
-                if (GameState->Playground.LevelNumberTexture)
+                char LevelString[64] = {};
+                sprintf(LevelString, "%d", Playground->LevelNumber);
+                if (Playground->LevelNumberTexture)
                 {
-                    SDL_DestroyTexture(GameState->Playground.LevelNumberTexture);
+                    SDL_DestroyTexture(Playground->LevelNumberTexture);
                 }
                 
-                GameState->Playground.LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
-                Assert(GameState->Playground.LevelNumberTexture);
+                Playground->LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
+                Assert(Playground->LevelNumberTexture);
                 
                 printf("LevelIndex = %d\n", PlaygroundIndex);
             }
             
             GameState->PlaygroundEditor->FigureIndex = 0;
-            GameState->PlaygroundIndex = PlaygroundIndex;
+            PlaygroundIndex = PlaygroundIndex;
         }
         
         if (Input->Keyboard.Q_Button.EndedDown)
@@ -429,24 +436,21 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             u32 PlaygroundIndex = GameState->PlaygroundIndex;
             if (PlaygroundIndex > 0)
             {
-                RestartLevelEntity(&GameState->Playground);
+                RestartLevelEntity(Playground);
                 
                 PlaygroundIndex--;
                 
-                playground_data *PlaygroundData = GameState->PlaygroundData;
-                Assert(PlaygroundData);
+                PrepareNextPlayground(Playground, &GameState->Configuration, PlaygroundData, PlaygroundIndex);
                 
-                PrepareNextPlayground(&GameState->Playground, &GameState->Configuration, PlaygroundData, PlaygroundIndex);
-                
-                char LevelString[3] = {};
-                sprintf(LevelString, "%d", GameState->Playground.LevelNumber);
-                if (GameState->Playground.LevelNumberTexture)
+                char LevelString[64] = {};
+                sprintf(LevelString, "%d", Playground->LevelNumber);
+                if (Playground->LevelNumberTexture)
                 {
-                    SDL_DestroyTexture(GameState->Playground.LevelNumberTexture);
+                    SDL_DestroyTexture(Playground->LevelNumberTexture);
                 }
                 
-                GameState->Playground.LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
-                Assert(GameState->Playground.LevelNumberTexture);
+                Playground->LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
+                Assert(Playground->LevelNumberTexture);
                 printf("LevelIndex = %d\n", PlaygroundIndex);
             }
             
@@ -456,7 +460,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         if(Input->Keyboard.S_Button.EndedDown)
         {
-            WritePlaygroundData(GameState->PlaygroundData, &GameState->Playground, GameState->PlaygroundIndex);
+            WritePlaygroundData(PlaygroundData, Playground, GameState->PlaygroundIndex);
             WriteLevelsToFile(Memory->LevelStorage, Memory->LevelStorageSize);
             printf("saved.\n");
         }
@@ -476,74 +480,89 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     {
         case PLAYGROUND:
         {
-            playground_status PlaygroundStatus = PlaygroundUpdateAndRender(&GameState->Playground, RenderGroup, Input);
+            playground_status PlaygroundStatus = PlaygroundUpdateAndRender(Playground, RenderGroup, Input);
             
             if (PlaygroundStatus == playground_status::LEVEL_RUNNING)
             {
-                GameState->Playground.TimeElapsed += Input->dtForFrame;
+                Playground->TimeElapsed += Input->dtForFrame;
                 
-                if (GameState->Playground.ShowTimer)
+                if (Playground->ShowTimer)
                 {
-                    u32 Minutes = (u32)GameState->Playground.TimeElapsed / 60;
-                    u32 Seconds = (u32)GameState->Playground.TimeElapsed % 60;
+                    char TimeString[64] = {};
+                    GetTimeString(TimeString, Playground->TimeElapsed);
                     
-                    char TimeString[16] = {};
+                    if (Playground->TimerShadowTexture)
+                        SDL_DestroyTexture(Playground->TimerShadowTexture);
                     
-                    sprintf(TimeString, "%02d:%02d", Minutes, Seconds);
+                    if (Playground->TimerTexture)
+                        SDL_DestroyTexture(Playground->TimerTexture);
                     
-                    if (GameState->Playground.TimerShadowTexture)
-                        SDL_DestroyTexture(GameState->Playground.TimerShadowTexture);
+                    Playground->TimerShadowTexture = MakeTextureFromString(Buffer, GameState->TimerFont, TimeString, V4(0, 0, 0, 128));
                     
-                    if (GameState->Playground.TimerTexture)
-                        SDL_DestroyTexture(GameState->Playground.TimerTexture);
-                    
-                    GameState->Playground.TimerShadowTexture = MakeTextureFromString(Buffer, GameState->TimerFont, TimeString, V4(0, 0, 0, 128));
-                    
-                    GameState->Playground.TimerTexture = MakeTextureFromString(Buffer, GameState->TimerFont, TimeString, V4(255, 255, 255, 255));
+                    Playground->TimerTexture = MakeTextureFromString(Buffer, GameState->TimerFont, TimeString, V4(255, 255, 255, 255));
                     
                     rectangle2 TimerRectangle = {};
                     TimerRectangle.Min.x = (VIRTUAL_GAME_WIDTH * 0.5f) - (25.0f);
                     TimerRectangle.Min.y = 50.0f;
                     SetDim(&TimerRectangle, 50.0f, 50.0f);
                     
-                    TimerRectangle = GetTextOnTheCenterOfRectangle(TimerRectangle, GameState->Playground.TimerTexture);
+                    TimerRectangle = GetTextOnTheCenterOfRectangle(TimerRectangle, Playground->TimerTexture);
                     
                     TimerRectangle.Min += V2(5.0f, 5.0f);
                     TimerRectangle.Max += V2(5.0f, 5.0f);
-                    PushBitmap(RenderGroup, GameState->Playground.TimerShadowTexture, TimerRectangle);
+                    PushBitmap(RenderGroup, Playground->TimerShadowTexture, TimerRectangle);
                     
                     TimerRectangle.Min -= V2(5.0f, 5.0f);
                     TimerRectangle.Max -= V2(5.0f, 5.0f);
-                    PushBitmap(RenderGroup, GameState->Playground.TimerTexture, TimerRectangle);
+                    PushBitmap(RenderGroup, Playground->TimerTexture, TimerRectangle);
                 }
             }
             else if (PlaygroundStatus == playground_status::LEVEL_FINISHED)
             {
                 if (GameState->PlaygroundIndex < PLAYGROUND_MAXIMUM)
                 {
-                    GameState->PlaygroundIndex++;
-                    
-                    RestartLevelEntity(&GameState->Playground);
-                    playground_data *PlaygroundData = GameState->PlaygroundData;
-                    Assert(PlaygroundData);
-                    
-                    PrepareNextPlayground(&GameState->Playground, &GameState->Configuration, PlaygroundData, GameState->PlaygroundIndex);
-                    
-                    char LevelString[3] = {};
-                    sprintf(LevelString, "%d", GameState->Playground.LevelNumber);
-                    if (GameState->Playground.LevelNumberTexture)
+                    u32 PlaygroundIndex = GameState->PlaygroundIndex;
+                    if (Playground->TimeElapsed < PlaygroundData[PlaygroundIndex].TimeElapsed
+                        || PlaygroundData[PlaygroundIndex].TimeElapsed == 0.0f)
                     {
-                        SDL_DestroyTexture(GameState->Playground.LevelNumberTexture);
+                        PlaygroundData[PlaygroundIndex].TimeElapsed = Playground->TimeElapsed;
+                        RestartLevelEntity(Playground);
+                        
+                        char TimeString[64] = {};
+                        GetTimeString(TimeString, PlaygroundData[PlaygroundIndex].TimeElapsed);
+                        
+                        PlaygroundMenu->LevelNumberTexture[PlaygroundIndex] = MakeTextureFromString(Buffer, GameState->MenuTimerFont, TimeString, {255, 255, 255, 255});
+                        
+                        PlaygroundMenu->LevelNumberShadowTexture[PlaygroundIndex] = MakeTextureFromString(Buffer, GameState->MenuTimerFont, TimeString, {0, 0, 0, 255});
                     }
                     
-                    GameState->Playground.LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
-                    Assert(GameState->Playground.LevelNumberTexture);
+                    if (PlaygroundIndex < PLAYGROUND_MAXIMUM)
+                    {
+                        GameState->PlaygroundIndex = ++PlaygroundIndex;
+                        PlaygroundData[PlaygroundIndex].IsUnlocked = true;
+                        
+                        PrepareNextPlayground(Playground, &GameState->Configuration, PlaygroundData, GameState->PlaygroundIndex);
+                        
+                        RestartLevelEntity(Playground);
+#if DEBUG_BUILD
+                        char LevelString[64] = {};
+                        sprintf(LevelString, "%d", Playground->LevelNumber);
+                        if (Playground->LevelNumberTexture)
+                        {
+                            SDL_DestroyTexture(Playground->LevelNumberTexture);
+                        }
+                        
+                        Playground->LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
+                        Assert(Playground->LevelNumberTexture);
+#endif
+                    }
+                    
                 }
             }
             else if (PlaygroundStatus == playground_status::LEVEL_MENU_QUIT)
             {
                 GameState->CurrentMode = MENU;
-                GameState->PlaygroundMenu.MenuPage = menu_page::DIFFICULTY_PAGE;
+                PlaygroundMenu->MenuPage = menu_page::DIFFICULTY_PAGE;
             }
             else if (PlaygroundStatus == playground_status::LEVEL_GAME_QUIT)
             {
@@ -552,52 +571,52 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             else if (PlaygroundStatus == playground_status::LEVEL_SETTINGS_QUIT)
             {
                 GameState->CurrentMode = MENU;
-                GameState->PlaygroundMenu.MenuPage = menu_page::SETTINGS_PAGE;
-                GameState->PlaygroundMenu.PlaygroundSwitch = true;
+                PlaygroundMenu->MenuPage = menu_page::SETTINGS_PAGE;
+                PlaygroundMenu->PlaygroundSwitch = true;
             }
             else if (PlaygroundStatus == playground_status::LEVEL_RESTARTED)
             {
-                RestartLevelEntity(&GameState->Playground);
+                RestartLevelEntity(Playground);
             }
             
+#if DEBUG_BUILD
             if (GameState->EditorMode)
             {
-                playground_editor *PlaygroundEditor = GameState->PlaygroundEditor;
-                PlaygroundEditorUpdateAndRender(&GameState->Playground, GameState->PlaygroundData, &GameState->Configuration, GameState->PlaygroundEditor, RenderGroup, Input);
+                PlaygroundEditorUpdateAndRender(Playground, PlaygroundData, &GameState->Configuration, GameState->PlaygroundEditor, RenderGroup, Input);
             }
+#endif
             
         } break;
         
         case MENU:
         {
-            menu_result_option MenuResult = PlaygroundMenuUpdateAndRender(&GameState->PlaygroundMenu, GameState->PlaygroundData, Input, RenderGroup);
+            menu_result_option MenuResult = PlaygroundMenuUpdateAndRender(PlaygroundMenu, PlaygroundData, Input, RenderGroup);
             
             if (MenuResult.SwitchToPlayground)
             {
-                if (GameState->PlaygroundMenu.PlaygroundSwitch)
+                if (PlaygroundMenu->PlaygroundSwitch)
                 {
-                    GameState->PlaygroundMenu.PlaygroundSwitch = false;
+                    PlaygroundMenu->PlaygroundSwitch = false;
                 }
                 else
                 {
                     u32 ResultLevelIndex = MenuResult.PlaygroundIndex;
-                    RestartLevelEntity(&GameState->Playground);
+                    RestartLevelEntity(Playground);
                     GameState->PlaygroundIndex = ResultLevelIndex;
                     
-                    playground_data *PlaygroundData = GameState->PlaygroundData;
-                    Assert(PlaygroundData);
+                    PrepareNextPlayground(Playground, &GameState->Configuration, PlaygroundData, ResultLevelIndex);
                     
-                    PrepareNextPlayground(&GameState->Playground, &GameState->Configuration, PlaygroundData, ResultLevelIndex);
-                    
-                    char LevelString[3] = {};
-                    sprintf(LevelString, "%d", GameState->Playground.LevelNumber);
-                    if (GameState->Playground.LevelNumberTexture)
+#if DEBUG_BUILD
+                    char LevelString[64] = {};
+                    sprintf(LevelString, "%d", Playground->LevelNumber);
+                    if (Playground->LevelNumberTexture)
                     {
-                        SDL_DestroyTexture(GameState->Playground.LevelNumberTexture);
+                        SDL_DestroyTexture(Playground->LevelNumberTexture);
                     }
                     
-                    GameState->Playground.LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
-                    Assert(GameState->Playground.LevelNumberTexture);
+                    Playground->LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
+                    Assert(Playground->LevelNumberTexture);
+#endif
                 }
                 
                 GameState->CurrentMode = PLAYGROUND;

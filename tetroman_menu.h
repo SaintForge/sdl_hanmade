@@ -75,7 +75,10 @@ struct playground_menu
     game_texture *DifficultyShadowTexture[3];
     
     game_texture *LevelButtonTexture;
+    
     game_texture *LevelNumberTexture[100];
+    game_texture *LevelNumberShadowTexture[100];
+    
     game_texture *LevelCornerTexture[4];
     game_texture *SquareFrameLocked;
     game_texture *SquareFrameUnlocked;

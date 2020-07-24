@@ -77,6 +77,7 @@ struct figure_entity
     r32 FlippingVelocity;
     r32 RotationVelocity;
     
+    /* Texture Assets */
     game_texture *O_ClassicTexture;
     game_texture *O_StoneTexture;
     game_texture *O_MirrorTexture;
@@ -111,6 +112,7 @@ struct figure_entity
     game_texture *T_StoneTexture;
     game_texture *T_MirrorTexture;
     game_texture *T_ShadowTexture;
+    
 };
 
 struct sticked_unit
@@ -260,6 +262,7 @@ struct playground
     r32 TimeElapsed;
     b32 ShowTimer;
     
+    /* Texture Assets */
     game_texture *CornerLeftTopTexture;
     game_texture *CornerLeftBottomTexture;
     game_texture *CornerRightTopTexture;
@@ -269,6 +272,11 @@ struct playground
     
     game_texture *TimerTexture;
     game_texture *TimerShadowTexture;
+    
+    /* Sound Assets */
+    game_sound *PickSound;
+    game_sound *StickSound;
+    game_sound *RotateSound;
 };
 
 struct menu_button

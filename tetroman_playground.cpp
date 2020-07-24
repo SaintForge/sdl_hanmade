@@ -776,7 +776,6 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
             
             if(!FigureEntity->IsGrabbed)
             {
-                
                 for (s32 i = Size - 1; i >= 0; --i)
                 {
                     ActiveIndex = FigureEntity->FigureOrder[i];
@@ -817,6 +816,10 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
                         FigureEntity->FigureActive = ActiveIndex;
                         FigureEntityHighOrderFigure(FigureEntity, ActiveIndex);
                         SDL_ShowCursor(SDL_DISABLE);
+                        
+                        if(Mix_PlayChannel(-1, LevelEntity->PickSound, 0)==-1) {
+                            printf("Mix_PlayChannel: %s\n", Mix_GetError());
+                        }
                         
                         break;
                     }
@@ -1886,7 +1889,7 @@ MoveObject2D(v2 Position, v2 TargetPosition, r32 dtForFrame, r32 Speed)
     v2 Result = TargetPosition - Position;
     v2 Step = Normalize(Result) * (Speed * dtForFrame);
     
-    if (SquareRoot(Result) > (Square(SquareRoot(Step))))
+    if (SquareRoot(Result) > (SquareRoot(Step) * 1.2f))
     {
         Result = Step;
     }
@@ -2120,6 +2123,10 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
             {
                 GridEntity->StickUnits[i].IsSticked = true;
                 
+                if(Mix_PlayChannel(-1, LevelEntity->StickSound, 0)==-1) {
+                    printf("Mix_PlayChannel: %s\n", Mix_GetError());
+                }
+                
                 u32 RowIndex = 0;
                 u32 ColIndex = 0;
                 for(u32 j = 0; j < FIGURE_BLOCKS_MAXIMUM; j++)
@@ -2152,21 +2159,24 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         {
             for (u32 Column = 0; Column < ColumnAmount; ++Column)
             {
-                u32 Value = GridEntity->UnitField[(Row * GridEntity->ColumnAmount) + Column];
+                u32 Index = (Row * ColumnAmount) + Column;
+                u32 Value = GridEntity->UnitField[Index];
                 if (Value == 0)
                 {
-                    RowIndex[CellCounter]    = Row;
-                    ColumnIndex[CellCounter] = Column;
-                    
-                    if (LeastColumnIndex > Column) 
-                        LeastColumnIndex = Column;
-                    
-                    if (LeastRowIndex > Row)
-                        LeastRowIndex = Row;
+                    if (CellCounter < 4)
+                    {
+                        RowIndex[CellCounter]    = Row;
+                        ColumnIndex[CellCounter] = Column;
+                        
+                        if (LeastColumnIndex > Column) 
+                            LeastColumnIndex = Column;
+                        
+                        if (LeastRowIndex > Row)
+                            LeastRowIndex = Row;
+                    }
                     
                     ++CellCounter;
                 }
-                
             }
         }
         
@@ -2467,6 +2477,10 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
             FigureEntity->FigureUnit[ActiveIndex].Angle += 90.0f - FigureEntity->RotationSum;
             FigureEntity->RotationSum = 0;
             FigureEntity->IsRotating = false;
+            
+            if(Mix_PlayChannel(-1, LevelEntity->RotateSound, 0)==-1) {
+                printf("Mix_PlayChannel: %s\n", Mix_GetError());
+            }
         }
     }
     
@@ -2489,6 +2503,11 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         if (!Entity->IsStick)
         {
             ShadowOffset += 8.0f;
+        }
+        
+        if (Index != FigureEntity->FigureActive && (Entity->IsEnlarged && !Entity->IsStick))
+        {
+            ShadowOffset -= 5.0f;
         }
         
         rectangle2 Rectangle = {};
@@ -2558,9 +2577,7 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         SetDim(&BorderRectangle, Dim.w, Dim.h);
         PushBitmap(RenderGroup, LevelEntity->VerticalBorderTexture, BorderRectangle);
         
-        /* Level Number Rendering */
-        Dim = QueryTextureDim(LevelEntity->LevelNumberTexture);
-        PushBitmap(RenderGroup, LevelEntity->LevelNumberTexture, {0.0f, 0.0f, Dim.w, Dim.h});
+        
     }
     
     {
@@ -2672,7 +2689,7 @@ WritePlaygroundData(playground_data *Playground, playground *Entity, u32 Index)
 {
     Assert(Index < PLAYGROUND_MAXIMUM);
     
-    Playground[Index].IsUnlocked = 0;
+    Playground[Index].IsUnlocked  = true;
     Playground[Index].LevelNumber = Entity->LevelNumber;
     Playground[Index].RowAmount = Entity->GridEntity.RowAmount;
     Playground[Index].ColumnAmount = Entity->GridEntity.ColumnAmount;
@@ -2725,7 +2742,6 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
     Assert(Index >= 0 || Index < PLAYGROUND_MAXIMUM);
     
     playground_data PlaygroundData = ReadPlaygroundData(Data, Index);
-    
     
     Playground->LevelStarted = true;
     Playground->LevelNumber  = Index + 1;
@@ -2793,6 +2809,8 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
          FigureIndex < PlaygroundData.FigureAmount;
          ++FigureIndex)
     {
+        FigureUnits[FigureIndex] = {};
+        
         figure_form Form = PlaygroundData.Figures[FigureIndex].Form;
         figure_type Type = PlaygroundData.Figures[FigureIndex].Type;
         

@@ -210,7 +210,7 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, playground_data *
         
         case DIFFICULTY_PAGE:
         {
-            
+            u32 ButtonIndex = 4;
             rectangle2 DifficultyRectangle = {};
             for (u32 Index = 0;
                  Index < 3;
@@ -222,7 +222,7 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, playground_data *
                 
                 if (IsInRectangle(MousePos, DifficultyRectangle))
                 {
-                    PlaygroundMenu->ButtonIndex = Index;
+                    ButtonIndex = Index;
                     if (Input->MouseButtons[0].EndedDown)
                     {
                         difficulty DiffMode = (difficulty)Index;
@@ -230,6 +230,8 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, playground_data *
                     }
                 }
             }
+            
+            PlaygroundMenu->ButtonIndex = ButtonIndex;
             
             u32 InitialLevelIndex = 0;
             if (PlaygroundMenu->DiffMode == difficulty::MEDIUM)
@@ -245,7 +247,7 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, playground_data *
             };
             
             rectangle2 ButtonRectangle = {};
-            for (u32 Row = 0; Row < RowAmount; ++Row)
+            for (u32 Row = 0; Row < RowAmount && !FoundLevel; ++Row)
             {
                 ButtonRectangle.Min.y = LevelPosition.y + (MenuButtonSize.h * Row);
                 
@@ -256,20 +258,25 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, playground_data *
                     ButtonRectangle.Max.x = ButtonRectangle.Min.x + 150.0f;
                     ButtonRectangle.Max.y = ButtonRectangle.Min.y + 100.0f;
                     
+                    
                     if (IsInRectangle(MousePos, ButtonRectangle))
                     {
+                        
                         if (Input->MouseButtons[0].EndedDown) {
-                            Result.SwitchToPlayground = true;
-                            Result.PlaygroundIndex = InitialLevelIndex + (Row * ColumnAmount) + Column;
-                            printf("LevelIndex: %d\n", Result.PlaygroundIndex);
                             
-                            FoundLevel = true;
-                            break;
+                            u32 PlaygroundIndex = InitialLevelIndex + (Row * ColumnAmount) + Column;
+                            if (PlaygroundData[PlaygroundIndex].IsUnlocked)
+                            {
+                                Result.SwitchToPlayground = true;
+                                Result.PlaygroundIndex = PlaygroundIndex;
+                                printf("LevelIndex: %d\n", Result.PlaygroundIndex);
+                                
+                                FoundLevel = true;
+                                break;
+                            }
                         }
                     }
                 }
-                
-                if (FoundLevel) break;
             }
             
             /* Back Button */
@@ -341,7 +348,6 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, playground_data *
                 SetDim(&ButtonRectangle, MainMenuButtonSize.w, MainMenuButtonSize.h - 10.0f);
                 
                 v4 Color = {128, 128, 128, 255};
-                //PushRectangleOutline(RenderGroup, ButtonRectangle, Color);
                 
                 rectangle2 TextRectangle = {};
                 v2 Dim = QueryTextureDim(PlaygroundMenu->MainMenuTexture[Index]);
@@ -651,6 +657,15 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, playground_data *
                         PushBitmap(RenderGroup, PlaygroundMenu->SquareFrameUnlocked, LevelRectangle);
                         
                         LevelRectangle = GetTextOnTheCenterOfRectangle(ButtonRectangle, PlaygroundMenu->LevelNumberTexture[LevelIndex]);
+                        
+                        LevelRectangle.Min += V2(5.0f, 5.0f);
+                        LevelRectangle.Max += V2(5.0f, 5.0f);
+                        
+                        PushBitmap(RenderGroup, PlaygroundMenu->LevelNumberShadowTexture[LevelIndex], LevelRectangle);
+                        
+                        LevelRectangle.Min -= V2(5.0f, 5.0f);
+                        LevelRectangle.Max -= V2(5.0f, 5.0f);
+                        
                         PushBitmap(RenderGroup, PlaygroundMenu->LevelNumberTexture[LevelIndex], LevelRectangle);
                     }
                     else

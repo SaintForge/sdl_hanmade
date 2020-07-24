@@ -87,4 +87,13 @@ QueryTextureDim(game_texture *Texture)
     return(Result);
 }
 
+inline static void
+GetTimeString(char TimeString[64], r32 TimeElapsed)
+{
+    u32 Minutes = (u32)TimeElapsed / 60;
+    u32 Seconds = (u32)TimeElapsed % 60;
+    
+    sprintf(TimeString, "%02d:%02d", Minutes, Seconds);
+}
+
 #endif //TETROMAN_INTRINSICS_H
