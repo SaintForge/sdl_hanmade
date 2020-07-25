@@ -273,6 +273,9 @@ struct playground
     game_texture *TimerTexture;
     game_texture *TimerShadowTexture;
     
+    game_texture *IndicatorEmptyTexture;
+    game_texture *IndicatorFilledTexture;
+    
     /* Sound Assets */
     game_sound *PickSound;
     game_sound *StickSound;

@@ -385,6 +385,8 @@ SDLAssetBuildBinaryFile()
     
     SDLWriteBitmapToFile(BinaryFile, "gear_new.png");
     SDLWriteBitmapToFile(BinaryFile, "gear_new_shadow.png");
+    SDLWriteBitmapToFile(BinaryFile, "level_indicator_empty.png");
+    SDLWriteBitmapToFile(BinaryFile, "level_indicator_filled.png");
     
     
     SDLWriteBitmapToFile(BinaryFile, "grid_cell_new.png");
@@ -430,8 +432,9 @@ SDLAssetBuildBinaryFile()
     SDLWriteSoundToFile(BinaryFile, "figure_pick.wav");
     SDLWriteSoundToFile(BinaryFile, "figure_stick.wav");
     SDLWriteSoundToFile(BinaryFile, "figure_rotate.wav");
+    SDLWriteSoundToFile(BinaryFile, "figure_drop.wav");
     
-    //SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
+    SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
     
     SDL_RWseek(BinaryFile, 0, RW_SEEK_SET);
     

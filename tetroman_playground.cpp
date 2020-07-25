@@ -757,6 +757,11 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
     if(Input->Keyboard.Escape.EndedDown)
     {
         Result = options_choice::MAINMENU_OPTION;
+        
+        if (FigureEntity->IsGrabbed)
+        {
+            FigureEntity->IsGrabbed    = false;
+        }
     }
     
     if(!LevelEntity->LevelPaused)

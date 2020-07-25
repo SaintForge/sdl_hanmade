@@ -45,11 +45,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Assert(GameState->MenuTimerFont);
         
         GameState->PlaygroundIndex = 0;
-        GameState->CurrentMode     = game_mode::MENU;
+        GameState->CurrentMode     = game_mode::PLAYGROUND;
         
         playground_config *Configuration = &GameState->Configuration;
         Configuration->StartUpTimeToFinish = 0.0f;
-        Configuration->RotationVel         = 600.0f;
+        Configuration->RotationVel         = 1000.0f;
         Configuration->StartAlphaPerSec    = 500.0f;
         Configuration->FlippingAlphaPerSec = 1000.0f;
         Configuration->FigureVelocity      = 600.0f;
@@ -67,9 +67,15 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Playground->CornerRightBottomTexture  = GetTexture(Memory, "corner_right_bottom.png", Buffer->Renderer);
         Playground->VerticalBorderTexture     = GetTexture(Memory, "vertical_border.png", Buffer->Renderer);
         
+        Playground->IndicatorEmptyTexture     = GetTexture(Memory, "level_indicator_empty.png", Buffer->Renderer);
+        Playground->IndicatorFilledTexture    = GetTexture(Memory, "level_indicator_filled.png", Buffer->Renderer);
+        
+        
         Playground->PickSound = GetSound(Memory, "figure_pick.wav");
         Playground->StickSound = GetSound(Memory, "figure_stick.wav");
-        Playground->RotateSound = GetSound(Memory, "figure_rotate.wav");
+        Playground->RotateSound = GetSound(Memory, "figure_drop.wav");
+        
+        Mix_Volume(-1, 8);
         
         /* Playground Option Menu */ 
         playground_options *PlaygroundOptions = &Playground->Options;
@@ -358,17 +364,25 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Playground->LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
         Assert(Playground->LevelNumberTexture);
         
-        for (s32 Index = 0;
+        for (s32 Index = 1;
              Index < PLAYGROUND_MAXIMUM;
              ++Index)
         {
-            PlaygroundData[Index].IsUnlocked = true;
+            PlaygroundData[Index].IsUnlocked = false;
         }
         
         //WriteLevelsToFile(Memory->LevelStorage, Memory->LevelStorageSize);
         
         PlaygroundEditor->IsInitialized = true;
 #endif
+        
+        game_music *Music = GetMusic(Memory, "amb_ending_water.ogg");
+#if 0
+        if(Mix_PlayMusic(Music, -1) ==-1) {
+            printf("Mix_PlayMusic: %s\n", Mix_GetError());
+        }
+#endif
+        
     } // if (!Memory->IsInitialized)
     
     Assert(sizeof(transient_state) < Memory->TransientStorageSize);
@@ -388,7 +402,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     if(Input->Keyboard.BackQuote.EndedDown)
     {
         RestartLevelEntity(Playground);
-        
         
         if (!GameState->EditorMode)
         {
@@ -428,7 +441,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             }
             
             GameState->PlaygroundEditor->FigureIndex = 0;
-            PlaygroundIndex = PlaygroundIndex;
+            GameState->PlaygroundIndex = PlaygroundIndex;
         }
         
         if (Input->Keyboard.Q_Button.EndedDown)
@@ -498,8 +511,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                         SDL_DestroyTexture(Playground->TimerTexture);
                     
                     Playground->TimerShadowTexture = MakeTextureFromString(Buffer, GameState->TimerFont, TimeString, V4(0, 0, 0, 128));
-                    
-                    Playground->TimerTexture = MakeTextureFromString(Buffer, GameState->TimerFont, TimeString, V4(255, 255, 255, 255));
+                    Playground->TimerTexture       = MakeTextureFromString(Buffer, GameState->TimerFont, TimeString, V4(255, 255, 255, 255));
                     
                     rectangle2 TimerRectangle = {};
                     TimerRectangle.Min.x = (VIRTUAL_GAME_WIDTH * 0.5f) - (25.0f);
@@ -516,6 +528,29 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                     TimerRectangle.Max -= V2(5.0f, 5.0f);
                     PushBitmap(RenderGroup, Playground->TimerTexture, TimerRectangle);
                 }
+                
+                v2 IndicatorSize = {30.0f, 30.0f};
+                u32 IndicatorAmount = 8;
+                
+                s32 RowLevelStart = GameState->PlaygroundIndex - (GameState->PlaygroundIndex % IndicatorAmount);
+                for (s32 Index = 0; 
+                     Index < IndicatorAmount;
+                     ++Index)
+                {
+                    rectangle2 Rectangle = {};
+                    Rectangle.Min.x = (VIRTUAL_GAME_WIDTH * 0.5f) - (IndicatorSize.w * (IndicatorAmount / 2)) - ((IndicatorSize.w) * (IndicatorAmount / 2));
+                    Rectangle.Min.x += (Index * IndicatorSize.w) + ((IndicatorSize.w) * Index);
+                    Rectangle.Min.y = VIRTUAL_GAME_HEIGHT - (70.0f);
+                    SetDim(&Rectangle, IndicatorSize);
+                    
+                    PushBitmap(RenderGroup, Playground->IndicatorEmptyTexture, Rectangle);
+                    b32 IsUnlocked = PlaygroundData[RowLevelStart + Index].IsUnlocked;
+                    if ((GameState->PlaygroundIndex % IndicatorAmount) + 1 > Index)
+                    {
+                        PushBitmap(RenderGroup, Playground->IndicatorFilledTexture, Rectangle);
+                    }
+                }
+                
             }
             else if (PlaygroundStatus == playground_status::LEVEL_FINISHED)
             {
@@ -563,6 +598,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             {
                 GameState->CurrentMode = MENU;
                 PlaygroundMenu->MenuPage = menu_page::DIFFICULTY_PAGE;
+                SDL_ShowCursor(SDL_ENABLE);
             }
             else if (PlaygroundStatus == playground_status::LEVEL_GAME_QUIT)
             {
