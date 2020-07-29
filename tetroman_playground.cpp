@@ -1985,7 +1985,8 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     }
     
     // TODO(msokolov): this should be a texture
-    Clear(RenderGroup, {51, 8, 23, 255});
+    //Clear(RenderGroup, {51, 8, 23, 255});
+    ClearScreen(RenderGroup, {51, 8, 23, 255});
     
     /* GridEntity update and render */
     for (u32 Index = 0; Index < FigureAmount; ++Index)

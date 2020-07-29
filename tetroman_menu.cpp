@@ -303,38 +303,38 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, playground_data *
     //
     
     //Clear(RenderGroup, {42, 6, 21, 255});
-    Clear(RenderGroup, {51, 8, 23, 255});
+    ClearScreen(RenderGroup, {0, 0, 0, 255});
+    //Clear(RenderGroup, {51, 8, 23, 255});
     
     switch(PlaygroundMenu->MenuPage)
     {
         case MAIN_PAGE:
         {
-            rectangle2 DarkEmptyRectangle = {};
-            SetDim(&DarkEmptyRectangle, (VIRTUAL_GAME_WIDTH * 0.5f) - (MainMenuButtonSize.w * 0.5f), VIRTUAL_GAME_HEIGHT);
-            PushRectangle(RenderGroup, DarkEmptyRectangle, {0, 0, 0, 255});
+            rectangle2 BackgroundRectangle = {};
+            BackgroundRectangle.Min.x = 710.0f;
+            BackgroundRectangle.Min.y = 0.0f;
+            BackgroundRectangle.Max.x = 1210.0f;
+            BackgroundRectangle.Max.y = VIRTUAL_GAME_HEIGHT;
+            PushRectangle(RenderGroup, BackgroundRectangle, {51, 8, 23, 255});
             
             v2 CornerDim = {200.0f, 200.0f};
             
             rectangle2 CornerRectangle = {};
-            CornerRectangle.Min.x = DarkEmptyRectangle.Max.x;
+            CornerRectangle.Min.x = BackgroundRectangle.Min.x;
             SetDim(&CornerRectangle, CornerDim);
             PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[0], CornerRectangle);
             
-            CornerRectangle.Min.x = DarkEmptyRectangle.Max.x;
-            CornerRectangle.Min.y = DarkEmptyRectangle.Max.y - (CornerDim.h);
+            CornerRectangle.Min.x = BackgroundRectangle.Min.x;
+            CornerRectangle.Min.y = BackgroundRectangle.Max.y - (CornerDim.h);
             SetDim(&CornerRectangle, CornerDim);
             PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[1], CornerRectangle);
             
-            DarkEmptyRectangle.Min.x = (VIRTUAL_GAME_WIDTH * 0.5f) + (MainMenuButtonSize.w * 0.5f);
-            SetDim(&DarkEmptyRectangle, (VIRTUAL_GAME_WIDTH * 0.5f) - (MainMenuButtonSize.w * 0.5f), VIRTUAL_GAME_HEIGHT);
-            PushRectangle(RenderGroup, DarkEmptyRectangle, {0, 0, 0, 255});
-            
-            CornerRectangle.Min.x = DarkEmptyRectangle.Min.x - 200.0f;
-            CornerRectangle.Min.y = DarkEmptyRectangle.Min.y;
+            CornerRectangle.Min.x = BackgroundRectangle.Max.x - CornerDim.w;
+            CornerRectangle.Min.y = BackgroundRectangle.Min.y;
             SetDim(&CornerRectangle, CornerDim);
             PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[2], CornerRectangle);
             
-            CornerRectangle.Min.y = DarkEmptyRectangle.Max.y - (CornerDim.h);
+            CornerRectangle.Min.y = BackgroundRectangle.Max.y - (CornerDim.h);
             SetDim(&CornerRectangle, CornerDim);
             PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[3], CornerRectangle);
             
@@ -387,32 +387,29 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, playground_data *
                 VIRTUAL_GAME_HEIGHT * 0.5f - ((SettingsButtonSize.h + ValueButtonSize.h) * 0.5f)
             };
             
-            rectangle2 DarkEmptyRectangle = {};
-            SetDim(&DarkEmptyRectangle, (VIRTUAL_GAME_WIDTH * 0.5f) - ((SettingsButtonSize.w + ValueButtonSize.w) * 0.7f), VIRTUAL_GAME_HEIGHT);
-            PushRectangle(RenderGroup, DarkEmptyRectangle, {0, 0, 0, 255});
+            rectangle2 BackgroundRectangle = {};
+            BackgroundRectangle.Min = V2(610.0f, 0.0f);
+            BackgroundRectangle.Max = V2(1310.0f, VIRTUAL_GAME_HEIGHT);
+            PushRectangle(RenderGroup, BackgroundRectangle, {51, 8, 23, 255});
             
             v2 CornerDim = {200.0f, 200.0f};
             
             rectangle2 CornerRectangle = {};
-            CornerRectangle.Min.x = DarkEmptyRectangle.Max.x;
+            CornerRectangle.Min.x = BackgroundRectangle.Min.x;
             SetDim(&CornerRectangle, CornerDim);
             PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[0], CornerRectangle);
             
-            CornerRectangle.Min.x = DarkEmptyRectangle.Max.x;
-            CornerRectangle.Min.y = DarkEmptyRectangle.Max.y - (CornerDim.h);
+            CornerRectangle.Min.x = BackgroundRectangle.Min.x;
+            CornerRectangle.Min.y = BackgroundRectangle.Max.y - (CornerDim.h);
             SetDim(&CornerRectangle, CornerDim);
             PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[1], CornerRectangle);
             
-            DarkEmptyRectangle.Min.x = (VIRTUAL_GAME_WIDTH * 0.5f) + ((SettingsButtonSize.w + ValueButtonSize.w) * 0.7f);
-            SetDim(&DarkEmptyRectangle, (VIRTUAL_GAME_WIDTH * 0.5f) - (MainMenuButtonSize.w * 0.5f), VIRTUAL_GAME_HEIGHT);
-            PushRectangle(RenderGroup, DarkEmptyRectangle, {0, 0, 0, 255});
-            
-            CornerRectangle.Min.x = DarkEmptyRectangle.Min.x - 200.0f;
-            CornerRectangle.Min.y = DarkEmptyRectangle.Min.y;
+            CornerRectangle.Min.x = BackgroundRectangle.Max.x - CornerDim.w;
+            CornerRectangle.Min.y = BackgroundRectangle.Min.y;
             SetDim(&CornerRectangle, CornerDim);
             PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[2], CornerRectangle);
             
-            CornerRectangle.Min.y = DarkEmptyRectangle.Max.y - (CornerDim.h);
+            CornerRectangle.Min.y = BackgroundRectangle.Max.y - (CornerDim.h);
             SetDim(&CornerRectangle, CornerDim);
             PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[3], CornerRectangle);
             
@@ -530,34 +527,29 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, playground_data *
         
         case DIFFICULTY_PAGE:
         {
-            rectangle2 DarkEmptyRectangle = {};
-            SetDim(&DarkEmptyRectangle, 300.0f, VIRTUAL_GAME_HEIGHT);
-            PushRectangle(RenderGroup, DarkEmptyRectangle, {0, 0, 0, 255});
+            rectangle2 BackgroundRectangle = {};
+            BackgroundRectangle.Min = V2(300.0f, 0.0f);
+            BackgroundRectangle.Max = V2(1620.0f, VIRTUAL_GAME_HEIGHT);
+            PushRectangle(RenderGroup, BackgroundRectangle, {51, 8, 23, 255});
             
             v2 CornerDim = {200.0f, 200.0f};
             
             rectangle2 CornerRectangle = {};
-            CornerRectangle.Min.x = DarkEmptyRectangle.Max.x;
+            CornerRectangle.Min.x = BackgroundRectangle.Min.x;
             SetDim(&CornerRectangle, CornerDim);
             PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[0], CornerRectangle);
             
-            CornerRectangle.Min.x = DarkEmptyRectangle.Max.x;
-            CornerRectangle.Min.y = DarkEmptyRectangle.Max.y - (CornerDim.h);
+            CornerRectangle.Min.x = BackgroundRectangle.Min.x;
+            CornerRectangle.Min.y = BackgroundRectangle.Max.y - (CornerDim.h);
             SetDim(&CornerRectangle, CornerDim);
             PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[1], CornerRectangle);
             
-            DarkEmptyRectangle = {};
-            DarkEmptyRectangle.Min.x = VIRTUAL_GAME_WIDTH - 300.0f;
-            SetDim(&DarkEmptyRectangle, 300.0f, VIRTUAL_GAME_HEIGHT);
-            PushRectangle(RenderGroup, DarkEmptyRectangle, {0, 0, 0, 255});
-            PushRectangle(RenderGroup, DarkEmptyRectangle, {0, 0, 0, 255});
-            
-            CornerRectangle.Min.x = DarkEmptyRectangle.Min.x - 200.0f;
-            CornerRectangle.Min.y = DarkEmptyRectangle.Min.y;
+            CornerRectangle.Min.x = BackgroundRectangle.Max.x - CornerDim.w;
+            CornerRectangle.Min.y = BackgroundRectangle.Min.y;
             SetDim(&CornerRectangle, CornerDim);
             PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[2], CornerRectangle);
             
-            CornerRectangle.Min.y = DarkEmptyRectangle.Max.y - (CornerDim.h);
+            CornerRectangle.Min.y = BackgroundRectangle.Max.y - (CornerDim.h);
             SetDim(&CornerRectangle, CornerDim);
             PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[3], CornerRectangle);
             

@@ -58,6 +58,16 @@ Clear(render_group *Group, v4 Color)
 }
 
 inline static void
+ClearScreen(render_group *Group, v4 Color)
+{
+    render_entry_clear_screen *Piece = PushRenderElement(Group, render_entry_clear_screen);
+    if (Piece)
+    {
+        Piece->Color = Color;
+    }
+}
+
+inline static void
 PushRectangle(render_group *Group, rectangle2 Rectangle, v4 Color)
 {
     render_entry_rectangle *Piece = PushRenderElement(Group, render_entry_rectangle);
@@ -160,10 +170,24 @@ RenderGroupToOutput(render_group *RenderGroup, game_offscreen_buffer *Buffer)
             {
                 render_entry_clear *Entry = (render_entry_clear*) Data;
                 
+                
+                SDL_SetRenderDrawColor(Buffer->Renderer, Entry->Color.r, Entry->Color.g, Entry->Color.b, Entry->Color.a);
+                
                 game_rect Rectangle = {0, 0, Buffer->Width, Buffer->Height};
-                DEBUGRenderQuadFill(Buffer, &Rectangle, {(u8)Entry->Color.r,(u8)Entry->Color.g, (u8)Entry->Color.b}, (u8)Entry->Color.a);
-                //SDL_SetRenderDrawColor(Buffer->Renderer, 255, 0, 0, 255);
-				//SDL_RenderClear(Buffer->Renderer);
+                SDL_RenderFillRect(Buffer->Renderer, &Rectangle);
+                
+                BaseAddress += sizeof(*Entry);
+                
+            } break;
+            
+            case RenderGroupEntryType_render_entry_clear_screen: 
+            {
+                render_entry_clear_screen *Entry = (render_entry_clear_screen*) Data;
+                
+                SDL_SetRenderDrawColor(Buffer->Renderer, Entry->Color.r, Entry->Color.g, Entry->Color.b, Entry->Color.a);
+                
+                game_rect Rectangle = {0, 0, Buffer->ScreenWidth, Buffer->ScreenHeight};
+                SDL_RenderFillRect(Buffer->Renderer, &Rectangle);
                 
                 BaseAddress += sizeof(*Entry);
                 

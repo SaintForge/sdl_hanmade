@@ -15,6 +15,11 @@ struct render_entry_clear
     v4 Color;
 };
 
+struct render_entry_clear_screen
+{
+    v4 Color;
+};
+
 struct render_entry_rectangle
 {
     rectangle2 Rectangle;
@@ -44,6 +49,7 @@ struct render_entry_texture
 enum render_group_entry_type
 {
     RenderGroupEntryType_render_entry_clear,
+    RenderGroupEntryType_render_entry_clear_screen,
     RenderGroupEntryType_render_entry_texture,
     RenderGroupEntryType_render_entry_rectangle,
     RenderGroupEntryType_render_entry_rectangle_outline,

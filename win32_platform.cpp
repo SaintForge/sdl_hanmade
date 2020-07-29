@@ -52,7 +52,7 @@ SDLProcessKeyPress(game_button_state *NewState, bool IsDown, bool WasDown)
     }
 }
 
-bool SDLHandleEvent(SDL_Event *Event, game_input *Input)
+bool SDLHandleEvent(SDL_Event *Event, game_input *Input, SDL_Window *Window, game_offscreen_buffer *Buffer)
 {
     bool ShouldQuit = false;
     
@@ -60,6 +60,7 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input)
     {
         switch(Event->type)
         {
+            
             case SDL_MOUSEMOTION:
             {
                 Input->MouseX = Event->motion.x;
@@ -204,9 +205,22 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input)
                     {
                         SDLProcessKeyPress(&Input->Keyboard.Tab, IsDown, WasDown);
                     }
-                    
                 }										 
                 
+            } break;
+            
+            case SDL_WINDOWEVENT:
+            {
+                switch(Event->window.event)
+                {
+                    case SDL_WINDOWEVENT_RESIZED:
+                    {
+                        printf("resized window\n");
+                        SDL_GetWindowSize(Window, &Buffer->ScreenWidth, &Buffer->ScreenHeight);
+                        printf("window width: %d\n", Buffer->ScreenWidth);
+                        printf("window height: %d\n", Buffer->ScreenHeight);
+                    } break;
+                }
             } break;
         }
     }
@@ -303,8 +317,8 @@ int main(int argc, char **argv)
             
             game_offscreen_buffer Buffer = {};
             Buffer.Renderer      = Renderer;
-            Buffer.ScreenWidth   = BackBuffer.Width;
-            Buffer.ScreenHeight  = BackBuffer.Height;
+            Buffer.ScreenWidth   = Display.w;
+            Buffer.ScreenHeight  = Display.h;
             Buffer.Width         = VIRTUAL_GAME_WIDTH;
             Buffer.Height        = VIRTUAL_GAME_HEIGHT;
             
@@ -376,6 +390,8 @@ int main(int argc, char **argv)
                 
                 while (IsRunning)
                 {
+                    
+                    
                     PreviousTimeTick = SDL_GetTicks();
                     
                     game_input Input = {};
@@ -385,7 +401,7 @@ int main(int argc, char **argv)
                     Input.dtForFrame = dtForFrame;
                     
                     SDL_Event Event = {};
-                    if(SDLHandleEvent(&Event, &Input))
+                    if(SDLHandleEvent(&Event, &Input, Window, &Buffer))
                     {
                         IsRunning = false;
                     }
