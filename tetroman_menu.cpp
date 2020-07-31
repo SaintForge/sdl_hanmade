@@ -122,16 +122,15 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, playground_data *
         {
             v2 ValueButtonSize = V2(200.0f, 100.0f);
             v2 SettingsButtonSize = V2(300.0f, 100.0f);
-            
             v2 SettingsButtonPosition = 
             {
                 VIRTUAL_GAME_WIDTH * 0.5f - ((SettingsButtonSize.w + ValueButtonSize.w)* 0.5f),
-                VIRTUAL_GAME_HEIGHT * 0.5f - ((SettingsButtonSize.h + ValueButtonSize.h) * 0.5f)
+                VIRTUAL_GAME_HEIGHT * 0.5f - ((SettingsButtonSize.h * 4) * 0.5f)
             };
             
             rectangle2 ButtonRectangle = {};
             for (u32 Index = 0;
-                 Index < 2;
+                 Index < 4;
                  Index ++)
             {
                 ButtonRectangle.Min.x = SettingsButtonPosition.x + (SettingsButtonSize.w);
@@ -178,7 +177,71 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, playground_data *
                             Result.ToggleFullScreen = true;
 #endif
                         }
+                        else if (Index == 2)
+                        {
+                            v2 IndicatorSize = V2(30.0f, 30.0f);
+                            v2 ProgressBarSize = V2(200.0f - IndicatorSize.w, 25.0f);
+                            
+                            rectangle2 CursorRectangle = {};
+                            CursorRectangle.Min.x = (ButtonRectangle.Min.x + (IndicatorSize.w * 0.5f) + (PlaygroundMenu->SoundCursorValue) - (IndicatorSize.w * 0.5f));
+                            CursorRectangle.Min.y = (ButtonRectangle.Min.y + (ValueButtonSize.h * 0.5f)) - (IndicatorSize.h * 0.5f);
+                            SetDim(&CursorRectangle, IndicatorSize);
+                            
+                            if (IsInRectangle(MousePos, CursorRectangle))
+                            {
+                                PlaygroundMenu->ToggleSoundCursor = true;
+                            }
+                        }
+                        else if (Index == 3)
+                        {
+                            v2 IndicatorSize = V2(30.0f, 30.0f);
+                            v2 ProgressBarSize = V2(200.0f - IndicatorSize.w, 25.0f);
+                            
+                            rectangle2 CursorRectangle = {};
+                            CursorRectangle.Min.x = (ButtonRectangle.Min.x + (IndicatorSize.w * 0.5f) + (PlaygroundMenu->MusicCursorValue) - (IndicatorSize.w * 0.5f));
+                            CursorRectangle.Min.y = (ButtonRectangle.Min.y + (ValueButtonSize.h * 0.5f)) - (IndicatorSize.h * 0.5f);
+                            SetDim(&CursorRectangle, IndicatorSize);
+                            
+                            if (IsInRectangle(MousePos, CursorRectangle))
+                            {
+                                PlaygroundMenu->ToggleMusicCursor = true;
+                            }
+                        }
                     }
+                }
+            }
+            
+            if (Input->MouseButtons[0].EndedUp)
+            {
+                PlaygroundMenu->ToggleSoundCursor = false;
+                PlaygroundMenu->ToggleMusicCursor = false;
+            }
+            
+            
+            if (PlaygroundMenu->ToggleSoundCursor)
+            {
+                if (Input->MouseRelX != 0)
+                {
+                    r32 CursorX = PlaygroundMenu->SoundCursorValue;
+                    CursorX += Input->MouseRelX;
+                    
+                    if (CursorX < 0.0f) CursorX = 0.0f;
+                    if (CursorX > 170.0f) CursorX = 170.0f;
+                    
+                    PlaygroundMenu->SoundCursorValue = CursorX;
+                }
+            }
+            else if (PlaygroundMenu->ToggleMusicCursor)
+            {
+                if (Input->MouseRelX != 0)
+                {
+                    r32 CursorX = PlaygroundMenu->MusicCursorValue;
+                    CursorX += Input->MouseRelX;
+                    
+                    if (CursorX < 0.0f) CursorX = 0.0f;
+                    if (CursorX > 170.0f) CursorX = 170.0f;
+                    
+                    PlaygroundMenu->MusicCursorValue = CursorX;
                 }
             }
             
@@ -378,15 +441,6 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, playground_data *
         
         case SETTINGS_PAGE:
         {
-            v2 SettingsButtonSize = V2(300.0f, 100.0f);
-            v2 ValueButtonSize    = V2(200.0f, 100.0f);
-            
-            v2 SettingsButtonPosition = 
-            {
-                VIRTUAL_GAME_WIDTH * 0.5f - ((SettingsButtonSize.w + ValueButtonSize.w)* 0.5f),
-                VIRTUAL_GAME_HEIGHT * 0.5f - ((SettingsButtonSize.h + ValueButtonSize.h) * 0.5f)
-            };
-            
             rectangle2 BackgroundRectangle = {};
             BackgroundRectangle.Min = V2(610.0f, 0.0f);
             BackgroundRectangle.Max = V2(1310.0f, VIRTUAL_GAME_HEIGHT);
@@ -413,13 +467,22 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, playground_data *
             SetDim(&CornerRectangle, CornerDim);
             PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[3], CornerRectangle);
             
+            v2 SettingsButtonSize = V2(300.0f, 100.0f);
+            v2 ValueButtonSize    = V2(200.0f, 100.0f);
+            
+            v2 SettingsButtonPosition = 
+            {
+                VIRTUAL_GAME_WIDTH * 0.5f - ((SettingsButtonSize.w + ValueButtonSize.w)* 0.5f),
+                VIRTUAL_GAME_HEIGHT * 0.5f - ((SettingsButtonSize.h * 4) * 0.5f)
+            };
+            
             rectangle2 OptionRectangle = {};
             rectangle2 ValueRectangle = {};
             rectangle2 TextRectangle = {};
             rectangle2 TextShadowRectangle = {};
             
             for (u32 Index = 0;
-                 Index < 2;
+                 Index < 4;
                  Index ++)
             {
                 OptionRectangle.Min.x = SettingsButtonPosition.x;
@@ -494,6 +557,57 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, playground_data *
                         SetDim(&TextRectangle, LineDim);
                         PushBitmap(RenderGroup, PlaygroundMenu->HorizontalLineTexture, TextRectangle);
                     }
+                }
+                else if (Index == 2)
+                {
+                    TextRectangle = GetTextOnTheCenterOfRectangle(OptionRectangle, PlaygroundMenu->SoundNameTexture);
+                    
+                    TextShadowRectangle = TextRectangle;
+                    TextShadowRectangle.Min += 5.0f;
+                    TextShadowRectangle.Max += 5.0f;
+                    
+                    PushBitmap(RenderGroup, PlaygroundMenu->SoundNameShadowTexture, TextShadowRectangle);
+                    PushBitmap(RenderGroup, PlaygroundMenu->SoundNameTexture, TextRectangle);
+                    
+                    v2 IndicatorSize = V2(30.0f, 30.0f);
+                    v2 ProgressBarSize = V2(200.0f - IndicatorSize.w, 25.0f);
+                    
+                    rectangle2 ProgressBarRectangle = {};
+                    ProgressBarRectangle.Min.x = ValueRectangle.Min.x + (IndicatorSize.w * 0.5f);
+                    ProgressBarRectangle.Min.y = ValueRectangle.Min.y + (ValueButtonSize.h * 0.5f) - (25.0f * 0.5f);
+                    SetDim(&ProgressBarRectangle, ProgressBarSize);
+                    PushBitmap(RenderGroup, PlaygroundMenu->ProgressBarTexture, ProgressBarRectangle);
+                    
+                    
+                    TextRectangle.Min.x = (ProgressBarRectangle.Min.x + (PlaygroundMenu->SoundCursorValue) - (IndicatorSize.w * 0.5f));
+                    TextRectangle.Min.y = (ValueRectangle.Min.y + (ValueButtonSize.h * 0.5f)) - (IndicatorSize.h * 0.5f);
+                    SetDim(&TextRectangle, IndicatorSize);
+                    PushBitmap(RenderGroup, PlaygroundMenu->CursorTexture, TextRectangle);
+                }
+                else if (Index == 3)
+                {
+                    TextRectangle = GetTextOnTheCenterOfRectangle(OptionRectangle, PlaygroundMenu->MusicNameTexture);
+                    
+                    TextShadowRectangle = TextRectangle;
+                    TextShadowRectangle.Min += 5.0f;
+                    TextShadowRectangle.Max += 5.0f;
+                    
+                    PushBitmap(RenderGroup, PlaygroundMenu->MusicNameShadowTexture, TextShadowRectangle);
+                    PushBitmap(RenderGroup, PlaygroundMenu->MusicNameTexture, TextRectangle);
+                    
+                    v2 IndicatorSize = V2(30.0f, 30.0f);
+                    v2 ProgressBarSize = V2(200.0f - IndicatorSize.w, 25.0f);
+                    
+                    rectangle2 ProgressBarRectangle = {};
+                    ProgressBarRectangle.Min.x = ValueRectangle.Min.x + (IndicatorSize.w * 0.5f);
+                    ProgressBarRectangle.Min.y = ValueRectangle.Min.y + (ValueButtonSize.h * 0.5f) - (25.0f * 0.5f);
+                    SetDim(&ProgressBarRectangle, ProgressBarSize);
+                    PushBitmap(RenderGroup, PlaygroundMenu->ProgressBarTexture, ProgressBarRectangle);
+                    
+                    TextRectangle.Min.x = (ProgressBarRectangle.Min.x + (PlaygroundMenu->MusicCursorValue) - (IndicatorSize.w * 0.5f));
+                    TextRectangle.Min.y = (ValueRectangle.Min.y + (ValueButtonSize.h * 0.5f)) - (IndicatorSize.h * 0.5f);
+                    SetDim(&TextRectangle, IndicatorSize);
+                    PushBitmap(RenderGroup, PlaygroundMenu->CursorTexture, TextRectangle);
                 }
             }
             

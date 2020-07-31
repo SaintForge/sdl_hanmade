@@ -92,7 +92,17 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input, SDL_Window *Window, gam
                 {
                     if(Button == SDL_BUTTON_LEFT)
                     {
+                        if (WasDown)
+                        {
+                            printf("");
+                        }
+                        
                         SDLProcessKeyPress(&Input->MouseButtons[0], IsDown, WasDown);
+                        printf("-----------------\n");
+                        printf("IsDown: %d\n", IsDown);
+                        printf("WasDown: %d\n", WasDown);
+                        printf("EndedDown: %d\n", Input->MouseButtons[0].EndedDown);
+                        printf("EndedUp: %d\n", Input->MouseButtons[0].EndedUp);
                     }
                     else if(Button == SDL_BUTTON_RIGHT)
                     {

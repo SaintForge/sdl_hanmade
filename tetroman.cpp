@@ -45,7 +45,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Assert(GameState->MenuTimerFont);
         
         GameState->PlaygroundIndex = 0;
-        GameState->CurrentMode     = game_mode::PLAYGROUND;
+        GameState->CurrentMode     = game_mode::MENU;
         
         playground_config *Configuration = &GameState->Configuration;
         Configuration->StartUpTimeToFinish = 0.0f;
@@ -215,7 +215,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         /* NOTE(msokolov): playground_menu initialization */
         playground_menu *PlaygroundMenu = &GameState->PlaygroundMenu;
-        PlaygroundMenu->MenuPage = menu_page::DIFFICULTY_PAGE;
+        PlaygroundMenu->MenuPage = menu_page::SETTINGS_PAGE;
         PlaygroundMenu->DiffMode = difficulty::EASY;
         PlaygroundMenu->Resolution = resolution_standard::FULLHD;
         PlaygroundMenu->IsFullScreen = false;
@@ -288,8 +288,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundMenu->ResolutionTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "1440p", V4(255, 255, 255, 255));
         PlaygroundMenu->ResolutionShadowTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "1440p", V4(0, 0, 0, 128));
         
-        PlaygroundMenu->FullScreenNameTexture = MakeTextureFromString(Buffer, GameState->Font, "FullScreen: ", V4(255, 255, 255, 255));
-        PlaygroundMenu->FullScreenNameShadowTexture = MakeTextureFromString(Buffer, GameState->Font, "FullScreen: ", V4(0, 0, 0, 128));
+        PlaygroundMenu->FullScreenNameTexture = MakeTextureFromString(Buffer, GameState->Font, "Fullscreen: ", V4(255, 255, 255, 255));
+        PlaygroundMenu->FullScreenNameShadowTexture = MakeTextureFromString(Buffer, GameState->Font, "Fullscreen: ", V4(0, 0, 0, 128));
         
         PlaygroundMenu->FullScreenTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Off", V4(255, 255, 255, 255));
         PlaygroundMenu->FullScreenShadowTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Off", V4(0, 0, 0, 128));
@@ -297,9 +297,16 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundMenu->FullScreenTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "On", V4(255, 255, 255, 255));
         PlaygroundMenu->FullScreenShadowTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "On", V4(0, 0, 0, 128));
         
+        PlaygroundMenu->SoundNameTexture = MakeTextureFromString(Buffer, GameState->Font, "Sound: ", V4(255, 255, 255, 255));
+        PlaygroundMenu->SoundNameShadowTexture = MakeTextureFromString(Buffer, GameState->Font, "Sound: ", V4(0, 0, 0, 255));
+        
+        PlaygroundMenu->MusicNameTexture = MakeTextureFromString(Buffer, GameState->Font, "Music: ", V4(255, 255, 255, 255));
+        PlaygroundMenu->MusicNameShadowTexture = MakeTextureFromString(Buffer, GameState->Font, "Music: ", V4(0, 0, 0, 255));
+        
         PlaygroundMenu->BackTexture = MakeTextureFromString(Buffer, GameState->Font, "Back", V4(255, 255, 255, 255));
         PlaygroundMenu->BackShadowTexture = MakeTextureFromString(Buffer, GameState->Font, "Back", V4(0, 0, 0, 128));
-        
+        PlaygroundMenu->ProgressBarTexture = GetTexture(Memory, "option_progress_bar.png", Buffer->Renderer);
+        PlaygroundMenu->CursorTexture = GetTexture(Memory, "level_indicator_empty.png", Buffer->Renderer);
         
 #if DEBUG_BUILD
         

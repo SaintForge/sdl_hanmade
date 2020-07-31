@@ -52,33 +52,43 @@ struct playground_menu
     
     resolution_standard Resolution;
     
-    /* Main Menu textures*/
     game_texture *MainMenuTexture[3];
     game_texture *MainMenuShadowTexture[3];
     game_texture *CornerTexture[4];
     
-    /* Settings textures*/
+    /* Settings */
+    
+    // FullScreen
     game_texture *FullScreenNameTexture;
     game_texture *FullScreenNameShadowTexture;
-    
     game_texture *FullScreenTexture[2];
     game_texture *FullScreenShadowTexture[2];
     
+    // Resolution
     game_texture *ResolutionNameTexture;
     game_texture *ResolutionNameShadowTexture;
-    
     game_texture *ResolutionTexture[3];
     game_texture *ResolutionShadowTexture[3];
     
-    /* Playground Menu textures*/
+    // Sound
+    b32 ToggleSoundCursor;
+    r32 SoundCursorValue;
+    game_texture *SoundNameTexture;
+    game_texture *SoundNameShadowTexture;
+    
+    // Music
+    b32 ToggleMusicCursor;
+    r32 MusicCursorValue;
+    rectangle2 MusicCursor;
+    game_texture *MusicNameTexture;
+    game_texture *MusicNameShadowTexture;
+    
+    /* Playground Menu*/
     game_texture *DifficultyTexture[3];
     game_texture *DifficultyShadowTexture[3];
-    
     game_texture *LevelButtonTexture;
-    
     game_texture *LevelNumberTexture[100];
     game_texture *LevelNumberShadowTexture[100];
-    
     game_texture *LevelCornerTexture[4];
     game_texture *SquareFrameLocked;
     game_texture *SquareFrameUnlocked;
@@ -88,6 +98,8 @@ struct playground_menu
     game_texture *HorizontalLineTexture;
     game_texture *BackTexture;
     game_texture *BackShadowTexture;
+    game_texture *ProgressBarTexture;
+    game_texture *CursorTexture;
 };
 
 #endif //TETROMAN_MENU_H

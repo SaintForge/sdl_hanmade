@@ -387,6 +387,7 @@ SDLAssetBuildBinaryFile()
     SDLWriteBitmapToFile(BinaryFile, "gear_new_shadow.png");
     SDLWriteBitmapToFile(BinaryFile, "level_indicator_empty.png");
     SDLWriteBitmapToFile(BinaryFile, "level_indicator_filled.png");
+    SDLWriteBitmapToFile(BinaryFile, "option_progress_bar.png");
     
     
     SDLWriteBitmapToFile(BinaryFile, "grid_cell_new.png");
