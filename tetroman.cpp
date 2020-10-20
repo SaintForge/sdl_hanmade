@@ -18,8 +18,8 @@ static game_return_values
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
     game_return_values Result = {};
-    
-    Assert(sizeof(game_state) <= Memory->PermanentStorageSize);    
+	
+    Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
     game_state *GameState = (game_state *) Memory->PermanentStorage;
     
     if(!Memory->IsInitialized)
@@ -31,21 +31,26 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         // 23,  156, 234
         // 108, 174, 0
         /* NOTE(msokolov): game_memory initialization starts here */
-        
+		
         /* NOTE(msokolov): game_state initialization starts here */
         InitializeMemoryGroup(&GameState->MemoryGroup, Memory->PermanentStorageSize - sizeof(game_state), (u8*)Memory->PermanentStorage + sizeof(game_state));
-        
+		
         GameState->Font = TTF_OpenFont(FontPath, 50);
         Assert(GameState->Font);
         
         GameState->TimerFont = TTF_OpenFont(FontPath, 80);
         Assert(GameState->TimerFont);
-        
+		
         GameState->MenuTimerFont = TTF_OpenFont(FontPath, 40);
         Assert(GameState->MenuTimerFont);
-        
+		
         GameState->PlaygroundIndex = 0;
         GameState->CurrentMode     = game_mode::MENU;
+		
+        /* game_settings initialization */
+        game_settings *Settings = (game_settings*)Memory->SettingsStorage;
+        Assert(Settings);
+        
         
         playground_config *Configuration = &GameState->Configuration;
         Configuration->StartUpTimeToFinish = 0.0f;
@@ -66,16 +71,14 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Playground->CornerRightTopTexture     = GetTexture(Memory, "corner_right_top.png", Buffer->Renderer);
         Playground->CornerRightBottomTexture  = GetTexture(Memory, "corner_right_bottom.png", Buffer->Renderer);
         Playground->VerticalBorderTexture     = GetTexture(Memory, "vertical_border.png", Buffer->Renderer);
-        
         Playground->IndicatorEmptyTexture     = GetTexture(Memory, "level_indicator_empty.png", Buffer->Renderer);
         Playground->IndicatorFilledTexture    = GetTexture(Memory, "level_indicator_filled.png", Buffer->Renderer);
         
-        
-        Playground->PickSound = GetSound(Memory, "figure_pick.wav");
-        Playground->StickSound = GetSound(Memory, "figure_stick.wav");
+        Playground->PickSound   = GetSound(Memory, "figure_pick.wav");
+        Playground->StickSound  = GetSound(Memory, "figure_stick.wav");
         Playground->RotateSound = GetSound(Memory, "figure_drop.wav");
         
-        Mix_Volume(-1, 8);
+        //Mix_Volume(-1, 8);
         
         /* Playground Option Menu */ 
         playground_options *PlaygroundOptions = &Playground->Options;
@@ -217,8 +220,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         playground_menu *PlaygroundMenu = &GameState->PlaygroundMenu;
         PlaygroundMenu->MenuPage = menu_page::SETTINGS_PAGE;
         PlaygroundMenu->DiffMode = difficulty::EASY;
-        PlaygroundMenu->Resolution = resolution_standard::FULLHD;
-        PlaygroundMenu->IsFullScreen = false;
         PlaygroundMenu->PlaygroundSwitch = false;
         PlaygroundMenu->ButtonIndex = 1;
         
@@ -303,14 +304,23 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundMenu->MusicNameTexture = MakeTextureFromString(Buffer, GameState->Font, "Music: ", V4(255, 255, 255, 255));
         PlaygroundMenu->MusicNameShadowTexture = MakeTextureFromString(Buffer, GameState->Font, "Music: ", V4(0, 0, 0, 255));
         
+        // For sound and music settings
+        PlaygroundMenu->SoundOnTexture = MakeTextureFromString(Buffer, GameState->Font, "On", V4(255, 255, 255, 255));
+        PlaygroundMenu->SoundOnShadowTexture = MakeTextureFromString(Buffer, GameState->Font, "On", V4(0, 0, 0, 255));
+        PlaygroundMenu->SoundOffTexture = MakeTextureFromString(Buffer, GameState->Font, "Off", V4(255, 255, 255, 255));
+        PlaygroundMenu->SoundOffShadowTexture = MakeTextureFromString(Buffer, GameState->Font, "Off", V4(0, 0, 0, 255));
+        
         PlaygroundMenu->BackTexture = MakeTextureFromString(Buffer, GameState->Font, "Back", V4(255, 255, 255, 255));
         PlaygroundMenu->BackShadowTexture = MakeTextureFromString(Buffer, GameState->Font, "Back", V4(0, 0, 0, 128));
         PlaygroundMenu->ProgressBarTexture = GetTexture(Memory, "option_progress_bar.png", Buffer->Renderer);
         PlaygroundMenu->CursorTexture = GetTexture(Memory, "level_indicator_empty.png", Buffer->Renderer);
         
+        //PlaygroundMenu->MusicSample = GetMusic(Memory, "music_test.ogg");
+        PlaygroundMenu->SoundSample = GetSound(Memory, "figure_stick.wav");
+        
 #if DEBUG_BUILD
         
-        GameState->EditorMode      = false;
+        GameState->EditorMode = false;
         
         playground_editor *PlaygroundEditor = PushStruct(&GameState->MemoryGroup, playground_editor);
         GameState->PlaygroundEditor = PlaygroundEditor;
@@ -378,17 +388,12 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             PlaygroundData[Index].IsUnlocked = false;
         }
         
-        //WriteLevelsToFile(Memory->LevelStorage, Memory->LevelStorageSize);
+        game_music *Music = GetMusic(Memory, "music_test.ogg");
+        Mix_PlayMusic(Music, -1);
         
         PlaygroundEditor->IsInitialized = true;
 #endif
         
-        game_music *Music = GetMusic(Memory, "amb_ending_water.ogg");
-#if 0
-        if(Mix_PlayMusic(Music, -1) ==-1) {
-            printf("Mix_PlayMusic: %s\n", Mix_GetError());
-        }
-#endif
         
     } // if (!Memory->IsInitialized)
     
@@ -633,7 +638,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         case MENU:
         {
-            menu_result_option MenuResult = PlaygroundMenuUpdateAndRender(PlaygroundMenu, PlaygroundData, Input, RenderGroup);
+            menu_result_option MenuResult = PlaygroundMenuUpdateAndRender(PlaygroundMenu, PlaygroundData, &GameState->Settings, Input, RenderGroup);
             
             if (MenuResult.SwitchToPlayground)
             {
@@ -661,25 +666,23 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                     Assert(Playground->LevelNumberTexture);
 #endif
                 }
-                
+				
                 GameState->CurrentMode = PLAYGROUND;
             }
             if (MenuResult.QuitGame)
             {
                 Result.ShouldQuit = true;
             }
-            if (MenuResult.ToggleFullScreen)
+            if (MenuResult.SettingsChanged)
             {
-                Result.ToggleFullScreen = MenuResult.ToggleFullScreen;
-            }
-            if (MenuResult.ChangeResolution)
-            {
-                Result.ChangeResolution = true;
-                Result.Resolution = MenuResult.Resolution;
+                Result.SettingsChanged = true;
+                Result.Settings = MenuResult.Settings;
+				
+                game_settings *Settings = (game_settings *)Memory->SettingsStorage;
             }
         } break;
     }
-    
+	
     RenderGroupToOutput(RenderGroup, Buffer);
     TransState->TransGroup = TemporaryMemory;
     

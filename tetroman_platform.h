@@ -29,13 +29,12 @@
 #define VIRTUAL_GAME_HEIGHT 1080
 
 // TODO(msokolov): I don't know whether we should consider this or not
-enum resolution_standard
+enum game_resolution
 {
     HD      = 0, // 1280x720    
     FULLHD  = 1, // 1920x1080
     QFULLHD = 2  // 2560x1440
 };
-
 
 using namespace std;
 
@@ -66,14 +65,18 @@ typedef double r64;
 
 typedef size_t memory_index;
 
+struct game_settings
+{
+    r32 SoundPercentage;
+    r32 MusicPercentage;
+};
+
 struct game_return_values
 {
     b32 ShouldQuit;
     
-    b32 ChangeResolution;
-    resolution_standard Resolution;
-    
-    b32 ToggleFullScreen;
+    b32 SettingsChanged;
+    game_settings Settings;
 };
 
 struct game_offscreen_buffer
@@ -156,6 +159,9 @@ struct game_memory
     
     void *LevelStorage;
     u64 LevelStorageSize;
+    
+    void *SettingsStorage;
+    u64 SettingsStorageSize;
     
     bool IsInitialized;
 };

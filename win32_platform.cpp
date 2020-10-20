@@ -35,17 +35,13 @@ window_dimension SDLGetWindowDimension(SDL_Window* Window)
     return (WindowQuad);
 }
 
-
 static void
 SDLProcessKeyPress(game_button_state *NewState, bool IsDown, bool WasDown)
 {
-    
-    //if(NewState->EndedDown != IsDown)
     if (!NewState->EndedDown)
     {
         NewState->EndedDown = IsDown;
     }
-    //if(NewState->EndedUp != WasDown)
     if (!NewState->EndedUp)
     {
         NewState->EndedUp = WasDown;
@@ -72,7 +68,6 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input, SDL_Window *Window, gam
             
             case SDL_QUIT:
             {
-                printf("SDL_QUIT\n");
                 ShouldQuit = true;
                 break;
             } break;
@@ -92,17 +87,7 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input, SDL_Window *Window, gam
                 {
                     if(Button == SDL_BUTTON_LEFT)
                     {
-                        if (WasDown)
-                        {
-                            printf("");
-                        }
-                        
                         SDLProcessKeyPress(&Input->MouseButtons[0], IsDown, WasDown);
-                        printf("-----------------\n");
-                        printf("IsDown: %d\n", IsDown);
-                        printf("WasDown: %d\n", WasDown);
-                        printf("EndedDown: %d\n", Input->MouseButtons[0].EndedDown);
-                        printf("EndedUp: %d\n", Input->MouseButtons[0].EndedUp);
                     }
                     else if(Button == SDL_BUTTON_RIGHT)
                     {
@@ -225,10 +210,7 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input, SDL_Window *Window, gam
                 {
                     case SDL_WINDOWEVENT_RESIZED:
                     {
-                        printf("resized window\n");
                         SDL_GetWindowSize(Window, &Buffer->ScreenWidth, &Buffer->ScreenHeight);
-                        printf("window width: %d\n", Buffer->ScreenWidth);
-                        printf("window height: %d\n", Buffer->ScreenHeight);
                     } break;
                 }
             } break;
@@ -239,7 +221,49 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input, SDL_Window *Window, gam
 }
 
 static void
-SDLUpdateWindow(SDL_Window* Window, SDL_Renderer *Renderer, sdl_offscreen_buffer *Buffer)
+SetWindowFullscreen(SDL_Window *Window, b32 ToggleFullscreen)
+{
+    if (ToggleFullscreen)
+        SDL_SetWindowFullscreen(Window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    else
+        SDL_SetWindowFullscreen(Window, 0);
+}
+
+static void
+SetWindowResolution(SDL_Window *Window, game_resolution Resolution)
+{
+    switch(Resolution)
+    {
+        case HD:
+        {
+            SDL_SetWindowSize(Window, 1280, 720);
+            SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+        } break;
+        
+        case FULLHD:
+        {
+            SDL_SetWindowSize(Window, 1920, 1080);
+            SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+        } break;
+        case QFULLHD:
+        {
+            SDL_SetWindowSize(Window, 2560, 1440);
+            SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+        } break;
+    }
+}
+
+static void
+SetWindowIcon(SDL_Window *Window, game_memory *Memory, SDL_Renderer *Renderer)
+{
+    game_surface *Surface = GetSurface(Memory, "grid_cell.png", Renderer);
+    Assert(Surface);
+    
+    SDL_SetWindowIcon(Window, Surface);
+}
+
+static void
+SDLUpdateWindow(SDL_Renderer *Renderer)
 {
     SDL_RenderPresent(Renderer);
     SDL_RenderClear(Renderer);
@@ -257,7 +281,16 @@ int main(int argc, char **argv)
     if (Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 2, 1024) == -1)
     {
         printf("Error in Mix_OpenAudio: %s", Mix_GetError());
+        
     }
+    int flags=MIX_INIT_OGG|MIX_INIT_MOD;
+    int initted=Mix_Init(flags);
+    if(initted&flags != flags) {
+        printf("Mix_Init: Failed to init required ogg and mod support!\n");
+        printf("Mix_Init: %s\n", Mix_GetError());
+        // handle error
+    }
+    
     
     s32 img_flags = IMG_INIT_PNG;
     s32 return_flags = IMG_Init(img_flags);
@@ -281,32 +314,20 @@ int main(int argc, char **argv)
     SDL_DisplayMode Display = {};
     SDL_GetDesktopDisplayMode(0, &Display);
     
-    b32 VSyncOn    = true;
-    b32 FullScreen = false;
-    s32 FrameLimit = 60;
-    
     SDL_Window* Window = SDL_CreateWindow("Tetroman",
                                           SDL_WINDOWPOS_CENTERED,
                                           SDL_WINDOWPOS_CENTERED,
                                           Display.w, Display.h,
-                                          SDL_WINDOW_RESIZABLE);
+                                          SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIDDEN);
+    
     
     if(Window)
     {
-        //GetResolutionStandard(Display.w, Display.h);
+        SDL_HideWindow(Window);
         
-        // NOTE(msokolov): this ideally should be either hardcoded always in the code
-        //or be taken from the user's monitor resolution
-        SDL_SetWindowSize(Window, WINDOW_WIDTH, WINDOW_HEIGHT);
-        SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
         
-        if (FullScreen)
-            SDL_SetWindowFullscreen(Window, SDL_WINDOW_FULLSCREEN);
-        
-        if(VSyncOn)
-        {
-            SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
-        }
+        SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
+        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
         
         SDL_Renderer* Renderer = SDL_CreateRenderer(Window, -1,
                                                     SDL_RENDERER_TARGETTEXTURE|SDL_RENDERER_ACCELERATED);
@@ -316,7 +337,6 @@ int main(int argc, char **argv)
         
         if(Renderer)
         {
-            SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
             
             bool IsRunning = true;
             window_dimension Dimension = SDLGetWindowDimension(Window);
@@ -355,8 +375,13 @@ int main(int argc, char **argv)
             Memory.LevelStorageSize     = Megabytes(15);
             Memory.PermanentStorageSize = Megabytes(10);
             Memory.TransientStorageSize = Megabytes(1);
+            Memory.SettingsStorageSize  = Megabytes(1);
             
-            u64 TotalStorageSize = Memory.PermanentStorageSize + Memory.TransientStorageSize + Memory.AssetStorageSize + Memory.LevelStorageSize;
+            u64 TotalStorageSize = Memory.PermanentStorageSize
+                + Memory.TransientStorageSize
+                + Memory.AssetStorageSize
+                + Memory.LevelStorageSize
+                + Memory.SettingsStorageSize;
             
             void *MemoryStorage = malloc(TotalStorageSize);
             if (MemoryStorage)
@@ -367,6 +392,7 @@ int main(int argc, char **argv)
                 Memory.LevelStorage     = ((u8*)Memory.AssetStorage + Memory.AssetStorageSize);
                 Memory.PermanentStorage = ((u8*)Memory.LevelStorage + Memory.LevelStorageSize);
                 Memory.TransientStorage = ((u8*)Memory.PermanentStorage + Memory.PermanentStorageSize);
+                Memory.SettingsStorage  = ((u8*)Memory.TransientStorage + Memory.TransientStorageSize);
                 
                 r32 TimeElapsed = 0.0f;
                 r32 PreviousTimeTick = SDL_GetTicks();
@@ -374,34 +400,26 @@ int main(int argc, char **argv)
                 s32 OldMouseX = 0;
                 s32 OldMouseY = 0;
                 
-                ReadAssetFromFile("package1.bin", Memory.AssetStorage, Memory.AssetStorageSize);
-                ReadLevelFromFile("package2.bin", Memory.LevelStorage, Memory.LevelStorageSize);
+                ReadBinaryFile("package1.bin", Memory.AssetStorage, Memory.AssetStorageSize);
+                ReadBinaryFile("package2.bin", Memory.LevelStorage, Memory.LevelStorageSize);
+                ReadBinaryFile("settings.bin", Memory.SettingsStorage, Memory.SettingsStorageSize);
                 
-                game_surface *Surface = GetSurface(&Memory, "grid_cell.png", Renderer);
-                Assert(Surface);
-                SDL_SetWindowIcon(Window, Surface);
+                game_settings PreviousSettings = {};
+                if (Memory.SettingsStorage)
+                {
+                    game_settings *Settings = (game_settings *)Memory.SettingsStorage;
+                    
+                    Mix_Volume(-1, Settings->SoundPercentage * MIX_MAX_VOLUME);
+                    Mix_VolumeMusic(Settings->MusicPercentage * MIX_MAX_VOLUME);
+                }
                 
-                
-#if DEBUG_BUILD
-                game_texture *Texture = GetTexture(&Memory, "test_animation.png", Renderer);
-                game_texture *Texture2 = GetTexture(&Memory, "test_animation2.png", Renderer);
-                game_texture *Texture3 = GetTexture(&Memory, "light.png", Renderer);
-                
-                s32 FrameIndex = 0;
-                s32 FrameAmount = 12;
-                r32 FrameElapsed = 0.0f;
-                r32 FrameTimeStep = 0.033f;
-                
-                s32 FrameIndex2 = 0;
-                s32 FrameAmount2 = 21;
-                r32 FrameElapsed2 = 0.0f;
-                r32 FrameTimeStep2 = 1.0f / FrameAmount2;
-#endif
+                SDL_ShowWindow(Window);
+                SetWindowFullscreen(Window, false);
+                SetWindowResolution(Window, game_resolution::FULLHD);
+                SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
                 
                 while (IsRunning)
                 {
-                    
-                    
                     PreviousTimeTick = SDL_GetTicks();
                     
                     game_input Input = {};
@@ -419,127 +437,38 @@ int main(int argc, char **argv)
                     game_return_values GameResult = GameUpdateAndRender(&Memory, &Input, &Buffer);
                     
                     if(GameResult.ShouldQuit)
-                    {
+                    {	
                         IsRunning = false;
                     }
                     
-                    if (GameResult.ChangeResolution)
+                    if (GameResult.SettingsChanged)
                     {
-                        switch(GameResult.Resolution)
+                        game_settings NewSettings = GameResult.Settings;
+                        
+                        
+                        if (PreviousSettings.MusicPercentage != NewSettings.MusicPercentage)
                         {
-                            case HD:
-                            {
-                                printf("HD\n");
-                                SDL_SetWindowSize(Window, 1280, 720);
-                                SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-                            } break;
-                            
-                            case FULLHD:
-                            {
-                                printf("FULLHD\n");
-                                SDL_SetWindowSize(Window, 1920, 1080);
-                                SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-                            } break;
-                            case QFULLHD:
-                            {
-                                printf("QFULLHD\n");
-                                SDL_SetWindowSize(Window, 2560, 1440);
-                                SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-                            } break;
+                            Mix_VolumeMusic(NewSettings.MusicPercentage * MIX_MAX_VOLUME);
                         }
-                    }
-                    
-                    if (GameResult.ToggleFullScreen)
-                    {
-                        if (FullScreen)
+                        if (PreviousSettings.SoundPercentage != NewSettings.SoundPercentage)
                         {
-                            SDL_SetWindowFullscreen(Window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-                            FullScreen = false;
+                            Mix_Volume(-1, NewSettings.SoundPercentage * MIX_MAX_VOLUME);
                         }
-                        else
-                        {
-                            SDL_SetWindowFullscreen(Window, SDL_WINDOW_FULLSCREEN);
-                            FullScreen = true;
-                        }
+                        
+                        PreviousSettings = GameResult.Settings;
+                        WriteBinaryFile("settings.bin", Memory.SettingsStorage, Memory.SettingsStorageSize);
                     }
                     
-#if DEBUG_BUILD
-                    // 550 width
-                    // 400 heigth
                     
-                    FrameIndex = FrameIndex % FrameAmount;
-                    
-                    rectangle2 ClipRectangle = {};
-                    ClipRectangle.Min.x = FrameIndex * 550;
-                    ClipRectangle.Min.y = 0;
-                    SetDim(&ClipRectangle, 550, 400);
-                    
-                    rectangle2 Rectangle = {};
-                    Rectangle.Min.x = 0.0f;
-                    Rectangle.Min.y = 0.0f;
-                    SetDim(&Rectangle, 550, 400);
-                    
-                    render_entry_texture Entry = {};
-                    Entry.Texture   = Texture;
-                    Entry.Rectangle = Rectangle;
-                    Entry.ClipRectangle = ClipRectangle;
-                    
-                    if (Input.Keyboard.Q_Button.EndedDown)
-                    {
-                        FrameTimeStep2 += dtForFrame;
-                    }
-                    
-                    //DrawEntryTexture(&Buffer, &Entry);
-                    FrameElapsed += dtForFrame;
-                    if (FrameElapsed >= FrameTimeStep)
-                    {
-                        FrameIndex++;
-                        FrameElapsed = 0.0f;
-                    }
-                    
-                    FrameIndex2 = FrameIndex2 % FrameAmount2;
-                    
-                    ClipRectangle = {};
-                    ClipRectangle.Min.x = FrameIndex2 * 550;
-                    ClipRectangle.Min.y = 0;
-                    SetDim(&ClipRectangle, 550, 400);
-                    
-                    Rectangle = {};
-                    Rectangle.Min.x = 0.0f;
-                    Rectangle.Min.y = 400;
-                    SetDim(&Rectangle, 550, 400);
-                    
-                    Entry = {};
-                    Entry.Texture   = Texture2;
-                    Entry.Rectangle = Rectangle;
-                    Entry.ClipRectangle = ClipRectangle;
-                    //DrawEntryTexture(&Buffer, &Entry);
-                    
-                    FrameElapsed2 += dtForFrame;
-                    if (FrameElapsed2 >= FrameTimeStep2)
-                    {
-                        FrameIndex2++;
-                        FrameElapsed2 = 0.0f;
-                    }
-                    
-                    Rectangle = {};
-                    Rectangle.Min.x = 550;
-                    Rectangle.Min.y = 0;
-                    SetDim(&Rectangle, 512, 512);
-                    
-                    Entry = {};
-                    Entry.Texture   = Texture3;
-                    Entry.Rectangle = Rectangle;
-                    //DrawEntryTexture(&Buffer, &Entry);
-#endif
-                    
-                    SDLUpdateWindow(Window, Renderer, &BackBuffer);
+                    SDLUpdateWindow(Renderer);
                     
                     OldMouseX = Input.MouseX;
                     OldMouseY = Input.MouseY;
                     
                     r32 CurrentTimeTick = SDL_GetTicks();
                     TimeElapsed += (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
+                    
+                    
                 }
             }
         }

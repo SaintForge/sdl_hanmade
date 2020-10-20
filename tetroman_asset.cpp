@@ -27,21 +27,6 @@ SDLSizeOfBinaryFile(const char *FileName)
     return(ByteSize);
 }
 
-static void
-ReadAssetFromFile(const char* FileName, void *AssetStorage, u64 AssetStorageSize)
-{
-    SDL_RWops *BinaryFile = SDL_RWFromFile(FileName, "rb");
-    if (BinaryFile)
-    {
-        SDL_RWread(BinaryFile, AssetStorage, AssetStorageSize, 1);
-        SDL_RWclose(BinaryFile);
-    }
-    else
-    {
-        printf("Failed to open %s\n", FileName);
-    }
-    
-}
 
 static void
 SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
@@ -311,9 +296,9 @@ GetTexture(game_memory *Memory, const char* FileName, SDL_Renderer *Renderer)
 
 
 static void
-ReadLevelFromFile(const char *FileName, void *Storage, u64 StorageSize)
+ReadBinaryFile(const char *FileName, void *Storage, u64 StorageSize)
 {
-    SDL_RWops *BinaryFile = SDL_RWFromFile("package2.bin", "rb");
+    SDL_RWops *BinaryFile = SDL_RWFromFile(FileName, "rb");
     if (BinaryFile)
     {
         SDL_RWread(BinaryFile, Storage, StorageSize, 1);
@@ -321,7 +306,24 @@ ReadLevelFromFile(const char *FileName, void *Storage, u64 StorageSize)
     }
     else
     {
-        printf("ReadLevelPackageFile failed: %s\n", SDL_GetError());
+        printf("ReadBinaryFile failed for %s: %s\n", FileName, SDL_GetError());
+    }
+    
+    
+}
+
+static void
+WriteBinaryFile(const char *FileName, void *Storage, u64 StorageSize)
+{
+    SDL_RWops *BinaryFile = SDL_RWFromFile(FileName, "wb");
+    if (BinaryFile)
+    {
+        SDL_RWwrite(BinaryFile, Storage, StorageSize, 1);
+        SDL_RWclose(BinaryFile);
+    }
+    else
+    {
+        printf("WriteLevelPackageFile failed: %s\n", SDL_GetError());
     }
 }
 
@@ -435,7 +437,7 @@ SDLAssetBuildBinaryFile()
     SDLWriteSoundToFile(BinaryFile, "figure_rotate.wav");
     SDLWriteSoundToFile(BinaryFile, "figure_drop.wav");
     
-    SDLWriteMusicToFile(BinaryFile, "amb_ending_water.ogg");
+    SDLWriteMusicToFile(BinaryFile, "music_test.ogg");
     
     SDL_RWseek(BinaryFile, 0, RW_SEEK_SET);
     

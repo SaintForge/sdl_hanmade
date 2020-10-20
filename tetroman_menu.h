@@ -28,14 +28,9 @@ enum difficulty
 struct menu_result_option
 {
     b32 QuitGame;
-    b32 MusicOn;
-    b32 MusicOff;
-    b32 SoundOn;
-    b32 SoundOff;
     
-    b32 ToggleFullScreen;
-    b32 ChangeResolution;
-    resolution_standard Resolution;
+    b32 SettingsChanged;
+    game_settings Settings;
     
     b32 SwitchToPlayground;
     u32 PlaygroundIndex;
@@ -46,17 +41,23 @@ struct playground_menu
     menu_page MenuPage;
     difficulty DiffMode;
     
-    b32 IsFullScreen;
+    b32 IsFullscreen;
     b32 PlaygroundSwitch;
     u32 ButtonIndex;
     
-    resolution_standard Resolution;
+    game_resolution Resolution;
     
     game_texture *MainMenuTexture[3];
     game_texture *MainMenuShadowTexture[3];
     game_texture *CornerTexture[4];
     
     /* Settings */
+    
+    // For sound and music settings
+    game_texture *SoundOnTexture;
+    game_texture *SoundOnShadowTexture;
+    game_texture *SoundOffTexture;
+    game_texture *SoundOffShadowTexture;
     
     // FullScreen
     game_texture *FullScreenNameTexture;
@@ -71,15 +72,23 @@ struct playground_menu
     game_texture *ResolutionShadowTexture[3];
     
     // Sound
+    // TODO(msokolov): delete these two
     b32 ToggleSoundCursor;
     r32 SoundCursorValue;
+    //
+    
+    // TODO(msokolov): this is for testing so it needs to be deleted in release version
+    game_sound *SoundSample;
+    //
     game_texture *SoundNameTexture;
     game_texture *SoundNameShadowTexture;
     
     // Music
+    // TODO(msokolov): delete these two
     b32 ToggleMusicCursor;
     r32 MusicCursorValue;
-    rectangle2 MusicCursor;
+    //
+    game_music *MusicSample;
     game_texture *MusicNameTexture;
     game_texture *MusicNameShadowTexture;
     
@@ -98,6 +107,8 @@ struct playground_menu
     game_texture *HorizontalLineTexture;
     game_texture *BackTexture;
     game_texture *BackShadowTexture;
+    
+    // TODO: delete this
     game_texture *ProgressBarTexture;
     game_texture *CursorTexture;
 };

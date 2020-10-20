@@ -33,6 +33,7 @@ struct window_dimension
     int Height;
 };
 
+
 #define WIN32_GAME_H
 #endif
 
