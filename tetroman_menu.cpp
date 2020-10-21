@@ -21,6 +21,52 @@ GetTextOnTheCenterOfRectangle(rectangle2 Rectangle, game_texture *Texture)
     return (Result);
 }
 
+static inline void
+DrawCornersOnButton(render_group *RenderGroup, game_texture *CornerTexture[4], 
+                    rectangle2 ButtonRectangle, v2 CornerDim)
+{
+    rectangle2 CornerRectangle = {};
+    
+    // top left
+    CornerRectangle.Min.x = ButtonRectangle.Min.x;
+    CornerRectangle.Min.y = ButtonRectangle.Min.y;
+    SetDim(&CornerRectangle, CornerDim);
+    PushBitmap(RenderGroup, CornerTexture[0], CornerRectangle);
+    
+    // bottom left
+    CornerRectangle.Min.x = ButtonRectangle.Min.x;
+    CornerRectangle.Min.y = ButtonRectangle.Max.y - CornerDim.h;
+    SetDim(&CornerRectangle, CornerDim);
+    PushBitmap(RenderGroup, CornerTexture[1], CornerRectangle);
+    
+    // top right
+    CornerRectangle.Min.x = ButtonRectangle.Max.x - CornerDim.w;
+    CornerRectangle.Min.y = ButtonRectangle.Min.y;
+    SetDim(&CornerRectangle, CornerDim);
+    PushBitmap(RenderGroup, CornerTexture[2], CornerRectangle);
+    
+    // bottom right
+    CornerRectangle.Min.y = ButtonRectangle.Max.y - (CornerDim.h);
+    SetDim(&CornerRectangle, CornerDim);
+    PushBitmap(RenderGroup, CornerTexture[3], CornerRectangle);
+}
+
+static inline void
+HighlightButtonWithLine(render_group *RenderGroup, game_texture *LineTexture, 
+                        rectangle2 ButtonRectangle, v2 LineDim) 
+{
+    v2 Dim = QueryTextureDim(LineTexture);
+    
+    rectangle2 Rectangle 
+    {
+        ButtonRectangle.Min.x + (GetDim(ButtonRectangle).w * 0.5f) - (LineDim.w * 0.5f),
+        ButtonRectangle.Min.y + (GetDim(ButtonRectangle).h) - (LineDim.h * 0.8f)
+    };
+    
+    SetDim(&Rectangle, LineDim);
+    PushBitmap(RenderGroup, LineTexture, Rectangle);
+}
+
 
 static menu_result_option
 PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, 
@@ -57,6 +103,7 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
     MainMenuPosition.x = VIRTUAL_GAME_WIDTH / 2.0f - (MainMenuButtonSize.w / 2.0f);
     MainMenuPosition.y = VIRTUAL_GAME_HEIGHT / 2.0f - ((MainMenuButtonSize.h * 3.0f) / 2.0f);
     
+    // NOTE(msokolov): input events and logic
     if (Input->Keyboard.Escape.EndedDown)
     {
         switch(PlaygroundMenu->MenuPage)
@@ -123,11 +170,12 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
         
         case SETTINGS_PAGE:
         {
-            v2 ValueButtonSize = V2(200.0f, 100.0f);
-            v2 SettingsButtonSize = V2(300.0f, 100.0f);
+            v2 SettingsButtonSize = V2(200.0f, 100.0f);
+            v2 ValueButtonSize = V2(130.0f, 80.0f);
+            
             v2 SettingsButtonPosition = 
             {
-                VIRTUAL_GAME_WIDTH * 0.5f - ((SettingsButtonSize.w + ValueButtonSize.w)* 0.5f),
+                VIRTUAL_GAME_WIDTH * 0.5f - ((SettingsButtonSize.w + ValueButtonSize.w * 2)* 0.5f),
                 VIRTUAL_GAME_HEIGHT * 0.5f - ((SettingsButtonSize.h * 2) * 0.5f)
             };
             
@@ -138,127 +186,47 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
             {
                 ButtonRectangle.Min.x = SettingsButtonPosition.x + (SettingsButtonSize.w);
                 ButtonRectangle.Min.y = SettingsButtonPosition.y + (Index * (SettingsButtonSize.h));
-                SetDim(&ButtonRectangle, ValueButtonSize);
+                SetDim(&ButtonRectangle, ValueButtonSize.w * 2.0f, ValueButtonSize.h);
                 
                 if (IsInRectangle(MousePos, ButtonRectangle))
                 {
-                    PlaygroundMenu->ButtonIndex = Index;
+                    rectangle2 ValueOneRectangle = {};
+                    ValueOneRectangle.Min.x = SettingsButtonPosition.x + (SettingsButtonSize.w);
+                    ValueOneRectangle.Min.y = SettingsButtonPosition.y + (Index * (SettingsButtonSize.h));
+                    SetDim(&ValueOneRectangle, ValueButtonSize);
                     
-                    if (Input->MouseButtons[0].EndedDown)
+                    rectangle2 ValueTwoRectangle = {};
+                    ValueTwoRectangle.Min.x = ValueOneRectangle.Min.x + ValueButtonSize.w;
+                    ValueTwoRectangle.Min.y = ValueOneRectangle.Min.y;
+                    SetDim(&ValueTwoRectangle, ValueButtonSize);
+                    
+                    // NOTE(msokolov): Sound settings
+                    if (Index == 0) 
                     {
-#if 0
-                        if (Index == 0)
+                        if (IsInRectangle(MousePos, ValueOneRectangle)) 
                         {
-                            game_resolution Resolution = PlaygroundMenu->Resolution;
-                            switch(Resolution)
-                            {
-                                case HD:
-                                {
-                                    Resolution = game_resolution::FULLHD;
-                                } break;
-                                case FULLHD:
-                                {
-                                    Resolution = game_resolution::QFULLHD;
-                                } break;
-                                case QFULLHD:
-                                {
-                                    Resolution = game_resolution::HD;
-                                } break;
-                                
-                            }
-                            
-                            PlaygroundMenu->Resolution = Resolution;
-                            
-                            Result.SettingsChanged = true;
-                            Result.Settings.Resolution = Resolution;
+                            if (Input->MouseButtons[0].EndedDown) 
+                                PlaygroundMenu->SoundOn = true;
                         }
-                        else if (Index == 1)
+                        else if (IsInRectangle(MousePos, ValueTwoRectangle)) 
                         {
-                            Result.SettingsChanged = true;
-                            //Result.Settings.IsFullscreen = Settings->IsFullscreen ? false : true;
-                            PlaygroundMenu->IsFullscreen = PlaygroundMenu->IsFullscreen ? false : true;
+                            if (Input->MouseButtons[0].EndedDown) 
+                                PlaygroundMenu->SoundOn = false;
                         }
-                        
-                        if (Index == 0)
-                        {
-                            v2 IndicatorSize = V2(30.0f, 30.0f);
-                            v2 ProgressBarSize = V2(200.0f - IndicatorSize.w, 25.0f);
-                            
-                            rectangle2 CursorRectangle = {};
-                            CursorRectangle.Min.x = (ButtonRectangle.Min.x + (IndicatorSize.w * 0.5f) + (PlaygroundMenu->SoundCursorValue) - (IndicatorSize.w * 0.5f));
-                            CursorRectangle.Min.y = (ButtonRectangle.Min.y + (ValueButtonSize.h * 0.5f)) - (IndicatorSize.h * 0.5f);
-                            SetDim(&CursorRectangle, IndicatorSize);
-                            
-                            if (IsInRectangle(MousePos, CursorRectangle))
-                            {
-                                PlaygroundMenu->ToggleSoundCursor = true;
-                                Mix_PauseMusic();
-                                Mix_PlayChannel(2, PlaygroundMenu->SoundSample, -1);
-                            }
-                        }
-                        else if (Index == 1)
-                        {
-                            v2 IndicatorSize = V2(30.0f, 30.0f);
-                            v2 ProgressBarSize = V2(200.0f - IndicatorSize.w, 25.0f);
-                            
-                            rectangle2 CursorRectangle = {};
-                            CursorRectangle.Min.x = (ButtonRectangle.Min.x + (IndicatorSize.w * 0.5f) + (PlaygroundMenu->MusicCursorValue) - (IndicatorSize.w * 0.5f));
-                            CursorRectangle.Min.y = (ButtonRectangle.Min.y + (ValueButtonSize.h * 0.5f)) - (IndicatorSize.h * 0.5f);
-                            SetDim(&CursorRectangle, IndicatorSize);
-                            
-                            if (IsInRectangle(MousePos, CursorRectangle))
-                            {
-                                PlaygroundMenu->ToggleMusicCursor = true;
-                                Mix_PlayMusic(PlaygroundMenu->MusicSample, -1);
-                            }
-                        }
-#endif
                     }
-                }
-            }
-            
-            if (Input->MouseButtons[0].EndedUp)
-            {
-                if (PlaygroundMenu->ToggleSoundCursor)
-                {
-                    PlaygroundMenu->ToggleSoundCursor = false;
-                    Mix_HaltChannel(2);
-                    Mix_ResumeMusic();
-                }
-                
-                PlaygroundMenu->ToggleMusicCursor = false;
-            }
-            
-            if (PlaygroundMenu->ToggleSoundCursor)
-            {
-                if (Input->MouseRelX != 0)
-                {
-                    r32 CursorX = PlaygroundMenu->SoundCursorValue;
-                    CursorX += Input->MouseRelX;
-                    
-                    if (CursorX < 0.0f) CursorX = 0.0f;
-                    if (CursorX > 170.0f) CursorX = 170.0f;
-                    
-                    PlaygroundMenu->SoundCursorValue = CursorX;
-                    Result.SettingsChanged = true;
-                    Result.Settings.SoundPercentage = (CursorX / 1.7f) / 100.0f;
-                    printf("Sound: %f\n", Result.Settings.SoundPercentage);
-                }
-            }
-            else if (PlaygroundMenu->ToggleMusicCursor)
-            {
-                if (Input->MouseRelX != 0)
-                {
-                    r32 CursorX = PlaygroundMenu->MusicCursorValue;
-                    CursorX += Input->MouseRelX;
-                    
-                    if (CursorX < 0.0f) CursorX = 0.0f;
-                    if (CursorX > 170.0f) CursorX = 170.0f;
-                    
-                    PlaygroundMenu->MusicCursorValue = CursorX;
-                    Result.SettingsChanged = true;
-                    Result.Settings.MusicPercentage = (CursorX / 1.7f) / 100.0f;
-                    printf("Music: %f\n", Result.Settings.MusicPercentage);
+                    else if (Index == 1) 
+                    {
+                        if (IsInRectangle(MousePos, ValueOneRectangle)) 
+                        {
+                            if (Input->MouseButtons[0].EndedDown) 
+                                PlaygroundMenu->MusicOn = true;
+                        }
+                        else if (IsInRectangle(MousePos, ValueTwoRectangle)) 
+                        {
+                            if (Input->MouseButtons[0].EndedDown) 
+                                PlaygroundMenu->MusicOn = false;
+                        }
+                    }
                 }
             }
             
@@ -266,9 +234,10 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
             ButtonRectangle.Min.y = VIRTUAL_GAME_HEIGHT - (ValueButtonSize.h + 50.0f);
             SetDim(&ButtonRectangle, ValueButtonSize);
             
+            PlaygroundMenu->ButtonIndex = 0;
             if (IsInRectangle(MousePos, ButtonRectangle))
             {
-                PlaygroundMenu->ButtonIndex = 2;
+                PlaygroundMenu->ButtonIndex = 4;
                 
                 if (Input->MouseButtons[0].EndedDown)
                 {
@@ -398,25 +367,7 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
             PushRectangle(RenderGroup, BackgroundRectangle, {51, 8, 23, 255});
             
             v2 CornerDim = {200.0f, 200.0f};
-            
-            rectangle2 CornerRectangle = {};
-            CornerRectangle.Min.x = BackgroundRectangle.Min.x;
-            SetDim(&CornerRectangle, CornerDim);
-            PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[0], CornerRectangle);
-            
-            CornerRectangle.Min.x = BackgroundRectangle.Min.x;
-            CornerRectangle.Min.y = BackgroundRectangle.Max.y - (CornerDim.h);
-            SetDim(&CornerRectangle, CornerDim);
-            PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[1], CornerRectangle);
-            
-            CornerRectangle.Min.x = BackgroundRectangle.Max.x - CornerDim.w;
-            CornerRectangle.Min.y = BackgroundRectangle.Min.y;
-            SetDim(&CornerRectangle, CornerDim);
-            PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[2], CornerRectangle);
-            
-            CornerRectangle.Min.y = BackgroundRectangle.Max.y - (CornerDim.h);
-            SetDim(&CornerRectangle, CornerDim);
-            PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[3], CornerRectangle);
+            DrawCornersOnButton(RenderGroup, PlaygroundMenu->CornerTexture, BackgroundRectangle, CornerDim);
             
             rectangle2 ButtonRectangle = {};
             for (u32 Index = 0;
@@ -447,10 +398,8 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                     Dim = QueryTextureDim(PlaygroundMenu->HorizontalLineTexture);
                     
                     v2 LineDim = {200.0f, 33.0f};
-                    TextRectangle.Min.x = ButtonRectangle.Min.x + (GetDim(ButtonRectangle).w / 2.0f) - (LineDim.w / 2.0f);
-                    TextRectangle.Min.y = ButtonRectangle.Min.y + (GetDim(ButtonRectangle).h) - (LineDim.h * 0.8f);
-                    SetDim(&TextRectangle, LineDim);
-                    PushBitmap(RenderGroup, PlaygroundMenu->HorizontalLineTexture, TextRectangle);
+                    HighlightButtonWithLine(RenderGroup, PlaygroundMenu->HorizontalLineTexture, 
+                                            ButtonRectangle, LineDim);
                 }
             }
             
@@ -465,30 +414,11 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
             PushRectangle(RenderGroup, BackgroundRectangle, {51, 8, 23, 255});
             
             v2 CornerDim = {200.0f, 200.0f};
-            
-            // NOTE(msokolov): Corners
-            rectangle2 CornerRectangle = {};
-            CornerRectangle.Min.x = BackgroundRectangle.Min.x;
-            SetDim(&CornerRectangle, CornerDim);
-            PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[0], CornerRectangle);
-            
-            CornerRectangle.Min.x = BackgroundRectangle.Min.x;
-            CornerRectangle.Min.y = BackgroundRectangle.Max.y - (CornerDim.h);
-            SetDim(&CornerRectangle, CornerDim);
-            PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[1], CornerRectangle);
-            
-            CornerRectangle.Min.x = BackgroundRectangle.Max.x - CornerDim.w;
-            CornerRectangle.Min.y = BackgroundRectangle.Min.y;
-            SetDim(&CornerRectangle, CornerDim);
-            PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[2], CornerRectangle);
-            
-            CornerRectangle.Min.y = BackgroundRectangle.Max.y - (CornerDim.h);
-            SetDim(&CornerRectangle, CornerDim);
-            PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[3], CornerRectangle);
+            DrawCornersOnButton(RenderGroup, PlaygroundMenu->CornerTexture, BackgroundRectangle, CornerDim);
             
             // NOTE(msokolov): Settings buttons
             v2 SettingsButtonSize = V2(200.0f, 100.0f);
-            v2 ValueButtonSize    = V2(130.0f, 100.0f);
+            v2 ValueButtonSize    = V2(130.0f, 80.0f);
             
             v2 SettingsButtonPosition = 
             {
@@ -543,7 +473,6 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                     PushBitmap(RenderGroup, PlaygroundMenu->SoundOnShadowTexture, OnOffShadowRectangle);
                     PushBitmap(RenderGroup, PlaygroundMenu->SoundOnTexture, OnOffRectangle);
                     
-                    
                     // NOTE(msokolov): Off value
                     OnOffRectangle = GetTextOnTheCenterOfRectangle(ValueTwoRectangle, PlaygroundMenu->SoundOffTexture);
                     OnOffShadowRectangle = OnOffRectangle;
@@ -553,25 +482,9 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                     PushBitmap(RenderGroup, PlaygroundMenu->SoundOffShadowTexture, OnOffShadowRectangle);
                     PushBitmap(RenderGroup, PlaygroundMenu->SoundOffTexture, OnOffRectangle);
                     
-                    v2 CornerDim = V2(150.0f * 0.2f, 150.0f * 0.2f);
-                    rectangle2 CornerRectangle = {};
-                    CornerRectangle.Min.x = ValueOneRectangle.Min.x;
-                    CornerRectangle.Min.y = ValueOneRectangle.Max.y - CornerDim.h;
-                    SetDim(&CornerRectangle, CornerDim);
-                    PushBitmap(RenderGroup, PlaygroundMenu->LevelCornerTexture[0], CornerRectangle);
-                    
-                    CornerRectangle.Min.y = ValueOneRectangle.Min.y;
-                    SetDim(&CornerRectangle, CornerDim);
-                    PushBitmap(RenderGroup, PlaygroundMenu->LevelCornerTexture[1], CornerRectangle);
-                    
-                    CornerRectangle.Min.x = ValueOneRectangle.Max.x - (CornerDim.w);
-                    SetDim(&CornerRectangle, CornerDim);
-                    PushBitmap(RenderGroup, PlaygroundMenu->LevelCornerTexture[2], CornerRectangle);
-                    
-                    CornerRectangle.Min.y = ValueOneRectangle.Max.y - (CornerDim.h);
-                    SetDim(&CornerRectangle, CornerDim);
-                    PushBitmap(RenderGroup, PlaygroundMenu->LevelCornerTexture[3], CornerRectangle);
-                    
+                    v2 LineDim = {130.0f, 21.45f};
+                    HighlightButtonWithLine(RenderGroup, PlaygroundMenu->HorizontalLineTexture, 
+                                            PlaygroundMenu->SoundOn ? ValueOneRectangle : ValueTwoRectangle, LineDim);
                 }
                 // NOTE(msokolov): Music settings
                 else if (Index == 1)
@@ -604,6 +517,10 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                     
                     PushBitmap(RenderGroup, PlaygroundMenu->SoundOffShadowTexture, OnOffShadowRectangle);
                     PushBitmap(RenderGroup, PlaygroundMenu->SoundOffTexture, OnOffRectangle);
+                    
+                    v2 LineDim = {130.0f, 21.45f};
+                    HighlightButtonWithLine(RenderGroup, PlaygroundMenu->HorizontalLineTexture, 
+                                            PlaygroundMenu->MusicOn ? ValueOneRectangle : ValueTwoRectangle, LineDim);
                 }
             }
             
@@ -623,15 +540,11 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
             PushBitmap(RenderGroup, PlaygroundMenu->BackShadowTexture, TextShadowRectangle);
             PushBitmap(RenderGroup, PlaygroundMenu->BackTexture, TextRectangle);
             
-            if (PlaygroundMenu->ButtonIndex > 1)
+            if (PlaygroundMenu->ButtonIndex == 4)
             {
-                /* Hightlight Line*/
                 v2 LineDim = {200.0f, 33.0f};
-                v2 Dim = QueryTextureDim(PlaygroundMenu->HorizontalLineTexture);
-                TextRectangle.Min.x = ButtonRectangle.Min.x + (GetDim(ButtonRectangle).w * 0.5f) - (LineDim.w * 0.5f);
-                TextRectangle.Min.y = ButtonRectangle.Min.y + (GetDim(ButtonRectangle).h) - (LineDim.h * 0.8f);
-                SetDim(&TextRectangle, LineDim);
-                PushBitmap(RenderGroup, PlaygroundMenu->HorizontalLineTexture, TextRectangle);
+                HighlightButtonWithLine(RenderGroup, PlaygroundMenu->HorizontalLineTexture, 
+                                        ButtonRectangle, LineDim);
             }
         } break;
         
@@ -643,25 +556,7 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
             PushRectangle(RenderGroup, BackgroundRectangle, {51, 8, 23, 255});
             
             v2 CornerDim = {200.0f, 200.0f};
-            
-            rectangle2 CornerRectangle = {};
-            CornerRectangle.Min.x = BackgroundRectangle.Min.x;
-            SetDim(&CornerRectangle, CornerDim);
-            PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[0], CornerRectangle);
-            
-            CornerRectangle.Min.x = BackgroundRectangle.Min.x;
-            CornerRectangle.Min.y = BackgroundRectangle.Max.y - (CornerDim.h);
-            SetDim(&CornerRectangle, CornerDim);
-            PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[1], CornerRectangle);
-            
-            CornerRectangle.Min.x = BackgroundRectangle.Max.x - CornerDim.w;
-            CornerRectangle.Min.y = BackgroundRectangle.Min.y;
-            SetDim(&CornerRectangle, CornerDim);
-            PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[2], CornerRectangle);
-            
-            CornerRectangle.Min.y = BackgroundRectangle.Max.y - (CornerDim.h);
-            SetDim(&CornerRectangle, CornerDim);
-            PushBitmap(RenderGroup, PlaygroundMenu->CornerTexture[3], CornerRectangle);
+            DrawCornersOnButton(RenderGroup, PlaygroundMenu->CornerTexture, BackgroundRectangle, CornerDim);
             
             rectangle2 DifficultyRectangle = {};
             for (u32 Index = 0;
@@ -685,34 +580,14 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                 {
                     /* Hightlight Line*/
                     v2 LineDim = {200.0f, 33.0f};
-                    v2 Dim = QueryTextureDim(PlaygroundMenu->HorizontalLineTexture);
-                    TextRectangle.Min.x = DifficultyRectangle.Min.x + (GetDim(DifficultyRectangle).w * 0.5f) - (LineDim.w * 0.5f);
-                    TextRectangle.Min.y = DifficultyRectangle.Min.y + (GetDim(DifficultyRectangle).h) - (LineDim.h * 0.8f);
-                    SetDim(&TextRectangle, LineDim);
-                    PushBitmap(RenderGroup, PlaygroundMenu->HorizontalLineTexture, TextRectangle);
+                    HighlightButtonWithLine(RenderGroup, PlaygroundMenu->HorizontalLineTexture, 
+                                            DifficultyRectangle, LineDim);
                 }
                 
                 if (Index == (s32)PlaygroundMenu->DiffMode)
                 {
                     v2 CornerDim = V2(150.0f * 0.4f, 150.0f * 0.4f);
-                    
-                    rectangle2 CornerRectangle = {};
-                    CornerRectangle.Min.x = DifficultyRectangle.Min.x;
-                    CornerRectangle.Min.y = DifficultyRectangle.Max.y - CornerDim.h;
-                    SetDim(&CornerRectangle, CornerDim);
-                    PushBitmap(RenderGroup, PlaygroundMenu->LevelCornerTexture[0], CornerRectangle);
-                    
-                    CornerRectangle.Min.y = DifficultyRectangle.Min.y;
-                    SetDim(&CornerRectangle, CornerDim);
-                    PushBitmap(RenderGroup, PlaygroundMenu->LevelCornerTexture[1], CornerRectangle);
-                    
-                    CornerRectangle.Min.x = DifficultyRectangle.Max.x - (CornerDim.w);
-                    SetDim(&CornerRectangle, CornerDim);
-                    PushBitmap(RenderGroup, PlaygroundMenu->LevelCornerTexture[2], CornerRectangle);
-                    
-                    CornerRectangle.Min.y = DifficultyRectangle.Max.y - (CornerDim.h);
-                    SetDim(&CornerRectangle, CornerDim);
-                    PushBitmap(RenderGroup, PlaygroundMenu->LevelCornerTexture[3], CornerRectangle);
+                    DrawCornersOnButton(RenderGroup, PlaygroundMenu->LevelCornerTexture, DifficultyRectangle, CornerDim);
                 }
             }
             
@@ -800,11 +675,8 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
             {
                 /* Hightlight Line*/
                 v2 LineDim = {200.0f, 33.0f};
-                v2 Dim = QueryTextureDim(PlaygroundMenu->HorizontalLineTexture);
-                TextRectangle.Min.x = ButtonRectangle.Min.x + (GetDim(ButtonRectangle).w * 0.5f) - (LineDim.w * 0.5f);
-                TextRectangle.Min.y = ButtonRectangle.Min.y + (GetDim(ButtonRectangle).h) - (LineDim.h * 0.8f);
-                SetDim(&TextRectangle, LineDim);
-                PushBitmap(RenderGroup, PlaygroundMenu->HorizontalLineTexture, TextRectangle);
+                HighlightButtonWithLine(RenderGroup, PlaygroundMenu->HorizontalLineTexture, 
+                                        ButtonRectangle, LineDim);
             }
         } break;
     }

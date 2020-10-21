@@ -372,10 +372,10 @@ SDLAssetBuildBinaryFile()
     SDLWriteBitmapToFile(BinaryFile, "corner_right_top.png");
     SDLWriteBitmapToFile(BinaryFile, "corner_right_bottom.png");
     
-    SDLWriteBitmapToFile(BinaryFile, "corner_menu_1.png");
-    SDLWriteBitmapToFile(BinaryFile, "corner_menu_2.png");
-    SDLWriteBitmapToFile(BinaryFile, "corner_menu_3.png");
-    SDLWriteBitmapToFile(BinaryFile, "corner_menu_4.png");
+    SDLWriteBitmapToFile(BinaryFile, "corner_menu_left_top.png");
+    SDLWriteBitmapToFile(BinaryFile, "corner_menu_left_bottom.png");
+    SDLWriteBitmapToFile(BinaryFile, "corner_menu_right_top.png");
+    SDLWriteBitmapToFile(BinaryFile, "corner_menu_right_bottom.png");
     
     SDLWriteBitmapToFile(BinaryFile, "square_frame_locked.png");
     SDLWriteBitmapToFile(BinaryFile, "square_frame_unlocked.png");

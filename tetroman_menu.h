@@ -73,6 +73,7 @@ struct playground_menu
     
     // Sound
     // TODO(msokolov): delete these two
+    b32 SoundOn;
     b32 ToggleSoundCursor;
     r32 SoundCursorValue;
     //
@@ -85,6 +86,7 @@ struct playground_menu
     
     // Music
     // TODO(msokolov): delete these two
+    b32 MusicOn;
     b32 ToggleMusicCursor;
     r32 MusicCursorValue;
     //

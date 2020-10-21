@@ -223,6 +223,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundMenu->PlaygroundSwitch = false;
         PlaygroundMenu->ButtonIndex = 1;
         
+        PlaygroundMenu->SoundOn = false;
+        PlaygroundMenu->MusicOn = false;
+        
         PlaygroundMenu->LevelButtonTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
         Assert(PlaygroundMenu->LevelButtonTexture);
         
@@ -265,10 +268,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundMenu->CornerTexture[3] = GetTexture(Memory, "corner_right_bottom.png", Buffer->Renderer);
         PlaygroundMenu->HorizontalLineTexture = GetTexture(Memory, "horizontal_border_2.png", Buffer->Renderer);
         
-        PlaygroundMenu->LevelCornerTexture[0] = GetTexture(Memory, "corner_menu_1.png", Buffer->Renderer);
-        PlaygroundMenu->LevelCornerTexture[1] = GetTexture(Memory, "corner_menu_2.png", Buffer->Renderer);
-        PlaygroundMenu->LevelCornerTexture[2] = GetTexture(Memory, "corner_menu_3.png", Buffer->Renderer);
-        PlaygroundMenu->LevelCornerTexture[3] = GetTexture(Memory, "corner_menu_4.png", Buffer->Renderer);
+        PlaygroundMenu->LevelCornerTexture[0] = GetTexture(Memory, "corner_menu_left_top.png", Buffer->Renderer);
+        PlaygroundMenu->LevelCornerTexture[1] = GetTexture(Memory, "corner_menu_left_bottom.png", Buffer->Renderer);
+        PlaygroundMenu->LevelCornerTexture[2] = GetTexture(Memory, "corner_menu_right_top.png", Buffer->Renderer);
+        PlaygroundMenu->LevelCornerTexture[3] = GetTexture(Memory, "corner_menu_right_bottom.png", Buffer->Renderer);
+        
         PlaygroundMenu->SquareFrameLocked = GetTexture(Memory, "square_frame_locked.png", Buffer->Renderer);
         PlaygroundMenu->SquareFrameUnlocked = GetTexture(Memory, "square_frame_unlocked.png", Buffer->Renderer);
         
