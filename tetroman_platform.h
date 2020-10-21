@@ -67,16 +67,14 @@ typedef size_t memory_index;
 
 struct game_settings
 {
-    r32 SoundPercentage;
-    r32 MusicPercentage;
+    b32 SoundIsOn;
+    b32 MusicIsOn;
 };
 
 struct game_return_values
 {
     b32 ShouldQuit;
-    
     b32 SettingsChanged;
-    game_settings Settings;
 };
 
 struct game_offscreen_buffer

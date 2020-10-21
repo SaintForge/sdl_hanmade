@@ -400,23 +400,24 @@ int main(int argc, char **argv)
                 s32 OldMouseX = 0;
                 s32 OldMouseY = 0;
                 
+                // TODO(msokolov): check if files exist and are opened
                 ReadBinaryFile("package1.bin", Memory.AssetStorage, Memory.AssetStorageSize);
                 ReadBinaryFile("package2.bin", Memory.LevelStorage, Memory.LevelStorageSize);
                 ReadBinaryFile("settings.bin", Memory.SettingsStorage, Memory.SettingsStorageSize);
                 
-                game_settings PreviousSettings = {};
-                if (Memory.SettingsStorage)
-                {
-                    game_settings *Settings = (game_settings *)Memory.SettingsStorage;
-                    
-                    Mix_Volume(-1, Settings->SoundPercentage * MIX_MAX_VOLUME);
-                    Mix_VolumeMusic(Settings->MusicPercentage * MIX_MAX_VOLUME);
-                }
+                game_settings *Settings = (game_settings *) Memory.SettingsStorage;
+                
+                game_settings PrevSettings = {};
+                PrevSettings.MusicIsOn = Settings->MusicIsOn;
+                PrevSettings.SoundIsOn = Settings->SoundIsOn;
                 
                 SDL_ShowWindow(Window);
                 SetWindowFullscreen(Window, false);
                 SetWindowResolution(Window, game_resolution::FULLHD);
                 SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+                
+                //game_music *gMusic = Mix_LoadMUS("..\\data\\sound\\music_test.ogg");
+                //Mix_PlayMusic(gMusic, -1);
                 
                 while (IsRunning)
                 {
@@ -443,19 +444,23 @@ int main(int argc, char **argv)
                     
                     if (GameResult.SettingsChanged)
                     {
-                        game_settings NewSettings = GameResult.Settings;
-                        
-                        
-                        if (PreviousSettings.MusicPercentage != NewSettings.MusicPercentage)
+                        if (PrevSettings.MusicIsOn != Settings->MusicIsOn)
                         {
-                            Mix_VolumeMusic(NewSettings.MusicPercentage * MIX_MAX_VOLUME);
+                            // NOTE(msokolov): Music will be changed here
+                            if (!Settings->MusicIsOn) {
+                                Mix_PauseMusic();
+                            }
+                            else 
+                                Mix_ResumeMusic();
+                            
+                            PrevSettings.MusicIsOn = Settings->MusicIsOn;
                         }
-                        if (PreviousSettings.SoundPercentage != NewSettings.SoundPercentage)
+                        if (PrevSettings.SoundIsOn != Settings->SoundIsOn)
                         {
-                            Mix_Volume(-1, NewSettings.SoundPercentage * MIX_MAX_VOLUME);
+                            // NOTE(msokolov): Sound will be changed here
+                            PrevSettings.SoundIsOn = Settings->SoundIsOn;
                         }
                         
-                        PreviousSettings = GameResult.Settings;
                         WriteBinaryFile("settings.bin", Memory.SettingsStorage, Memory.SettingsStorageSize);
                     }
                     

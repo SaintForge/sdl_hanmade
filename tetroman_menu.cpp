@@ -71,8 +71,8 @@ HighlightButtonWithLine(render_group *RenderGroup, game_texture *LineTexture,
 static menu_result_option
 PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, 
                               playground_data *PlaygroundData, 
-                              game_settings *Settings,
-                              game_input *Input, render_group *RenderGroup)
+                              game_settings *Settings, game_input *Input,
+                              render_group *RenderGroup)
 {
     menu_result_option Result = {};
     
@@ -205,26 +205,38 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                     {
                         if (IsInRectangle(MousePos, ValueOneRectangle)) 
                         {
-                            if (Input->MouseButtons[0].EndedDown) 
+                            if (Input->MouseButtons[0].EndedDown) {
                                 PlaygroundMenu->SoundOn = true;
+                                Settings->SoundIsOn = true;
+                                Result.SettingsChanged = true;
+                            }
                         }
                         else if (IsInRectangle(MousePos, ValueTwoRectangle)) 
                         {
-                            if (Input->MouseButtons[0].EndedDown) 
+                            if (Input->MouseButtons[0].EndedDown)  {
                                 PlaygroundMenu->SoundOn = false;
+                                Settings->SoundIsOn = false;
+                                Result.SettingsChanged = true;
+                            }
                         }
                     }
                     else if (Index == 1) 
                     {
                         if (IsInRectangle(MousePos, ValueOneRectangle)) 
                         {
-                            if (Input->MouseButtons[0].EndedDown) 
+                            if (Input->MouseButtons[0].EndedDown) {
                                 PlaygroundMenu->MusicOn = true;
+                                Settings->MusicIsOn = true;
+                                Result.SettingsChanged = true;
+                            }
                         }
                         else if (IsInRectangle(MousePos, ValueTwoRectangle)) 
                         {
-                            if (Input->MouseButtons[0].EndedDown) 
+                            if (Input->MouseButtons[0].EndedDown) {
                                 PlaygroundMenu->MusicOn = false;
+                                Settings->MusicIsOn = false;
+                                Result.SettingsChanged = true;
+                            }
                         }
                     }
                 }

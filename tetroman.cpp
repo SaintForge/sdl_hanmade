@@ -22,6 +22,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
     game_state *GameState = (game_state *) Memory->PermanentStorage;
     
+    game_settings *Settings = (game_settings*)Memory->SettingsStorage;
+    Assert(Settings);
+    
     if(!Memory->IsInitialized)
     {
         // NOTE(msokolov): figure colors 
@@ -47,11 +50,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GameState->PlaygroundIndex = 0;
         GameState->CurrentMode     = game_mode::MENU;
 		
-        /* game_settings initialization */
-        game_settings *Settings = (game_settings*)Memory->SettingsStorage;
-        Assert(Settings);
-        
-        
         playground_config *Configuration = &GameState->Configuration;
         Configuration->StartUpTimeToFinish = 0.0f;
         Configuration->RotationVel         = 1000.0f;
@@ -223,8 +221,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundMenu->PlaygroundSwitch = false;
         PlaygroundMenu->ButtonIndex = 1;
         
-        PlaygroundMenu->SoundOn = false;
-        PlaygroundMenu->MusicOn = false;
+        PlaygroundMenu->SoundOn = Settings->SoundIsOn;
+        PlaygroundMenu->MusicOn = Settings->MusicIsOn;
         
         PlaygroundMenu->LevelButtonTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
         Assert(PlaygroundMenu->LevelButtonTexture);
@@ -397,7 +395,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         PlaygroundEditor->IsInitialized = true;
 #endif
-        
         
     } // if (!Memory->IsInitialized)
     
@@ -642,7 +639,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         case MENU:
         {
-            menu_result_option MenuResult = PlaygroundMenuUpdateAndRender(PlaygroundMenu, PlaygroundData, &GameState->Settings, Input, RenderGroup);
+            menu_result_option MenuResult = PlaygroundMenuUpdateAndRender(PlaygroundMenu, PlaygroundData, Settings, Input, RenderGroup);
             
             if (MenuResult.SwitchToPlayground)
             {
@@ -680,9 +677,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             if (MenuResult.SettingsChanged)
             {
                 Result.SettingsChanged = true;
-                Result.Settings = MenuResult.Settings;
-				
-                game_settings *Settings = (game_settings *)Memory->SettingsStorage;
             }
         } break;
     }

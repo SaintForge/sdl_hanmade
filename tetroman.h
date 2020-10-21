@@ -71,8 +71,6 @@ struct game_state
     game_font *MenuTimerFont;
     game_font *TimerFont;
     
-    game_settings Settings;
-    
     /* NOTE(msokolov): Non-release thing only */
 #if DEBUG_BUILD
     playground_editor *PlaygroundEditor;

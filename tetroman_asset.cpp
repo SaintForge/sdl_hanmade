@@ -27,7 +27,6 @@ SDLSizeOfBinaryFile(const char *FileName)
     return(ByteSize);
 }
 
-
 static void
 SDLWriteBitmapToFile(SDL_RWops *&BinaryFile, const char* FileName)
 {
@@ -308,8 +307,6 @@ ReadBinaryFile(const char *FileName, void *Storage, u64 StorageSize)
     {
         printf("ReadBinaryFile failed for %s: %s\n", FileName, SDL_GetError());
     }
-    
-    
 }
 
 static void

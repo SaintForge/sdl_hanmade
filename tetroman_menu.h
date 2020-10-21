@@ -28,10 +28,7 @@ enum difficulty
 struct menu_result_option
 {
     b32 QuitGame;
-    
     b32 SettingsChanged;
-    game_settings Settings;
-    
     b32 SwitchToPlayground;
     u32 PlaygroundIndex;
 };
