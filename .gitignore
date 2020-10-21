@@ -1,5 +1,5 @@
 *.psd
-.vs/
+build/.vs/
 .vs/*
 data/
 makefile
