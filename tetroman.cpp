@@ -390,8 +390,15 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             PlaygroundData[Index].IsUnlocked = false;
         }
         
-        game_music *Music = GetMusic(Memory, "music_test.ogg");
-        Mix_PlayMusic(Music, -1);
+        game_music *Music = GetMusic(Memory, "Jami Saber - Maenam.ogg");
+        //Mix_PlayMusic(Music, -1);
+        
+        if (Settings->MusicIsOn) {
+            Mix_PlayMusic(Music, -1);
+        }
+        else 
+            Mix_HaltMusic();
+        
         
         PlaygroundEditor->IsInitialized = true;
 #endif

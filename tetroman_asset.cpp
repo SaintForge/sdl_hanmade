@@ -388,7 +388,6 @@ SDLAssetBuildBinaryFile()
     SDLWriteBitmapToFile(BinaryFile, "level_indicator_filled.png");
     SDLWriteBitmapToFile(BinaryFile, "option_progress_bar.png");
     
-    
     SDLWriteBitmapToFile(BinaryFile, "grid_cell_new.png");
     SDLWriteBitmapToFile(BinaryFile, "grid_cell_new2.png");
     SDLWriteBitmapToFile(BinaryFile, "border_vertical.png");
@@ -435,6 +434,7 @@ SDLAssetBuildBinaryFile()
     SDLWriteSoundToFile(BinaryFile, "figure_drop.wav");
     
     SDLWriteMusicToFile(BinaryFile, "music_test.ogg");
+    SDLWriteMusicToFile(BinaryFile, "Jami Saber - Maenam.ogg");
     
     SDL_RWseek(BinaryFile, 0, RW_SEEK_SET);
     

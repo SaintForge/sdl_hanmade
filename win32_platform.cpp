@@ -416,7 +416,7 @@ int main(int argc, char **argv)
                 SetWindowResolution(Window, game_resolution::FULLHD);
                 SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
                 
-                //game_music *gMusic = Mix_LoadMUS("..\\data\\sound\\music_test.ogg");
+                //game_music *gMusic = Mix_LoadMUS("..\\data\\sound\\Jami Saber - Maenam.mp3");
                 //Mix_PlayMusic(gMusic, -1);
                 
                 while (IsRunning)
