@@ -49,7 +49,7 @@ struct asset_bitmap
 
 struct asset_header
 {
-    char AssetName[32];
+    char AssetName[64];
     u32 AssetSize;
     asset_type AssetType;
     union

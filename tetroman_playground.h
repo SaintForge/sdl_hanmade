@@ -246,6 +246,7 @@ struct playground_options
     
     game_texture *MenuTexture[4];
     game_texture *MenuShadowTexture[4];
+    
 };
 
 struct playground
@@ -261,6 +262,18 @@ struct playground
     
     r32 TimeElapsed;
     b32 ShowTimer;
+    
+    /* Animation control */
+    /* Startup */
+    b32 AnimFinished;
+    r32 AnimInterPoint;
+    r32 AnimTimeMax;
+    
+    b32 GearIsRotating;
+    r32 GearRotationSum;
+    r32 GearAngle;
+    
+    r32 LerpPoint[20];
     
     /* Texture Assets */
     game_texture *CornerLeftTopTexture;

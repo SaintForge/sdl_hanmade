@@ -333,6 +333,23 @@ Min3(s32 a, s32 b, s32 c)
     return fmin(fmin(a,b),c);
 }
 
+static r32
+Lerp1(r32 a, r32 b, r32 t) {
+    r32 Result = a + (t * (b - a));
+    return (Result);
+}
+
+static v2
+Lerp2(v2 a, v2 b, r32 t) {
+    
+    v2 Result = {};
+    
+    Result.x = Lerp1(a.x, b.x, t);
+    Result.y = Lerp1(a.y, b.y, t);
+    
+    return (Result);
+}
+
 inline static void
 TransposeMatrix(u32 Matrix[4][4])
 {

@@ -9,6 +9,8 @@
 #ifndef TETROMAN_DEBUG_H
 #define TETROMAN_DEBUG_H
 
+
+
 void PrintMatrix(u32 Matrix[4][4])
 {
     for (int i = 0; i < 4; i++)

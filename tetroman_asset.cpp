@@ -293,7 +293,6 @@ GetTexture(game_memory *Memory, const char* FileName, SDL_Renderer *Renderer)
     return(Result);
 }
 
-
 static void
 ReadBinaryFile(const char *FileName, void *Storage, u64 StorageSize)
 {

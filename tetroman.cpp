@@ -48,7 +48,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Assert(GameState->MenuTimerFont);
 		
         GameState->PlaygroundIndex = 0;
-        GameState->CurrentMode     = game_mode::MENU;
+        GameState->CurrentMode     = game_mode::PLAYGROUND;
 		
         playground_config *Configuration = &GameState->Configuration;
         Configuration->StartUpTimeToFinish = 0.0f;
@@ -72,14 +72,18 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Playground->IndicatorEmptyTexture     = GetTexture(Memory, "level_indicator_empty.png", Buffer->Renderer);
         Playground->IndicatorFilledTexture    = GetTexture(Memory, "level_indicator_filled.png", Buffer->Renderer);
         
+        SDL_SetTextureBlendMode(Playground->CornerLeftTopTexture, SDL_BLENDMODE_BLEND);
+        SDL_SetTextureBlendMode(Playground->CornerLeftBottomTexture, SDL_BLENDMODE_BLEND);
+        SDL_SetTextureBlendMode(Playground->CornerRightTopTexture, SDL_BLENDMODE_BLEND);
+        SDL_SetTextureBlendMode(Playground->CornerRightBottomTexture, SDL_BLENDMODE_BLEND);
+        
         Playground->PickSound   = GetSound(Memory, "figure_pick.wav");
         Playground->StickSound  = GetSound(Memory, "figure_stick.wav");
         Playground->RotateSound = GetSound(Memory, "figure_drop.wav");
         
-        //Mix_Volume(-1, 8);
-        
         /* Playground Option Menu */ 
         playground_options *PlaygroundOptions = &Playground->Options;
+        
         PlaygroundOptions->ToggleMenu  = false;
         PlaygroundOptions->Choice      = options_choice::RESTART_OPTION;
         PlaygroundOptions->MenuPosition = { 1500.0f, 650.0f };
@@ -96,6 +100,14 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundOptions->MenuShadowTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "Settings", {0, 0, 0, 127});
         PlaygroundOptions->MenuShadowTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "Menu", {0, 0, 0, 127});
         PlaygroundOptions->MenuShadowTexture[3] = MakeTextureFromString(Buffer, GameState->Font, "Quit", {0, 0, 0, 127});
+        
+        // Animation control
+        Playground->AnimFinished = false;
+        Playground->AnimInterPoint = 0.0f;
+        Playground->AnimTimeMax = 1.0f;
+        Playground->GearIsRotating = false;
+        Playground->GearRotationSum = 0.0f;
+        Playground->GearAngle = 0.0f;
         
         /* NOTE(msokolov): figure_entity initialization starts here */
         figure_entity* FigureEntity  = &Playground->FigureEntity;
@@ -120,9 +132,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->FigureArea.Max.x = FigureEntity->FigureArea.Min.x + 552;
         FigureEntity->FigureArea.Max.y = FigureEntity->FigureArea.Min.y + 972;
         
-        FigureUnitAddNewFigure(FigureEntity, L_figure, classic);
-        FigureUnitAddNewFigure(FigureEntity, O_figure, stone);
-        FigureUnitAddNewFigure(FigureEntity, O_figure, mirror);
+        //FigureUnitAddNewFigure(FigureEntity, L_figure, classic);
+        //FigureUnitAddNewFigure(FigureEntity, O_figure, stone);
+        //FigureUnitAddNewFigure(FigureEntity, O_figure, mirror);
         
         FigureEntityAlignFigures(&Playground->FigureEntity);
         
@@ -226,7 +238,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         PlaygroundMenu->LevelButtonTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
         Assert(PlaygroundMenu->LevelButtonTexture);
-        
         
         PlaygroundMenu->DifficultyTexture[0] = MakeTextureFromString(Buffer, GameState->TimerFont, "I", V4(255, 255, 255, 255));
         PlaygroundMenu->DifficultyShadowTexture[0] = MakeTextureFromString(Buffer, GameState->TimerFont, "I", V4(0, 0, 0, 128));
@@ -362,15 +373,15 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundData[0].Figures[1].Form = figure_form::O_figure;
         PlaygroundData[0].Figures[1].Type = figure_type::classic;
         
-        PlaygroundData[0].Figures[2].Form = figure_form::L_figure;
+        PlaygroundData[0].Figures[2].Form = figure_form::O_figure;
         PlaygroundData[0].Figures[2].Type = figure_type::classic;
         
         PlaygroundData[0].Figures[3].Form = figure_form::J_figure;
         PlaygroundData[0].Figures[3].Type = figure_type::classic;
         
         PlaygroundData[0].TimeElapsed  = 2.36f;
-        PlaygroundData[0].RowAmount    = 4;
-        PlaygroundData[0].ColumnAmount = 4;
+        PlaygroundData[0].RowAmount    = 5;
+        PlaygroundData[0].ColumnAmount = 5;
         PlaygroundData[0].MovingBlocksAmount = 0;
         PlaygroundData[0].MovingBlocks[0].RowNumber = 1;
         PlaygroundData[0].MovingBlocks[0].ColNumber = 1;
@@ -391,14 +402,13 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         }
         
         game_music *Music = GetMusic(Memory, "Jami Saber - Maenam.ogg");
-        //Mix_PlayMusic(Music, -1);
+        Mix_PlayMusic(Music, -1);
         
-        if (Settings->MusicIsOn) {
-            Mix_PlayMusic(Music, -1);
-        }
-        else 
-            Mix_HaltMusic();
+        if (!Settings->MusicIsOn)
+            Mix_PauseMusic();
         
+        if(!Settings->SoundIsOn)
+            Mix_Volume(1, 0);
         
         PlaygroundEditor->IsInitialized = true;
 #endif
@@ -582,6 +592,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                     {
                         PlaygroundData[PlaygroundIndex].TimeElapsed = Playground->TimeElapsed;
                         RestartLevelEntity(Playground);
+                        //Playground->AnimInterPoint = 0.0f;
                         
                         char TimeString[64] = {};
                         GetTimeString(TimeString, PlaygroundData[PlaygroundIndex].TimeElapsed);

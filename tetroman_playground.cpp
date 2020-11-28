@@ -777,6 +777,7 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
             {
                 ToggleMenuOption = LevelEntity->Options.ToggleMenu ? false : true;
                 LevelEntity->Options.Choice = options_choice::RESTART_OPTION;
+                LevelEntity->GearIsRotating = true;
             }
             
             if(!FigureEntity->IsGrabbed)
@@ -822,7 +823,7 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
                         FigureEntityHighOrderFigure(FigureEntity, ActiveIndex);
                         SDL_ShowCursor(SDL_DISABLE);
                         
-                        if(Mix_PlayChannel(-1, LevelEntity->PickSound, 0)==-1) {
+                        if(Mix_PlayChannel(1, LevelEntity->PickSound, 0)==-1) {
                             printf("Mix_PlayChannel: %s\n", Mix_GetError());
                         }
                         
@@ -1939,6 +1940,21 @@ RenderFigureStructure(render_group *RenderGroup, figure_unit *Entity)
     }
 }
 
+static rectangle2
+LerpRectangleDimension(v2 start, v2 finish, float time) {
+    
+    rectangle2 result = {};
+    
+    v2 lerp = Lerp2(start, finish, time);
+    
+    result.Min.x = Min2(start.x, lerp.x);
+    result.Min.y = Min2(start.y, lerp.y);
+    result.Max.x = Max2(start.x, lerp.x);
+    result.Max.y = Max2(start.y, lerp.y);
+    
+    return (result);
+}
+
 static playground_status
 PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, game_input *Input)
 {
@@ -1985,8 +2001,14 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     }
     
     // TODO(msokolov): this should be a texture
-    //Clear(RenderGroup, {51, 8, 23, 255});
     ClearScreen(RenderGroup, {51, 8, 23, 255});
+    
+    // NOTE(msokolov): Animation interpolation startup update
+    LevelEntity->AnimInterPoint += (Input->dtForFrame / LevelEntity->AnimTimeMax);
+    if (LevelEntity->AnimInterPoint > 1.0f) {
+        LevelEntity->AnimInterPoint = 1.0f;
+        LevelEntity->AnimFinished = true;
+    }
     
     /* GridEntity update and render */
     for (u32 Index = 0; Index < FigureAmount; ++Index)
@@ -2129,7 +2151,7 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
             {
                 GridEntity->StickUnits[i].IsSticked = true;
                 
-                if(Mix_PlayChannel(-1, LevelEntity->StickSound, 0)==-1) {
+                if(Mix_PlayChannel(1, LevelEntity->StickSound, 0)==-1) {
                     printf("Mix_PlayChannel: %s\n", Mix_GetError());
                 }
                 
@@ -2376,6 +2398,48 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         }
     }
     
+    // TODO(msokolov): temp
+    static float time = 0.0f;
+    float complete_time = 1.0f; // seconds
+    time += Input->dtForFrame / complete_time;
+    
+    if (time < 1.0f) {
+        
+        r32 time_ = -time;
+        u32 MaxDim = GridEntity->RowAmount + GridEntity->ColumnAmount - 1;
+        r32 time_for_diag = complete_time / MaxDim;
+        
+        b32 go = true;
+        for (int k = 0; k <= MaxDim; ++k) {
+            if (go)
+                LevelEntity->LerpPoint[k] += Input->dtForFrame  * (1.0f / time_for_diag);
+            
+            if (LevelEntity->LerpPoint[k] >= 1.0f) {
+                LevelEntity->LerpPoint[k] = 1.0f;
+            }
+            
+            for (int Col = 0; Col <= k; ++Col) {
+                int Row = k - Col;
+                if (Row < GridEntity->RowAmount && Col < GridEntity->ColumnAmount) {
+                    rectangle2 rect = {};
+                    rect.Min.x = GridArea.Min.x + (GridBlockSize * Col);
+                    rect.Min.y = GridArea.Min.y + (GridBlockSize * Row);
+                    SetDim(&rect, GridBlockSize, GridBlockSize);
+                    
+                    PushRectangle(RenderGroup, rect, V4(51, 8, 23, (1.0f -  LevelEntity->LerpPoint[k]) * 200.0f));
+                }
+            }
+            
+            if (LevelEntity->LerpPoint[k] < 1.0f)
+                go = false;
+        }
+        
+        printf("----------\n");
+        printf("time: %f\n", time);
+        //printf("lerp[0]: %f\n", LevelEntity->LerpPoint[0]);
+        //printf("lerp[1]: %f\n", LevelEntity->LerpPoint[1]);
+    }
+    
     /* MovingBlocks Update and Rendering */
     moving_block *MovingBlocks = GridEntity->MovingBlocks;
     for(u32 i = 0; i < GridEntity->MovingBlocksAmount; ++i)
@@ -2484,7 +2548,7 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
             FigureEntity->RotationSum = 0;
             FigureEntity->IsRotating = false;
             
-            if(Mix_PlayChannel(-1, LevelEntity->RotateSound, 0)==-1) {
+            if(Mix_PlayChannel(1, LevelEntity->RotateSound, 0)==-1) {
                 printf("Mix_PlayChannel: %s\n", Mix_GetError());
             }
         }
@@ -2533,120 +2597,170 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         
         PushBitmapEx(RenderGroup, ShadowTexture, ShadowRectangle, Entity->Angle, Center, Entity->Flip);
         PushBitmapEx(RenderGroup, Texture, Rectangle, Entity->Angle, Center, Entity->Flip);
-        
-        //PushRectangleOutline(RenderGroup, Rectangle, {0, 0, 255, 255});
-        //PushRectangleOutline(RenderGroup, ShadowRectangle, {0, 255, 0, 255});
-        
-        
-        //RenderFigureStructure(RenderGroup, Entity);
-        
-        //rectangle2 AreaRect = FigureUnitGetArea(Entity);
-        //PushRectangleOutline(RenderGroup, AreaRect, {0, 0, 0, 255});
     }
-    
-    //PushRectangleOutline(RenderGroup, GridEntity->GridArea, {255, 0, 255, 255});
-    //PushRectangleOutline(RenderGroup, FigureEntity->FigureArea, {0, 255, 255, 255});
     
     {
         /* Corner Rendering */ 
+        if (!LevelEntity->AnimFinished) {
+            
+            SDL_SetTextureAlphaMod(LevelEntity->CornerLeftTopTexture, LevelEntity->AnimInterPoint * 255.0f);
+            SDL_SetTextureAlphaMod(LevelEntity->CornerLeftBottomTexture, LevelEntity->AnimInterPoint * 255.0f);
+            SDL_SetTextureAlphaMod(LevelEntity->CornerRightTopTexture, LevelEntity->AnimInterPoint * 255.0f);
+            SDL_SetTextureAlphaMod(LevelEntity->CornerRightBottomTexture, LevelEntity->AnimInterPoint * 255.0f);
+        }
+        
+        rectangle2 BorderRectangle = {};
+        rectangle2 ClipRectangle   = {};
+        
+        v2 TextureDim = QueryTextureDim(LevelEntity->CornerLeftTopTexture);
+        v2 RectangleDim = {408.0f, 408.0f};
         
         /* Top Left */
-        rectangle2 BorderRectangle = {};
-        BorderRectangle.Min.x = 20.0f; 
-        BorderRectangle.Min.y = 20.0f;
-        SetDim(&BorderRectangle, 410.0f, 410.0f);
-        PushBitmap(RenderGroup, LevelEntity->CornerLeftTopTexture, BorderRectangle);
-        //PushRectangleOutline(RenderGroup, BorderRectangle, {255, 255, 255, 255});
+        {
+            v2 StartPos  = {20.0f, 20.0f};
+            v2 FinishPos = {RectangleDim.w + 20.0f, RectangleDim.h + 20.0f};
+            BorderRectangle = LerpRectangleDimension(StartPos, FinishPos, LevelEntity->AnimInterPoint);
+            ClipRectangle = LerpRectangleDimension(V2(0.0f, 0.0f), V2(TextureDim.w, TextureDim.h), LevelEntity->AnimInterPoint);
+            PushBitmap(RenderGroup, LevelEntity->CornerLeftTopTexture, BorderRectangle, ClipRectangle);
+            
+        }
         
         /* Bottom Left */
-        BorderRectangle.Min.x = 20.0f; 
-        BorderRectangle.Min.y = VIRTUAL_GAME_HEIGHT - 410.0f - 20.0f;
-        SetDim(&BorderRectangle, 410.0f, 410.0f);
-        PushBitmap(RenderGroup, LevelEntity->CornerLeftBottomTexture, BorderRectangle);
+        {
+            v2 StartPos  = {20.0f, VIRTUAL_GAME_HEIGHT - 20.0f};
+            v2 FinishPos = {20.0f + RectangleDim.w, StartPos.y - RectangleDim.h};
+            BorderRectangle = LerpRectangleDimension(StartPos, FinishPos, LevelEntity->AnimInterPoint);
+            ClipRectangle = LerpRectangleDimension(V2(0.0f, TextureDim.h), V2(TextureDim.w, 0.0f), LevelEntity->AnimInterPoint);
+            
+            PushBitmap(RenderGroup, LevelEntity->CornerLeftBottomTexture, BorderRectangle, ClipRectangle);
+        }
         
         /* Top Right */
-        BorderRectangle.Min.x = VIRTUAL_GAME_WIDTH  - 410.0f - 20.0f; 
-        BorderRectangle.Min.y = 20.0f;
-        SetDim(&BorderRectangle, 410.0f, 410.0f);
-        PushBitmap(RenderGroup, LevelEntity->CornerRightTopTexture, BorderRectangle);
+        {
+            v2 StartPos  = {VIRTUAL_GAME_WIDTH - 20.0f, 20.0f};
+            v2 FinishPos = {VIRTUAL_GAME_WIDTH - RectangleDim.w - 20.0f, RectangleDim.h + 20.0f};
+            BorderRectangle = LerpRectangleDimension(StartPos, FinishPos, LevelEntity->AnimInterPoint);
+            ClipRectangle = LerpRectangleDimension(V2(TextureDim.w, 0.0f), V2(0.0f, TextureDim.h), LevelEntity->AnimInterPoint);
+            
+            PushBitmap(RenderGroup, LevelEntity->CornerRightTopTexture, BorderRectangle, ClipRectangle);
+        }
         
         /* Bottom Right */
-        BorderRectangle.Min.x = VIRTUAL_GAME_WIDTH  - 410.0f - 20.0f; 
-        BorderRectangle.Min.y = VIRTUAL_GAME_HEIGHT - 410.0f - 20.0f;
-        SetDim(&BorderRectangle, 410.0f, 410.0f);
-        PushBitmap(RenderGroup, LevelEntity->CornerRightBottomTexture, BorderRectangle);
+        {
+            v2 StartPos  = {VIRTUAL_GAME_WIDTH - 20.0f, VIRTUAL_GAME_HEIGHT - 20.0f};
+            v2 FinishPos = {VIRTUAL_GAME_WIDTH - RectangleDim.w - 20.0f, VIRTUAL_GAME_HEIGHT - RectangleDim.h - 20.0f};
+            
+            BorderRectangle = LerpRectangleDimension(StartPos, FinishPos, LevelEntity->AnimInterPoint);
+            ClipRectangle = LerpRectangleDimension(V2(TextureDim.w, TextureDim.h), V2(0.0f, 0.0f), LevelEntity->AnimInterPoint);
+            
+            PushBitmap(RenderGroup, LevelEntity->CornerRightBottomTexture, BorderRectangle, ClipRectangle);
+        }
         
         /* Vertical Border*/
-        BorderRectangle.Min.x = 1200.0f; 
-        BorderRectangle.Min.y = 100.0f;
-        v2 Dim = QueryTextureDim(LevelEntity->VerticalBorderTexture);
-        SetDim(&BorderRectangle, Dim.w, Dim.h);
-        PushBitmap(RenderGroup, LevelEntity->VerticalBorderTexture, BorderRectangle);
-        
-        
+        {
+            
+            v2 Dim = QueryTextureDim(LevelEntity->VerticalBorderTexture);
+            v2 StartPos  = {1200.0f, 100.0f + (Dim.h / 2.0f)};
+            v2 FinishPos = {1200.0f, 100.0f};
+            
+            BorderRectangle = LerpRectangleDimension(StartPos, FinishPos, LevelEntity->AnimInterPoint);
+            BorderRectangle.Max.x = 1200.0f + Dim.w;
+            
+            ClipRectangle = LerpRectangleDimension(V2(0.0f, Dim.h / 2.0f), V2(Dim.w, 0.0f), LevelEntity->AnimInterPoint);
+            ClipRectangle.Max.x = Dim.w;
+            
+            PushBitmap(RenderGroup, LevelEntity->VerticalBorderTexture, BorderRectangle, ClipRectangle);
+            
+            StartPos  = {1200.0f, 100.0f + (Dim.h / 2.0f)};
+            FinishPos = {1200.0f, 100.0f + Dim.h};
+            BorderRectangle = LerpRectangleDimension(StartPos, FinishPos, LevelEntity->AnimInterPoint);
+            BorderRectangle.Max.x = 1200.0 + Dim.w;
+            
+            ClipRectangle = LerpRectangleDimension(V2(0.0f, Dim.h / 2.0f), V2(Dim.w, Dim.h), LevelEntity->AnimInterPoint);
+            ClipRectangle.Max.x = Dim.w;
+            
+            PushBitmap(RenderGroup, LevelEntity->VerticalBorderTexture, BorderRectangle, ClipRectangle);
+        }
     }
     
     {
         /* Playground Options */
         playground_options *Options = &LevelEntity->Options;
         
+        if (Options->ToggleMenu)
+        {
+            if (LevelEntity->GearIsRotating) {
+                r32 AngleDt = Input->dtForFrame * FigureEntity->RotationVelocity;
+                if(LevelEntity->GearRotationSum < 90.0f && !(LevelEntity->GearRotationSum + AngleDt >= 90.0f)) {
+                    LevelEntity->GearAngle += AngleDt;
+                    LevelEntity->GearRotationSum += AngleDt;
+                }
+                else {
+                    LevelEntity->GearAngle += 90.0f - LevelEntity->GearRotationSum;
+                    
+                    LevelEntity->GearIsRotating = false;
+                    LevelEntity->GearRotationSum = 0.0f;
+                }
+            }
+            else {
+                
+                v2 ButtonRectangleDim = Options->ButtonDimension;
+                v2 MenuPosition       = Options->MenuPosition;
+                v2 TextureDim         = {};
+                
+                rectangle2 ButtonRectangle = {};
+                rectangle2 TextRectangle = {};
+                rectangle2 TextShadowRectangle = {};
+                
+                for (u32 Index = 0;
+                     Index < 4;
+                     ++Index)
+                {
+                    ButtonRectangle.Min.x = MenuPosition.x;
+                    ButtonRectangle.Min.y = MenuPosition.y + (ButtonRectangleDim.h * Index);
+                    SetDim(&ButtonRectangle, ButtonRectangleDim);
+                    
+                    TextureDim   = QueryTextureDim(LevelEntity->Options.MenuTexture[Index]);
+                    TextRectangle.Min.x = ButtonRectangle.Min.x + (ButtonRectangleDim.w / 2.0f) - (TextureDim.w / 2.0f);
+                    TextRectangle.Min.y = ButtonRectangle.Min.y + (ButtonRectangleDim.h / 2.0f) - (TextureDim.h / 2.0f);
+                    SetDim(&TextRectangle, TextureDim);
+                    
+                    TextShadowRectangle.Min = TextRectangle.Min + 5.0f;
+                    SetDim(&TextShadowRectangle, TextureDim);
+                    
+                    PushBitmap(RenderGroup, Options->MenuShadowTexture[Index], TextShadowRectangle);
+                    PushBitmap(RenderGroup, Options->MenuTexture[Index], TextRectangle);
+                }
+                
+                if (Options->Choice != options_choice::NONE_OPTION)
+                {
+                    TextureDim = QueryTextureDim(Options->HorizontalLineTexture);
+                    r32 Ratio  = TextureDim.w / TextureDim.h;
+                    
+                    u32 ButtonIndex  = (u32)Options->Choice;
+                    
+                    v2 LineDim = {200.0f, 33.0f};
+                    TextRectangle.Min.x = MenuPosition.x + (GetDim(ButtonRectangle).w / 2.0f) - (LineDim.w / 2.0f);
+                    TextRectangle.Min.y = MenuPosition.y + (ButtonRectangleDim.h * (ButtonIndex + 1)) - (LineDim.h * 0.8f);
+                    SetDim(&TextRectangle, LineDim);
+                    PushBitmap(RenderGroup, Options->HorizontalLineTexture, TextRectangle);
+                }
+            }
+        }
+        
         rectangle2 GearRectangle = {};
         GearRectangle.Min.x = VIRTUAL_GAME_WIDTH  - 200.0f + 8.0f;
         GearRectangle.Min.y = VIRTUAL_GAME_HEIGHT - 200.0f + 8.0f;
         SetDim(&GearRectangle, 100.0f, 100.0f);
-        PushBitmap(RenderGroup, Options->GearShadowTexture, GearRectangle);
+        
+        v2 GearCenter = {50.0f, 50.0f};
+        PushBitmapEx(RenderGroup, Options->GearShadowTexture, GearRectangle, LevelEntity->GearAngle, GearCenter, SDL_FLIP_NONE);
         
         GearRectangle.Min.x = VIRTUAL_GAME_WIDTH  - 200.0f;
         GearRectangle.Min.y = VIRTUAL_GAME_HEIGHT - 200.0f;
         SetDim(&GearRectangle, 100.0f, 100.0f);
-        PushBitmap(RenderGroup, Options->GearTexture, GearRectangle);
-        
-        if (Options->ToggleMenu)
-        {
-            v2 ButtonRectangleDim = Options->ButtonDimension;
-            v2 MenuPosition       = Options->MenuPosition;
-            v2 TextureDim         = {};
-            
-            rectangle2 ButtonRectangle = {};
-            rectangle2 TextRectangle = {};
-            rectangle2 TextShadowRectangle = {};
-            
-            for (u32 Index = 0;
-                 Index < 4;
-                 ++Index)
-            {
-                ButtonRectangle.Min.x = MenuPosition.x;
-                ButtonRectangle.Min.y = MenuPosition.y + (ButtonRectangleDim.h * Index);
-                SetDim(&ButtonRectangle, ButtonRectangleDim);
-                
-                TextureDim   = QueryTextureDim(LevelEntity->Options.MenuTexture[Index]);
-                TextRectangle.Min.x = ButtonRectangle.Min.x + (ButtonRectangleDim.w / 2.0f) - (TextureDim.w / 2.0f);
-                TextRectangle.Min.y = ButtonRectangle.Min.y + (ButtonRectangleDim.h / 2.0f) - (TextureDim.h / 2.0f);
-                SetDim(&TextRectangle, TextureDim);
-                //PushRectangleOutline(RenderGroup, TextRectangle, { 0, 255, 255, 255});
-                //PushRectangleOutline(RenderGroup, ButtonRectangle, { 255, 255, 255, 255});
-                
-                TextShadowRectangle.Min = TextRectangle.Min + 5.0f;
-                SetDim(&TextShadowRectangle, TextureDim);
-                
-                PushBitmap(RenderGroup, Options->MenuShadowTexture[Index], TextShadowRectangle);
-                PushBitmap(RenderGroup, Options->MenuTexture[Index], TextRectangle);
-            }
-            
-            if (Options->Choice != options_choice::NONE_OPTION)
-            {
-                TextureDim = QueryTextureDim(Options->HorizontalLineTexture);
-                r32 Ratio  = TextureDim.w / TextureDim.h;
-                
-                u32 ButtonIndex  = (u32)Options->Choice;
-                
-                v2 LineDim = {200.0f, 33.0f};
-                TextRectangle.Min.x = MenuPosition.x + (GetDim(ButtonRectangle).w / 2.0f) - (LineDim.w / 2.0f);
-                TextRectangle.Min.y = MenuPosition.y + (ButtonRectangleDim.h * (ButtonIndex + 1)) - (LineDim.h * 0.8f);
-                SetDim(&TextRectangle, LineDim);
-                PushBitmap(RenderGroup, Options->HorizontalLineTexture, TextRectangle);
-            }
-        }
+        GearCenter = {50.0f, 50.0f};
+        PushBitmapEx(RenderGroup, Options->GearTexture, GearRectangle, LevelEntity->GearAngle, GearCenter, SDL_FLIP_NONE);
     }
     
     return (Result);
@@ -2752,6 +2866,8 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
     Playground->LevelStarted = true;
     Playground->LevelNumber  = Index + 1;
     Playground->TimeElapsed  = 0.0f;
+    
+    Playground->AnimFinished  = false;
     
     Playground->GridEntity.RowAmount          = PlaygroundData.RowAmount;
     Playground->GridEntity.ColumnAmount       = PlaygroundData.ColumnAmount;

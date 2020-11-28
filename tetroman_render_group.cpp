@@ -105,6 +105,21 @@ PushBitmap(render_group *Group, game_texture* Texture, rectangle2 Rectangle)
 }
 
 inline static void
+PushBitmap(render_group *Group, game_texture* Texture, rectangle2 Rectangle, rectangle2 ClipRectangle)
+{
+    render_entry_texture *Piece = PushRenderElement(Group, render_entry_texture);
+    if(Piece)
+    {
+        Piece->Texture        = Texture;
+        Piece->Rectangle      = Rectangle;
+        Piece->ClipRectangle  = ClipRectangle;
+        Piece->Angle          = 0;
+        Piece->RelativeCenter = {0, 0};
+        Piece->Flip           = SDL_FLIP_NONE;
+    }
+}
+
+inline static void
 PushBitmapEx(render_group *Group, game_texture *Texture, rectangle2 Rectangle, r32 Angle, v2 RelativeCenter, figure_flip Flip)
 {
     render_entry_texture *Piece = PushRenderElement(Group, render_entry_texture);
@@ -135,13 +150,14 @@ DrawEntryTexture(game_offscreen_buffer *Buffer, render_entry_texture *Entry)
     Rectangle.h = roundf(Entry->Rectangle.Max.y - Entry->Rectangle.Min.y);
     
     v2 ClipDim = GetDim(Entry->ClipRectangle);
-    if (ClipDim.w > 0 || ClipDim.h > 0)
+    if (ClipDim.w > 0.0f || ClipDim.h > 0.0f)
     {
         game_rect ClipRectangle = {};
-        ClipRectangle.x = Entry->ClipRectangle.Min.x;
-        ClipRectangle.y = Entry->ClipRectangle.Min.y;
-        ClipRectangle.w = ClipDim.w;
-        ClipRectangle.h = ClipDim.h;
+        ClipRectangle.x = roundf(Entry->ClipRectangle.Min.x);
+        ClipRectangle.y = roundf(Entry->ClipRectangle.Min.y);
+        ClipRectangle.w = roundf(ClipDim.w);
+        ClipRectangle.h = roundf(ClipDim.h);
+        
         
         SDL_RenderCopyEx(Buffer->Renderer, Texture, &ClipRectangle, &Rectangle, Entry->Angle, &Center, Entry->Flip);
     }

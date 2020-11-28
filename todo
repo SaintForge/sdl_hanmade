@@ -1,3 +1,16 @@
+New TODO:
+1. Deal with file mapping: 
+	1. Divide file memory into 3 files: assets file, levels file, settings file
+		- The binary file with assets and levels is crucial. Meaning if it doesn't exit - the game won't run.
+		- Settings file is not important. If you don't have one of those - the game will run with default options
+		- Should save file be pulled into memory (memory file mapping)?
+		- Make some sort of hash table for assets?
+
+	2. Shrink level amount to some decent number
+	3. Animation everywhere
+	4. Static linking with SDL
+
+
 ---General---
 +	1. Change order of the figure when it sticks to the grid 
 
@@ -65,9 +78,6 @@
 	  Reference resolution
 	Width: 800  Height 600
 			Apply!
-
-
-
 
 BUGS:
 	+ 1. When I want to pick the figure that lies on top of the figure that is sticked

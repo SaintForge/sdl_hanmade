@@ -247,7 +247,7 @@ SetWindowResolution(SDL_Window *Window, game_resolution Resolution)
         } break;
         case QFULLHD:
         {
-            SDL_SetWindowSize(Window, 2560, 1440);
+            SDL_SetWindowSize(Window, 2560, 1080);
             SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
         } break;
     }
@@ -337,7 +337,6 @@ int main(int argc, char **argv)
         
         if(Renderer)
         {
-            
             bool IsRunning = true;
             window_dimension Dimension = SDLGetWindowDimension(Window);
             
@@ -418,6 +417,7 @@ int main(int argc, char **argv)
                 
                 //game_music *gMusic = Mix_LoadMUS("..\\data\\sound\\Jami Saber - Maenam.mp3");
                 //Mix_PlayMusic(gMusic, -1);
+                //Mix_PauseMusic();
                 
                 while (IsRunning)
                 {
@@ -459,6 +459,11 @@ int main(int argc, char **argv)
                         {
                             // NOTE(msokolov): Sound will be changed here
                             PrevSettings.SoundIsOn = Settings->SoundIsOn;
+                            
+                            if (!Settings->SoundIsOn) 
+                                Mix_Volume(1, 0);
+                            else
+                                Mix_Volume(1, MIX_MAX_VOLUME);
                         }
                         
                         WriteBinaryFile("settings.bin", Memory.SettingsStorage, Memory.SettingsStorageSize);
@@ -472,8 +477,7 @@ int main(int argc, char **argv)
                     
                     r32 CurrentTimeTick = SDL_GetTicks();
                     TimeElapsed += (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
-                    
-                    
+                    //printf("TimeElapsed: %f\n", TimeElapsed);
                 }
             }
         }
