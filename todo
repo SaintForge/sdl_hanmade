@@ -9,6 +9,8 @@ New TODO:
 	2. Shrink level amount to some decent number
 	3. Animation everywhere
 	4. Static linking with SDL
+	5. Fix the editor bug and move the windows to some appropriate positions
+		Theres is some weird bug that is hard to reproduce. Sometimes whenever you delete or add figure, two figures pop up instead of one.
 
 
 ---General---
@@ -90,4 +92,4 @@ BUGS:
 	+ 6. Level button switch behaviour is wrong when pressing mouse on it.
 	- 7. There is some problem with grid animation when amount of row is less than amoun of columns.
 	- 8. Finish animation starts with little wrong positioning of the blocks
-	- 9. Editor problem. Whenever u delete a row or column and there was a moving block on that then something bad happens.
+	- 9. Editor problem. Whenever u delete a row or column and there was a moving block on that then something bad happens.p
