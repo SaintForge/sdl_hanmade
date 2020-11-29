@@ -120,6 +120,7 @@ struct playground_data
     u32 MovingBlocksAmount;
     u32 FigureAmount;
     
+    // TODO(msokolov): don't really need UnitField array, do we?
     s32 UnitField[COLUMN_AMOUNT_MAXIMUM * ROW_AMOUNT_MAXIMUM];
     moving_block_data MovingBlocks[MOVING_BLOCKS_MAXIMUM];
     figure_data Figures[FIGURE_AMOUNT_MAXIMUM];

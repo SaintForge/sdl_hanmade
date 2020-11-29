@@ -76,6 +76,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         SDL_SetTextureBlendMode(Playground->CornerLeftBottomTexture, SDL_BLENDMODE_BLEND);
         SDL_SetTextureBlendMode(Playground->CornerRightTopTexture, SDL_BLENDMODE_BLEND);
         SDL_SetTextureBlendMode(Playground->CornerRightBottomTexture, SDL_BLENDMODE_BLEND);
+        SDL_SetTextureBlendMode(Playground->VerticalBorderTexture, SDL_BLENDMODE_BLEND);
         
         Playground->PickSound   = GetSound(Memory, "figure_pick.wav");
         Playground->StickSound  = GetSound(Memory, "figure_stick.wav");
@@ -108,6 +109,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Playground->GearIsRotating = false;
         Playground->GearRotationSum = 0.0f;
         Playground->GearAngle = 0.0f;
+        Playground->FigureInterp = 0.0f;
+        Playground->FigureAnimFinished = false;
+        Playground->FigureTimeMax = 0.5f;
+        Playground->FigureScaleFactor = 2.0f;
         
         /* NOTE(msokolov): figure_entity initialization starts here */
         figure_entity* FigureEntity  = &Playground->FigureEntity;
@@ -131,10 +136,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->FigureArea.Min.y = 81;
         FigureEntity->FigureArea.Max.x = FigureEntity->FigureArea.Min.x + 552;
         FigureEntity->FigureArea.Max.y = FigureEntity->FigureArea.Min.y + 972;
-        
-        //FigureUnitAddNewFigure(FigureEntity, L_figure, classic);
-        //FigureUnitAddNewFigure(FigureEntity, O_figure, stone);
-        //FigureUnitAddNewFigure(FigureEntity, O_figure, mirror);
         
         FigureEntityAlignFigures(&Playground->FigureEntity);
         
@@ -261,15 +262,13 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         }
         
         
-        {
-            PlaygroundMenu->MainMenuTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Play", V4(255, 255, 255, 255));
-            PlaygroundMenu->MainMenuTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "Settings", V4(255, 255, 255, 255));
-            PlaygroundMenu->MainMenuTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "Quit", V4(255, 255, 255, 255));
-            
-            PlaygroundMenu->MainMenuShadowTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Play", V4(0, 0, 0, 128));
-            PlaygroundMenu->MainMenuShadowTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "Settings", V4(0, 0, 0, 128));
-            PlaygroundMenu->MainMenuShadowTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "Quit", V4(0, 0, 0, 128));
-        }
+        PlaygroundMenu->MainMenuTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Play", V4(255, 255, 255, 255));
+        PlaygroundMenu->MainMenuTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "Settings", V4(255, 255, 255, 255));
+        PlaygroundMenu->MainMenuTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "Quit", V4(255, 255, 255, 255));
+        
+        PlaygroundMenu->MainMenuShadowTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Play", V4(0, 0, 0, 128));
+        PlaygroundMenu->MainMenuShadowTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "Settings", V4(0, 0, 0, 128));
+        PlaygroundMenu->MainMenuShadowTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "Quit", V4(0, 0, 0, 128));
         
         PlaygroundMenu->CornerTexture[0] = GetTexture(Memory, "corner_left_top.png", Buffer->Renderer);
         PlaygroundMenu->CornerTexture[1] = GetTexture(Memory, "corner_left_bottom.png", Buffer->Renderer);
@@ -282,7 +281,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundMenu->LevelCornerTexture[2] = GetTexture(Memory, "corner_menu_right_top.png", Buffer->Renderer);
         PlaygroundMenu->LevelCornerTexture[3] = GetTexture(Memory, "corner_menu_right_bottom.png", Buffer->Renderer);
         
-        PlaygroundMenu->SquareFrameLocked = GetTexture(Memory, "square_frame_locked.png", Buffer->Renderer);
+        PlaygroundMenu->SquareFrameLocked   = GetTexture(Memory, "square_frame_locked.png", Buffer->Renderer);
         PlaygroundMenu->SquareFrameUnlocked = GetTexture(Memory, "square_frame_unlocked.png", Buffer->Renderer);
         
         PlaygroundMenu->ColorBarTexture[0] = GetTexture(Memory, "green_bar.png", Buffer->Renderer);
@@ -387,6 +386,28 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundData[0].MovingBlocks[0].ColNumber = 1;
         
         PrepareNextPlayground(Playground, Configuration, PlaygroundData, 0);
+        
+#if 0        
+        // TODO(msokolov): delete this
+        for (int i = 0; i < 4; ++i) {
+            
+            figure_unit *FigureUnit = &Playground->FigureEntity.FigureUnit[i];
+            
+            Playground->AnimFigureDim[i] = FigureUnit->Size;
+            
+            v2 OldCenter = FigureUnit->Position + (FigureUnit->Size / 2.0f);
+            v2 NewCenter = FigureUnit->Position + ((Playground->FigureScaleFactor * FigureUnit->Size) / 2.0f);
+            
+            FigureUnit->Position -= (NewCenter - OldCenter);
+            FigureUnit->Size = Playground->FigureScaleFactor * FigureUnit->Size;
+            
+            v2 StartPos = {VIRTUAL_GAME_WIDTH, 0.0f};
+            FigureUnit->Position = StartPos;
+            
+            r32 AngleOffset = 45.0f;
+            FigureUnit->Angle += AngleOffset;
+        }
+#endif
         
         char LevelString[64] = {};
         sprintf(LevelString, "%d", Playground->LevelNumber);
@@ -560,7 +581,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 }
                 
                 v2 IndicatorSize = {30.0f, 30.0f};
-                u32 IndicatorAmount = 8;
+                s32 IndicatorAmount = 8;
+                r32 MaxTimeForIndicator = Playground->AnimTimeMax / (r32)IndicatorAmount;
+                r32 AnimTime = Playground->AnimInterPoint;
+                
+                r32 AnimTimeLeft = (AnimTime / MaxTimeForIndicator) * 256.0f;
                 
                 s32 RowLevelStart = GameState->PlaygroundIndex - (GameState->PlaygroundIndex % IndicatorAmount);
                 for (s32 Index = 0; 
@@ -573,12 +598,24 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                     Rectangle.Min.y = VIRTUAL_GAME_HEIGHT - (70.0f);
                     SetDim(&Rectangle, IndicatorSize);
                     
+                    s32 AlphaChannel = AnimTimeLeft > 0.0f ? (s32)roundf(AnimTimeLeft) % 256 : 0;
+                    
+                    if (AnimTimeLeft > 255.0f) {
+                        AlphaChannel = 255.0f;
+                    }
+                    
                     PushBitmap(RenderGroup, Playground->IndicatorEmptyTexture, Rectangle);
                     b32 IsUnlocked = PlaygroundData[RowLevelStart + Index].IsUnlocked;
                     if ((GameState->PlaygroundIndex % IndicatorAmount) + 1 > Index)
                     {
                         PushBitmap(RenderGroup, Playground->IndicatorFilledTexture, Rectangle);
                     }
+                    
+                    PushRectangle(RenderGroup, Rectangle, V4(51, 8, 23, 255 - AlphaChannel));
+                    
+                    AnimTimeLeft -= 255.0f;
+                    if (AnimTimeLeft < 0.0f)
+                        AnimTimeLeft = 0.0f;
                 }
                 
             }
@@ -685,7 +722,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                     Assert(Playground->LevelNumberTexture);
 #endif
                 }
-				
+                
                 GameState->CurrentMode = PLAYGROUND;
             }
             if (MenuResult.QuitGame)
@@ -698,7 +735,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             }
         } break;
     }
-	
+    
     RenderGroupToOutput(RenderGroup, Buffer);
     TransState->TransGroup = TemporaryMemory;
     

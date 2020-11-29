@@ -302,7 +302,6 @@ FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form,
 
 static void
 FigureUnitAddNewFigure(figure_entity *FigureEntity, figure_form Form, figure_type Type)
-
 {
     Assert(FigureEntity->FigureAmount < FIGURE_AMOUNT_MAXIMUM);
     
@@ -703,7 +702,6 @@ RestartLevelEntity(playground *LevelEntity)
     {
         if(!FigureEntity->FigureUnit[i].IsIdle)
         {
-            
             FigureEntity->FigureUnit[i].IsStick = false;
             BlockRatio = InActiveBlockSize / GridBlockSize;
             FigureUnitSetToDefaultArea(&FigureEntity->FigureUnit[i], BlockRatio);
@@ -2004,10 +2002,14 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     ClearScreen(RenderGroup, {51, 8, 23, 255});
     
     // NOTE(msokolov): Animation interpolation startup update
-    LevelEntity->AnimInterPoint += (Input->dtForFrame / LevelEntity->AnimTimeMax);
-    if (LevelEntity->AnimInterPoint > 1.0f) {
-        LevelEntity->AnimInterPoint = 1.0f;
-        LevelEntity->AnimFinished = true;
+    if (!LevelEntity->AnimFinished) {
+        LevelEntity->AnimInterPoint += (Input->dtForFrame / LevelEntity->AnimTimeMax);
+        if (LevelEntity->AnimInterPoint > 1.0f) 
+            LevelEntity->AnimInterPoint = 1.0f;
+        
+        LevelEntity->FigureInterp += (Input->dtForFrame / LevelEntity->FigureTimeMax);
+        if (LevelEntity->FigureInterp > 1.0f)
+            LevelEntity->FigureInterp = 1.0f;
     }
     
     /* GridEntity update and render */
@@ -2338,6 +2340,17 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         }
     }
     
+#if 0
+    printf("grid---------\n");
+    for (int i = 0; i < RowAmount; ++i) {
+        for (int j = 0; j < ColumnAmount; ++j) {
+            u32 GridUnit = GridEntity->UnitField[(i * ColumnAmount) + j];
+            printf("%d ", GridUnit);
+        }
+        printf("\n");
+    }
+#endif
+    
     u32 CellCounter = 0;
     rectangle2 GridCellRectangle = {};
     for (u32 Row = 0; Row < RowAmount; ++Row)
@@ -2398,46 +2411,69 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         }
     }
     
-    // TODO(msokolov): temp
-    static float time = 0.0f;
-    float complete_time = 1.0f; // seconds
-    time += Input->dtForFrame / complete_time;
-    
-    if (time < 1.0f) {
+    if (!LevelEntity->AnimFinished) {
         
-        r32 time_ = -time;
-        u32 MaxDim = GridEntity->RowAmount + GridEntity->ColumnAmount - 1;
-        r32 time_for_diag = complete_time / MaxDim;
-        
-        b32 go = true;
-        for (int k = 0; k <= MaxDim; ++k) {
-            if (go)
-                LevelEntity->LerpPoint[k] += Input->dtForFrame  * (1.0f / time_for_diag);
+        if (LevelEntity->AnimInterPoint <= 1.0f) {
             
-            if (LevelEntity->LerpPoint[k] >= 1.0f) {
-                LevelEntity->LerpPoint[k] = 1.0f;
-            }
+            s32 MaxDim = GridEntity->RowAmount + GridEntity->ColumnAmount - 1;
+            r32 MaxTimeForDiagonal = LevelEntity->AnimTimeMax / MaxDim;
+            r32 AnimTimeLeft = (LevelEntity->AnimInterPoint / MaxTimeForDiagonal) * 256.0f;
             
-            for (int Col = 0; Col <= k; ++Col) {
-                int Row = k - Col;
-                if (Row < GridEntity->RowAmount && Col < GridEntity->ColumnAmount) {
-                    rectangle2 rect = {};
-                    rect.Min.x = GridArea.Min.x + (GridBlockSize * Col);
-                    rect.Min.y = GridArea.Min.y + (GridBlockSize * Row);
-                    SetDim(&rect, GridBlockSize, GridBlockSize);
-                    
-                    PushRectangle(RenderGroup, rect, V4(51, 8, 23, (1.0f -  LevelEntity->LerpPoint[k]) * 200.0f));
+            b32 go = true;
+            for (int k = 0; k <= MaxDim; ++k) {
+                
+                for (int Col = 0; Col <= k; ++Col) {
+                    int Row = k - Col;
+                    if (Row < GridEntity->RowAmount && Col < GridEntity->ColumnAmount) {
+                        
+                        rectangle2 rect = {};
+                        rect.Min.x = GridArea.Min.x + (GridBlockSize * Col);
+                        rect.Min.y = GridArea.Min.y + (GridBlockSize * Row);
+                        SetDim(&rect, GridBlockSize + 25.0f, GridBlockSize + 25.0f);
+                        
+                        // NOTE(msokolov): this is lazy lifehack for fixing shadows around tiles
+                        // comment this section to see what I'm talking about
+                        if (Col == 0 || Row == 0) {
+                            rect.Min -= 5.0f;
+                            rect.Max += 12.0f;
+                        }
+                        
+                        s32 AlphaChannel = AnimTimeLeft > 0.0f ? (s32)roundf(AnimTimeLeft) % 256 : 0.0f;
+                        if (AnimTimeLeft > 255.0f) 
+                            AlphaChannel = 255;
+                        
+                        PushRectangle(RenderGroup, rect, V4(51, 8, 23, 255 - AlphaChannel));
+                        
+                        
+                    }
                 }
+                
+                AnimTimeLeft -= 255.0f;
+                if (AnimTimeLeft < 0.0f) AnimTimeLeft = 0.0f; 
             }
-            
-            if (LevelEntity->LerpPoint[k] < 1.0f)
-                go = false;
         }
+    }
+    
+    if (!LevelEntity->FigureAnimFinished) {
         
-        printf("----------\n");
-        printf("time: %f\n", time);
-        //printf("lerp[0]: %f\n", LevelEntity->LerpPoint[0]);
-        //printf("lerp[1]: %f\n", LevelEntity->LerpPoint[1]);
+        for(u32 i = 0; i < FigureAmount; ++i) {
+            
+            v2 FinishDimension  = LevelEntity->AnimFigureDim[i];
+            v2 StartDimension   = FinishDimension * LevelEntity->FigureScaleFactor;
+            
+            v2 LerpDim = Lerp2(StartDimension, FinishDimension, LevelEntity->FigureInterp);
+            FigureUnit[i].Size = LerpDim;
+            
+            v2 StartPos = {VIRTUAL_GAME_WIDTH, 0.0f};
+            v2 LerpPos = Lerp2(StartPos, FigureUnit[i].HomePosition, LevelEntity->FigureInterp);
+            FigureUnit[i].Position = LerpPos;
+            
+            r32 AngleOffset = 45.0f;
+            r32 FinishAngle = FigureUnit[i].HomeAngle;
+            r32 StartAngle = FinishAngle + AngleOffset;
+            r32 LerpAngle = Lerp1(StartAngle, FinishAngle, LevelEntity->FigureInterp);
+            FigureUnit[i].Angle = LerpAngle;
+        }
     }
     
     /* MovingBlocks Update and Rendering */
@@ -2597,6 +2633,7 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         
         PushBitmapEx(RenderGroup, ShadowTexture, ShadowRectangle, Entity->Angle, Center, Entity->Flip);
         PushBitmapEx(RenderGroup, Texture, Rectangle, Entity->Angle, Center, Entity->Flip);
+        //RenderFigureStructure(RenderGroup, Entity);
     }
     
     {
@@ -2607,6 +2644,7 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
             SDL_SetTextureAlphaMod(LevelEntity->CornerLeftBottomTexture, LevelEntity->AnimInterPoint * 255.0f);
             SDL_SetTextureAlphaMod(LevelEntity->CornerRightTopTexture, LevelEntity->AnimInterPoint * 255.0f);
             SDL_SetTextureAlphaMod(LevelEntity->CornerRightBottomTexture, LevelEntity->AnimInterPoint * 255.0f);
+            SDL_SetTextureAlphaMod(LevelEntity->VerticalBorderTexture, LevelEntity->AnimInterPoint * 255.0f);
         }
         
         rectangle2 BorderRectangle = {};
@@ -2763,6 +2801,13 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         PushBitmapEx(RenderGroup, Options->GearTexture, GearRectangle, LevelEntity->GearAngle, GearCenter, SDL_FLIP_NONE);
     }
     
+    // NOTE(msokolov): Turn off the animation when t >= 1.0f;
+    if (LevelEntity->AnimInterPoint >= 1.0)
+        LevelEntity->AnimFinished = true;
+    
+    if (LevelEntity->FigureInterp >= 1.0)
+        LevelEntity->FigureAnimFinished = true;
+    
     return (Result);
 }
 
@@ -2868,6 +2913,11 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
     Playground->TimeElapsed  = 0.0f;
     
     Playground->AnimFinished  = false;
+    Playground->AnimInterPoint = 0.0f;
+    Playground->FigureInterp = 0.0f;
+    Playground->FigureAnimFinished = false;
+    Playground->FigureTimeMax = 0.5f;
+    Playground->FigureScaleFactor = 2.0f;
     
     Playground->GridEntity.RowAmount          = PlaygroundData.RowAmount;
     Playground->GridEntity.ColumnAmount       = PlaygroundData.ColumnAmount;
@@ -2882,15 +2932,15 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
     s32 *UnitFieldSource = PlaygroundData.UnitField;
     s32 *UnitFieldTarget = Playground->GridEntity.UnitField;
     for (u32 Row = 0; 
-         Row < PlaygroundData.RowAmount;
+         Row < ROW_AMOUNT_MAXIMUM;
          ++Row)
     {
         for (u32 Column = 0; 
-             Column < PlaygroundData.ColumnAmount;
+             Column < COLUMN_AMOUNT_MAXIMUM;
              ++Column)
         {
-            s32 UnitIndex = (Row * PlaygroundData.ColumnAmount) + Column;
-            UnitFieldTarget[UnitIndex] = UnitFieldSource[UnitIndex];
+            s32 UnitIndex = (Row * COLUMN_AMOUNT_MAXIMUM) + Column;
+            UnitFieldTarget[UnitIndex] = 0;
         }
     }
     
@@ -2940,11 +2990,30 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
         FigureUnitInitFigure(&Playground->FigureEntity.FigureUnit[FigureIndex], Form, Type);
     }
     
+    // NOTE(msokolov): just for clearing fields that may be changed during animation and other stuff
     for(u32 i = 0; i < FIGURE_AMOUNT_MAXIMUM; ++i) 
     {
         Playground->FigureEntity.FigureOrder[i] = i;
+        FigureUnits[i].Angle = 0.0f;
     }
     
     FigureEntityAlignFigures(&Playground->FigureEntity);
+    
+    for (int i = 0; i < Playground->FigureEntity.FigureAmount; ++i) {
+        
+        Playground->AnimFigureDim[i] = FigureUnits[i].Size;
+        
+        v2 OldCenter = FigureUnits[i].Position + (FigureUnits[i].Size / 2.0f);
+        v2 NewCenter = FigureUnits[i].Position + ((Playground->FigureScaleFactor * FigureUnits[i].Size) / 2.0f);
+        
+        FigureUnits[i].Position -= (NewCenter - OldCenter);
+        FigureUnits[i].Size = Playground->FigureScaleFactor * FigureUnits[i].Size;
+        
+        v2 StartPos = {VIRTUAL_GAME_WIDTH, 0.0f};
+        FigureUnits[i].Position = StartPos;
+        
+        r32 AngleOffset = 45.0f;
+        FigureUnits[i].Angle += AngleOffset;
+    }
 }
 

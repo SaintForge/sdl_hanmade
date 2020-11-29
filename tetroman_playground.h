@@ -273,7 +273,11 @@ struct playground
     r32 GearRotationSum;
     r32 GearAngle;
     
-    r32 LerpPoint[20];
+    r32 FigureAnimFinished;
+    r32 FigureInterp;
+    r32 FigureTimeMax;
+    r32 FigureScaleFactor;
+    v2 AnimFigureDim[FIGURE_AMOUNT_MAXIMUM];
     
     /* Texture Assets */
     game_texture *CornerLeftTopTexture;
