@@ -103,16 +103,13 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundOptions->MenuShadowTexture[3] = MakeTextureFromString(Buffer, GameState->Font, "Quit", {0, 0, 0, 127});
         
         // Animation control
-        Playground->AnimFinished = false;
-        Playground->AnimInterPoint = 0.0f;
-        Playground->AnimTimeMax = 1.0f;
+        Playground->Animation.Finished = false;
+        Playground->Animation.InterpPoint = 0.0f;
+        Playground->Animation.TimeMax = 1.0f;
+        
         Playground->GearIsRotating = false;
         Playground->GearRotationSum = 0.0f;
         Playground->GearAngle = 0.0f;
-        Playground->FigureInterp = 0.0f;
-        Playground->FigureAnimFinished = false;
-        Playground->FigureTimeMax = 0.5f;
-        Playground->FigureScaleFactor = 2.0f;
         
         /* NOTE(msokolov): figure_entity initialization starts here */
         figure_entity* FigureEntity  = &Playground->FigureEntity;
@@ -582,8 +579,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 
                 v2 IndicatorSize = {30.0f, 30.0f};
                 s32 IndicatorAmount = 8;
-                r32 MaxTimeForIndicator = Playground->AnimTimeMax / (r32)IndicatorAmount;
-                r32 AnimTime = Playground->AnimInterPoint;
+                r32 MaxTimeForIndicator = Playground->Animation.TimeMax / (r32)IndicatorAmount;
+                r32 AnimTime = Playground->Animation.InterpPoint;
                 
                 r32 AnimTimeLeft = (AnimTime / MaxTimeForIndicator) * 256.0f;
                 
@@ -629,7 +626,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                     {
                         PlaygroundData[PlaygroundIndex].TimeElapsed = Playground->TimeElapsed;
                         RestartLevelEntity(Playground);
-                        //Playground->AnimInterPoint = 0.0f;
                         
                         char TimeString[64] = {};
                         GetTimeString(TimeString, PlaygroundData[PlaygroundIndex].TimeElapsed);

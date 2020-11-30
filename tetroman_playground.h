@@ -249,6 +249,12 @@ struct playground_options
     
 };
 
+struct animation_scene {
+    b32 Finished;
+    r32 InterpPoint;
+    r32 TimeMax;
+};
+
 struct playground
 {
     grid_entity GridEntity;
@@ -265,18 +271,13 @@ struct playground
     
     /* Animation control */
     /* Startup */
-    b32 AnimFinished;
-    r32 AnimInterPoint;
-    r32 AnimTimeMax;
+    
+    b32 IsStartup;
+    animation_scene Animation;
     
     b32 GearIsRotating;
     r32 GearRotationSum;
     r32 GearAngle;
-    
-    r32 FigureAnimFinished;
-    r32 FigureInterp;
-    r32 FigureTimeMax;
-    r32 FigureScaleFactor;
     v2 AnimFigureDim[FIGURE_AMOUNT_MAXIMUM];
     
     /* Texture Assets */
