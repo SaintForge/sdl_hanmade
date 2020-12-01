@@ -126,6 +126,7 @@ PlaygroundEditorUpdateAndRender(playground        *Playground,
                         }
                         
                         Playground->FigureEntity.FigureAmount -= 1;
+                        Playground->GridEntity.StickUnitsAmount -= 1;
                         if (FigureIndex >= Playground->FigureEntity.FigureAmount && FigureIndex != 0)
                         {
                             PlaygroundEditor->FigureIndex -= 1;
