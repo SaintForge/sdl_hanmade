@@ -11,6 +11,7 @@ New TODO:
 	4. Static linking with SDL
 	5. Fix the editor bug and move the windows to some appropriate positions
 		Theres is some weird bug that is hard to reproduce. Sometimes whenever you delete or add figure, two figures pop up instead of one.
+	6. Move timer and indicator to the playground code
 
 BUGS:
 	1. When you make less figures in the editor and finish the level, the playground does not switch to the next level
