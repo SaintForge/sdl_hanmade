@@ -33,6 +33,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         // 116, 0,   40
         // 23,  156, 234
         // 108, 174, 0
+        
         /* NOTE(msokolov): game_memory initialization starts here */
 		
         /* NOTE(msokolov): game_state initialization starts here */
@@ -369,42 +370,20 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundData[0].Figures[1].Form = figure_form::O_figure;
         PlaygroundData[0].Figures[1].Type = figure_type::classic;
         
-        PlaygroundData[0].Figures[2].Form = figure_form::O_figure;
+        PlaygroundData[0].Figures[2].Form = figure_form::L_figure;
         PlaygroundData[0].Figures[2].Type = figure_type::classic;
         
         PlaygroundData[0].Figures[3].Form = figure_form::J_figure;
         PlaygroundData[0].Figures[3].Type = figure_type::classic;
         
-        PlaygroundData[0].TimeElapsed  = 2.36f;
-        PlaygroundData[0].RowAmount    = 5;
-        PlaygroundData[0].ColumnAmount = 5;
+        PlaygroundData[0].TimeElapsed  = 0.0f;
+        PlaygroundData[0].RowAmount    = 4;
+        PlaygroundData[0].ColumnAmount = 4;
         PlaygroundData[0].MovingBlocksAmount = 0;
         PlaygroundData[0].MovingBlocks[0].RowNumber = 1;
         PlaygroundData[0].MovingBlocks[0].ColNumber = 1;
         
         PrepareNextPlayground(Playground, Configuration, PlaygroundData, 0);
-        
-#if 0        
-        // TODO(msokolov): delete this
-        for (int i = 0; i < 4; ++i) {
-            
-            figure_unit *FigureUnit = &Playground->FigureEntity.FigureUnit[i];
-            
-            Playground->AnimFigureDim[i] = FigureUnit->Size;
-            
-            v2 OldCenter = FigureUnit->Position + (FigureUnit->Size / 2.0f);
-            v2 NewCenter = FigureUnit->Position + ((Playground->FigureScaleFactor * FigureUnit->Size) / 2.0f);
-            
-            FigureUnit->Position -= (NewCenter - OldCenter);
-            FigureUnit->Size = Playground->FigureScaleFactor * FigureUnit->Size;
-            
-            v2 StartPos = {VIRTUAL_GAME_WIDTH, 0.0f};
-            FigureUnit->Position = StartPos;
-            
-            r32 AngleOffset = 45.0f;
-            FigureUnit->Angle += AngleOffset;
-        }
-#endif
         
         char LevelString[64] = {};
         sprintf(LevelString, "%d", Playground->LevelNumber);
@@ -545,21 +524,31 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             
             if (PlaygroundStatus == playground_status::LEVEL_RUNNING)
             {
-                Playground->TimeElapsed += Input->dtForFrame;
+                /* Updating the timer UI */ 
+                // Don't update the timer once a level is finished and we're waiting for the animation to finish
+                if (!Playground->LevelFinished)
+                    Playground->TimeElapsed += Input->dtForFrame;
                 
                 if (Playground->ShowTimer)
                 {
-                    char TimeString[64] = {};
-                    GetTimeString(TimeString, Playground->TimeElapsed);
-                    
-                    if (Playground->TimerShadowTexture)
-                        SDL_DestroyTexture(Playground->TimerShadowTexture);
-                    
-                    if (Playground->TimerTexture)
-                        SDL_DestroyTexture(Playground->TimerTexture);
-                    
-                    Playground->TimerShadowTexture = MakeTextureFromString(Buffer, GameState->TimerFont, TimeString, V4(0, 0, 0, 128));
-                    Playground->TimerTexture       = MakeTextureFromString(Buffer, GameState->TimerFont, TimeString, V4(255, 255, 255, 255));
+                    if (!Playground->LevelFinished) {
+                        char TimeString[64] = {};
+                        GetTimeString(TimeString, Playground->TimeElapsed);
+                        
+                        if (Playground->TimerShadowTexture)
+                            SDL_DestroyTexture(Playground->TimerShadowTexture);
+                        
+                        if (Playground->TimerTexture)
+                            SDL_DestroyTexture(Playground->TimerTexture);
+                        
+                        Playground->TimerShadowTexture = MakeTextureFromString(Buffer, GameState->TimerFont, TimeString, V4(0.0f, 0.0f, 0.0f, 128.0f));
+                        Playground->TimerTexture       = MakeTextureFromString(Buffer, GameState->TimerFont, TimeString, V4(255.0f, 255.0f, 255.0f, 255.0f));
+                    }
+                    else {
+                        r32 AlphaChannel = Lerp1(255.0f, 0.0f, Playground->Animation.InterpPoint);
+                        SDL_SetTextureAlphaMod(Playground->TimerTexture, AlphaChannel);
+                        SDL_SetTextureAlphaMod(Playground->TimerShadowTexture, AlphaChannel);
+                    }
                     
                     rectangle2 TimerRectangle = {};
                     TimerRectangle.Min.x = (VIRTUAL_GAME_WIDTH * 0.5f) - (25.0f);
@@ -576,45 +565,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                     TimerRectangle.Max -= V2(5.0f, 5.0f);
                     PushBitmap(RenderGroup, Playground->TimerTexture, TimerRectangle);
                 }
-                
-                v2 IndicatorSize = {30.0f, 30.0f};
-                s32 IndicatorAmount = 8;
-                r32 MaxTimeForIndicator = Playground->Animation.TimeMax / (r32)IndicatorAmount;
-                r32 AnimTime = Playground->Animation.InterpPoint;
-                
-                r32 AnimTimeLeft = (AnimTime / MaxTimeForIndicator) * 256.0f;
-                
-                s32 RowLevelStart = GameState->PlaygroundIndex - (GameState->PlaygroundIndex % IndicatorAmount);
-                for (s32 Index = 0; 
-                     Index < IndicatorAmount;
-                     ++Index)
-                {
-                    rectangle2 Rectangle = {};
-                    Rectangle.Min.x = (VIRTUAL_GAME_WIDTH * 0.5f) - (IndicatorSize.w * (IndicatorAmount / 2)) - ((IndicatorSize.w) * (IndicatorAmount / 2));
-                    Rectangle.Min.x += (Index * IndicatorSize.w) + ((IndicatorSize.w) * Index);
-                    Rectangle.Min.y = VIRTUAL_GAME_HEIGHT - (70.0f);
-                    SetDim(&Rectangle, IndicatorSize);
-                    
-                    s32 AlphaChannel = AnimTimeLeft > 0.0f ? (s32)roundf(AnimTimeLeft) % 256 : 0;
-                    
-                    if (AnimTimeLeft > 255.0f) {
-                        AlphaChannel = 255.0f;
-                    }
-                    
-                    PushBitmap(RenderGroup, Playground->IndicatorEmptyTexture, Rectangle);
-                    b32 IsUnlocked = PlaygroundData[RowLevelStart + Index].IsUnlocked;
-                    if ((GameState->PlaygroundIndex % IndicatorAmount) + 1 > Index)
-                    {
-                        PushBitmap(RenderGroup, Playground->IndicatorFilledTexture, Rectangle);
-                    }
-                    
-                    PushRectangle(RenderGroup, Rectangle, V4(51, 8, 23, 255 - AlphaChannel));
-                    
-                    AnimTimeLeft -= 255.0f;
-                    if (AnimTimeLeft < 0.0f)
-                        AnimTimeLeft = 0.0f;
-                }
-                
             }
             else if (PlaygroundStatus == playground_status::LEVEL_FINISHED)
             {
@@ -630,9 +580,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                         char TimeString[64] = {};
                         GetTimeString(TimeString, PlaygroundData[PlaygroundIndex].TimeElapsed);
                         
-                        PlaygroundMenu->LevelNumberTexture[PlaygroundIndex] = MakeTextureFromString(Buffer, GameState->MenuTimerFont, TimeString, {255, 255, 255, 255});
+                        PlaygroundMenu->LevelNumberTexture[PlaygroundIndex] = MakeTextureFromString(Buffer, GameState->MenuTimerFont, TimeString, {255.0f, 255.0f, 255.0f, 255.0f});
                         
-                        PlaygroundMenu->LevelNumberShadowTexture[PlaygroundIndex] = MakeTextureFromString(Buffer, GameState->MenuTimerFont, TimeString, {0, 0, 0, 255});
+                        PlaygroundMenu->LevelNumberShadowTexture[PlaygroundIndex] = MakeTextureFromString(Buffer, GameState->MenuTimerFont, TimeString, {0.0f, 0.0f, 0.0f, 255.0f});
                     }
                     
                     if (PlaygroundIndex < PLAYGROUND_MAXIMUM)

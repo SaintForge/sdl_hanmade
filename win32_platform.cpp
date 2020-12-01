@@ -229,28 +229,35 @@ SetWindowFullscreen(SDL_Window *Window, b32 ToggleFullscreen)
         SDL_SetWindowFullscreen(Window, 0);
 }
 
-static void
+static window_dimension
 SetWindowResolution(SDL_Window *Window, game_resolution Resolution)
 {
+    window_dimension Result = {};
+    
     switch(Resolution)
     {
         case HD:
         {
-            SDL_SetWindowSize(Window, 1280, 720);
-            SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+            Result.Width = 1280;
+            Result.Height = 720;
         } break;
         
         case FULLHD:
         {
-            SDL_SetWindowSize(Window, 1920, 1080);
-            SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+            Result.Width = 1920;
+            Result.Height = 1080;
         } break;
         case QFULLHD:
         {
-            SDL_SetWindowSize(Window, 2560, 1080);
-            SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+            Result.Width = 2560;
+            Result.Height = 1080;
         } break;
     }
+    
+    SDL_SetWindowSize(Window, Result.Width, Result.Height);
+    SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    
+    return (Result);
 }
 
 static void
@@ -338,16 +345,14 @@ int main(int argc, char **argv)
         if(Renderer)
         {
             bool IsRunning = true;
-            window_dimension Dimension = SDLGetWindowDimension(Window);
             
-            sdl_offscreen_buffer BackBuffer = {};
-            BackBuffer.Width  = WINDOW_WIDTH;
-            BackBuffer.Height = WINDOW_HEIGHT;
+            SetWindowFullscreen(Window, false);
+            window_dimension Dimension = SetWindowResolution(Window, game_resolution::FULLHD);
             
             game_offscreen_buffer Buffer = {};
             Buffer.Renderer      = Renderer;
-            Buffer.ScreenWidth   = Display.w;
-            Buffer.ScreenHeight  = Display.h;
+            Buffer.ScreenWidth   = Dimension.Width;
+            Buffer.ScreenHeight  = Dimension.Height;
             Buffer.Width         = VIRTUAL_GAME_WIDTH;
             Buffer.Height        = VIRTUAL_GAME_HEIGHT;
             
@@ -411,13 +416,6 @@ int main(int argc, char **argv)
                 PrevSettings.SoundIsOn = Settings->SoundIsOn;
                 
                 SDL_ShowWindow(Window);
-                SetWindowFullscreen(Window, false);
-                SetWindowResolution(Window, game_resolution::FULLHD);
-                SDL_SetWindowPosition(Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-                
-                //game_music *gMusic = Mix_LoadMUS("..\\data\\sound\\Jami Saber - Maenam.mp3");
-                //Mix_PlayMusic(gMusic, -1);
-                //Mix_PauseMusic();
                 
                 while (IsRunning)
                 {

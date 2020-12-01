@@ -84,5 +84,7 @@ struct transient_state
     b32 IsInitialized;
 };
 
+
+
 #define GAME_H
 #endif

@@ -202,8 +202,8 @@ RenderGroupToOutput(render_group *RenderGroup, game_offscreen_buffer *Buffer)
                 
                 SDL_SetRenderDrawColor(Buffer->Renderer, Entry->Color.r, Entry->Color.g, Entry->Color.b, Entry->Color.a);
                 
-                game_rect Rectangle = {0, 0, Buffer->ScreenWidth, Buffer->ScreenHeight};
-                SDL_RenderFillRect(Buffer->Renderer, &Rectangle);
+                //game_rect Rectangle = {0, 0, Buffer->ScreenWidth, Buffer->ScreenHeight};
+                //SDL_RenderFillRect(Buffer->Renderer, &Rectangle);
                 
                 BaseAddress += sizeof(*Entry);
                 

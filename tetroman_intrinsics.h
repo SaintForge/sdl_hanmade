@@ -14,6 +14,8 @@ void LogErrorLine(const char* Message, int Line)
 #define Gigabytes(Value) (Megabytes(Value)*1024LL)
 #define Terabytes(Value) (Gigabytes(Value)*1024LL)
 
+
+
 inline static b32
 IsInRectangle(v2 Position, rectangle2 Rectangle)
 {
