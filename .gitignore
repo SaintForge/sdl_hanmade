@@ -7,3 +7,7 @@ build.sh
 tetroman_xcode/
 .DS_Store
 tetroman.dSYM/
+*.exe
+*.pdb
+*.obj
+*.ilk
