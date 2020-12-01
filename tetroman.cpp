@@ -346,7 +346,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundEditor->FigureAddTexture    = MakeTextureFromString(Buffer, PlaygroundEditor->Font, "Add", {255, 255, 255, 255});
         PlaygroundEditor->FigureDeleteTexture = MakeTextureFromString(Buffer, PlaygroundEditor->Font, "Delete", {255, 255, 255, 255});
         
-        PlaygroundEditor->FigureButtonsArea.Min.x = FigureEntity->FigureArea.Min.x - 180.0f; 
+        PlaygroundEditor->FigureButtonsArea.Min.x = FigureEntity->FigureArea.Min.x - 400.0f; 
         PlaygroundEditor->FigureButtonsArea.Min.y = FigureEntity->FigureArea.Min.y + (GetDim(FigureEntity->FigureArea).h / 2.0f) - (180.0f / 2.0f); 
         SetDim(&PlaygroundEditor->FigureButtonsArea, 180, 240);
         
@@ -355,11 +355,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundEditor->GridPlusTexture = MakeTextureFromString(Buffer, PlaygroundEditor->Font, "+", {255, 255, 255, 255});;
         PlaygroundEditor->GridMinusTexture = MakeTextureFromString(Buffer, PlaygroundEditor->Font, "-", {255, 255, 255, 255});;
         
-        PlaygroundEditor->GridButtonsArea.Min.x = FigureEntity->FigureArea.Min.x; 
+        PlaygroundEditor->GridButtonsArea.Min.x = FigureEntity->FigureArea.Min.x - 200.0f; 
         PlaygroundEditor->GridButtonsArea.Min.y = FigureEntity->FigureArea.Max.y - (GetDim(FigureEntity->FigureArea).h / 2.0f) - (60.0f);
         SetDim(&PlaygroundEditor->GridButtonsArea, 300.0f, 120.0f);
         
-        //PlaygroundEditor->SavedTexture = MakeTextureFromString(Buffer, PlaygroundEditor->Font, "Saved.", {255, 255, 255, 255});
         
         // NOTE(msokolov): temporary
         PlaygroundData[0].IsUnlocked   = true;
