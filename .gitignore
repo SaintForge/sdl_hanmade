@@ -1,5 +1,10 @@
 *.psd
+build/
+data/
 build/.vs/
+build/win32_platform.sln
+build/package1.bin
+build/package2.bin
 .vs/*
 makefile
 build.bat
