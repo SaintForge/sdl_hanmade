@@ -59,14 +59,14 @@ struct game_state
     
     game_mode CurrentMode;
     
+    u32 PlaygroundIndex;
     playground Playground;
-    playground_data *PlaygroundData;
+    playground_menu PlaygroundMenu;
     playground_config Configuration;
     
-    // TODO(msokolov): Should PlaygroundIndex be in the playground structure??
-    u32 PlaygroundIndex;
+    player_data *PlayerData;
+    playground_data *PlaygroundData;
     
-    playground_menu PlaygroundMenu;
     game_font *Font;
     game_font *MenuTimerFont;
     game_font *TimerFont;

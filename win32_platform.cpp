@@ -334,7 +334,7 @@ int main(int argc, char **argv)
         
         
         SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
-        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
         
         SDL_Renderer* Renderer = SDL_CreateRenderer(Window, -1,
                                                     SDL_RENDERER_TARGETTEXTURE|SDL_RENDERER_ACCELERATED);
@@ -379,7 +379,7 @@ int main(int argc, char **argv)
             Memory.LevelStorageSize     = Megabytes(15);
             Memory.PermanentStorageSize = Megabytes(10);
             Memory.TransientStorageSize = Megabytes(1);
-            Memory.SettingsStorageSize  = Megabytes(1);
+            Memory.SettingsStorageSize  = Kilobytes(1);
             
             u64 TotalStorageSize = Memory.PermanentStorageSize
                 + Memory.TransientStorageSize
@@ -409,8 +409,9 @@ int main(int argc, char **argv)
                 ReadBinaryFile("package2.bin", Memory.LevelStorage, Memory.LevelStorageSize);
                 ReadBinaryFile("settings.bin", Memory.SettingsStorage, Memory.SettingsStorageSize);
                 
-                game_settings *Settings = (game_settings *) Memory.SettingsStorage;
+                player_data *PlayerData = (player_data *) Memory.SettingsStorage;
                 
+                game_settings *Settings = &PlayerData->Settings;
                 game_settings PrevSettings = {};
                 PrevSettings.MusicIsOn = Settings->MusicIsOn;
                 PrevSettings.SoundIsOn = Settings->SoundIsOn;

@@ -20,8 +20,13 @@
 
 enum figure_form
 {
-    O_figure, I_figure, L_figure, J_figure,
-    Z_figure, S_figure, T_figure
+    O_figure, 
+    I_figure, 
+    L_figure, 
+    J_figure,
+    Z_figure, 
+    S_figure, 
+    T_figure
 };
 
 enum class figure_type
@@ -39,10 +44,10 @@ struct figure_unit
     bool IsIdle;
     
     r32 Angle;
-    r32 HomeAngle;
-    
     v2 Size;
     v2 Position;
+    
+    r32 HomeAngle;
     v2 HomePosition;
     
     r32 CenterOffset;
@@ -50,7 +55,6 @@ struct figure_unit
     
     figure_flip Flip;
     figure_form Form;
-    //figure_type Type;
 };
 
 struct figure_entity

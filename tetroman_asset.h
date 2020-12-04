@@ -101,29 +101,20 @@ struct figure_data
     figure_type Type;
 };
 
-struct moving_block_data
-{
-    u32 RowNumber;
-    u32 ColNumber;
-    b32 IsVertical;
-    b32 MoveSwitch;
-};
-
 struct playground_data
 {
-    b32 IsUnlocked;
-    
-    r32 TimeElapsed; // In seconds
     u32 LevelNumber;
     u32 RowAmount;
     u32 ColumnAmount;
-    u32 MovingBlocksAmount;
     u32 FigureAmount;
     
-    // TODO(msokolov): don't really need UnitField array, do we?
-    s32 UnitField[COLUMN_AMOUNT_MAXIMUM * ROW_AMOUNT_MAXIMUM];
-    moving_block_data MovingBlocks[MOVING_BLOCKS_MAXIMUM];
     figure_data Figures[FIGURE_AMOUNT_MAXIMUM];
+};
+
+struct player_data {
+    game_settings Settings;
+    b32 PlaygroundUnlocked[PLAYGROUND_MAXIMUM];
+    r32 PlaygroundTime[PLAYGROUND_MAXIMUM];
 };
 
 #define ASSERT_GAME_H

@@ -2164,26 +2164,10 @@ ReadPlaygroundData(playground_data *Playground, u32 Index)
     Assert(Index < PLAYGROUND_MAXIMUM);
     
     playground_data Result = {};
-    Result.IsUnlocked = Playground[Index].IsUnlocked;
     Result.LevelNumber = Playground[Index].LevelNumber;
     Result.RowAmount = Playground[Index].RowAmount;
     Result.ColumnAmount = Playground[Index].ColumnAmount;
-    Result.MovingBlocksAmount = Playground[Index].MovingBlocksAmount;
     Result.FigureAmount = Playground[Index].FigureAmount;
-    
-    for(u32 UnitIndex = 0; 
-        UnitIndex < Result.RowAmount * Result.ColumnAmount;
-        ++UnitIndex)
-    {
-        Result.UnitField[UnitIndex] = Playground[Index].UnitField[UnitIndex];
-    }
-    
-    for(u32 BlockIndex = 0;
-        BlockIndex < Result.MovingBlocksAmount;
-        ++BlockIndex)
-    {
-        Result.MovingBlocks[BlockIndex] = Playground[Index].MovingBlocks[BlockIndex];
-    }
     
     for(u32 FigureIndex = 0;
         FigureIndex < Result.FigureAmount;
@@ -2200,15 +2184,12 @@ WritePlaygroundData(playground_data *Playground, playground *Entity, u32 Index)
 {
     Assert(Index < PLAYGROUND_MAXIMUM);
     
-    Playground[Index].IsUnlocked  = true;
     Playground[Index].LevelNumber = Entity->LevelNumber;
     Playground[Index].RowAmount = Entity->GridEntity.RowAmount;
     Playground[Index].ColumnAmount = Entity->GridEntity.ColumnAmount;
-    Playground[Index].MovingBlocksAmount = Entity->GridEntity.MovingBlocksAmount;
     Playground[Index].FigureAmount = Entity->FigureEntity.FigureAmount;
     
     s32 *UnitFieldSource = Entity->GridEntity.UnitField;
-    s32 *UnitFieldTarget = Playground->UnitField;
     for (u32 Row = 0; 
          Row < Playground[Index].RowAmount;
          ++Row)
@@ -2218,22 +2199,9 @@ WritePlaygroundData(playground_data *Playground, playground *Entity, u32 Index)
              ++Column)
         {
             s32 UnitIndex = (Row * Playground[Index].ColumnAmount) + Column;
-            UnitFieldTarget[UnitIndex] = UnitFieldSource[UnitIndex];
         }
     }
     
-    moving_block_data *MovingBlocks = Playground[Index].MovingBlocks;
-    
-    for (u32 BlockIndex = 0;
-         BlockIndex < Playground[Index].MovingBlocksAmount;
-         ++BlockIndex)
-    {
-        MovingBlocks[BlockIndex].RowNumber = Entity->GridEntity.MovingBlocks[BlockIndex].RowNumber;
-        MovingBlocks[BlockIndex].ColNumber = Entity->GridEntity.MovingBlocks[BlockIndex].ColNumber;
-        MovingBlocks[BlockIndex].IsVertical = Entity->GridEntity.MovingBlocks[BlockIndex].IsVertical;
-        MovingBlocks[BlockIndex].MoveSwitch = Entity->GridEntity.MovingBlocks[BlockIndex].MoveSwitch;
-        
-    }
     
     figure_data *Figures = Playground[Index].Figures;
     for (u32 FigureIndex = 0;
@@ -2266,7 +2234,6 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
     
     Playground->GridEntity.RowAmount          = PlaygroundData.RowAmount;
     Playground->GridEntity.ColumnAmount       = PlaygroundData.ColumnAmount;
-    Playground->GridEntity.MovingBlocksAmount = PlaygroundData.MovingBlocksAmount;
     Playground->GridEntity.StickUnitsAmount   = PlaygroundData.FigureAmount;
     
     Playground->GridEntity.GridArea.Min.x = 100;
@@ -2274,7 +2241,6 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
     Playground->GridEntity.GridArea.Max.x = Playground->GridEntity.GridArea.Min.x + 1128;
     Playground->GridEntity.GridArea.Max.y = Playground->GridEntity.GridArea.Min.y + 930;
     
-    s32 *UnitFieldSource = PlaygroundData.UnitField;
     s32 *UnitFieldTarget = Playground->GridEntity.UnitField;
     for (u32 Row = 0; 
          Row < ROW_AMOUNT_MAXIMUM;
@@ -2293,23 +2259,6 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
     {
         Playground->GridEntity.StickUnits[i].Index = -1;
         Playground->GridEntity.StickUnits[i].IsSticked = false;
-    }
-    
-    moving_block *MovingBlocks = Playground->GridEntity.MovingBlocks;
-    for (u32 BlockIndex = 0;
-         BlockIndex < PlaygroundData.MovingBlocksAmount;
-         ++BlockIndex)
-    {
-        MovingBlocks[BlockIndex].RowNumber  = PlaygroundData.MovingBlocks[BlockIndex].RowNumber;
-        MovingBlocks[BlockIndex].ColNumber  = PlaygroundData.MovingBlocks[BlockIndex].ColNumber;
-        MovingBlocks[BlockIndex].IsVertical = PlaygroundData.MovingBlocks[BlockIndex].IsVertical;
-        MovingBlocks[BlockIndex].MoveSwitch = PlaygroundData.MovingBlocks[BlockIndex].MoveSwitch;
-        MovingBlocks[BlockIndex].Area.Min.x = Playground->GridEntity.GridArea.Min.x + (MovingBlocks[BlockIndex].ColNumber * GRID_BLOCK_SIZE);
-        MovingBlocks[BlockIndex].Area.Min.y = Playground->GridEntity.GridArea.Min.y + (MovingBlocks[BlockIndex].RowNumber * GRID_BLOCK_SIZE);
-        MovingBlocks[BlockIndex].Area.Max.x = MovingBlocks[BlockIndex].Area.Min.x + GRID_BLOCK_SIZE;
-        MovingBlocks[BlockIndex].Area.Max.y = MovingBlocks[BlockIndex].Area.Min.y + GRID_BLOCK_SIZE;
-        
-        Playground->GridEntity.UnitField[(MovingBlocks[BlockIndex].RowNumber * PlaygroundData.ColumnAmount) + MovingBlocks[BlockIndex].ColNumber] = 1;
     }
     
     u32 CurrentType = (Index % 32) / 8;

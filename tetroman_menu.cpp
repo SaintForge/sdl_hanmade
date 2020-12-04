@@ -77,7 +77,7 @@ DrawCornersOnButton(render_group *RenderGroup, game_texture *CornerTexture[4],
 }
 
 static void
-UpdateTextureForLevels(playground_menu *PlaygroundMenu, playground_data *PlaygroundData, render_group *RenderGroup) {
+UpdateTextureForLevels(playground_menu *PlaygroundMenu, player_data *PlayerData, render_group *RenderGroup) {
     
     u32 RowAmount = 4;
     u32 ColumnAmount = 8;
@@ -95,6 +95,7 @@ UpdateTextureForLevels(playground_menu *PlaygroundMenu, playground_data *Playgro
     SetDim(&BackgroundRectangle, (ColumnAmount * 150.0f) + 30.0f + 10.0f, (RowAmount * 100.0f));
     PushFillRectOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, BackgroundRectangle, V4(51.0f, 8.0f, 23.0f, 255.0f));
     
+    b32 NextLevelFound = false;
     rectangle2 ButtonRectangle = {};
     for (u32 Row = 0; Row < RowAmount; ++Row)
     {
@@ -107,6 +108,7 @@ UpdateTextureForLevels(playground_menu *PlaygroundMenu, playground_data *Playgro
         
         ButtonRectangle.Min.y = (MenuButtonSize.h * Row);
         
+        
         for (u32 Col = 0; Col < ColumnAmount; ++Col)
         {
             ButtonRectangle.Min.x = (GetDim(ColorRectangle).w) + (150.0f * Col) + 10.0f;
@@ -115,7 +117,7 @@ UpdateTextureForLevels(playground_menu *PlaygroundMenu, playground_data *Playgro
             ButtonRectangle.Max.y = ButtonRectangle.Min.y + 100.0f;
             
             u32 LevelIndex = InitialLevelIndex + (Row * ColumnAmount) + Col;
-            b32 IsUnlocked = PlaygroundData[LevelIndex].IsUnlocked;
+            b32 IsUnlocked = PlayerData->PlaygroundUnlocked[LevelIndex];
             
             rectangle2 LevelRectangle = {}; 
             if (IsUnlocked)
@@ -125,17 +127,34 @@ UpdateTextureForLevels(playground_menu *PlaygroundMenu, playground_data *Playgro
                 SetDim(&LevelRectangle, ButtonDim);
                 PushBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->SquareFrameUnlocked, LevelRectangle);
                 
-                LevelRectangle = GetTextOnTheCenterOfRectangle(ButtonRectangle, PlaygroundMenu->LevelNumberTexture[LevelIndex]);
-                
-                LevelRectangle.Min += V2(5.0f, 5.0f);
-                LevelRectangle.Max += V2(5.0f, 5.0f);
-                
-                PushBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->LevelNumberShadowTexture[LevelIndex], LevelRectangle);
-                
-                LevelRectangle.Min -= V2(5.0f, 5.0f);
-                LevelRectangle.Max -= V2(5.0f, 5.0f);
-                
-                PushBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->LevelNumberTexture[LevelIndex], LevelRectangle);
+                u32 ForwardLevelIndex = LevelIndex + 1;
+                if (!NextLevelFound && !PlayerData->PlaygroundUnlocked[ForwardLevelIndex]) {
+                    
+                    PushBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->SquareFrameUnlocked, LevelRectangle);
+                    
+                    v2 IndicatorSize = V2(50.0f, 50.0f);
+                    rectangle2 Rectangle = {};
+                    Rectangle.Min = LevelRectangle.Min + (ButtonDim * 0.5f) - (IndicatorSize * 0.5f);
+                    Rectangle.Max = Rectangle.Min + IndicatorSize;
+                    
+                    PushBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->NextLevelTexture, Rectangle);
+                    NextLevelFound = true;
+                }
+                else {
+                    PushBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->NextLevelBackgroundTexture, LevelRectangle);
+                    
+                    LevelRectangle = GetTextOnTheCenterOfRectangle(ButtonRectangle, PlaygroundMenu->LevelTimeTexture[LevelIndex]);
+                    
+                    LevelRectangle.Min += V2(5.0f, 5.0f);
+                    LevelRectangle.Max += V2(5.0f, 5.0f);
+                    
+                    PushBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->LevelTimeShadowTexture[LevelIndex], LevelRectangle);
+                    
+                    LevelRectangle.Min -= V2(5.0f, 5.0f);
+                    LevelRectangle.Max -= V2(5.0f, 5.0f);
+                    
+                    PushBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->LevelTimeTexture[LevelIndex], LevelRectangle);
+                }
             }
             else
             {
@@ -167,7 +186,7 @@ HighlightButtonWithLine(render_group *RenderGroup, game_texture *LineTexture,
 
 static menu_result_option
 PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu, 
-                              playground_data *PlaygroundData, 
+                              player_data *PlayerData,
                               game_settings *Settings, game_input *Input,
                               render_group *RenderGroup)
 {
@@ -275,9 +294,12 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                             PlaygroundMenu->AnimationFinished = false;
                             PlaygroundMenu->InterpPoint = 0.0f;
                             
+                            
                             if (Page == menu_page::DIFFICULTY_PAGE) {
-                                UpdateTextureForLevels(PlaygroundMenu, PlaygroundData, RenderGroup);
+                                UpdateTextureForLevels(PlaygroundMenu, PlayerData, RenderGroup);
                                 PlaygroundMenu->AnimationFinishedHalf = true;
+                                PlaygroundMenu->ForwardAnimation = false;
+                                PlaygroundMenu->InterpPointNext  = 1.0f;
                             }
                         }
                         
@@ -392,7 +414,7 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
         
         case DIFFICULTY_PAGE:
         {
-            PlaygroundMenu->InterpPointDiff += Input->dtForFrame;
+            PlaygroundMenu->InterpPointDiff += Input->dtForFrame * 2.0f;
             if (PlaygroundMenu->InterpPointDiff >= 1.0f) 
                 PlaygroundMenu->InterpPointDiff = 1.0f;
             
@@ -416,6 +438,8 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                             PlaygroundMenu->DiffMode = DiffMode;
                             
                             // Just for a small alpha blending animation
+                            PlaygroundMenu->ForwardAnimation = false;
+                            PlaygroundMenu->InterpPointNext  = 1.0f;
                             PlaygroundMenu->InterpPointDiff = 0.0f;
                             PlaygroundMenu->AnimationFinishedHalf = false;
                         }
@@ -455,7 +479,7 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                         if (Input->MouseButtons[0].EndedDown) {
                             
                             u32 PlaygroundIndex = InitialLevelIndex + (Row * ColumnAmount) + Column;
-                            if (PlaygroundData[PlaygroundIndex].IsUnlocked)
+                            if (PlayerData->PlaygroundUnlocked[PlaygroundIndex])
                             {
                                 Result.SwitchToPlayground = true;
                                 Result.PlaygroundIndex = PlaygroundIndex;
@@ -819,13 +843,13 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
             PushBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, WholeButtonArea);
             
             r32 AlphaChannel = (1.0f - PlaygroundMenu->InterpPoint) * 255.0f;
-            if (PlaygroundMenu->AnimationFinished){
+            if (PlaygroundMenu->AnimationFinished) {
                 r32 InterpPoint = PlaygroundMenu->InterpPointDiff;
                 if (PlaygroundMenu->InterpPointDiff >= 0.5f) {
                     InterpPoint -= 0.5f;
                     if (!PlaygroundMenu->AnimationFinishedHalf) {
                         PlaygroundMenu->AnimationFinishedHalf = true;
-                        UpdateTextureForLevels(PlaygroundMenu, PlaygroundData, RenderGroup);
+                        UpdateTextureForLevels(PlaygroundMenu, PlayerData, RenderGroup);
                     }
                 }
                 
@@ -834,6 +858,58 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                 
                 PushRectangle(RenderGroup, WholeButtonArea, V4(51.0f, 8.0f, 23.0f, AlphaChannel));
             }
+            
+            if (PlaygroundMenu->AnimationFinished && PlaygroundMenu->InterpPointDiff >= 1.0f) {
+                if (PlaygroundMenu->ForwardAnimation) {
+                    PlaygroundMenu->InterpPointNext += Input->dtForFrame;
+                    if (PlaygroundMenu->InterpPointNext >= 1.0f) {
+                        PlaygroundMenu->InterpPointNext = 1.0f;
+                        PlaygroundMenu->ForwardAnimation = false;
+                    }
+                }
+                else {
+                    PlaygroundMenu->InterpPointNext -= Input->dtForFrame;
+                    if (PlaygroundMenu->InterpPointNext <= 0.0f) {
+                        PlaygroundMenu->InterpPointNext = 0.0f;
+                        PlaygroundMenu->ForwardAnimation = true;
+                    }
+                }
+                
+                for (u32 Index = InitialLevelIndex + 1; Index <= InitialLevelIndex + 32; ++Index) {
+                    if (!PlayerData->PlaygroundUnlocked[Index]) {
+                        u32 NextLevelIndex = Index - 1;
+                        if (PlayerData->PlaygroundUnlocked[NextLevelIndex]) {
+                            u32 Row    = (NextLevelIndex % 32) / 8;
+                            u32 Column = (NextLevelIndex % 32) % 8;
+                            
+                            v2 IndicatorSize = V2(50.0f, 50.0f);
+                            v2 ColorDim = V2(30.0f, 100.0f);
+                            
+                            rectangle2 ButtonRectangle;
+                            ButtonRectangle.Min.y = WholeButtonArea.Min.y + (ColorDim.h * Row);
+                            ButtonRectangle.Min.x = WholeButtonArea.Min.x + (30.0f) + (150.0f * Column) + 10.0f;
+                            ButtonRectangle.Max.x = ButtonRectangle.Min.x + 150.0f;
+                            ButtonRectangle.Max.y = ButtonRectangle.Min.y + 100.0f;
+                            
+                            rectangle2 LevelRectangle;
+                            LevelRectangle.Min.x = ButtonRectangle.Min.x + (150.0f * 0.5f) - (150.0f * 0.5f);
+                            LevelRectangle.Min.y = ButtonRectangle.Min.y + (100.0f * 0.5f) - (86.0f * 0.5f);
+                            SetDim(&LevelRectangle, V2(150.0f, 86.0f));
+                            
+                            
+                            v2 ButtonDim  = V2(150.0f, 86.0f);
+                            rectangle2 Rectangle = {};
+                            Rectangle.Min = LevelRectangle.Min + (ButtonDim * 0.5f) - (IndicatorSize * 0.5f);
+                            Rectangle.Max = Rectangle.Min + IndicatorSize;
+                            
+                            AlphaChannel = (1.0f - PlaygroundMenu->InterpPointNext) * 255.0f;
+                            PushRectangle(RenderGroup, Rectangle, V4(79.0f, 21.0f, 47.0f, AlphaChannel));
+                            break;
+                        }
+                    }
+                }
+            }
+            
             
             /* Back Button */
             rectangle2 ButtonRectangle = {};
@@ -852,6 +928,7 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
             
             if (!PlaygroundMenu->AnimationFinished) {
                 
+                AlphaChannel = (1.0f - PlaygroundMenu->InterpPoint) * 255;
                 PushRectangle(RenderGroup, WholeButtonArea, V4(51.0f, 8.0f, 23.0f, AlphaChannel));
                 PushRectangle(RenderGroup, ButtonRectangle, V4(51.0f, 8.0f, 23.0f, AlphaChannel));
                 

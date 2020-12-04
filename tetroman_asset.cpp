@@ -363,6 +363,7 @@ SDLAssetBuildBinaryFile()
     SDLWriteBitmapToFile(BinaryFile, "horizontal_border_2.png");
     
     /* new */
+    SDLWriteBitmapToFile(BinaryFile, "next_level_indicator.png");
     SDLWriteBitmapToFile(BinaryFile, "corner_left_top.png");
     SDLWriteBitmapToFile(BinaryFile, "corner_left_bottom.png");
     SDLWriteBitmapToFile(BinaryFile, "corner_right_top.png");
@@ -375,6 +376,7 @@ SDLAssetBuildBinaryFile()
     
     SDLWriteBitmapToFile(BinaryFile, "square_frame_locked.png");
     SDLWriteBitmapToFile(BinaryFile, "square_frame_unlocked.png");
+    SDLWriteBitmapToFile(BinaryFile, "square_frame_unlocked_next.png");
     
     SDLWriteBitmapToFile(BinaryFile, "green_bar.png");
     SDLWriteBitmapToFile(BinaryFile, "blue_bar.png");

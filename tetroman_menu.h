@@ -46,6 +46,9 @@ struct playground_menu
     r32 InterpPointDiff;
     r32 TimeMax;
     
+    r32 InterpPointNext;
+    b32 ForwardAnimation;
+    
     u32 ButtonIndex;
     game_resolution Resolution;
     rectangle2 BackgroundArea;
@@ -88,8 +91,10 @@ struct playground_menu
     game_texture *DifficultyTexture[3];
     game_texture *DifficultyShadowTexture[3];
     game_texture *LevelButtonTexture;
-    game_texture *LevelNumberTexture[100];
-    game_texture *LevelNumberShadowTexture[100];
+    game_texture *NextLevelTexture;
+    game_texture *NextLevelBackgroundTexture;
+    game_texture *LevelTimeTexture[100];
+    game_texture *LevelTimeShadowTexture[100];
     game_texture *LevelCornerTexture[4];
     game_texture *SquareFrameLocked;
     game_texture *SquareFrameUnlocked;

@@ -22,9 +22,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
     game_state *GameState = (game_state *) Memory->PermanentStorage;
     
-    game_settings *Settings = (game_settings*)Memory->SettingsStorage;
-    Assert(Settings);
-    
     if(!Memory->IsInitialized)
     {
         // NOTE(msokolov): figure colors 
@@ -35,7 +32,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         // 108, 174, 0
         
         /* NOTE(msokolov): game_memory initialization starts here */
-		
         /* NOTE(msokolov): game_state initialization starts here */
         InitializeMemoryGroup(&GameState->MemoryGroup, Memory->PermanentStorageSize - sizeof(game_state), (u8*)Memory->PermanentStorage + sizeof(game_state));
 		
@@ -236,10 +232,16 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             GridEntity->UnitField[(Block->RowNumber * COLUMN_AMOUNT_MAXIMUM) + Block->ColNumber] = 2;
         }
         
-        Memory->IsInitialized = true;
-        printf("Memory has been initialized!\n");
+        /* player_data from binary initialization */
+        player_data *PlayerData = (player_data *) Memory->SettingsStorage;
+        Assert(PlayerData);
         
-        /* NOTE(msokolov): just for testing */
+        // The first level should always be unlocked
+        PlayerData->PlaygroundUnlocked[0] = true;
+        GameState->PlayerData = PlayerData;
+        
+        game_settings *Settings = &PlayerData->Settings;
+        
         /* playground data from binary initialization */
         playground_data *PlaygroundData = (playground_data *) Memory->LevelStorage;
         Assert(PlaygroundData);
@@ -258,6 +260,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundMenu->InterpPointDiff = 1.0f;
         PlaygroundMenu->TimeMax = 0.2f;
         
+        PlaygroundMenu->ForwardAnimation = false;
+        PlaygroundMenu->InterpPointNext  = 1.0f;
+        
+        //game_settings *Settings = &PlayerData->Settings;
         PlaygroundMenu->SoundOn = Settings->SoundIsOn;
         PlaygroundMenu->MusicOn = Settings->MusicIsOn;
         
@@ -283,12 +289,15 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             ++Index)
         {
             char TimeString[64] = {};
-            GetTimeString(TimeString, GameState->PlaygroundData[Index].TimeElapsed);
+            GetTimeString(TimeString, PlayerData->PlaygroundTime[Index]);
             
-            GameState->PlaygroundMenu.LevelNumberTexture[Index] = MakeTextureFromString(Buffer, GameState->MenuTimerFont, TimeString, {255, 255, 255, 255});
+            GameState->PlaygroundMenu.LevelTimeTexture[Index] = MakeTextureFromString(Buffer, GameState->MenuTimerFont, TimeString, {255, 255, 255, 255});
             
-            GameState->PlaygroundMenu.LevelNumberShadowTexture[Index] = MakeTextureFromString(Buffer, GameState->MenuTimerFont, TimeString, {0, 0, 0, 255});
+            GameState->PlaygroundMenu.LevelTimeShadowTexture[Index] = MakeTextureFromString(Buffer, GameState->MenuTimerFont, TimeString, {0, 0, 0, 255});
         }
+        
+        PlaygroundMenu->NextLevelTexture = GetTexture(Memory, "next_level_indicator.png", Buffer->Renderer);
+        PlaygroundMenu->NextLevelBackgroundTexture = GetTexture(Memory, "square_frame_unlocked_next.png", Buffer->Renderer);
         
         PlaygroundMenu->MainMenuTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Play", V4(255, 255, 255, 255));
         PlaygroundMenu->MainMenuTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "Settings", V4(255, 255, 255, 255));
@@ -353,6 +362,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundMenu->BackTexture = MakeTextureFromString(Buffer, GameState->Font, "Back", V4(255, 255, 255, 255));
         PlaygroundMenu->BackShadowTexture = MakeTextureFromString(Buffer, GameState->Font, "Back", V4(0, 0, 0, 128));
         
+        Memory->IsInitialized = true;
+        printf("Memory has been initialized!\n");
+        
 #if DEBUG_BUILD
         
         GameState->EditorMode = false;
@@ -384,9 +396,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundEditor->GridButtonsArea.Min.y = FigureEntity->FigureArea.Max.y - (GetDim(FigureEntity->FigureArea).h / 2.0f) - (60.0f);
         SetDim(&PlaygroundEditor->GridButtonsArea, 300.0f, 120.0f);
         
+        for (u32 Index = 0; Index < PLAYGROUND_MAXIMUM; ++ Index) {
+            //PlayerData->PlaygroundUnlocked[Index] = true;
+        }
         
         // NOTE(msokolov): temporary
-        PlaygroundData[0].IsUnlocked   = true;
         PlaygroundData[0].FigureAmount = 4;
         PlaygroundData[0].Figures[0].Form = figure_form::I_figure;
         PlaygroundData[0].Figures[0].Type = figure_type::Red;
@@ -400,12 +414,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundData[0].Figures[3].Form = figure_form::J_figure;
         PlaygroundData[0].Figures[3].Type = figure_type::Red;
         
-        PlaygroundData[0].TimeElapsed  = 0.0f;
         PlaygroundData[0].RowAmount    = 4;
         PlaygroundData[0].ColumnAmount = 4;
-        PlaygroundData[0].MovingBlocksAmount = 0;
-        PlaygroundData[0].MovingBlocks[0].RowNumber = 1;
-        PlaygroundData[0].MovingBlocks[0].ColNumber = 1;
         
         PrepareNextPlayground(Playground, Configuration, PlaygroundData, 0);
         
@@ -414,14 +424,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         Playground->LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
         Assert(Playground->LevelNumberTexture);
-        
-        for (s32 Index = 1;
-             Index < PLAYGROUND_MAXIMUM;
-             ++Index)
-        {
-            PlaygroundData[Index].IsUnlocked = false;
-        }
-        //
         
         game_music *Music = GetMusic(Memory, "Jami Saber - Maenam.ogg");
         Mix_PlayMusic(Music, -1);
@@ -449,6 +451,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     playground *Playground   = &GameState->Playground;
     playground_menu *PlaygroundMenu = &GameState->PlaygroundMenu;
     playground_data *PlaygroundData = GameState->PlaygroundData;
+    
+    player_data *PlayerData = GameState->PlayerData;
+    game_settings *Settings = &PlayerData->Settings;
     
 #if DEBUG_BUILD
     if(Input->Keyboard.BackQuote.EndedDown)
@@ -593,25 +598,33 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             {
                 if (GameState->PlaygroundIndex < PLAYGROUND_MAXIMUM)
                 {
+                    /* Check if this is a record */
                     u32 PlaygroundIndex = GameState->PlaygroundIndex;
-                    if (Playground->TimeElapsed < PlaygroundData[PlaygroundIndex].TimeElapsed
-                        || PlaygroundData[PlaygroundIndex].TimeElapsed == 0.0f)
+                    if (Playground->TimeElapsed < PlayerData->PlaygroundTime[PlaygroundIndex]
+                        || PlayerData->PlaygroundTime[PlaygroundIndex] == 0.0f)
                     {
-                        PlaygroundData[PlaygroundIndex].TimeElapsed = Playground->TimeElapsed;
+                        PlayerData->PlaygroundTime[PlaygroundIndex] = Playground->TimeElapsed;
                         RestartLevelEntity(Playground);
                         
                         char TimeString[64] = {};
-                        GetTimeString(TimeString, PlaygroundData[PlaygroundIndex].TimeElapsed);
+                        GetTimeString(TimeString, PlayerData->PlaygroundTime[PlaygroundIndex]);
                         
-                        PlaygroundMenu->LevelNumberTexture[PlaygroundIndex] = MakeTextureFromString(Buffer, GameState->MenuTimerFont, TimeString, {255.0f, 255.0f, 255.0f, 255.0f});
+                        PlaygroundMenu->LevelTimeTexture[PlaygroundIndex] = MakeTextureFromString(Buffer, GameState->MenuTimerFont, TimeString, {255.0f, 255.0f, 255.0f, 255.0f});
                         
-                        PlaygroundMenu->LevelNumberShadowTexture[PlaygroundIndex] = MakeTextureFromString(Buffer, GameState->MenuTimerFont, TimeString, {0.0f, 0.0f, 0.0f, 255.0f});
+                        PlaygroundMenu->LevelTimeShadowTexture[PlaygroundIndex] = MakeTextureFromString(Buffer, GameState->MenuTimerFont, TimeString, {0.0f, 0.0f, 0.0f, 255.0f});
                     }
                     
                     if (PlaygroundIndex < PLAYGROUND_MAXIMUM)
                     {
                         GameState->PlaygroundIndex = ++PlaygroundIndex;
-                        PlaygroundData[PlaygroundIndex].IsUnlocked = true;
+                        PlayerData->PlaygroundUnlocked[PlaygroundIndex] = true;
+                        
+                        if (PlaygroundIndex % 8 == 0) {
+                            u32 NextUnlockIndex = PlaygroundIndex - 8 + 32;
+                            if (NextUnlockIndex < PLAYGROUND_MAXIMUM) {
+                                PlayerData->PlaygroundUnlocked[NextUnlockIndex] = true;
+                            }
+                        }
                         
                         PrepareNextPlayground(Playground, &GameState->Configuration, PlaygroundData, GameState->PlaygroundIndex);
                         
@@ -637,9 +650,16 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 PlaygroundMenu->MenuPage = menu_page::DIFFICULTY_PAGE;
                 PlaygroundMenu->AnimationFinished = false;
                 PlaygroundMenu->InterpPoint       = 0.0f;
+                PlaygroundMenu->ForwardAnimation  = false;
+                PlaygroundMenu->InterpPointNext   = 1.0f;
                 
-                UpdateTextureForLevels(PlaygroundMenu, PlaygroundData, RenderGroup);
+                UpdateTextureForLevels(PlaygroundMenu, PlayerData, RenderGroup);
                 SDL_ShowCursor(SDL_ENABLE);
+                
+#if DEBUG_BUILD
+                GameState->EditorMode = false;
+                GameState->PlaygroundEditor->FigureIndex = 0;
+#endif
             }
             else if (PlaygroundStatus == playground_status::LEVEL_GAME_QUIT)
             {
@@ -667,7 +687,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         case MENU:
         {
-            menu_result_option MenuResult = PlaygroundMenuUpdateAndRender(PlaygroundMenu, PlaygroundData, Settings, Input, RenderGroup);
+            menu_result_option MenuResult = PlaygroundMenuUpdateAndRender(PlaygroundMenu, PlayerData, Settings, Input, RenderGroup);
             
             if (MenuResult.SwitchToPlayground)
             {
