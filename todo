@@ -11,7 +11,9 @@ New TODO:
 	4. Static linking with SDL
 	5. Fix the editor bug and move the windows to some appropriate positions (Done. )
 	6. Move timer and indicator to the playground code (Done.)
-	7. Highlight or mark next available level in level menu.
+	7. Highlight or mark next available level in level menu. (Done. )
+	8. Write code that checks if certain "color" series is completed and when it is then unlock first level of the same "color" level but in the next difficulty layer.
+	9. Here's the idea for the menu background. Why don't we try to move around some generated background.
 
 BUGS:
 	1. When you make less figures in the editor and finish the level, the playground does not switch to the next level (Fixed.)
