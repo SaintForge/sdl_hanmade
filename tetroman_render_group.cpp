@@ -74,7 +74,8 @@ PushRectangle(render_group *Group, rectangle2 Rectangle, v4 Color)
     if (Piece)
     {
         Piece->Rectangle = Rectangle;
-        Piece->Color = Color;
+        Piece->Color  = Color;
+        Piece->Target = {};
     }
 }
 
@@ -84,6 +85,18 @@ PushRectangleOutline(render_group *Group, rectangle2 Rectangle, v4 Color)
     render_entry_rectangle_outline *Piece = PushRenderElement(Group, render_entry_rectangle_outline);
     if (Piece)
     {
+        Piece->Rectangle = Rectangle;
+        Piece->Color = Color;
+        Piece->Target = {};
+    }
+}
+
+inline static void
+PushFillRectOnBitmap(render_group *Group, game_texture *Texture, rectangle2 Rectangle, v4 Color) {
+    render_entry_rectangle *Piece = PushRenderElement(Group, render_entry_rectangle);
+    if (Piece)
+    {
+        Piece->Target = Texture; 
         Piece->Rectangle = Rectangle;
         Piece->Color = Color;
     }
@@ -96,10 +109,11 @@ PushBitmap(render_group *Group, game_texture* Texture, rectangle2 Rectangle)
     if(Piece)
     {
         Piece->Texture        = Texture;
+        Piece->Texture2       = {};
         Piece->Rectangle      = Rectangle;
         Piece->ClipRectangle  = {};
         Piece->Angle          = 0;
-        Piece->RelativeCenter = {0, 0};
+        Piece->RelativeCenter = V2(0.0f, 0.0f);
         Piece->Flip           = SDL_FLIP_NONE;
     }
 }
@@ -111,10 +125,11 @@ PushBitmap(render_group *Group, game_texture* Texture, rectangle2 Rectangle, rec
     if(Piece)
     {
         Piece->Texture        = Texture;
+        Piece->Texture2       = {};
         Piece->Rectangle      = Rectangle;
         Piece->ClipRectangle  = ClipRectangle;
         Piece->Angle          = 0;
-        Piece->RelativeCenter = {0, 0};
+        Piece->RelativeCenter = V2(0, 0.0f);
         Piece->Flip           = SDL_FLIP_NONE;
     }
 }
@@ -126,6 +141,7 @@ PushBitmapEx(render_group *Group, game_texture *Texture, rectangle2 Rectangle, r
     if(Piece)
     {
         Piece->Texture        = Texture;
+        Piece->Texture2       = {};
         Piece->Rectangle      = Rectangle;
         Piece->ClipRectangle  = {};
         Piece->Angle          = Angle;
@@ -134,10 +150,29 @@ PushBitmapEx(render_group *Group, game_texture *Texture, rectangle2 Rectangle, r
     }
 }
 
+inline static void
+PushBitmapOnBitmap(render_group *Group, game_texture *Texture1, game_texture *Texture2, rectangle2 Rectangle) {
+    render_entry_texture *Piece = PushRenderElement(Group, render_entry_texture);
+    if(Piece)
+    {
+        Piece->Texture        = Texture1;
+        Piece->Texture2       = Texture2;
+        Piece->Rectangle      = Rectangle;
+        Piece->ClipRectangle  = {};
+        Piece->Angle          = 0.0f;
+        Piece->RelativeCenter = V2(0.0f, 0.0f);
+        Piece->Flip           = SDL_FLIP_NONE;
+    }
+}
+
 static void
 DrawEntryTexture(game_offscreen_buffer *Buffer, render_entry_texture *Entry)
 {
     game_texture *Texture = Entry->Texture;
+    if (Entry->Texture2) {
+        Texture = Entry->Texture2;
+        SDL_SetRenderTarget(Buffer->Renderer, Entry->Texture);
+    }
     
     game_point Center;
     Center.x = roundf(Entry->RelativeCenter.x);
@@ -158,12 +193,15 @@ DrawEntryTexture(game_offscreen_buffer *Buffer, render_entry_texture *Entry)
         ClipRectangle.w = roundf(ClipDim.w);
         ClipRectangle.h = roundf(ClipDim.h);
         
-        
         SDL_RenderCopyEx(Buffer->Renderer, Texture, &ClipRectangle, &Rectangle, Entry->Angle, &Center, Entry->Flip);
     }
     else 
     {
         SDL_RenderCopyEx(Buffer->Renderer, Texture, 0, &Rectangle, Entry->Angle, &Center, Entry->Flip);
+    }
+    
+    if (Entry->Texture2) {
+        SDL_SetRenderTarget(Buffer->Renderer, NULL);
     }
 }
 
@@ -202,9 +240,6 @@ RenderGroupToOutput(render_group *RenderGroup, game_offscreen_buffer *Buffer)
                 
                 SDL_SetRenderDrawColor(Buffer->Renderer, Entry->Color.r, Entry->Color.g, Entry->Color.b, Entry->Color.a);
                 
-                //game_rect Rectangle = {0, 0, Buffer->ScreenWidth, Buffer->ScreenHeight};
-                //SDL_RenderFillRect(Buffer->Renderer, &Rectangle);
-                
                 BaseAddress += sizeof(*Entry);
                 
             } break;
@@ -212,8 +247,10 @@ RenderGroupToOutput(render_group *RenderGroup, game_offscreen_buffer *Buffer)
             case RenderGroupEntryType_render_entry_rectangle:
             {
                 render_entry_rectangle *Entry = (render_entry_rectangle*) Data;
-                
-                DEBUGRenderQuadFill(Buffer, Entry->Rectangle, Entry->Color);
+                if (Entry->Target)
+                    DEBUGRenderQuadFill(Buffer, Entry->Target, Entry->Rectangle, Entry->Color);
+                else 
+                    DEBUGRenderQuadFill(Buffer, Entry->Rectangle, Entry->Color);
                 
                 BaseAddress += sizeof(*Entry);
             } break;

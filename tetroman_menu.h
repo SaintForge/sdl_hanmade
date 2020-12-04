@@ -40,16 +40,21 @@ struct playground_menu
     
     b32 IsFullscreen;
     b32 PlaygroundSwitch;
-    u32 ButtonIndex;
+    b32 AnimationFinished;
+    b32 AnimationFinishedHalf;
+    r32 InterpPoint;
+    r32 InterpPointDiff;
+    r32 TimeMax;
     
+    u32 ButtonIndex;
     game_resolution Resolution;
+    rectangle2 BackgroundArea;
     
     game_texture *MainMenuTexture[3];
     game_texture *MainMenuShadowTexture[3];
     game_texture *CornerTexture[4];
     
     /* Settings */
-    
     // For sound and music settings
     game_texture *SoundOnTexture;
     game_texture *SoundOnShadowTexture;
@@ -69,29 +74,17 @@ struct playground_menu
     game_texture *ResolutionShadowTexture[3];
     
     // Sound
-    // TODO(msokolov): delete these two
     b32 SoundOn;
-    b32 ToggleSoundCursor;
-    r32 SoundCursorValue;
-    //
-    
-    // TODO(msokolov): this is for testing so it needs to be deleted in release version
-    game_sound *SoundSample;
-    //
     game_texture *SoundNameTexture;
     game_texture *SoundNameShadowTexture;
     
     // Music
-    // TODO(msokolov): delete these two
     b32 MusicOn;
-    b32 ToggleMusicCursor;
-    r32 MusicCursorValue;
-    //
-    game_music *MusicSample;
     game_texture *MusicNameTexture;
     game_texture *MusicNameShadowTexture;
     
     /* Playground Menu*/
+    game_texture *LevelsCanvasTexture;
     game_texture *DifficultyTexture[3];
     game_texture *DifficultyShadowTexture[3];
     game_texture *LevelButtonTexture;
@@ -106,10 +99,6 @@ struct playground_menu
     game_texture *HorizontalLineTexture;
     game_texture *BackTexture;
     game_texture *BackShadowTexture;
-    
-    // TODO: delete this
-    game_texture *ProgressBarTexture;
-    game_texture *CursorTexture;
 };
 
 #endif //TETROMAN_MENU_H

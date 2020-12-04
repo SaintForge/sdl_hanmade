@@ -306,7 +306,6 @@ SetDim(rectangle2 *Rectangle, r32 DimensionWidth, r32 DimensionHeight)
     Rectangle->Max.y = Rectangle->Min.y + DimensionHeight;
 }
 
-
 inline void
 Swap(r32 *A, r32 *B)
 {

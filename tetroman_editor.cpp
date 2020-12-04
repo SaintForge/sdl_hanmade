@@ -46,118 +46,120 @@ PlaygroundEditorUpdateAndRender(playground        *Playground,
         
         if (PlaygroundEditor->SelectedArea == selected_area::FIGURE_PLAYGROUND)
         {
-            if (IsInRectangle(MousePos, FigureButtons))
-            {
-                printf("figure buttons\n");
-                rectangle2 ButtonRectangle = {};
-                
-                u32 FigureIndex = PlaygroundEditor->FigureIndex;
-                u32 FigureAmount = Playground->FigureEntity.FigureAmount;
-                Assert(FigureIndex == 0 || FigureIndex < FigureAmount);
-                
-                // NOTE(msokolov): Change Shape Button
-                ButtonRectangle.Min = FigureButtons.Min;
-                SetDim(&ButtonRectangle, 320, 60);
-                
-                if (IsInRectangle(MousePos, ButtonRectangle))
+            if (Playground->Animation.Finished) {
+                if (IsInRectangle(MousePos, FigureButtons))
                 {
-                    printf("Change Figure Shape\n");
+                    printf("figure buttons\n");
+                    rectangle2 ButtonRectangle = {};
                     
-                    if (FigureAmount > 0)
+                    u32 FigureIndex = PlaygroundEditor->FigureIndex;
+                    u32 FigureAmount = Playground->FigureEntity.FigureAmount;
+                    Assert(FigureIndex == 0 || FigureIndex < FigureAmount);
+                    
+                    // NOTE(msokolov): Change Shape Button
+                    ButtonRectangle.Min = FigureButtons.Min;
+                    SetDim(&ButtonRectangle, 320, 60);
+                    
+                    if (IsInRectangle(MousePos, ButtonRectangle))
                     {
-                        figure_form NextForm = GetNextFigureShape(Playground->FigureEntity.FigureUnit[FigureIndex].Form);
-                        FigureUnitInitFigure(&Playground->FigureEntity.FigureUnit[FigureIndex], NextForm,
-                                             Playground->FigureEntity.FigureUnit[FigureIndex].Type);
-                        FigureEntityAlignFigures(&Playground->FigureEntity);
-                    }
-                }
-                
-                // NOTE(msokolov): Change Rotation Button 
-                ButtonRectangle.Min.x = FigureButtons.Min.x;
-                ButtonRectangle.Min.y = FigureButtons.Min.y + 60.0f;
-                SetDim(&ButtonRectangle, 320.0f, 60.0f);
-                
-                if (IsInRectangle(MousePos, ButtonRectangle))
-                {
-                    printf("Change Rotation Button\n");
-                    if (FigureAmount > 0)
-                    {
-                        Playground->FigureEntity.FigureUnit[FigureIndex].Angle = Playground->FigureEntity.FigureUnit[FigureIndex].Angle + 90.0f;
-                        FigureUnitInitFigure(&Playground->FigureEntity.FigureUnit[FigureIndex],
-                                             Playground->FigureEntity.FigureUnit[FigureIndex].Form,
-                                             Playground->FigureEntity.FigureUnit[FigureIndex].Type);
-                        FigureEntityAlignFigures(&Playground->FigureEntity);
-                    }
-                }
-                
-                
-                // NOTE(msokolov): Add Figure Button 
-                ButtonRectangle.Min.x = FigureButtons.Min.x;
-                ButtonRectangle.Min.y = FigureButtons.Min.y + 120.0f;
-                SetDim(&ButtonRectangle, GetDim(FigureButtons).w, 60);
-                
-                if (IsInRectangle(MousePos, ButtonRectangle))
-                {
-                    printf("Add Figure Button\n");
-                    
-                    FigureUnitAddNewFigure(&Playground->FigureEntity, figure_form::O_figure, figure_type::classic);
-                    FigureEntityAlignFigures(&Playground->FigureEntity);
-                    
-                    if (Playground->GridEntity.StickUnitsAmount < FIGURE_AMOUNT_MAXIMUM)
-                        Playground->GridEntity.StickUnitsAmount += 1;
-                }
-                
-                // NOTE(msokolov): Delete Figure Button
-                ButtonRectangle.Min.x = FigureButtons.Min.x;
-                ButtonRectangle.Min.y = FigureButtons.Min.y + 180.0f;
-                SetDim(&ButtonRectangle, GetDim(FigureButtons).w, 60);
-                
-                if (IsInRectangle(MousePos, ButtonRectangle))
-                {
-                    printf("Delete Figure Button\n");
-                    
-                    if (FigureAmount > 0)
-                    {
-                        for (s32 Index = FigureIndex;
-                             Index < FigureAmount;
-                             ++Index)
-                        {
-                            Playground->FigureEntity.FigureUnit[Index] = Playground->FigureEntity.FigureUnit[Index + 1];
-                        }
+                        printf("Change Figure Shape\n");
                         
-                        Playground->FigureEntity.FigureAmount -= 1;
-                        Playground->GridEntity.StickUnitsAmount -= 1;
-                        if (FigureIndex >= Playground->FigureEntity.FigureAmount && FigureIndex != 0)
+                        if (FigureAmount > 0)
                         {
-                            PlaygroundEditor->FigureIndex -= 1;
+                            figure_form NextForm = GetNextFigureShape(Playground->FigureEntity.FigureUnit[FigureIndex].Form);
+                            FigureUnitInitFigure(&Playground->FigureEntity.FigureUnit[FigureIndex], NextForm);
+                            
+                            FigureEntityAlignFigures(&Playground->FigureEntity);
                         }
-                        
-                        FigureEntityAlignFigures(&Playground->FigureEntity);
                     }
-                }
-            }
-            else if(IsInRectangle(MousePos, FigureArea))
-            {
-                PlaygroundEditor->SelectedArea = selected_area::FIGURE_PLAYGROUND;
-                
-                u32 FigureAmount = Playground->FigureEntity.FigureAmount;
-                u32 FigureIndex  = PlaygroundEditor->FigureIndex;
-                
-                for (u32 Index = 0;
-                     Index < FigureAmount;
-                     ++Index)
-                {
-                    rectangle2 FigureUnitArea = FigureUnitGetArea(&Playground->FigureEntity.FigureUnit[Index]);
-                    if (IsInRectangle(MousePos, FigureUnitArea))
+                    
+                    // NOTE(msokolov): Change Rotation Button 
+                    ButtonRectangle.Min.x = FigureButtons.Min.x;
+                    ButtonRectangle.Min.y = FigureButtons.Min.y + 60.0f;
+                    SetDim(&ButtonRectangle, 320.0f, 60.0f);
+                    
+                    if (IsInRectangle(MousePos, ButtonRectangle))
                     {
-                        PlaygroundEditor->FigureIndex = Index;
-                        break;
+                        printf("Change Rotation Button\n");
+                        if (FigureAmount > 0)
+                        {
+                            Playground->FigureEntity.FigureUnit[FigureIndex].Angle = Playground->FigureEntity.FigureUnit[FigureIndex].Angle + 90.0f;
+                            FigureUnitInitFigure(&Playground->FigureEntity.FigureUnit[FigureIndex],
+                                                 Playground->FigureEntity.FigureUnit[FigureIndex].Form);
+                            
+                            FigureEntityAlignFigures(&Playground->FigureEntity);
+                        }
+                    }
+                    
+                    
+                    // NOTE(msokolov): Add Figure Button 
+                    ButtonRectangle.Min.x = FigureButtons.Min.x;
+                    ButtonRectangle.Min.y = FigureButtons.Min.y + 120.0f;
+                    SetDim(&ButtonRectangle, GetDim(FigureButtons).w, 60);
+                    
+                    if (IsInRectangle(MousePos, ButtonRectangle))
+                    {
+                        printf("Add Figure Button\n");
+                        
+                        FigureUnitAddNewFigure(&Playground->FigureEntity, figure_form::O_figure);
+                        FigureEntityAlignFigures(&Playground->FigureEntity);
+                        
+                        if (Playground->GridEntity.StickUnitsAmount < FIGURE_AMOUNT_MAXIMUM)
+                            Playground->GridEntity.StickUnitsAmount += 1;
+                    }
+                    
+                    // NOTE(msokolov): Delete Figure Button
+                    ButtonRectangle.Min.x = FigureButtons.Min.x;
+                    ButtonRectangle.Min.y = FigureButtons.Min.y + 180.0f;
+                    SetDim(&ButtonRectangle, GetDim(FigureButtons).w, 60);
+                    
+                    if (IsInRectangle(MousePos, ButtonRectangle))
+                    {
+                        printf("Delete Figure Button\n");
+                        
+                        if (FigureAmount > 0)
+                        {
+                            for (s32 Index = FigureIndex;
+                                 Index < FigureAmount;
+                                 ++Index)
+                            {
+                                Playground->FigureEntity.FigureUnit[Index] = Playground->FigureEntity.FigureUnit[Index + 1];
+                            }
+                            
+                            Playground->FigureEntity.FigureAmount -= 1;
+                            Playground->GridEntity.StickUnitsAmount -= 1;
+                            if (FigureIndex >= Playground->FigureEntity.FigureAmount && FigureIndex != 0)
+                            {
+                                PlaygroundEditor->FigureIndex -= 1;
+                            }
+                            
+                            FigureEntityAlignFigures(&Playground->FigureEntity);
+                        }
                     }
                 }
-            }
-            else if(IsInRectangle(MousePos, GridArea))
-            {
-                PlaygroundEditor->SelectedArea = selected_area::GRID_PLAYGROUND;
+                else if(IsInRectangle(MousePos, FigureArea))
+                {
+                    PlaygroundEditor->SelectedArea = selected_area::FIGURE_PLAYGROUND;
+                    
+                    u32 FigureAmount = Playground->FigureEntity.FigureAmount;
+                    u32 FigureIndex  = PlaygroundEditor->FigureIndex;
+                    
+                    for (u32 Index = 0;
+                         Index < FigureAmount;
+                         ++Index)
+                    {
+                        rectangle2 FigureUnitArea = FigureUnitGetArea(&Playground->FigureEntity.FigureUnit[Index]);
+                        if (IsInRectangle(MousePos, FigureUnitArea))
+                        {
+                            PlaygroundEditor->FigureIndex = Index;
+                            break;
+                        }
+                    }
+                }
+                else if(IsInRectangle(MousePos, GridArea))
+                {
+                    PlaygroundEditor->SelectedArea = selected_area::GRID_PLAYGROUND;
+                }
             }
         }
         if (PlaygroundEditor->SelectedArea == selected_area::GRID_PLAYGROUND)

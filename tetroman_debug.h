@@ -116,4 +116,26 @@ DEBUGRenderQuadFill(game_offscreen_buffer *Buffer, game_rect *AreaQuad, SDL_Colo
     SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
 }
 
+static void
+DEBUGRenderQuadFill(game_offscreen_buffer *Buffer, game_texture *Texture, rectangle2 Rectangle, v4 Color) {
+    
+    SDL_SetRenderTarget(Buffer->Renderer, Texture);
+    
+    
+    game_rect SDLRect;
+    SDLRect.x = roundf(Rectangle.Min.x);
+    SDLRect.y = roundf(Rectangle.Min.y);
+    SDLRect.w = roundf(Rectangle.Max.x - Rectangle.Min.x);
+    SDLRect.h = roundf(Rectangle.Max.y - Rectangle.Min.y);
+    
+    u8 r, g, b, a;
+    SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, &a);
+    
+    SDL_SetRenderDrawColor(Buffer->Renderer, Color.r, Color.g, Color.b, Color.a);
+    SDL_RenderFillRect(Buffer->Renderer, &SDLRect);
+    SDL_SetRenderTarget(Buffer->Renderer, NULL);
+    
+    SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
+}
+
 #endif //TETROMAN_DEBUG_H

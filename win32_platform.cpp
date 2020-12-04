@@ -250,7 +250,7 @@ SetWindowResolution(SDL_Window *Window, game_resolution Resolution)
         case QFULLHD:
         {
             Result.Width = 2560;
-            Result.Height = 1080;
+            Result.Height = 1440;
         } break;
     }
     

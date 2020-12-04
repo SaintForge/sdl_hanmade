@@ -400,26 +400,47 @@ SDLAssetBuildBinaryFile()
     SDLWriteBitmapToFile(BinaryFile, "frame3.png");
     SDLWriteBitmapToFile(BinaryFile, "frame4.png");
     
-    SDLWriteBitmapToFile(BinaryFile, "i_d_new.png");
-    SDLWriteBitmapToFile(BinaryFile, "i_d_new_shadow.png");
+    SDLWriteBitmapToFile(BinaryFile, "i_green.png");
+    SDLWriteBitmapToFile(BinaryFile, "i_blue.png");
+    SDLWriteBitmapToFile(BinaryFile, "i_orange.png");
+    SDLWriteBitmapToFile(BinaryFile, "i_red.png");
+    SDLWriteBitmapToFile(BinaryFile, "i_shadow.png");
     
-    SDLWriteBitmapToFile(BinaryFile, "o_d_new.png");
-    SDLWriteBitmapToFile(BinaryFile, "o_d_new_shadow.png");
+    SDLWriteBitmapToFile(BinaryFile, "o_green.png");
+    SDLWriteBitmapToFile(BinaryFile, "o_blue.png");
+    SDLWriteBitmapToFile(BinaryFile, "o_orange.png");
+    SDLWriteBitmapToFile(BinaryFile, "o_red.png");
+    SDLWriteBitmapToFile(BinaryFile, "o_shadow.png");
     
-    SDLWriteBitmapToFile(BinaryFile, "l_d_new.png");
-    SDLWriteBitmapToFile(BinaryFile, "l_d_new_shadow.png");
+    SDLWriteBitmapToFile(BinaryFile, "l_green.png");
+    SDLWriteBitmapToFile(BinaryFile, "l_blue.png");
+    SDLWriteBitmapToFile(BinaryFile, "l_orange.png");
+    SDLWriteBitmapToFile(BinaryFile, "l_red.png");
+    SDLWriteBitmapToFile(BinaryFile, "l_shadow.png");
     
-    SDLWriteBitmapToFile(BinaryFile, "j_d_new.png");
-    SDLWriteBitmapToFile(BinaryFile, "j_d_new_shadow.png");
+    SDLWriteBitmapToFile(BinaryFile, "j_green.png");
+    SDLWriteBitmapToFile(BinaryFile, "j_blue.png");
+    SDLWriteBitmapToFile(BinaryFile, "j_orange.png");
+    SDLWriteBitmapToFile(BinaryFile, "j_red.png");
+    SDLWriteBitmapToFile(BinaryFile, "j_shadow.png");
     
-    SDLWriteBitmapToFile(BinaryFile, "s_d_new.png");
-    SDLWriteBitmapToFile(BinaryFile, "s_d_new_shadow.png");
+    SDLWriteBitmapToFile(BinaryFile, "s_green.png");
+    SDLWriteBitmapToFile(BinaryFile, "s_blue.png");
+    SDLWriteBitmapToFile(BinaryFile, "s_orange.png");
+    SDLWriteBitmapToFile(BinaryFile, "s_red.png");
+    SDLWriteBitmapToFile(BinaryFile, "s_shadow.png");
     
-    SDLWriteBitmapToFile(BinaryFile, "z_d_new.png");
-    SDLWriteBitmapToFile(BinaryFile, "z_d_new_shadow.png");
+    SDLWriteBitmapToFile(BinaryFile, "z_green.png");
+    SDLWriteBitmapToFile(BinaryFile, "z_blue.png");
+    SDLWriteBitmapToFile(BinaryFile, "z_orange.png");
+    SDLWriteBitmapToFile(BinaryFile, "z_red.png");
+    SDLWriteBitmapToFile(BinaryFile, "z_shadow.png");
     
-    SDLWriteBitmapToFile(BinaryFile, "t_d_new.png");
-    SDLWriteBitmapToFile(BinaryFile, "t_d_new_shadow.png");
+    SDLWriteBitmapToFile(BinaryFile, "t_green.png");
+    SDLWriteBitmapToFile(BinaryFile, "t_blue.png");
+    SDLWriteBitmapToFile(BinaryFile, "t_orange.png");
+    SDLWriteBitmapToFile(BinaryFile, "t_red.png");
+    SDLWriteBitmapToFile(BinaryFile, "t_shadow.png");
     
     SDLWriteBitmapToFile(BinaryFile, "left_arrow.png");
     SDLWriteBitmapToFile(BinaryFile, "right_arrow.png");

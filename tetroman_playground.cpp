@@ -154,12 +154,11 @@ FigureUnitRotateShellBy(figure_unit *Entity, float Angle)
 }
 
 static void
-FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form,
-                     figure_type Type)
+FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form)
+
 {
     FigureUnit->IsIdle = true;
     FigureUnit->Form   = Form;
-    FigureUnit->Type   = Type;
     FigureUnit->Flip   = SDL_FLIP_NONE;
     
     u32 RowAmount    = 0;
@@ -301,14 +300,14 @@ FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form,
 }
 
 static void
-FigureUnitAddNewFigure(figure_entity *FigureEntity, figure_form Form, figure_type Type)
+FigureUnitAddNewFigure(figure_entity *FigureEntity, figure_form Form)
 {
     Assert(FigureEntity->FigureAmount < FIGURE_AMOUNT_MAXIMUM);
     
     u32 Index = FigureEntity->FigureAmount;
     FigureEntity->FigureAmount += 1;
     
-    FigureUnitInitFigure(&FigureEntity->FigureUnit[Index], Form, Type);
+    FigureUnitInitFigure(&FigureEntity->FigureUnit[Index], Form);
 }
 
 static void
@@ -375,19 +374,17 @@ PickFigureTexture(figure_form Form, figure_type Type, figure_entity *FigureEntit
         {
             switch(Type)
             {
-                case classic:
-                {
+                case figure_type::Green: {
+                    Result = FigureEntity->O_GreenTexture;
+                } break;
+                case figure_type::Blue: {
+                    Result = FigureEntity->O_BlueTexture;
+                } break;
+                case figure_type::Orange: {
+                    Result = FigureEntity->O_OrangeTexture;
+                } break;
+                case figure_type::Red: {
                     Result = FigureEntity->O_ClassicTexture;
-                } break;
-                
-                case stone:
-                {
-                    Result = FigureEntity->O_StoneTexture;
-                } break;
-                
-                case mirror:
-                {
-                    Result = FigureEntity->O_MirrorTexture;
                 } break;
             }
         } break;
@@ -396,20 +393,19 @@ PickFigureTexture(figure_form Form, figure_type Type, figure_entity *FigureEntit
         {
             switch(Type)
             {
-                case classic:
-                {
+                case figure_type::Green: {
+                    Result = FigureEntity->I_GreenTexture;
+                } break;
+                case figure_type::Blue: {
+                    Result = FigureEntity->I_BlueTexture;
+                } break;
+                case figure_type::Orange: {
+                    Result = FigureEntity->I_OrangeTexture;
+                } break;
+                case figure_type::Red: {
                     Result = FigureEntity->I_ClassicTexture;
                 } break;
                 
-                case stone:
-                {
-                    Result = FigureEntity->I_StoneTexture;
-                } break;
-                
-                case mirror:
-                {
-                    Result = FigureEntity->I_MirrorTexture;
-                } break;
             }
         } break;
         
@@ -417,19 +413,17 @@ PickFigureTexture(figure_form Form, figure_type Type, figure_entity *FigureEntit
         {
             switch(Type)
             {
-                case classic:
-                {
+                case figure_type::Green: {
+                    Result = FigureEntity->L_GreenTexture;
+                } break;
+                case figure_type::Blue: {
+                    Result = FigureEntity->L_BlueTexture;
+                } break;
+                case figure_type::Orange: {
+                    Result = FigureEntity->L_OrangeTexture;
+                } break;
+                case figure_type::Red: {
                     Result = FigureEntity->L_ClassicTexture;
-                } break;
-                
-                case stone:
-                {
-                    Result = FigureEntity->L_StoneTexture;
-                } break;
-                
-                case mirror:
-                {
-                    Result = FigureEntity->L_MirrorTexture;
                 } break;
             }
         } break;
@@ -438,19 +432,17 @@ PickFigureTexture(figure_form Form, figure_type Type, figure_entity *FigureEntit
         {
             switch(Type)
             {
-                case classic:
-                {
+                case figure_type::Green: {
+                    Result = FigureEntity->J_GreenTexture;
+                } break;
+                case figure_type::Blue: {
+                    Result = FigureEntity->J_BlueTexture;
+                } break;
+                case figure_type::Orange: {
+                    Result = FigureEntity->J_OrangeTexture;
+                } break;
+                case figure_type::Red: {
                     Result = FigureEntity->J_ClassicTexture;
-                } break;
-                
-                case stone:
-                {
-                    Result = FigureEntity->J_StoneTexture;
-                } break;
-                
-                case mirror:
-                {
-                    Result = FigureEntity->J_MirrorTexture;
                 } break;
             }
         } break;
@@ -459,19 +451,18 @@ PickFigureTexture(figure_form Form, figure_type Type, figure_entity *FigureEntit
         {
             switch(Type)
             {
-                case classic:
+                case figure_type::Green: {
+                    Result = FigureEntity->Z_GreenTexture;
+                } break;
+                case figure_type::Blue: {
+                    Result = FigureEntity->Z_BlueTexture;
+                } break;
+                case figure_type::Orange: {
+                    Result = FigureEntity->Z_OrangeTexture;
+                } break;
+                case figure_type::Red:
                 {
                     Result = FigureEntity->Z_ClassicTexture;
-                } break;
-                
-                case stone:
-                {
-                    Result = FigureEntity->Z_StoneTexture;
-                } break;
-                
-                case mirror:
-                {
-                    Result = FigureEntity->Z_MirrorTexture;
                 } break;
             }
         } break;
@@ -480,20 +471,18 @@ PickFigureTexture(figure_form Form, figure_type Type, figure_entity *FigureEntit
         {
             switch(Type)
             {
-                
-                case classic:
+                case figure_type::Green: {
+                    Result = FigureEntity->S_GreenTexture;
+                } break;
+                case figure_type::Blue: {
+                    Result = FigureEntity->S_BlueTexture;
+                } break;
+                case figure_type::Orange: {
+                    Result = FigureEntity->S_OrangeTexture;
+                } break;
+                case figure_type::Red:
                 {
                     Result = FigureEntity->S_ClassicTexture;
-                } break;
-                
-                case stone:
-                {
-                    Result = FigureEntity->S_StoneTexture;
-                } break;
-                
-                case mirror:
-                {
-                    Result = FigureEntity->S_MirrorTexture;
                 } break;
             }
         } break;
@@ -502,19 +491,17 @@ PickFigureTexture(figure_form Form, figure_type Type, figure_entity *FigureEntit
         {
             switch(Type)
             {
-                case classic:
-                {
+                case figure_type::Green: {
+                    Result = FigureEntity->T_GreenTexture;
+                } break;
+                case figure_type::Blue: {
+                    Result = FigureEntity->T_BlueTexture;
+                } break;
+                case figure_type::Orange: {
+                    Result = FigureEntity->T_OrangeTexture;
+                } break;
+                case figure_type::Red: {
                     Result = FigureEntity->T_ClassicTexture;
-                } break;
-                
-                case stone:
-                {
-                    Result = FigureEntity->T_StoneTexture;
-                } break;
-                
-                case mirror:
-                {
-                    Result = FigureEntity->T_MirrorTexture;
                 } break;
             } 
         } break;
@@ -756,8 +743,7 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
     {
         Result = options_choice::MAINMENU_OPTION;
         
-        if (FigureEntity->IsGrabbed)
-        {
+        if (FigureEntity->IsGrabbed) {
             FigureEntity->IsGrabbed    = false;
         }
     }
@@ -888,34 +874,10 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
         {
             if(FigureEntity->IsGrabbed)
             {
-                figure_type Type = FigureUnit[ActiveIndex].Type;
-                switch(Type)
+                if (!FigureEntity->IsRotating)
                 {
-                    case classic:
-                    {
-                        if (!FigureEntity->IsRotating)
-                        {
-                            FigureEntity->IsRotating = true;
-                            FigureUnitRotateShellBy(&FigureUnit[ActiveIndex], 90);
-                        }
-                    } break;
-                    case mirror:
-                    {
-                        if (!FigureEntity->IsFlipping)
-                        {
-                            //SDL_SetTextureBlendMode(FigureUnit[ActiveIndex].Texture, SDL_BLENDMODE_BLEND);
-                            
-                            FigureEntity->IsFlipping = true;
-                            FigureEntity->FigureAlpha= 255;
-                            FigureEntity->FadeInSum  = 255;
-                            FigureEntity->FadeOutSum = 0;
-                        }
-                    } break;
-                    
-                    case stone:
-                    {
-                        
-                    } break;
+                    FigureEntity->IsRotating = true;
+                    FigureUnitRotateShellBy(&FigureUnit[ActiveIndex], 90);
                 }
             }
         } 
@@ -1128,7 +1090,7 @@ MoveObject2D(v2 Position, v2 TargetPosition, r32 dtForFrame, r32 Speed)
 static void
 RenderFigureStructure(render_group *RenderGroup, figure_unit *Entity)
 {
-    v4 Color = {0, 255, 255, 255};
+    v4 Color = V4(0.0f, 255.0f, 255.0f, 255.0f);
     
     rectangle2 Rectangle = {};
     Rectangle.Min.x = Entity->Position.x;
@@ -1144,21 +1106,21 @@ RenderFigureStructure(render_group *RenderGroup, figure_unit *Entity)
          Index < FIGURE_BLOCKS_MAXIMUM;
          ++Index)
     {
-        Rectangle.Min.x = Entity->Shell[Index].x - (BlockSize / 2.0f);
-        Rectangle.Min.y = Entity->Shell[Index].y - (BlockSize / 2.0f);
+        Rectangle.Min.x = Entity->Shell[Index].x - (BlockSize * 0.5f);
+        Rectangle.Min.y = Entity->Shell[Index].y - (BlockSize * 0.5f);
         Rectangle.Max.x = Rectangle.Min.x + BlockSize;
         Rectangle.Max.y = Rectangle.Min.y + BlockSize;
         PushRectangle(RenderGroup, Rectangle, Color);
         
         v2 Center = {};
-        Center.x  = Entity->Position.x + (Entity->Size.w / 2);
+        Center.x  = Entity->Position.x + (Entity->Size.w * 0.5);
         Center.y  = Entity->Position.y + (Entity->Size.h) * Entity->CenterOffset;
         
-        Rectangle.Min.x = Center.x - (BlockSize / 2.0f);
-        Rectangle.Min.y = Center.y - (BlockSize / 2.0f);
+        Rectangle.Min.x = Center.x - (BlockSize * 0.5f);
+        Rectangle.Min.y = Center.y - (BlockSize * 0.5f);
         Rectangle.Max.x = Rectangle.Min.x + BlockSize;
         Rectangle.Max.y = Rectangle.Min.y + BlockSize;
-        PushRectangle(RenderGroup, Rectangle, {255, 0, 0, 255});
+        PushRectangle(RenderGroup, Rectangle, {255.0f, 0.0f, 0.0f, 255.0f});
     }
 }
 
@@ -1301,7 +1263,7 @@ FigureEntityRenderFigures(figure_entity *FigureEntity, render_group *RenderGroup
         ShadowRectangle.Min = Rectangle.Min + ShadowOffset;
         ShadowRectangle.Max = Rectangle.Max + ShadowOffset;
         
-        game_texture *Texture = PickFigureTexture(Entity->Form, Entity->Type, FigureEntity);
+        game_texture *Texture = PickFigureTexture(Entity->Form, FigureEntity->CurrentType, FigureEntity);
         game_texture *ShadowTexture = PickFigureShadowTexture(Entity->Form, FigureEntity);
         
         PushBitmapEx(RenderGroup, ShadowTexture, ShadowRectangle, Entity->Angle, Center, Entity->Flip);
@@ -1319,26 +1281,6 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
     if (InterpPoint >= 1.0f) 
         InterpPoint = 1.0f;
     
-    if (IsStartup && Playground->Animation.InterpPoint == 0.0f) {
-        
-        // NOTE(msokolov): This is somewhat of a hack to change the alpha channel after one frame
-        SDL_SetTextureAlphaMod(Playground->FigureEntity.O_ClassicTexture, 255);
-        SDL_SetTextureAlphaMod(Playground->FigureEntity.I_ClassicTexture, 255);
-        SDL_SetTextureAlphaMod(Playground->FigureEntity.L_ClassicTexture, 255);
-        SDL_SetTextureAlphaMod(Playground->FigureEntity.J_ClassicTexture, 255);
-        SDL_SetTextureAlphaMod(Playground->FigureEntity.Z_ClassicTexture, 255);
-        SDL_SetTextureAlphaMod(Playground->FigureEntity.S_ClassicTexture, 255);
-        SDL_SetTextureAlphaMod(Playground->FigureEntity.T_ClassicTexture, 255);
-        
-        SDL_SetTextureAlphaMod(Playground->FigureEntity.O_ShadowTexture, 255);
-        SDL_SetTextureAlphaMod(Playground->FigureEntity.I_ShadowTexture, 255);
-        SDL_SetTextureAlphaMod(Playground->FigureEntity.L_ShadowTexture, 255);
-        SDL_SetTextureAlphaMod(Playground->FigureEntity.J_ShadowTexture, 255);
-        SDL_SetTextureAlphaMod(Playground->FigureEntity.Z_ShadowTexture, 255);
-        SDL_SetTextureAlphaMod(Playground->FigureEntity.S_ShadowTexture, 255);
-        SDL_SetTextureAlphaMod(Playground->FigureEntity.T_ShadowTexture, 255);
-    }
-    
     if (!IsStartup) 
         InterpPoint = 1.0f - InterpPoint;
     
@@ -1353,7 +1295,7 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
     rectangle2 ClipRectangle   = {};
     
     v2 TextureDim = QueryTextureDim(Playground->CornerLeftTopTexture);
-    v2 RectangleDim = {408.0f, 408.0f};
+    v2 RectangleDim = {400.0f, 400.0f};
     
     /* Top Left */
     {
@@ -1508,22 +1450,13 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
     }
     else {
         
-        r32 InterpStepsPassed = (1.0f - InterpPoint) / (dtForFrame / Playground->Animation.TimeMax);
-        r32 AlphaInterpPoint = InterpStepsPassed * (dtForFrame * 1.0f);
-        if (AlphaInterpPoint >= 1.0f)
-            AlphaInterpPoint = 1.0f;
-        
-        for (u32 i = 0; i < Playground->FigureEntity.FigureAmount; ++i) {
-            
-            r32 AlphaChannel = Lerp1(0.0f, 255.0f, (1.0f - AlphaInterpPoint));
-            game_texture *FigureTexture = PickFigureTexture(FigureUnit[i].Form, FigureUnit[i].Type, &Playground->FigureEntity);
-            SDL_SetTextureAlphaMod(FigureTexture, roundf(AlphaChannel));
-            
-            game_texture *ShadowTexture = PickFigureShadowTexture(FigureUnit[i].Form, &Playground->FigureEntity);
-            SDL_SetTextureAlphaMod(ShadowTexture, roundf(AlphaChannel));
-        }
-        
         FigureEntityRenderFigures(&Playground->FigureEntity, RenderGroup);
+        
+        rectangle2 GridArea = GridEntityGetGridRectangle(&Playground->GridEntity);
+        GridArea.Min -= 10.0f;
+        GridArea.Max += 20.0f;
+        
+        PushRectangle(RenderGroup, GridArea, V4(51.0f, 8.0f, 23.0f, (1.0f - InterpPoint) * 255.0f));
     }
     
     /* Level Indicator Animation */
@@ -1587,7 +1520,7 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
     }
     
     rectangle2 ScreenArea = {{}, {VIRTUAL_GAME_WIDTH, VIRTUAL_GAME_HEIGHT}};
-    r32 AlphaChannel = Lerp1(0.0f, 150.0f, 1.0f - InterpPoint);
+    r32 AlphaChannel = Lerp1(0.0f, 255.0f, 1.0f - InterpPoint);
     
     Clear(RenderGroup, V4(0.0f, 0.0f, 0.0f, AlphaChannel));
     
@@ -1700,8 +1633,8 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
                 v2 Offset = {};
                 
                 u32 Count   = 0;
-                u32 RowIndex[4] = {0};
-                u32 ColIndex[4] = {0};
+                u32 RowIndex[4] = {};
+                u32 ColIndex[4] = {};
                 
                 for (u32 i = 0 ; i < RowAmount && Count != 4; ++i)
                 {
@@ -2080,7 +2013,7 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     {
         rectangle2 Rectangle = {};
         v2 TextureDim = QueryTextureDim(LevelEntity->CornerLeftTopTexture);
-        v2 RectangleDim = {408.0f, 408.0f};
+        v2 RectangleDim = {400.0f, 400.0f};
         v2 OffsetFromWall = {20.0f, 20.0f};
         
         /* Top Left */
@@ -2310,7 +2243,6 @@ WritePlaygroundData(playground_data *Playground, playground *Entity, u32 Index)
         Figures[FigureIndex].Angle = Entity->FigureEntity.FigureUnit[FigureIndex].Angle;
         Figures[FigureIndex].Flip  = Entity->FigureEntity.FigureUnit[FigureIndex].Flip;
         Figures[FigureIndex].Form  = Entity->FigureEntity.FigureUnit[FigureIndex].Form;
-        Figures[FigureIndex].Type  = Entity->FigureEntity.FigureUnit[FigureIndex].Type;
     }
 }
 
@@ -2380,6 +2312,8 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
         Playground->GridEntity.UnitField[(MovingBlocks[BlockIndex].RowNumber * PlaygroundData.ColumnAmount) + MovingBlocks[BlockIndex].ColNumber] = 1;
     }
     
+    u32 CurrentType = (Index % 32) / 8;
+    Playground->FigureEntity.CurrentType = (figure_type)CurrentType;
     Playground->FigureEntity.FigureAmount     = PlaygroundData.FigureAmount;
     Playground->FigureEntity.ReturnIndex      = -1;
     Playground->FigureEntity.FigureVelocity   = Configuration->FigureVelocity;
@@ -2400,7 +2334,7 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
         figure_type Type = PlaygroundData.Figures[FigureIndex].Type;
         
         Playground->FigureEntity.FigureUnit[FigureIndex].Angle = PlaygroundData.Figures[FigureIndex].Angle;
-        FigureUnitInitFigure(&Playground->FigureEntity.FigureUnit[FigureIndex], Form, Type);
+        FigureUnitInitFigure(&Playground->FigureEntity.FigureUnit[FigureIndex], Form);
     }
     
     // NOTE(msokolov): just for clearing fields that may be changed during animation and other stuff

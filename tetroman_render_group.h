@@ -22,12 +22,14 @@ struct render_entry_clear_screen
 
 struct render_entry_rectangle
 {
+    game_texture *Target;
     rectangle2 Rectangle;
     v4 Color;
 };
 
 struct render_entry_rectangle_outline
 {
+    game_texture *Target;
     rectangle2 Rectangle;
     v4 Color;
 };
@@ -35,6 +37,7 @@ struct render_entry_rectangle_outline
 struct render_entry_texture
 {
     game_texture *Texture;
+    game_texture *Texture2;
     
     rectangle2 Rectangle;
     rectangle2 ClipRectangle;

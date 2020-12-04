@@ -24,9 +24,12 @@ enum figure_form
     Z_figure, S_figure, T_figure
 };
 
-enum figure_type
+enum class figure_type
 {
-    classic, stone, mirror
+    Blue, 
+    Green, 
+    Orange,
+    Red
 };
 
 struct figure_unit
@@ -47,7 +50,7 @@ struct figure_unit
     
     figure_flip Flip;
     figure_form Form;
-    figure_type Type;
+    //figure_type Type;
 };
 
 struct figure_entity
@@ -59,6 +62,7 @@ struct figure_entity
     
     u32 FigureAmount;
     u32 FigureOrder[FIGURE_AMOUNT_MAXIMUM];
+    figure_type CurrentType;
     figure_unit FigureUnit[FIGURE_AMOUNT_MAXIMUM];
     
     b32 IsGrabbed;
@@ -78,41 +82,47 @@ struct figure_entity
     r32 RotationVelocity;
     
     /* Texture Assets */
+    game_texture *O_GreenTexture;
+    game_texture *O_BlueTexture;
+    game_texture *O_OrangeTexture;
     game_texture *O_ClassicTexture;
-    game_texture *O_StoneTexture;
-    game_texture *O_MirrorTexture;
     game_texture *O_ShadowTexture;
     
+    game_texture *I_GreenTexture;
+    game_texture *I_BlueTexture;
+    game_texture *I_OrangeTexture;
     game_texture *I_ClassicTexture;
-    game_texture *I_StoneTexture;
-    game_texture *I_MirrorTexture;
     game_texture *I_ShadowTexture;
     
+    game_texture *L_GreenTexture;
+    game_texture *L_BlueTexture;
+    game_texture *L_OrangeTexture;
     game_texture *L_ClassicTexture;
-    game_texture *L_StoneTexture;
-    game_texture *L_MirrorTexture;
     game_texture *L_ShadowTexture;
     
+    game_texture *J_GreenTexture;
+    game_texture *J_BlueTexture;
+    game_texture *J_OrangeTexture;
     game_texture *J_ClassicTexture;
     game_texture *J_ShadowTexture;
-    game_texture *J_StoneTexture;
-    game_texture *J_MirrorTexture;
     
+    game_texture *Z_GreenTexture;
+    game_texture *Z_BlueTexture;
+    game_texture *Z_OrangeTexture;
     game_texture *Z_ClassicTexture;
-    game_texture *Z_StoneTexture;
-    game_texture *Z_MirrorTexture;
     game_texture *Z_ShadowTexture;
     
+    game_texture *S_GreenTexture;
+    game_texture *S_BlueTexture;
+    game_texture *S_OrangeTexture;
     game_texture *S_ClassicTexture;
-    game_texture *S_StoneTexture;
-    game_texture *S_MirrorTexture;
     game_texture *S_ShadowTexture;
     
+    game_texture *T_GreenTexture;
+    game_texture *T_BlueTexture;
+    game_texture *T_OrangeTexture;
     game_texture *T_ClassicTexture;
-    game_texture *T_StoneTexture;
-    game_texture *T_MirrorTexture;
     game_texture *T_ShadowTexture;
-    
 };
 
 struct sticked_unit
