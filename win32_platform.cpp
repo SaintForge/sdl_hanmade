@@ -35,6 +35,27 @@ window_dimension SDLGetWindowDimension(SDL_Window* Window)
     return (WindowQuad);
 }
 
+inline static v2 
+CalculateViewport(r32 ScreenWidth, r32 ScreenHeight) {
+    
+    v2 Result = {};
+    
+    r32 AspectRatio = (r32) VIRTUAL_GAME_WIDTH / (r32) VIRTUAL_GAME_HEIGHT;
+    
+    r32 ViewportWidth = ScreenWidth;
+    r32 ViewportHeight = roundf(ViewportWidth / AspectRatio);
+    
+    if (ViewportHeight > ScreenHeight) {
+        ViewportHeight = ScreenHeight;
+        ViewportWidth  = roundf(ViewportHeight * AspectRatio);
+    }
+    
+    Result.w = ViewportWidth;
+    Result.h = ViewportHeight;
+    
+    return (Result);
+}
+
 static void
 SDLProcessKeyPress(game_button_state *NewState, bool IsDown, bool WasDown)
 {
@@ -211,6 +232,12 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input, SDL_Window *Window, gam
                     case SDL_WINDOWEVENT_RESIZED:
                     {
                         SDL_GetWindowSize(Window, &Buffer->ScreenWidth, &Buffer->ScreenHeight);
+                        
+                        v2 Viewport = CalculateViewport(Buffer->ScreenWidth, Buffer->ScreenHeight);
+                        
+                        Buffer->ViewportWidth  = Viewport.w;
+                        Buffer->ViewportHeight = Viewport.h;
+                        
                     } break;
                 }
             } break;
@@ -224,7 +251,7 @@ static void
 SetWindowFullscreen(SDL_Window *Window, b32 ToggleFullscreen)
 {
     if (ToggleFullscreen)
-        SDL_SetWindowFullscreen(Window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+        SDL_SetWindowFullscreen(Window, SDL_WINDOW_FULLSCREEN);
     else
         SDL_SetWindowFullscreen(Window, 0);
 }
@@ -250,7 +277,7 @@ SetWindowResolution(SDL_Window *Window, game_resolution Resolution)
         case QFULLHD:
         {
             Result.Width = 2560;
-            Result.Height = 1440;
+            Result.Height = 1080;
         } break;
     }
     
@@ -320,34 +347,37 @@ int main(int argc, char **argv)
     
     SDL_DisplayMode Display = {};
     SDL_GetDesktopDisplayMode(0, &Display);
+    printf("Display.w: %d\n", Display.w);
+    printf("Display.h: %d\n", Display.h);
     
     SDL_Window* Window = SDL_CreateWindow("Tetroman",
                                           SDL_WINDOWPOS_CENTERED,
                                           SDL_WINDOWPOS_CENTERED,
                                           Display.w, Display.h,
-                                          SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIDDEN);
-    
+                                          SDL_WINDOW_FULLSCREEN);
+    //SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIDDEN);
     
     if(Window)
     {
-        SDL_HideWindow(Window);
-        
+        //SDL_HideWindow(Window);
         
         SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
-        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
+        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
         
         SDL_Renderer* Renderer = SDL_CreateRenderer(Window, -1,
                                                     SDL_RENDERER_TARGETTEXTURE|SDL_RENDERER_ACCELERATED);
         
         SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
-        SDL_RenderSetLogicalSize(Renderer, VIRTUAL_GAME_WIDTH, VIRTUAL_GAME_HEIGHT);
         
         if(Renderer)
         {
             bool IsRunning = true;
             
-            SetWindowFullscreen(Window, false);
-            window_dimension Dimension = SetWindowResolution(Window, game_resolution::FULLHD);
+            window_dimension Dimension = {Display.w, Display.h};
+            
+            //SetWindowFullscreen(Window, true);
+            //Dimension = SDLGetWindowDimension(Window);
+            //Dimension = SetWindowResolution(Window, game_resolution::FULLHD);
             
             game_offscreen_buffer Buffer = {};
             Buffer.Renderer      = Renderer;
@@ -355,6 +385,18 @@ int main(int argc, char **argv)
             Buffer.ScreenHeight  = Dimension.Height;
             Buffer.Width         = VIRTUAL_GAME_WIDTH;
             Buffer.Height        = VIRTUAL_GAME_HEIGHT;
+            
+            {
+                v2 Viewport = CalculateViewport(Buffer.ScreenWidth, Buffer.ScreenHeight);
+                
+                Buffer.ViewportWidth  = Viewport.w;
+                Buffer.ViewportHeight = Viewport.h;
+            }
+            
+            printf("screen w: %d\n", Buffer.ScreenWidth);
+            printf("screen h: %d\n", Buffer.ScreenHeight);
+            printf("viewport w: %d\n", Buffer.ViewportWidth);
+            printf("viewport h: %d\n", Buffer.ViewportHeight);
             
             u32 RefreshRate = 60;
             s32 DisplayIndex = 0, ModeIndex = 0;
@@ -401,17 +443,14 @@ int main(int argc, char **argv)
                 r32 TimeElapsed = 0.0f;
                 r32 PreviousTimeTick = SDL_GetTicks();
                 
-                s32 OldMouseX = 0;
-                s32 OldMouseY = 0;
-                
                 // TODO(msokolov): check if files exist and are opened
                 ReadBinaryFile("package1.bin", Memory.AssetStorage, Memory.AssetStorageSize);
                 ReadBinaryFile("package2.bin", Memory.LevelStorage, Memory.LevelStorageSize);
-                ReadBinaryFile("settings.bin", Memory.SettingsStorage, Memory.SettingsStorageSize);
+                ReadBinaryFile("package0.bin", Memory.SettingsStorage, Memory.SettingsStorageSize);
                 
                 player_data *PlayerData = (player_data *) Memory.SettingsStorage;
-                
                 game_settings *Settings = &PlayerData->Settings;
+                
                 game_settings PrevSettings = {};
                 PrevSettings.MusicIsOn = Settings->MusicIsOn;
                 PrevSettings.SoundIsOn = Settings->SoundIsOn;
@@ -423,8 +462,6 @@ int main(int argc, char **argv)
                     PreviousTimeTick = SDL_GetTicks();
                     
                     game_input Input = {};
-                    Input.MouseX = OldMouseX;
-                    Input.MouseY = OldMouseY;
                     Input.TimeElapsed = TimeElapsed;
                     Input.dtForFrame = dtForFrame;
                     
@@ -432,6 +469,23 @@ int main(int argc, char **argv)
                     if(SDLHandleEvent(&Event, &Input, Window, &Buffer))
                     {
                         IsRunning = false;
+                    }
+                    
+                    {
+                        SDL_GetMouseState(&Input.MouseX, &Input.MouseY);
+                        v2 ActualScreenCenter = V2(Buffer.ScreenWidth * 0.5f, Buffer.ScreenHeight * 0.5f);
+                        v2 ViewportCenter = V2(Buffer.ViewportWidth * 0.5f, Buffer.ViewportHeight * 0.5f);
+                        
+                        v2 NewMouse = V2((r32)Input.MouseX - (ActualScreenCenter.x - ViewportCenter.x),
+                                         (r32)Input.MouseY - (ActualScreenCenter.y - ViewportCenter.y));
+                        NewMouse.x = NewMouse.x / Buffer.ViewportWidth;
+                        NewMouse.y = NewMouse.y / Buffer.ViewportHeight;
+                        
+                        NewMouse.x = NewMouse.x * Buffer.Width;
+                        NewMouse.y = NewMouse.y * Buffer.Height;
+                        
+                        Input.MouseX = roundf(NewMouse.x);
+                        Input.MouseY = roundf(NewMouse.y);
                     }
                     
                     game_return_values GameResult = GameUpdateAndRender(&Memory, &Input, &Buffer);
@@ -465,14 +519,16 @@ int main(int argc, char **argv)
                                 Mix_Volume(1, MIX_MAX_VOLUME);
                         }
                         
-                        WriteBinaryFile("settings.bin", Memory.SettingsStorage, Memory.SettingsStorageSize);
+                        WriteBinaryFile("package0.bin", Memory.SettingsStorage, Memory.SettingsStorageSize);
                     }
                     
+                    rectangle2 rect = {};
+                    rect.Min.x = Input.MouseX - (10.0f);
+                    rect.Min.y = Input.MouseY - (10.0f);
+                    SetDim(&rect, 20.0f, 20.0f);
+                    DEBUGRenderQuadFill(&Buffer, rect, V4(0.0f, 255.0f, 0.0f, 255.0f));
                     
                     SDLUpdateWindow(Renderer);
-                    
-                    OldMouseX = Input.MouseX;
-                    OldMouseY = Input.MouseY;
                     
                     r32 CurrentTimeTick = SDL_GetTicks();
                     TimeElapsed += (CurrentTimeTick - PreviousTimeTick) / 1000.0f;

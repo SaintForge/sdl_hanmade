@@ -16,7 +16,7 @@
 // TODO(msokolov): this needs to be in a better place
 static const char* SpritePath = "..\\data\\sprites\\";
 static const char* SoundPath  = "..\\data\\sound\\";
-static const char* FontPath   = "..\\data\\Karmina-Bold.otf";
+static const char* FontPath   = "fonts\\Karmina-Bold.otf";
 
 struct sdl_offscreen_buffer
 {

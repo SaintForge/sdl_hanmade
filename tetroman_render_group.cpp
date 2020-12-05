@@ -103,6 +103,17 @@ PushFillRectOnBitmap(render_group *Group, game_texture *Texture, rectangle2 Rect
 }
 
 inline static void
+PushRectOnBitmap(render_group *Group, game_texture *Texture, rectangle2 Rectangle, v4 Color) {
+    render_entry_rectangle_outline *Piece = PushRenderElement(Group, render_entry_rectangle_outline);
+    if (Piece)
+    {
+        Piece->Target = Texture; 
+        Piece->Rectangle = Rectangle;
+        Piece->Color = Color;
+    }
+}
+
+inline static void
 PushBitmap(render_group *Group, game_texture* Texture, rectangle2 Rectangle)
 {
     render_entry_texture *Piece = PushRenderElement(Group, render_entry_texture);
@@ -115,6 +126,7 @@ PushBitmap(render_group *Group, game_texture* Texture, rectangle2 Rectangle)
         Piece->Angle          = 0;
         Piece->RelativeCenter = V2(0.0f, 0.0f);
         Piece->Flip           = SDL_FLIP_NONE;
+        Piece->IsFont         = false;
     }
 }
 
@@ -131,6 +143,7 @@ PushBitmap(render_group *Group, game_texture* Texture, rectangle2 Rectangle, rec
         Piece->Angle          = 0;
         Piece->RelativeCenter = V2(0, 0.0f);
         Piece->Flip           = SDL_FLIP_NONE;
+        Piece->IsFont         = false;
     }
 }
 
@@ -147,6 +160,7 @@ PushBitmapEx(render_group *Group, game_texture *Texture, rectangle2 Rectangle, r
         Piece->Angle          = Angle;
         Piece->RelativeCenter = RelativeCenter;
         Piece->Flip           = Flip;
+        Piece->IsFont         = false;
     }
 }
 
@@ -162,6 +176,40 @@ PushBitmapOnBitmap(render_group *Group, game_texture *Texture1, game_texture *Te
         Piece->Angle          = 0.0f;
         Piece->RelativeCenter = V2(0.0f, 0.0f);
         Piece->Flip           = SDL_FLIP_NONE;
+        Piece->IsFont         = false;
+    }
+}
+
+inline static void
+PushFontBitmapOnBitmap(render_group *Group, game_texture *Texture1, game_texture *Texture2, rectangle2 CenterRectangle) {
+    render_entry_texture *Piece = PushRenderElement(Group, render_entry_texture);
+    if(Piece)
+    {
+        Piece->Texture        = Texture1;
+        Piece->Texture2       = Texture2;
+        Piece->Rectangle      = CenterRectangle;
+        Piece->ClipRectangle  = {};
+        Piece->Angle          = 0.0f;
+        Piece->RelativeCenter = V2(0.0f, 0.0f);
+        Piece->Flip           = SDL_FLIP_NONE;
+        Piece->IsFont         = true;
+    }
+}
+
+inline static void
+PushFontBitmap(render_group *Group, game_texture* Texture, rectangle2 CenterRectangle) {
+    
+    render_entry_texture *Piece = PushRenderElement(Group, render_entry_texture);
+    if(Piece)
+    {
+        Piece->Texture        = Texture;
+        Piece->Texture2       = {};
+        Piece->Rectangle      = CenterRectangle;
+        Piece->ClipRectangle  = {};
+        Piece->Angle          = 0;
+        Piece->RelativeCenter = V2(0.0f, 0.0f);
+        Piece->Flip           = SDL_FLIP_NONE;
+        Piece->IsFont         = true;
     }
 }
 
@@ -178,11 +226,36 @@ DrawEntryTexture(game_offscreen_buffer *Buffer, render_entry_texture *Entry)
     Center.x = roundf(Entry->RelativeCenter.x);
     Center.y = roundf(Entry->RelativeCenter.y);
     
-    game_rect Rectangle;
-    Rectangle.x = roundf(Entry->Rectangle.Min.x);
-    Rectangle.y = roundf(Entry->Rectangle.Min.y);
-    Rectangle.w = roundf(Entry->Rectangle.Max.x - Entry->Rectangle.Min.x);
-    Rectangle.h = roundf(Entry->Rectangle.Max.y - Entry->Rectangle.Min.y);
+    v2 SizeRatio = V2(Buffer->WidthRatio, Buffer->HeightRatio);
+    v2 ActualScreenCenter = V2(Buffer->ScreenWidth * 0.5f, Buffer->ScreenHeight * 0.5f);
+    v2 ViewportCenter = V2(Buffer->ViewportWidth * 0.5f, Buffer->ViewportHeight * 0.5f);
+    
+    v2 NDC_Min = V2(SizeRatio * Entry->Rectangle.Min);
+    v2 NDC_Max = V2(SizeRatio * Entry->Rectangle.Max);
+    
+    rectangle2 ResultRectangle = {};
+    
+    ResultRectangle.Min = V2(NDC_Min.x * Buffer->ViewportWidth, NDC_Min.y * Buffer->ViewportHeight); 
+    ResultRectangle.Max = V2(NDC_Max.x * Buffer->ViewportWidth, NDC_Max.y * Buffer->ViewportHeight); 
+    
+    if (!Entry->Texture2) {
+        ResultRectangle.Min += (ActualScreenCenter - ViewportCenter);
+        ResultRectangle.Max += (ActualScreenCenter - ViewportCenter);
+    }
+    
+    game_rect Rectangle = {};
+    if (!Entry->IsFont) {
+        Rectangle.x = roundf(ResultRectangle.Min.x);
+        Rectangle.y = roundf(ResultRectangle.Min.y);
+        Rectangle.w = roundf(ResultRectangle.Max.x - ResultRectangle.Min.x);
+        Rectangle.h = roundf(ResultRectangle.Max.y - ResultRectangle.Min.y);
+    }
+    else {
+        Rectangle.w = roundf(Entry->Rectangle.Max.x - Entry->Rectangle.Min.x);
+        Rectangle.h = roundf(Entry->Rectangle.Max.y - Entry->Rectangle.Min.y);
+        Rectangle.x = ResultRectangle.Min.x - ((r32)Rectangle.w * 0.5f);
+        Rectangle.y = ResultRectangle.Min.y - ((r32)Rectangle.h * 0.5f);
+    }
     
     v2 ClipDim = GetDim(Entry->ClipRectangle);
     if (ClipDim.w > 0.0f || ClipDim.h > 0.0f)
@@ -259,7 +332,10 @@ RenderGroupToOutput(render_group *RenderGroup, game_offscreen_buffer *Buffer)
             {
                 render_entry_rectangle *Entry = (render_entry_rectangle*) Data;
                 
-                DEBUGRenderQuad(Buffer, Entry->Rectangle, Entry->Color);
+                if (Entry->Target)
+                    ;
+                else
+                    DEBUGRenderQuad(Buffer, Entry->Rectangle, Entry->Color);
                 
                 BaseAddress += sizeof(*Entry);
             } break;

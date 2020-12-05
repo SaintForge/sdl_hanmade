@@ -559,6 +559,53 @@ PickFigureShadowTexture(figure_form Form, figure_entity *FigureEntity)
     return(Result);
 }
 
+static game_texture*
+PickFigureOutlineTexture(figure_form Form, figure_entity *FigureEntity)
+{
+    game_texture *Result = NULL;
+    
+    switch(Form)
+    {
+        case O_figure:
+        {
+            Result = FigureEntity->O_OutlineTexture;
+        } break;
+        
+        case I_figure:
+        {
+            Result = FigureEntity->I_OutlineTexture;
+        } break;
+        
+        case L_figure:
+        {
+            Result = FigureEntity->L_OutlineTexture;
+        } break;
+        
+        case J_figure:
+        {
+            Result = FigureEntity->J_OutlineTexture;
+        } break;
+        
+        case Z_figure:
+        {
+            Result = FigureEntity->Z_OutlineTexture;
+        } break;
+        
+        case S_figure:
+        {
+            Result = FigureEntity->S_OutlineTexture;
+        } break;
+        
+        case T_figure:
+        {
+            Result = FigureEntity->T_OutlineTexture;
+        } break;
+    }
+    
+    
+    return(Result);
+}
+
 static void
 FigureUnitSetToDefaultArea(figure_unit* Unit, r32 BlockRatio)
 {
@@ -748,6 +795,43 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
         }
     }
     
+    if (!FigureEntity->IsGrabbed && !LevelEntity->LevelFinished) {
+        
+        b32 IsInShell = false;
+        for (s32 Index = Size - 1; Index >= 0; --Index) {
+            s32 ActiveIndex = FigureEntity->FigureOrder[Index];
+            
+            r32 CurrentBlockSize = FigureUnit[ActiveIndex].IsEnlarged ? GridBlockSize : InActiveBlockSize;
+            r32 HalfShellSize = CurrentBlockSize * 0.5f;
+            
+            
+            for (int BlockIndex = 0;
+                 BlockIndex < FIGURE_BLOCKS_MAXIMUM;
+                 ++BlockIndex)
+            {
+                rectangle2 BlockRectangle = {};
+                BlockRectangle.Min.x = FigureUnit[ActiveIndex].Shell[BlockIndex].x - HalfShellSize;
+                BlockRectangle.Min.y = FigureUnit[ActiveIndex].Shell[BlockIndex].y - HalfShellSize;
+                BlockRectangle.Max.x = FigureUnit[ActiveIndex].Shell[BlockIndex].x + HalfShellSize;
+                BlockRectangle.Max.y = FigureUnit[ActiveIndex].Shell[BlockIndex].y + HalfShellSize;
+                
+                if (IsInRectangle(MousePos, BlockRectangle))
+                {
+                    IsInShell = true;
+                    break;
+                }
+            }
+            
+            if (IsInShell) {
+                FigureEntity->FigureOutline = ActiveIndex;
+                break;
+            }
+        }
+        if (!IsInShell) {
+            FigureEntity->FigureOutline = -1;
+        }
+    }
+    
     if(!LevelEntity->LevelPaused)
     {
         if(Input->MouseButtons[0].EndedDown)
@@ -763,8 +847,7 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
                 LevelEntity->Options.Choice = options_choice::RESTART_OPTION;
                 LevelEntity->GearIsRotating = true;
             }
-            
-            if(!FigureEntity->IsGrabbed)
+            else if(!FigureEntity->IsGrabbed)
             {
                 for (s32 i = Size - 1; i >= 0; --i)
                 {
@@ -794,6 +877,7 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
                     if (IsInShell)
                     {
                         FigureEntity->IsGrabbed = true;
+                        FigureEntity->FigureOutline = -1;
                         
                         if(!FigureUnit[ActiveIndex].IsEnlarged)
                         {
@@ -1268,6 +1352,10 @@ FigureEntityRenderFigures(figure_entity *FigureEntity, render_group *RenderGroup
         
         PushBitmapEx(RenderGroup, ShadowTexture, ShadowRectangle, Entity->Angle, Center, Entity->Flip);
         PushBitmapEx(RenderGroup, Texture, Rectangle, Entity->Angle, Center, Entity->Flip);
+        if (FigureEntity->FigureOutline == Index) {
+            game_texture *OutlineTexture = PickFigureOutlineTexture(Entity->Form, FigureEntity);
+            PushBitmapEx(RenderGroup, OutlineTexture, Rectangle, Entity->Angle, Center, Entity->Flip);
+        }
         //RenderFigureStructure(RenderGroup, Entity);
     }
 }
@@ -1283,6 +1371,10 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
     
     if (!IsStartup) 
         InterpPoint = 1.0f - InterpPoint;
+    
+    /* Background */
+    rectangle2 BackgroundRectangle = {V2(0.0, 0.0f), V2(VIRTUAL_GAME_WIDTH, VIRTUAL_GAME_HEIGHT)};
+    PushBitmap(RenderGroup, Playground->BackgroundTexture, BackgroundRectangle);
     
     // NOTE(msokolov): UI Animation
     SDL_SetTextureAlphaMod(Playground->CornerLeftTopTexture, InterpPoint * 255.0f);
@@ -1522,7 +1614,8 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
     rectangle2 ScreenArea = {{}, {VIRTUAL_GAME_WIDTH, VIRTUAL_GAME_HEIGHT}};
     r32 AlphaChannel = Lerp1(0.0f, 255.0f, 1.0f - InterpPoint);
     
-    Clear(RenderGroup, V4(0.0f, 0.0f, 0.0f, AlphaChannel));
+    SDL_SetTextureAlphaMod(Playground->BackgroundTexture, AlphaChannel);
+    PushBitmap(RenderGroup, Playground->BackgroundTexture, ScreenArea);
     
     Playground->Animation.InterpPoint = IsStartup ? InterpPoint : 1.0f - InterpPoint;
     if ((IsStartup && InterpPoint == 1.0f) ||  (!IsStartup && InterpPoint <= 0.0f)) Result = true;
@@ -1573,7 +1666,8 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     }
     
     // TODO(msokolov): this should be a texture (or not)
-    Clear(RenderGroup, {51, 8, 23, 255});
+    //Clear(RenderGroup, {51, 8, 23, 255});
+    ClearScreen(RenderGroup, V4(51, 8, 23, 255));
     
     // NOTE(msokolov): Animation interpolation startup update
     if (!LevelEntity->Animation.Finished) {
@@ -1747,6 +1841,8 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     
     if(IsAllSticked)
     {
+        FigureEntity->FigureOutline = -1;
+        
         /* Level is completed */
         LevelEntity->LevelFinished = true;
         
@@ -1934,6 +2030,12 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     }
 #endif
     
+    /* Background */
+    rectangle2 BackgroundRectangle = {V2(0.0, 0.0f), V2(VIRTUAL_GAME_WIDTH, VIRTUAL_GAME_HEIGHT)};
+    PushBitmap(RenderGroup, LevelEntity->BackgroundTexture, BackgroundRectangle);
+    
+    
+    
     // NOTE(msokolov): GridEntity Rendering
     GridEntityRender(GridEntity, RenderGroup);
     
@@ -2008,6 +2110,10 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     
     /* Figure Rendering */
     FigureEntityRenderFigures(FigureEntity, RenderGroup);
+    
+    //if (FigureEntity->FigureOutline >= 0) {
+    //PushBitmapEx(RenderGroup, ShadowTexture, ShadowRectangle, FigureUnits[FigureEntity->FigureOutline].Angle, Center, FigureUnits[FigureEntity->FigureOutline].Flip);
+    //}
     
     /* UI Rendering */
     {
@@ -2154,6 +2260,8 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         }
     }
     
+    
+    
     return (Result);
 }
 
@@ -2265,6 +2373,8 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
     Playground->FigureEntity.CurrentType = (figure_type)CurrentType;
     Playground->FigureEntity.FigureAmount     = PlaygroundData.FigureAmount;
     Playground->FigureEntity.ReturnIndex      = -1;
+    Playground->FigureEntity.FigureActive     = -1;
+    Playground->FigureEntity.FigureOutline    = -1;
     Playground->FigureEntity.FigureVelocity   = Configuration->FigureVelocity;
     Playground->FigureEntity.RotationVelocity = Configuration->RotationVel;
     Playground->FigureEntity.FigureArea.Min.x = 1300;
@@ -2272,7 +2382,19 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
     Playground->FigureEntity.FigureArea.Max.x = Playground->FigureEntity.FigureArea.Min.x + 552;
     Playground->FigureEntity.FigureArea.Max.y = Playground->FigureEntity.FigureArea.Min.y + 930;
     
+    
     figure_unit *FigureUnits = Playground->FigureEntity.FigureUnit;
+    
+    // NOTE(msokolov): just for clearing fields that may be changed during animation and other stuff
+    for(u32 Index = 0; Index < FIGURE_AMOUNT_MAXIMUM; ++Index) {
+        Playground->FigureEntity.FigureOrder[Index] = Index;
+        
+        FigureUnits[Index].Angle      = 0.0f;
+        FigureUnits[Index].IsIdle     = true;
+        FigureUnits[Index].IsStick    = false;
+        FigureUnits[Index].IsEnlarged = false;
+    }
+    
     for (u32 FigureIndex = 0;
          FigureIndex < PlaygroundData.FigureAmount;
          ++FigureIndex)
@@ -2286,17 +2408,12 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
         FigureUnitInitFigure(&Playground->FigureEntity.FigureUnit[FigureIndex], Form);
     }
     
-    // NOTE(msokolov): just for clearing fields that may be changed during animation and other stuff
-    for(u32 i = 0; i < FIGURE_AMOUNT_MAXIMUM; ++i) 
-    {
-        Playground->FigureEntity.FigureOrder[i] = i;
-        FigureUnits[i].Angle = 0.0f;
-    }
-    
     FigureEntityAlignFigures(&Playground->FigureEntity);
     
     // For animation
     for (int i = 0; i < Playground->FigureEntity.FigureAmount; ++i) 
         Playground->AnimFigureDim[i] = FigureUnits[i].Size;
+    
+    
 }
 

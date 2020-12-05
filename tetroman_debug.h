@@ -62,35 +62,57 @@ inline static void
 DEBUGRenderQuad(game_offscreen_buffer *Buffer, rectangle2 Rectangle, v4 Color)
 {
     
-    game_rect SDLRect;
-    SDLRect.x = roundf(Rectangle.Min.x);
-    SDLRect.y = roundf(Rectangle.Min.y);
-    SDLRect.w = roundf(Rectangle.Max.x - Rectangle.Min.x);
-    SDLRect.h = roundf(Rectangle.Max.y - Rectangle.Min.y);
+    r32 WidthRatio = 0.00052083333f;
+    r32 HeightRatio = 0.00092592592;
+    v2 SizeRatio = V2(WidthRatio, HeightRatio);
+    
+    v2 NDC_Min = V2(SizeRatio * Rectangle.Min);
+    v2 NDC_Max = V2(SizeRatio * Rectangle.Max);
+    
+    rectangle2 ResultRectangle = {};
+    ResultRectangle.Min = V2(NDC_Min.x * Buffer->ScreenWidth, NDC_Min.y * Buffer->ScreenHeight);
+    ResultRectangle.Max = V2(NDC_Max.x * Buffer->ScreenWidth, NDC_Max.y * Buffer->ScreenHeight);
+    
+    game_rect SDLRectangle;
+    SDLRectangle.x = roundf(ResultRectangle.Min.x);
+    SDLRectangle.y = roundf(ResultRectangle.Min.y);
+    SDLRectangle.w = roundf(ResultRectangle.Max.x - ResultRectangle.Min.x);
+    SDLRectangle.h = roundf(ResultRectangle.Max.y - ResultRectangle.Min.y);
     
     u8 r, g, b, a;
     SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, &a);
     
     SDL_SetRenderDrawColor(Buffer->Renderer, Color.r, Color.g, Color.b, Color.a);
-    SDL_RenderDrawRect(Buffer->Renderer, &SDLRect);
+    SDL_RenderDrawRect(Buffer->Renderer, &SDLRectangle);
     SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
 }
 
 inline static void
 DEBUGRenderQuadFill(game_offscreen_buffer *Buffer, rectangle2 Rectangle, v4 Color)
 {
+    v2 SizeRatio = V2(Buffer->WidthRatio, Buffer->HeightRatio);
     
-    game_rect SDLRect;
-    SDLRect.x = roundf(Rectangle.Min.x);
-    SDLRect.y = roundf(Rectangle.Min.y);
-    SDLRect.w = roundf(Rectangle.Max.x - Rectangle.Min.x);
-    SDLRect.h = roundf(Rectangle.Max.y - Rectangle.Min.y);
+    v2 ActualScreenCenter = V2(Buffer->ScreenWidth * 0.5f, Buffer->ScreenHeight * 0.5f);
+    v2 ViewportCenter = V2(Buffer->ViewportWidth * 0.5f, Buffer->ViewportHeight * 0.5f);
+    
+    v2 NDC_Min = V2(SizeRatio * Rectangle.Min);
+    v2 NDC_Max = V2(SizeRatio * Rectangle.Max);
+    
+    rectangle2 ResultRectangle = {};
+    ResultRectangle.Min = V2(NDC_Min.x * Buffer->ViewportWidth, NDC_Min.y * Buffer->ViewportHeight) + (ActualScreenCenter - ViewportCenter);
+    ResultRectangle.Max = V2(NDC_Max.x * Buffer->ViewportWidth, NDC_Max.y * Buffer->ViewportHeight) + (ActualScreenCenter - ViewportCenter);
+    
+    game_rect SDLRectangle;
+    SDLRectangle.x = roundf(ResultRectangle.Min.x);
+    SDLRectangle.y = roundf(ResultRectangle.Min.y);
+    SDLRectangle.w = roundf(ResultRectangle.Max.x - ResultRectangle.Min.x);
+    SDLRectangle.h = roundf(ResultRectangle.Max.y - ResultRectangle.Min.y);
     
     u8 r, g, b, a;
     SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, &a);
     
     SDL_SetRenderDrawColor(Buffer->Renderer, Color.r, Color.g, Color.b, Color.a);
-    SDL_RenderFillRect(Buffer->Renderer, &SDLRect);
+    SDL_RenderFillRect(Buffer->Renderer, &SDLRectangle);
     SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);
 }
 
@@ -121,18 +143,28 @@ DEBUGRenderQuadFill(game_offscreen_buffer *Buffer, game_texture *Texture, rectan
     
     SDL_SetRenderTarget(Buffer->Renderer, Texture);
     
+    r32 WidthRatio = 0.00052083333f;
+    r32 HeightRatio = 0.00092592592;
+    v2 SizeRatio = V2(WidthRatio, HeightRatio);
     
-    game_rect SDLRect;
-    SDLRect.x = roundf(Rectangle.Min.x);
-    SDLRect.y = roundf(Rectangle.Min.y);
-    SDLRect.w = roundf(Rectangle.Max.x - Rectangle.Min.x);
-    SDLRect.h = roundf(Rectangle.Max.y - Rectangle.Min.y);
+    v2 NDC_Min = V2(SizeRatio * Rectangle.Min);
+    v2 NDC_Max = V2(SizeRatio * Rectangle.Max);
+    
+    rectangle2 ResultRectangle = {};
+    ResultRectangle.Min = V2(NDC_Min.x * Buffer->ScreenWidth, NDC_Min.y * Buffer->ScreenHeight);
+    ResultRectangle.Max = V2(NDC_Max.x * Buffer->ScreenWidth, NDC_Max.y * Buffer->ScreenHeight);
+    
+    game_rect SDLRectangle;
+    SDLRectangle.x = roundf(ResultRectangle.Min.x);
+    SDLRectangle.y = roundf(ResultRectangle.Min.y);
+    SDLRectangle.w = roundf(ResultRectangle.Max.x - ResultRectangle.Min.x);
+    SDLRectangle.h = roundf(ResultRectangle.Max.y - ResultRectangle.Min.y);
     
     u8 r, g, b, a;
     SDL_GetRenderDrawColor(Buffer->Renderer, &r, &g, &b, &a);
     
     SDL_SetRenderDrawColor(Buffer->Renderer, Color.r, Color.g, Color.b, Color.a);
-    SDL_RenderFillRect(Buffer->Renderer, &SDLRect);
+    SDL_RenderFillRect(Buffer->Renderer, &SDLRectangle);
     SDL_SetRenderTarget(Buffer->Renderer, NULL);
     
     SDL_SetRenderDrawColor(Buffer->Renderer, r, g, b, a);

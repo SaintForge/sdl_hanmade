@@ -14,8 +14,8 @@ GetTextOnTheCenterOfRectangle(rectangle2 Rectangle, game_texture *Texture)
     v2 RectangleDim = GetDim(Rectangle);
     v2 TextureDim = QueryTextureDim(Texture);
     
-    Result.Min.x = Rectangle.Min.x + (RectangleDim.w * 0.5f) - (TextureDim.w * 0.5f);
-    Result.Min.y = Rectangle.Min.y + (RectangleDim.h * 0.5f) - (TextureDim.h * 0.5f);
+    Result.Min.x = Rectangle.Min.x + (RectangleDim.w * 0.5f);
+    Result.Min.y = Rectangle.Min.y + (RectangleDim.h * 0.5f);
     SetDim(&Result, TextureDim);
     
     return (Result);
@@ -93,7 +93,10 @@ UpdateTextureForLevels(playground_menu *PlaygroundMenu, player_data *PlayerData,
     
     rectangle2 BackgroundRectangle = {};
     SetDim(&BackgroundRectangle, (ColumnAmount * 150.0f) + 30.0f + 10.0f, (RowAmount * 100.0f));
-    PushFillRectOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, BackgroundRectangle, V4(51.0f, 8.0f, 23.0f, 255.0f));
+    
+    PushBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->BackgroundTexture,
+                       BackgroundRectangle);
+    
     
     b32 NextLevelFound = false;
     rectangle2 ButtonRectangle = {};
@@ -107,7 +110,6 @@ UpdateTextureForLevels(playground_menu *PlaygroundMenu, player_data *PlayerData,
         PushBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->ColorBarTexture[Row], ColorRectangle);
         
         ButtonRectangle.Min.y = (MenuButtonSize.h * Row);
-        
         
         for (u32 Col = 0; Col < ColumnAmount; ++Col)
         {
@@ -148,12 +150,12 @@ UpdateTextureForLevels(playground_menu *PlaygroundMenu, player_data *PlayerData,
                     LevelRectangle.Min += V2(5.0f, 5.0f);
                     LevelRectangle.Max += V2(5.0f, 5.0f);
                     
-                    PushBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->LevelTimeShadowTexture[LevelIndex], LevelRectangle);
+                    PushFontBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->LevelTimeShadowTexture[LevelIndex], LevelRectangle);
                     
                     LevelRectangle.Min -= V2(5.0f, 5.0f);
                     LevelRectangle.Max -= V2(5.0f, 5.0f);
                     
-                    PushBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->LevelTimeTexture[LevelIndex], LevelRectangle);
+                    PushFontBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->LevelTimeTexture[LevelIndex], LevelRectangle);
                 }
             }
             else
@@ -181,6 +183,7 @@ HighlightButtonWithLine(render_group *RenderGroup, game_texture *LineTexture,
     
     SetDim(&Rectangle, LineDim);
     PushBitmap(RenderGroup, LineTexture, Rectangle);
+    //PushRectangle(RenderGroup, Rectangle, V4(0.0f, 255.0f, 0.0f, 255.0f));
 }
 
 
@@ -536,15 +539,13 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                 AnimationBackground.Min.x = Lerp1(PlaygroundMenu->BackgroundArea.Min.x, BackgroundRectangle.Min.x, PlaygroundMenu->InterpPoint);
                 AnimationBackground.Max.x = Lerp1(PlaygroundMenu->BackgroundArea.Max.x, BackgroundRectangle.Max.x, PlaygroundMenu->InterpPoint);
                 
-                PushRectangle(RenderGroup, AnimationBackground, V4(51.0f, 8.0f, 23.0f, 255));
-                
-                v2 TextureDim = QueryTextureDim(PlaygroundMenu->CornerTexture[0]);
+                PushBitmap(RenderGroup, PlaygroundMenu->BackgroundTexture, AnimationBackground);
                 
                 FinalBackgroundRectangle = AnimationBackground;
             }
             else {
                 PlaygroundMenu->BackgroundArea = BackgroundRectangle;
-                PushRectangle(RenderGroup, BackgroundRectangle, V4(51.0f, 8.0f, 23.0f, 255.0f));
+                PushBitmap(RenderGroup, PlaygroundMenu->BackgroundTexture, BackgroundRectangle);
             }
             
             DrawCornersOnButton(RenderGroup, PlaygroundMenu->CornerTexture, FinalBackgroundRectangle, V2(200.0f, 200.0f));
@@ -560,17 +561,16 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                 
                 rectangle2 TextRectangle = {};
                 v2 Dim = QueryTextureDim(PlaygroundMenu->MainMenuTexture[Index]);
-                TextRectangle.Min.x = ButtonRectangle.Min.x + (GetDim(ButtonRectangle).w * 0.5f) - (Dim.w * 0.5f);
-                TextRectangle.Min.y = ButtonRectangle.Min.y + (GetDim(ButtonRectangle).h * 0.5f) - (Dim.h * 0.5f);
+                TextRectangle.Min.x = ButtonRectangle.Min.x + (GetDim(ButtonRectangle).w * 0.5f);
+                TextRectangle.Min.y = ButtonRectangle.Min.y + (GetDim(ButtonRectangle).h * 0.5f);
                 SetDim(&TextRectangle, Dim);
                 
                 rectangle2 ShadowRectangle = TextRectangle;
                 ShadowRectangle.Min += 5.0f;
                 ShadowRectangle.Max += 5.0f;
                 
-                PushBitmap(RenderGroup, PlaygroundMenu->MainMenuShadowTexture[Index], ShadowRectangle);
-                PushBitmap(RenderGroup, PlaygroundMenu->MainMenuTexture[Index], TextRectangle);
-                
+                PushFontBitmap(RenderGroup, PlaygroundMenu->MainMenuShadowTexture[Index], ShadowRectangle);
+                PushFontBitmap(RenderGroup, PlaygroundMenu->MainMenuTexture[Index], TextRectangle);
                 
                 if (!PlaygroundMenu->AnimationFinished) {
                     r32 AlphaChannel = (1.0f - PlaygroundMenu->InterpPoint) * 255.0f;
@@ -616,13 +616,13 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                 AnimationBackground.Min.x = Lerp1(PlaygroundMenu->BackgroundArea.Min.x, BackgroundRectangle.Min.x, PlaygroundMenu->InterpPoint);
                 AnimationBackground.Max.x = Lerp1(PlaygroundMenu->BackgroundArea.Max.x, BackgroundRectangle.Max.x, PlaygroundMenu->InterpPoint);
                 
-                PushRectangle(RenderGroup, AnimationBackground, V4(51.0f, 8.0f, 23.0f, 255));
+                PushBitmap(RenderGroup, PlaygroundMenu->BackgroundTexture, AnimationBackground);
                 
                 FinalBackgroundRectangle = AnimationBackground;
             }
             else {
                 PlaygroundMenu->BackgroundArea = BackgroundRectangle;
-                PushRectangle(RenderGroup, BackgroundRectangle, {51, 8, 23, 255});
+                PushBitmap(RenderGroup, PlaygroundMenu->BackgroundTexture, BackgroundRectangle);
             }
             
             DrawCornersOnButton(RenderGroup, PlaygroundMenu->CornerTexture, FinalBackgroundRectangle, V2(200.0f, 200.0f));
@@ -668,8 +668,8 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                     TextShadowRectangle.Min += 5.0f;
                     TextShadowRectangle.Max += 5.0f;
                     
-                    PushBitmap(RenderGroup, PlaygroundMenu->SoundNameShadowTexture, TextShadowRectangle);
-                    PushBitmap(RenderGroup, PlaygroundMenu->SoundNameTexture, TextRectangle);
+                    PushFontBitmap(RenderGroup, PlaygroundMenu->SoundNameShadowTexture, TextShadowRectangle);
+                    PushFontBitmap(RenderGroup, PlaygroundMenu->SoundNameTexture, TextRectangle);
                     
                     // NOTE(msokolov): On/Off for sound
                     
@@ -678,8 +678,8 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                     rectangle2 OnOffShadowRectangle = OnOffRectangle;
                     OnOffShadowRectangle.Min += 5.0f;
                     OnOffShadowRectangle.Max += 5.0f;
-                    PushBitmap(RenderGroup, PlaygroundMenu->SoundOnShadowTexture, OnOffShadowRectangle);
-                    PushBitmap(RenderGroup, PlaygroundMenu->SoundOnTexture, OnOffRectangle);
+                    PushFontBitmap(RenderGroup, PlaygroundMenu->SoundOnShadowTexture, OnOffShadowRectangle);
+                    PushFontBitmap(RenderGroup, PlaygroundMenu->SoundOnTexture, OnOffRectangle);
                     
                     // NOTE(msokolov): Off value
                     OnOffRectangle = GetTextOnTheCenterOfRectangle(ValueTwoRectangle, PlaygroundMenu->SoundOffTexture);
@@ -687,8 +687,8 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                     OnOffShadowRectangle.Min += 5.0f;
                     OnOffShadowRectangle.Max += 5.0f;
                     
-                    PushBitmap(RenderGroup, PlaygroundMenu->SoundOffShadowTexture, OnOffShadowRectangle);
-                    PushBitmap(RenderGroup, PlaygroundMenu->SoundOffTexture, OnOffRectangle);
+                    PushFontBitmap(RenderGroup, PlaygroundMenu->SoundOffShadowTexture, OnOffShadowRectangle);
+                    PushFontBitmap(RenderGroup, PlaygroundMenu->SoundOffTexture, OnOffRectangle);
                     
                     v2 LineDim = {130.0f, 21.45f};
                     HighlightButtonWithLine(RenderGroup, PlaygroundMenu->HorizontalLineTexture, 
@@ -703,8 +703,8 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                     TextShadowRectangle.Min += 5.0f;
                     TextShadowRectangle.Max += 5.0f;
                     
-                    PushBitmap(RenderGroup, PlaygroundMenu->MusicNameShadowTexture, TextShadowRectangle);
-                    PushBitmap(RenderGroup, PlaygroundMenu->MusicNameTexture, TextRectangle);
+                    PushFontBitmap(RenderGroup, PlaygroundMenu->MusicNameShadowTexture, TextShadowRectangle);
+                    PushFontBitmap(RenderGroup, PlaygroundMenu->MusicNameTexture, TextRectangle);
                     
                     // NOTE(msokolov): On/Off for sound
                     
@@ -713,8 +713,8 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                     rectangle2 OnOffShadowRectangle = OnOffRectangle;
                     OnOffShadowRectangle.Min += 5.0f;
                     OnOffShadowRectangle.Max += 5.0f;
-                    PushBitmap(RenderGroup, PlaygroundMenu->SoundOnShadowTexture, OnOffShadowRectangle);
-                    PushBitmap(RenderGroup, PlaygroundMenu->SoundOnTexture, OnOffRectangle);
+                    PushFontBitmap(RenderGroup, PlaygroundMenu->SoundOnShadowTexture, OnOffShadowRectangle);
+                    PushFontBitmap(RenderGroup, PlaygroundMenu->SoundOnTexture, OnOffRectangle);
                     
                     
                     // NOTE(msokolov): Off value
@@ -723,8 +723,8 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                     OnOffShadowRectangle.Min += 5.0f;
                     OnOffShadowRectangle.Max += 5.0f;
                     
-                    PushBitmap(RenderGroup, PlaygroundMenu->SoundOffShadowTexture, OnOffShadowRectangle);
-                    PushBitmap(RenderGroup, PlaygroundMenu->SoundOffTexture, OnOffRectangle);
+                    PushFontBitmap(RenderGroup, PlaygroundMenu->SoundOffShadowTexture, OnOffShadowRectangle);
+                    PushFontBitmap(RenderGroup, PlaygroundMenu->SoundOffTexture, OnOffRectangle);
                     
                     v2 LineDim = {130.0f, 21.45f};
                     HighlightButtonWithLine(RenderGroup, PlaygroundMenu->HorizontalLineTexture, 
@@ -755,8 +755,8 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
             TextShadowRectangle.Min += 5.0f;
             TextShadowRectangle.Max += 5.0f;
             
-            PushBitmap(RenderGroup, PlaygroundMenu->BackShadowTexture, TextShadowRectangle);
-            PushBitmap(RenderGroup, PlaygroundMenu->BackTexture, TextRectangle);
+            PushFontBitmap(RenderGroup, PlaygroundMenu->BackShadowTexture, TextShadowRectangle);
+            PushFontBitmap(RenderGroup, PlaygroundMenu->BackTexture, TextRectangle);
             
             if (!PlaygroundMenu->AnimationFinished) {
                 r32 AlphaChannel = (1.0f - PlaygroundMenu->InterpPoint) * 255.0f;
@@ -784,15 +784,15 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                 AnimationBackground.Min.x = Lerp1(PlaygroundMenu->BackgroundArea.Min.x, BackgroundRectangle.Min.x, PlaygroundMenu->InterpPoint);
                 AnimationBackground.Max.x = Lerp1(PlaygroundMenu->BackgroundArea.Max.x, BackgroundRectangle.Max.x, PlaygroundMenu->InterpPoint);
                 
-                PushRectangle(RenderGroup, AnimationBackground, V4(51.0f, 8.0f, 23.0f, 255));
-                FinalBackgroundRectangle = AnimationBackground;
+                PushBitmap(RenderGroup, PlaygroundMenu->BackgroundTexture, AnimationBackground);
                 
+                FinalBackgroundRectangle = AnimationBackground;
             }
             else {
                 if (!Result.SwitchToPlayground)
                     PlaygroundMenu->BackgroundArea = BackgroundRectangle;
                 
-                PushRectangle(RenderGroup, BackgroundRectangle, {51, 8, 23, 255});
+                PushBitmap(RenderGroup, PlaygroundMenu->BackgroundTexture, BackgroundRectangle);
             }
             
             DrawCornersOnButton(RenderGroup, PlaygroundMenu->CornerTexture, FinalBackgroundRectangle, V2(200.0f, 200.0f));
@@ -812,8 +812,8 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                 TextShadowRectangle.Min += 5.0f;
                 TextShadowRectangle.Max += 5.0f;
                 
-                PushBitmap(RenderGroup, PlaygroundMenu->DifficultyShadowTexture[Index], TextShadowRectangle);
-                PushBitmap(RenderGroup, PlaygroundMenu->DifficultyTexture[Index], TextRectangle);
+                PushFontBitmap(RenderGroup, PlaygroundMenu->DifficultyShadowTexture[Index], TextShadowRectangle);
+                PushFontBitmap(RenderGroup, PlaygroundMenu->DifficultyTexture[Index], TextRectangle);
                 
                 if (Index == (s32)PlaygroundMenu->DiffMode)
                 {
@@ -923,8 +923,8 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
             TextShadowRectangle.Min += 5.0f;
             TextShadowRectangle.Max += 5.0f;
             
-            PushBitmap(RenderGroup, PlaygroundMenu->BackShadowTexture, TextShadowRectangle);
-            PushBitmap(RenderGroup, PlaygroundMenu->BackTexture, TextRectangle);
+            PushFontBitmap(RenderGroup, PlaygroundMenu->BackShadowTexture, TextShadowRectangle);
+            PushFontBitmap(RenderGroup, PlaygroundMenu->BackTexture, TextRectangle);
             
             if (!PlaygroundMenu->AnimationFinished) {
                 

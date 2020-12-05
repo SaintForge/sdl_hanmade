@@ -73,6 +73,17 @@ V2(r32 x, r32 y)
     return(Result);
 }
 
+inline v2
+V2(v2 Vec)
+{
+    v2 Result;
+    
+    Result.x = Vec.x;
+    Result.y = Vec.y;
+    
+    return(Result);
+}
+
 
 inline v4
 V4(r32 x, r32 y, r32 z, r32 w)
@@ -113,6 +124,15 @@ operator*=(v2 &B, r32 A)
     
     return(B);
 }
+
+inline v2
+operator*(v2 A, v2 B)
+{
+    v2 Result = V2(A.x * B.x, A.y * B.y);
+    
+    return(Result);
+}
+
 
 inline v2
 operator/(v2 A, r32 B)

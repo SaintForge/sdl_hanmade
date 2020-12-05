@@ -87,6 +87,7 @@ struct playground_menu
     game_texture *MusicNameShadowTexture;
     
     /* Playground Menu*/
+    game_texture *BackgroundTexture;
     game_texture *LevelsCanvasTexture;
     game_texture *DifficultyTexture[3];
     game_texture *DifficultyShadowTexture[3];

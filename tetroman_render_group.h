@@ -42,6 +42,7 @@ struct render_entry_texture
     rectangle2 Rectangle;
     rectangle2 ClipRectangle;
     
+    b32 IsFont;
     r32 Angle;
     v2 RelativeCenter;
     

@@ -14,6 +14,24 @@
 #include "tetroman_menu.cpp"
 #include "tetroman_editor.cpp"
 
+game_texture *CreateTexture(game_offscreen_buffer *Buffer, v4 Color) {
+    game_texture *Result = {};
+    
+    Result = SDL_CreateTexture(Buffer->Renderer, SDL_PIXELFORMAT_RGBA32,
+                               SDL_TEXTUREACCESS_TARGET, VIRTUAL_GAME_WIDTH, VIRTUAL_GAME_HEIGHT);
+    Assert(Result);
+    
+    SDL_SetRenderTarget(Buffer->Renderer, Result);
+    SDL_SetRenderDrawColor(Buffer->Renderer, Color.r, Color.g, Color.b, Color.a);
+    
+    game_rect Rectangle = {0, 0, VIRTUAL_GAME_WIDTH, VIRTUAL_GAME_HEIGHT};
+    
+    SDL_RenderFillRect(Buffer->Renderer, &Rectangle);
+    SDL_SetRenderTarget(Buffer->Renderer, NULL);
+    
+    return (Result);
+}
+
 static game_return_values
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 {
@@ -21,6 +39,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 	
     Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
     game_state *GameState = (game_state *) Memory->PermanentStorage;
+    
     
     if(!Memory->IsInitialized)
     {
@@ -34,15 +53,30 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         /* NOTE(msokolov): game_memory initialization starts here */
         /* NOTE(msokolov): game_state initialization starts here */
         InitializeMemoryGroup(&GameState->MemoryGroup, Memory->PermanentStorageSize - sizeof(game_state), (u8*)Memory->PermanentStorage + sizeof(game_state));
-		
-        GameState->Font = TTF_OpenFont(FontPath, 50);
-        Assert(GameState->Font);
         
-        GameState->TimerFont = TTF_OpenFont(FontPath, 80);
-        Assert(GameState->TimerFont);
-		
-        GameState->MenuTimerFont = TTF_OpenFont(FontPath, 40);
-        Assert(GameState->MenuTimerFont);
+        r32 WidthRatio = 0.00052083333f;
+        r32 HeightRatio = 0.00092592592;
+		{
+            r32 StandardSize = 50.0f;
+            r32 PixelHeight = roundf(StandardSize * HeightRatio * Buffer->ScreenHeight);
+            GameState->Font = TTF_OpenFont(FontPath, PixelHeight);
+            Assert(GameState->Font);
+        }
+        
+        {
+            r32 StandardSize = 80.0f;
+            r32 PixelHeight = roundf(StandardSize * HeightRatio * Buffer->ScreenHeight);
+            GameState->TimerFont = TTF_OpenFont(FontPath, PixelHeight);
+            Assert(GameState->TimerFont);
+        }
+        
+		{
+            r32 StandardSize = 40.0f;
+            r32 PixelHeight = roundf(StandardSize * HeightRatio * Buffer->ScreenHeight);
+            GameState->MenuTimerFont = TTF_OpenFont(FontPath, PixelHeight);
+            Assert(GameState->MenuTimerFont);
+        }
+        
 		
         GameState->PlaygroundIndex = 0;
         GameState->CurrentMode     = game_mode::MENU;
@@ -61,6 +95,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Playground->LevelStarted          = true;
         Playground->LevelFinished         = false;
         Playground->LevelPaused           = false;
+        
+        Playground->BackgroundTexture         = GetTexture(Memory, "background_.png", Buffer->Renderer);
+        Playground->BackgroundDimTexture      = GetTexture(Memory, "background_dimmed.png", Buffer->Renderer);
         Playground->CornerLeftTopTexture      = GetTexture(Memory, "corner_left_top.png", Buffer->Renderer);
         Playground->CornerLeftBottomTexture   = GetTexture(Memory, "corner_left_bottom.png", Buffer->Renderer);
         Playground->CornerRightTopTexture     = GetTexture(Memory, "corner_right_top.png", Buffer->Renderer);
@@ -74,6 +111,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         SDL_SetTextureBlendMode(Playground->CornerRightTopTexture, SDL_BLENDMODE_BLEND);
         SDL_SetTextureBlendMode(Playground->CornerRightBottomTexture, SDL_BLENDMODE_BLEND);
         SDL_SetTextureBlendMode(Playground->VerticalBorderTexture, SDL_BLENDMODE_BLEND);
+        SDL_SetTextureBlendMode(Playground->BackgroundDimTexture, SDL_BLENDMODE_BLEND);
+        SDL_SetTextureBlendMode(Playground->BackgroundTexture, SDL_BLENDMODE_BLEND);
         
         Playground->PickSound   = GetSound(Memory, "figure_pick.wav");
         Playground->StickSound  = GetSound(Memory, "figure_stick.wav");
@@ -113,6 +152,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->FigureAmount   = 0;
         FigureEntity->ReturnIndex    = -1;
         FigureEntity->FigureActive   = -1;
+        FigureEntity->FigureOutline  = -1;
         FigureEntity->IsGrabbed      = false;
         FigureEntity->IsRotating     = false;
         FigureEntity->IsReturning    = false;
@@ -143,23 +183,27 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->O_OrangeTexture  = GetTexture(Memory, "o_orange.png", Buffer->Renderer);
         FigureEntity->O_ClassicTexture = GetTexture(Memory, "o_red.png", Buffer->Renderer);
         FigureEntity->O_ShadowTexture  = GetTexture(Memory, "o_shadow.png", Buffer->Renderer);
+        FigureEntity->O_OutlineTexture  = GetTexture(Memory, "o_outline.png", Buffer->Renderer);
         
         FigureEntity->I_GreenTexture   = GetTexture(Memory, "i_green.png", Buffer->Renderer);
         FigureEntity->I_BlueTexture    = GetTexture(Memory, "i_blue.png", Buffer->Renderer);
         FigureEntity->I_OrangeTexture  = GetTexture(Memory, "i_orange.png", Buffer->Renderer);
         FigureEntity->I_ClassicTexture = GetTexture(Memory, "i_red.png", Buffer->Renderer);
         FigureEntity->I_ShadowTexture  = GetTexture(Memory, "i_shadow.png", Buffer->Renderer);
+        FigureEntity->I_OutlineTexture  = GetTexture(Memory, "i_outline.png", Buffer->Renderer);
         
         FigureEntity->L_GreenTexture   = GetTexture(Memory, "l_green.png", Buffer->Renderer);
         FigureEntity->L_BlueTexture    = GetTexture(Memory, "l_blue.png", Buffer->Renderer);
         FigureEntity->L_OrangeTexture  = GetTexture(Memory, "l_orange.png", Buffer->Renderer);
         FigureEntity->L_ClassicTexture = GetTexture(Memory, "l_red.png", Buffer->Renderer);
         FigureEntity->L_ShadowTexture  = GetTexture(Memory, "l_shadow.png", Buffer->Renderer);
+        FigureEntity->L_OutlineTexture  = GetTexture(Memory, "l_outline.png", Buffer->Renderer);
         
         FigureEntity->J_GreenTexture   = GetTexture(Memory, "j_green.png", Buffer->Renderer);
         FigureEntity->J_BlueTexture    = GetTexture(Memory, "j_blue.png", Buffer->Renderer);
         FigureEntity->J_OrangeTexture  = GetTexture(Memory, "j_orange.png", Buffer->Renderer);
         FigureEntity->J_ClassicTexture = GetTexture(Memory, "j_red.png", Buffer->Renderer);
+        FigureEntity->J_OutlineTexture = GetTexture(Memory, "j_outline.png", Buffer->Renderer);
         FigureEntity->J_ShadowTexture  = GetTexture(Memory, "j_shadow.png", Buffer->Renderer);
         
         FigureEntity->Z_GreenTexture   = GetTexture(Memory, "z_green.png", Buffer->Renderer);
@@ -167,18 +211,21 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         FigureEntity->Z_OrangeTexture  = GetTexture(Memory, "z_orange.png", Buffer->Renderer);
         FigureEntity->Z_ClassicTexture = GetTexture(Memory, "z_red.png", Buffer->Renderer);
         FigureEntity->Z_ShadowTexture = GetTexture(Memory, "z_shadow.png", Buffer->Renderer);
+        FigureEntity->Z_OutlineTexture = GetTexture(Memory, "z_outline.png", Buffer->Renderer);
         
         FigureEntity->S_GreenTexture   = GetTexture(Memory, "s_green.png", Buffer->Renderer);
         FigureEntity->S_BlueTexture    = GetTexture(Memory, "s_blue.png", Buffer->Renderer);
         FigureEntity->S_OrangeTexture  = GetTexture(Memory, "s_orange.png", Buffer->Renderer);
         FigureEntity->S_ClassicTexture = GetTexture(Memory, "s_red.png", Buffer->Renderer);
         FigureEntity->S_ShadowTexture  = GetTexture(Memory, "s_shadow.png", Buffer->Renderer);
+        FigureEntity->S_OutlineTexture  = GetTexture(Memory, "s_outline.png", Buffer->Renderer);
         
         FigureEntity->T_GreenTexture   = GetTexture(Memory, "t_green.png", Buffer->Renderer);
         FigureEntity->T_BlueTexture    = GetTexture(Memory, "t_blue.png", Buffer->Renderer);
         FigureEntity->T_OrangeTexture  = GetTexture(Memory, "t_orange.png", Buffer->Renderer);
         FigureEntity->T_ClassicTexture = GetTexture(Memory, "t_red.png", Buffer->Renderer);
         FigureEntity->T_ShadowTexture  = GetTexture(Memory, "t_shadow.png", Buffer->Renderer);
+        FigureEntity->T_OutlineTexture  = GetTexture(Memory, "t_outline.png", Buffer->Renderer);
         
         /* NOTE(msokolov): grid_entity initialization starts here */
         grid_entity *GridEntity = &Playground->GridEntity;
@@ -269,12 +316,17 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         PlaygroundMenu->BackgroundArea = {V2((r32)VIRTUAL_GAME_WIDTH * 0.5f, 0.0f), V2((r32) VIRTUAL_GAME_WIDTH * 0.5f, VIRTUAL_GAME_HEIGHT)};
         
+        PlaygroundMenu->BackgroundTexture = GetTexture(Memory, "background_.png", Buffer->Renderer);
         PlaygroundMenu->LevelButtonTexture = GetTexture(Memory, "grid_cell.png", Buffer->Renderer);
         Assert(PlaygroundMenu->LevelButtonTexture);
         
         v2 Canvas = V2((8 * 150.0f) + 30.0f + 10.0f, 4 * 100.0f);
+        v2 SizeRatio = V2(WidthRatio, HeightRatio);
+        v2 NDC = V2(SizeRatio * Canvas);
+        v2 RealSizeCanvas = V2(NDC.x * Buffer->ViewportWidth, NDC.y * Buffer->ViewportHeight);
+        
         PlaygroundMenu->LevelsCanvasTexture = SDL_CreateTexture(Buffer->Renderer, SDL_PIXELFORMAT_RGBA8888,
-                                                                SDL_TEXTUREACCESS_TARGET, Canvas.w, Canvas.h);
+                                                                SDL_TEXTUREACCESS_TARGET, RealSizeCanvas.w, RealSizeCanvas.h);
         PlaygroundMenu->DifficultyTexture[0] = MakeTextureFromString(Buffer, GameState->TimerFont, "I", V4(255.0f, 255.0f, 255.0f, 255.0f));
         PlaygroundMenu->DifficultyShadowTexture[0] = MakeTextureFromString(Buffer, GameState->TimerFont, "I", V4(0, 0, 0, 128));
         
@@ -286,8 +338,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         for(u32 Index = 0;
             Index < PLAYGROUND_MAXIMUM;
-            ++Index)
-        {
+            ++Index) {
+            
             char TimeString[64] = {};
             GetTimeString(TimeString, PlayerData->PlaygroundTime[Index]);
             
@@ -326,6 +378,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundMenu->ColorBarTexture[2] = GetTexture(Memory, "orange_bar.png", Buffer->Renderer);
         PlaygroundMenu->ColorBarTexture[3] = GetTexture(Memory, "red_bar.png", Buffer->Renderer);
         
+        //
+        // This stuff needs to go away
+        //
+        
         PlaygroundMenu->ResolutionNameTexture = MakeTextureFromString(Buffer, GameState->Font, "Resolution: ", V4(255, 255, 255, 128));
         PlaygroundMenu->ResolutionNameShadowTexture = MakeTextureFromString(Buffer, GameState->Font, "Resolution: ", V4(0, 0, 0, 255));
         
@@ -346,6 +402,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         PlaygroundMenu->FullScreenTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "On", V4(255, 255, 255, 255));
         PlaygroundMenu->FullScreenShadowTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "On", V4(0, 0, 0, 128));
+        
+        // 
+        //
+        //
         
         PlaygroundMenu->SoundNameTexture = MakeTextureFromString(Buffer, GameState->Font, "Sound: ", V4(255, 255, 255, 255));
         PlaygroundMenu->SoundNameShadowTexture = MakeTextureFromString(Buffer, GameState->Font, "Sound: ", V4(0, 0, 0, 255));
@@ -556,7 +616,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 if (!Playground->LevelFinished)
                     Playground->TimeElapsed += Input->dtForFrame;
                 
-                // TODO(msokolov): Move timer to playground code!!!
                 if (Playground->ShowTimer)
                 {
                     if (!Playground->LevelFinished) {
@@ -598,6 +657,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             {
                 if (GameState->PlaygroundIndex < PLAYGROUND_MAXIMUM)
                 {
+                    Result.SettingsChanged = true;
+                    
                     /* Check if this is a record */
                     u32 PlaygroundIndex = GameState->PlaygroundIndex;
                     if (Playground->TimeElapsed < PlayerData->PlaygroundTime[PlaygroundIndex]

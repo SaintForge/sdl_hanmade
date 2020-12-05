@@ -29,7 +29,7 @@ enum figure_form
     T_figure
 };
 
-enum class figure_type
+enum struct figure_type
 {
     Blue, 
     Green, 
@@ -63,6 +63,7 @@ struct figure_entity
     
     s32 ReturnIndex;
     s32 FigureActive;
+    s32 FigureOutline;
     
     u32 FigureAmount;
     u32 FigureOrder[FIGURE_AMOUNT_MAXIMUM];
@@ -91,42 +92,49 @@ struct figure_entity
     game_texture *O_OrangeTexture;
     game_texture *O_ClassicTexture;
     game_texture *O_ShadowTexture;
+    game_texture *O_OutlineTexture;
     
     game_texture *I_GreenTexture;
     game_texture *I_BlueTexture;
     game_texture *I_OrangeTexture;
     game_texture *I_ClassicTexture;
     game_texture *I_ShadowTexture;
+    game_texture *I_OutlineTexture;
     
     game_texture *L_GreenTexture;
     game_texture *L_BlueTexture;
     game_texture *L_OrangeTexture;
     game_texture *L_ClassicTexture;
     game_texture *L_ShadowTexture;
+    game_texture *L_OutlineTexture;
     
     game_texture *J_GreenTexture;
     game_texture *J_BlueTexture;
     game_texture *J_OrangeTexture;
     game_texture *J_ClassicTexture;
     game_texture *J_ShadowTexture;
+    game_texture *J_OutlineTexture;
     
     game_texture *Z_GreenTexture;
     game_texture *Z_BlueTexture;
     game_texture *Z_OrangeTexture;
     game_texture *Z_ClassicTexture;
     game_texture *Z_ShadowTexture;
+    game_texture *Z_OutlineTexture;
     
     game_texture *S_GreenTexture;
     game_texture *S_BlueTexture;
     game_texture *S_OrangeTexture;
     game_texture *S_ClassicTexture;
     game_texture *S_ShadowTexture;
+    game_texture *S_OutlineTexture;
     
     game_texture *T_GreenTexture;
     game_texture *T_BlueTexture;
     game_texture *T_OrangeTexture;
     game_texture *T_ClassicTexture;
     game_texture *T_ShadowTexture;
+    game_texture *T_OutlineTexture;
 };
 
 struct sticked_unit
@@ -295,6 +303,8 @@ struct playground
     v2 AnimFigureDim[FIGURE_AMOUNT_MAXIMUM];
     
     /* Texture Assets */
+    game_texture *BackgroundTexture;
+    game_texture *BackgroundDimTexture;
     game_texture *CornerLeftTopTexture;
     game_texture *CornerLeftBottomTexture;
     game_texture *CornerRightTopTexture;

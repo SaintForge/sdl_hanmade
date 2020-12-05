@@ -14,7 +14,24 @@ void LogErrorLine(const char* Message, int Line)
 #define Gigabytes(Value) (Megabytes(Value)*1024LL)
 #define Terabytes(Value) (Gigabytes(Value)*1024LL)
 
-
+#if 0
+inline static v2
+ScaleByLogicalResolution(v2 Position) {
+    v2 Result = {};
+    
+    r32 WidthRatio = 0.00052083333f;
+    r32 HeightRatio = 0.00092592592;
+    v2 SizeRatio = V2(WidthRatio, HeightRatio);
+    
+    v2 NDC = V2(SizeRatio * Position);
+    
+    ResultRectangle.Min = V2(NDC_Min.x * Buffer->ScreenWidth, NDC_Min.y * Buffer->ScreenHeight);
+    ResultRectangle.Max = V2(NDC_Max.x * Buffer->ScreenWidth, NDC_Max.y * Buffer->ScreenHeight);
+    //Result = NDC * 
+    
+    return (Result);
+}
+#endif
 
 inline static b32
 IsInRectangle(v2 Position, rectangle2 Rectangle)
@@ -64,7 +81,7 @@ MakeTextureFromString(game_offscreen_buffer *Buffer, game_font *Font,
     SDLColor.g = Color.g;
     SDLColor.b = Color.b;
     
-    game_surface *Surface = TTF_RenderUTF8_Blended(Font, Text, SDLColor);
+    game_surface *Surface = TTF_RenderText_Blended(Font, Text, SDLColor);
     Assert(Surface);
     
     Result = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);

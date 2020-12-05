@@ -81,9 +81,15 @@ struct game_offscreen_buffer
 {
     s32 ScreenWidth;
     s32 ScreenHeight;
-    
     s32 Width;
     s32 Height;
+    
+    s32 ViewportWidth;
+    s32 ViewportHeight;
+    
+    const r32 WidthRatio  = 0.00052083333f;
+    const r32 HeightRatio = 0.00092592592;
+    const r32 AspectRatio = 1.7777f;
     
     SDL_Renderer *Renderer;
 };
