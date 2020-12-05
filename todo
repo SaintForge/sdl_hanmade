@@ -9,11 +9,15 @@ New TODO:
 	2. Shrink level amount to some decent number
 	3. Animation everywhere
 	4. Static linking with SDL
-	5. Fix the editor bug and move the windows to some appropriate positions (Done. )
+	5. Fix the editor bug and move the windows to some appropriate positions (Done.)
 	6. Move timer and indicator to the playground code (Done.)
-	7. Highlight or mark next available level in level menu. (Done. )
-	8. Write code that checks if certain "color" series is completed and when it is then unlock first level of the same "color" level but in the next difficulty layer.
+	7. Highlight or mark next available level in level menu. (Done.)
+	8. Write code that checks if certain "color" series is completed and when it is then unlock first level of the same "color" level but in the next difficulty layer. (Done.)
 	9. Here's the idea for the menu background. Why don't we try to move around some generated background.
+	10. Grid Animation idea: what if we animate grid with alpha blending but in the same way that we render it.
+	11. Maybe hightlight the figure wheneves the mouse is around it. (Done. )
+	12. Make separate texture for a background. (Done. )
+	13. Finish resolution independent rendering.
 
 BUGS:
 	1. When you make less figures in the editor and finish the level, the playground does not switch to the next level (Fixed.)
