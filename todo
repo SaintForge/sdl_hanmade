@@ -18,6 +18,15 @@ New TODO:
 	11. Maybe hightlight the figure wheneves the mouse is around it. (Done. )
 	12. Make separate texture for a background. (Done. )
 	13. Finish resolution independent rendering.
+	14. Something feels off with the font rendering in playground options (Done. )
+	15. There is something wrong with relative center for the gear button. It doesn't work when I choose different resolution. (Done. )
+	16. There is something wrong with mouse coordinates on low resolutions. (Done. )
+	17. Maybe we don't need cliping in the playground as we want to use all the space for the sake of game design. (Done. )
+	18. Reopen fonts once window resolution has changed and also reupdate all font textures.
+	19. Separate border sprites from actual borders and their corresponding shadows.
+	20. Figure out how to solve the problem with level selection menu. Currently it has two problems:
+		1. The texture gets blacked out completely whenever you alt+tab in fullscreen mode;
+		2. Scaling doesn't work whenever we change window resolution, so we have to recreate this texture every time.
 
 BUGS:
 	1. When you make less figures in the editor and finish the level, the playground does not switch to the next level (Fixed.)
