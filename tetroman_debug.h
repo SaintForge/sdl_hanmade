@@ -66,12 +66,15 @@ DEBUGRenderQuad(game_offscreen_buffer *Buffer, rectangle2 Rectangle, v4 Color)
     r32 HeightRatio = 0.00092592592;
     v2 SizeRatio = V2(WidthRatio, HeightRatio);
     
+    v2 ActualScreenCenter = V2(Buffer->ScreenWidth * 0.5f, Buffer->ScreenHeight * 0.5f);
+    v2 ViewportCenter = V2(Buffer->ViewportWidth * 0.5f, Buffer->ViewportHeight * 0.5f);
+    
     v2 NDC_Min = V2(SizeRatio * Rectangle.Min);
     v2 NDC_Max = V2(SizeRatio * Rectangle.Max);
     
     rectangle2 ResultRectangle = {};
-    ResultRectangle.Min = V2(NDC_Min.x * Buffer->ScreenWidth, NDC_Min.y * Buffer->ScreenHeight);
-    ResultRectangle.Max = V2(NDC_Max.x * Buffer->ScreenWidth, NDC_Max.y * Buffer->ScreenHeight);
+    ResultRectangle.Min = V2(NDC_Min.x * Buffer->ViewportWidth, NDC_Min.y * Buffer->ViewportHeight) + (ActualScreenCenter - ViewportCenter);
+    ResultRectangle.Max = V2(NDC_Max.x * Buffer->ViewportWidth, NDC_Max.y * Buffer->ViewportHeight) + (ActualScreenCenter - ViewportCenter);
     
     game_rect SDLRectangle;
     SDLRectangle.x = roundf(ResultRectangle.Min.x);

@@ -14,24 +14,18 @@ void LogErrorLine(const char* Message, int Line)
 #define Gigabytes(Value) (Megabytes(Value)*1024LL)
 #define Terabytes(Value) (Gigabytes(Value)*1024LL)
 
-#if 0
 inline static v2
-ScaleByLogicalResolution(v2 Position) {
+ScaleByLogicalResolution(game_offscreen_buffer *Buffer, v2 Point) {
     v2 Result = {};
     
-    r32 WidthRatio = 0.00052083333f;
-    r32 HeightRatio = 0.00092592592;
-    v2 SizeRatio = V2(WidthRatio, HeightRatio);
+    v2 SizeRatio = V2(Buffer->WidthRatio, Buffer->HeightRatio);
+    v2 NDC = V2(SizeRatio * Point);
     
-    v2 NDC = V2(SizeRatio * Position);
-    
-    ResultRectangle.Min = V2(NDC_Min.x * Buffer->ScreenWidth, NDC_Min.y * Buffer->ScreenHeight);
-    ResultRectangle.Max = V2(NDC_Max.x * Buffer->ScreenWidth, NDC_Max.y * Buffer->ScreenHeight);
-    //Result = NDC * 
+    Result.x = NDC.x * Buffer->ViewportWidth;
+    Result.y = NDC.y * Buffer->ViewportHeight;
     
     return (Result);
 }
-#endif
 
 inline static b32
 IsInRectangle(v2 Position, rectangle2 Rectangle)

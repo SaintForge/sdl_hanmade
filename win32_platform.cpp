@@ -277,7 +277,7 @@ SetWindowResolution(SDL_Window *Window, game_resolution Resolution)
         case QFULLHD:
         {
             Result.Width = 2560;
-            Result.Height = 1080;
+            Result.Height = 1440;
         } break;
     }
     
@@ -354,20 +354,34 @@ int main(int argc, char **argv)
                                           SDL_WINDOWPOS_CENTERED,
                                           SDL_WINDOWPOS_CENTERED,
                                           Display.w, Display.h,
-                                          SDL_WINDOW_FULLSCREEN);
-    //SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIDDEN);
+                                          //SDL_WINDOW_FULLSCREEN);
+                                          SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIDDEN);
     
     if(Window)
     {
         //SDL_HideWindow(Window);
         
-        SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
-        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+        int driver_index = 0;
+        {
+            //static const char* want_renderer = "software";
+            //static const char* want_renderer = "opengl";
+            static const char* want_renderer = "direct3d";
+            
+            int numdrivers = SDL_GetNumRenderDrivers();
+            SDL_RendererInfo info;
+            for(driver_index=0;driver_index<numdrivers;driver_index++) {
+                SDL_GetRenderDriverInfo(driver_index,&info);
+                if(strcmp(info.name, want_renderer) == 0) { break; };
+            }
+        }
         
-        SDL_Renderer* Renderer = SDL_CreateRenderer(Window, -1,
+        printf("scale_quality: %d\n", SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1"));
+        printf("vsync: %d\n", SDL_SetHint(SDL_HINT_RENDER_VSYNC, "2"));
+        SDL_Renderer* Renderer = SDL_CreateRenderer(Window, driver_index, 
                                                     SDL_RENDERER_TARGETTEXTURE|SDL_RENDERER_ACCELERATED);
         
         SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
+        //SDL_RenderSetLogicalSize(Renderer, 1920, 1080);
         
         if(Renderer)
         {
@@ -375,9 +389,9 @@ int main(int argc, char **argv)
             
             window_dimension Dimension = {Display.w, Display.h};
             
-            //SetWindowFullscreen(Window, true);
+            //SetWindowFullscreen(Window, false);
             //Dimension = SDLGetWindowDimension(Window);
-            //Dimension = SetWindowResolution(Window, game_resolution::FULLHD);
+            Dimension = SetWindowResolution(Window, game_resolution::QFULLHD);
             
             game_offscreen_buffer Buffer = {};
             Buffer.Renderer      = Renderer;
@@ -392,11 +406,6 @@ int main(int argc, char **argv)
                 Buffer.ViewportWidth  = Viewport.w;
                 Buffer.ViewportHeight = Viewport.h;
             }
-            
-            printf("screen w: %d\n", Buffer.ScreenWidth);
-            printf("screen h: %d\n", Buffer.ScreenHeight);
-            printf("viewport w: %d\n", Buffer.ViewportWidth);
-            printf("viewport h: %d\n", Buffer.ViewportHeight);
             
             u32 RefreshRate = 60;
             s32 DisplayIndex = 0, ModeIndex = 0;
@@ -457,6 +466,7 @@ int main(int argc, char **argv)
                 
                 SDL_ShowWindow(Window);
                 
+                v2 OldMousePos = {};
                 while (IsRunning)
                 {
                     PreviousTimeTick = SDL_GetTicks();
@@ -473,19 +483,25 @@ int main(int argc, char **argv)
                     
                     {
                         SDL_GetMouseState(&Input.MouseX, &Input.MouseY);
+                        
                         v2 ActualScreenCenter = V2(Buffer.ScreenWidth * 0.5f, Buffer.ScreenHeight * 0.5f);
                         v2 ViewportCenter = V2(Buffer.ViewportWidth * 0.5f, Buffer.ViewportHeight * 0.5f);
                         
-                        v2 NewMouse = V2((r32)Input.MouseX - (ActualScreenCenter.x - ViewportCenter.x),
-                                         (r32)Input.MouseY - (ActualScreenCenter.y - ViewportCenter.y));
-                        NewMouse.x = NewMouse.x / Buffer.ViewportWidth;
-                        NewMouse.y = NewMouse.y / Buffer.ViewportHeight;
+                        {
+                            v2 NewMouse = V2((r32)Input.MouseX - (ActualScreenCenter.x - ViewportCenter.x),
+                                             (r32)Input.MouseY - (ActualScreenCenter.y - ViewportCenter.y));
+                            NewMouse.x = NewMouse.x / Buffer.ViewportWidth;
+                            NewMouse.y = NewMouse.y / Buffer.ViewportHeight;
+                            
+                            NewMouse.x = NewMouse.x * Buffer.Width;
+                            NewMouse.y = NewMouse.y * Buffer.Height;
+                            
+                            Input.MouseX = roundf(NewMouse.x);
+                            Input.MouseY = roundf(NewMouse.y);
+                        }
                         
-                        NewMouse.x = NewMouse.x * Buffer.Width;
-                        NewMouse.y = NewMouse.y * Buffer.Height;
-                        
-                        Input.MouseX = roundf(NewMouse.x);
-                        Input.MouseY = roundf(NewMouse.y);
+                        Input.MouseRelX = Input.MouseX - OldMousePos.x;
+                        Input.MouseRelY = Input.MouseY - OldMousePos.y;
                     }
                     
                     game_return_values GameResult = GameUpdateAndRender(&Memory, &Input, &Buffer);
@@ -522,13 +538,9 @@ int main(int argc, char **argv)
                         WriteBinaryFile("package0.bin", Memory.SettingsStorage, Memory.SettingsStorageSize);
                     }
                     
-                    rectangle2 rect = {};
-                    rect.Min.x = Input.MouseX - (10.0f);
-                    rect.Min.y = Input.MouseY - (10.0f);
-                    SetDim(&rect, 20.0f, 20.0f);
-                    DEBUGRenderQuadFill(&Buffer, rect, V4(0.0f, 255.0f, 0.0f, 255.0f));
-                    
                     SDLUpdateWindow(Renderer);
+                    
+                    OldMousePos = V2(Input.MouseX, Input.MouseY);
                     
                     r32 CurrentTimeTick = SDL_GetTicks();
                     TimeElapsed += (CurrentTimeTick - PreviousTimeTick) / 1000.0f;

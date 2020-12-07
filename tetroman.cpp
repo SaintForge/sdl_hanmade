@@ -58,21 +58,21 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         r32 HeightRatio = 0.00092592592;
 		{
             r32 StandardSize = 50.0f;
-            r32 PixelHeight = roundf(StandardSize * HeightRatio * Buffer->ScreenHeight);
+            r32 PixelHeight = roundf(StandardSize * HeightRatio * Buffer->ViewportHeight);
             GameState->Font = TTF_OpenFont(FontPath, PixelHeight);
             Assert(GameState->Font);
         }
         
         {
             r32 StandardSize = 80.0f;
-            r32 PixelHeight = roundf(StandardSize * HeightRatio * Buffer->ScreenHeight);
+            r32 PixelHeight = roundf(StandardSize * HeightRatio * Buffer->ViewportHeight);
             GameState->TimerFont = TTF_OpenFont(FontPath, PixelHeight);
             Assert(GameState->TimerFont);
         }
         
 		{
             r32 StandardSize = 40.0f;
-            r32 PixelHeight = roundf(StandardSize * HeightRatio * Buffer->ScreenHeight);
+            r32 PixelHeight = roundf(StandardSize * HeightRatio * Buffer->ViewportHeight);
             GameState->MenuTimerFont = TTF_OpenFont(FontPath, PixelHeight);
             Assert(GameState->MenuTimerFont);
         }
@@ -638,19 +638,19 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                     }
                     
                     rectangle2 TimerRectangle = {};
-                    TimerRectangle.Min.x = (VIRTUAL_GAME_WIDTH * 0.5f) - (25.0f);
+                    TimerRectangle.Min.x = (VIRTUAL_GAME_WIDTH * 0.5f);
                     TimerRectangle.Min.y = 50.0f;
-                    SetDim(&TimerRectangle, 50.0f, 50.0f);
+                    SetDim(&TimerRectangle, 0.0f, 0.0f);
                     
                     TimerRectangle = GetTextOnTheCenterOfRectangle(TimerRectangle, Playground->TimerTexture);
                     
                     TimerRectangle.Min += V2(5.0f, 5.0f);
                     TimerRectangle.Max += V2(5.0f, 5.0f);
-                    PushBitmap(RenderGroup, Playground->TimerShadowTexture, TimerRectangle);
+                    PushFontBitmap(RenderGroup, Playground->TimerShadowTexture, TimerRectangle);
                     
                     TimerRectangle.Min -= V2(5.0f, 5.0f);
                     TimerRectangle.Max -= V2(5.0f, 5.0f);
-                    PushBitmap(RenderGroup, Playground->TimerTexture, TimerRectangle);
+                    PushFontBitmap(RenderGroup, Playground->TimerTexture, TimerRectangle);
                 }
             }
             else if (PlaygroundStatus == playground_status::LEVEL_FINISHED)

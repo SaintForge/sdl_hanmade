@@ -68,6 +68,11 @@ ClearScreen(render_group *Group, v4 Color)
 }
 
 inline static void
+PushColorOffScreen(render_group *Group, v4 Color) {
+    
+}
+
+inline static void
 PushRectangle(render_group *Group, rectangle2 Rectangle, v4 Color)
 {
     render_entry_rectangle *Piece = PushRenderElement(Group, render_entry_rectangle);
@@ -110,6 +115,22 @@ PushRectOnBitmap(render_group *Group, game_texture *Texture, rectangle2 Rectangl
         Piece->Target = Texture; 
         Piece->Rectangle = Rectangle;
         Piece->Color = Color;
+    }
+}
+
+inline static void
+PushBitmap(render_group *Group, game_texture *Texture) {
+    render_entry_texture *Piece = PushRenderElement(Group, render_entry_texture);
+    if(Piece)
+    {
+        Piece->Texture        = Texture;
+        Piece->Texture2       = {};
+        Piece->Rectangle      = {};
+        Piece->ClipRectangle  = {};
+        Piece->Angle          = 0;
+        Piece->RelativeCenter = V2(0.0f, 0.0f);
+        Piece->Flip           = SDL_FLIP_NONE;
+        Piece->IsFont         = false;
     }
 }
 
@@ -157,6 +178,23 @@ PushBitmapEx(render_group *Group, game_texture *Texture, rectangle2 Rectangle, r
         Piece->Texture2       = {};
         Piece->Rectangle      = Rectangle;
         Piece->ClipRectangle  = {};
+        Piece->Angle          = Angle;
+        Piece->RelativeCenter = RelativeCenter;
+        Piece->Flip           = Flip;
+        Piece->IsFont         = false;
+    }
+}
+
+inline static void
+PushBitmapEx(render_group *Group, game_texture *Texture, rectangle2 Rectangle, rectangle2 ClipRectangle, r32 Angle, v2 RelativeCenter, figure_flip Flip)
+{
+    render_entry_texture *Piece = PushRenderElement(Group, render_entry_texture);
+    if(Piece)
+    {
+        Piece->Texture        = Texture;
+        Piece->Texture2       = {};
+        Piece->Rectangle      = Rectangle;
+        Piece->ClipRectangle  = ClipRectangle;
         Piece->Angle          = Angle;
         Piece->RelativeCenter = RelativeCenter;
         Piece->Flip           = Flip;
@@ -216,27 +254,26 @@ PushFontBitmap(render_group *Group, game_texture* Texture, rectangle2 CenterRect
 static void
 DrawEntryTexture(game_offscreen_buffer *Buffer, render_entry_texture *Entry)
 {
+    if (Entry->Rectangle.Min.x < 0 || Entry->Rectangle.Min.x > Buffer->Width) return;
     game_texture *Texture = Entry->Texture;
     if (Entry->Texture2) {
         Texture = Entry->Texture2;
         SDL_SetRenderTarget(Buffer->Renderer, Entry->Texture);
     }
     
-    game_point Center;
-    Center.x = roundf(Entry->RelativeCenter.x);
-    Center.y = roundf(Entry->RelativeCenter.y);
-    
-    v2 SizeRatio = V2(Buffer->WidthRatio, Buffer->HeightRatio);
     v2 ActualScreenCenter = V2(Buffer->ScreenWidth * 0.5f, Buffer->ScreenHeight * 0.5f);
     v2 ViewportCenter = V2(Buffer->ViewportWidth * 0.5f, Buffer->ViewportHeight * 0.5f);
     
-    v2 NDC_Min = V2(SizeRatio * Entry->Rectangle.Min);
-    v2 NDC_Max = V2(SizeRatio * Entry->Rectangle.Max);
-    
     rectangle2 ResultRectangle = {};
+    ResultRectangle.Min = ScaleByLogicalResolution(Buffer, Entry->Rectangle.Min);
+    ResultRectangle.Max = ScaleByLogicalResolution(Buffer, Entry->Rectangle.Max);
     
-    ResultRectangle.Min = V2(NDC_Min.x * Buffer->ViewportWidth, NDC_Min.y * Buffer->ViewportHeight); 
-    ResultRectangle.Max = V2(NDC_Max.x * Buffer->ViewportWidth, NDC_Max.y * Buffer->ViewportHeight); 
+    game_point Center = {};
+    {
+        v2 CenterResult = ScaleByLogicalResolution(Buffer, Entry->RelativeCenter);
+        Center.x = roundf(CenterResult.x);
+        Center.y = roundf(CenterResult.y);
+    }
     
     if (!Entry->Texture2) {
         ResultRectangle.Min += (ActualScreenCenter - ViewportCenter);
@@ -255,6 +292,11 @@ DrawEntryTexture(game_offscreen_buffer *Buffer, render_entry_texture *Entry)
         Rectangle.h = roundf(Entry->Rectangle.Max.y - Entry->Rectangle.Min.y);
         Rectangle.x = ResultRectangle.Min.x - ((r32)Rectangle.w * 0.5f);
         Rectangle.y = ResultRectangle.Min.y - ((r32)Rectangle.h * 0.5f);
+    }
+    
+    if (Rectangle.w == 0 || Rectangle.h == 0) {
+        Rectangle.w = Buffer->ScreenWidth;
+        Rectangle.h = Buffer->ScreenHeight;
     }
     
     v2 ClipDim = GetDim(Entry->ClipRectangle);
@@ -297,10 +339,14 @@ RenderGroupToOutput(render_group *RenderGroup, game_offscreen_buffer *Buffer)
             {
                 render_entry_clear *Entry = (render_entry_clear*) Data;
                 
-                
                 SDL_SetRenderDrawColor(Buffer->Renderer, Entry->Color.r, Entry->Color.g, Entry->Color.b, Entry->Color.a);
                 
-                game_rect Rectangle = {0, 0, Buffer->Width, Buffer->Height};
+                v2 ActualScreenCenter = V2(Buffer->ScreenWidth * 0.5f, Buffer->ScreenHeight * 0.5f);
+                v2 ViewportCenter = V2(Buffer->ViewportWidth * 0.5f, Buffer->ViewportHeight * 0.5f);
+                
+                v2 Offset = ActualScreenCenter - ViewportCenter;
+                
+                game_rect Rectangle = {(s32)roundf(Offset.x), (s32)roundf(Offset.y), Buffer->ViewportWidth, Buffer->ViewportHeight};
                 SDL_RenderFillRect(Buffer->Renderer, &Rectangle);
                 
                 BaseAddress += sizeof(*Entry);
@@ -311,7 +357,45 @@ RenderGroupToOutput(render_group *RenderGroup, game_offscreen_buffer *Buffer)
             {
                 render_entry_clear_screen *Entry = (render_entry_clear_screen*) Data;
                 
+                // Clipping the remaining screen area
+                v2 ActualScreenCenter = V2(Buffer->ScreenWidth * 0.5f, Buffer->ScreenHeight * 0.5f);
+                v2 ViewportCenter = V2(Buffer->ViewportWidth * 0.5f, Buffer->ViewportHeight * 0.5f);
+                
+                v2 Offset = ActualScreenCenter - ViewportCenter;
                 SDL_SetRenderDrawColor(Buffer->Renderer, Entry->Color.r, Entry->Color.g, Entry->Color.b, Entry->Color.a);
+                
+                game_rect Rectangle;
+                if (Buffer->ViewportWidth < Buffer->ScreenWidth) {
+                    
+                    Rectangle.x = 0;
+                    Rectangle.y = 0;
+                    Rectangle.w = Offset.w;
+                    Rectangle.h = Buffer->ScreenHeight;
+                    SDL_RenderFillRect(Buffer->Renderer, &Rectangle);
+                    
+                    Rectangle.x = Offset.w + Buffer->ViewportWidth;
+                    Rectangle.y = 0;
+                    Rectangle.w = Offset.w;
+                    Rectangle.h = Buffer->ScreenHeight;
+                    SDL_RenderFillRect(Buffer->Renderer, &Rectangle);
+                }
+                
+                if (Buffer->ViewportHeight < Buffer->ScreenHeight) {
+                    
+                    Rectangle.x = 0;
+                    Rectangle.y = 0;
+                    Rectangle.w = Buffer->ScreenWidth;
+                    Rectangle.h = Offset.h;
+                    SDL_RenderFillRect(Buffer->Renderer, &Rectangle);
+                    
+                    Rectangle.x = 0;
+                    Rectangle.y = Offset.h + Buffer->ViewportHeight;
+                    Rectangle.w = Buffer->ScreenWidth;
+                    Rectangle.h = Offset.h;
+                    SDL_RenderFillRect(Buffer->Renderer, &Rectangle);
+                }
+                
+                
                 
                 BaseAddress += sizeof(*Entry);
                 
