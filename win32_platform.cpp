@@ -231,12 +231,12 @@ bool SDLHandleEvent(SDL_Event *Event, game_input *Input, SDL_Window *Window, gam
                 {
                     case SDL_WINDOWEVENT_RESIZED:
                     {
-                        SDL_GetWindowSize(Window, &Buffer->ScreenWidth, &Buffer->ScreenHeight);
+                        //SDL_GetWindowSize(Window, &Buffer->ScreenWidth, &Buffer->ScreenHeight);
                         
-                        v2 Viewport = CalculateViewport(Buffer->ScreenWidth, Buffer->ScreenHeight);
+                        //v2 Viewport = CalculateViewport(Buffer->ScreenWidth, Buffer->ScreenHeight);
                         
-                        Buffer->ViewportWidth  = Viewport.w;
-                        Buffer->ViewportHeight = Viewport.h;
+                        //Buffer->ViewportWidth  = Viewport.w;
+                        //Buffer->ViewportHeight = Viewport.h;
                         
                     } break;
                 }
@@ -375,13 +375,14 @@ int main(int argc, char **argv)
             }
         }
         
-        printf("scale_quality: %d\n", SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1"));
-        printf("vsync: %d\n", SDL_SetHint(SDL_HINT_RENDER_VSYNC, "2"));
+        //printf("scale_quality: %d\n", SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1"));
+        printf("vsync: %d\n", SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1"));
         SDL_Renderer* Renderer = SDL_CreateRenderer(Window, driver_index, 
                                                     SDL_RENDERER_TARGETTEXTURE|SDL_RENDERER_ACCELERATED);
         
         SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
-        //SDL_RenderSetLogicalSize(Renderer, 1920, 1080);
+        //SDL_RenderSetLogicalSize(Renderer, VIRTUAL_GAME_WIDTH, VIRTUAL_GAME_HEIGHT);
+        //SDL_RenderSetIntegerScale(Renderer, SDL_TRUE);
         
         if(Renderer)
         {
@@ -495,6 +496,9 @@ int main(int argc, char **argv)
                             
                             NewMouse.x = NewMouse.x * Buffer.Width;
                             NewMouse.y = NewMouse.y * Buffer.Height;
+                            
+                            printf("NewMouse.x : %f\n", NewMouse.x);
+                            printf("NewMouse.y : %f\n", NewMouse.y);
                             
                             Input.MouseX = roundf(NewMouse.x);
                             Input.MouseY = roundf(NewMouse.y);

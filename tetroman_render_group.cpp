@@ -261,18 +261,26 @@ DrawEntryTexture(game_offscreen_buffer *Buffer, render_entry_texture *Entry)
         SDL_SetRenderTarget(Buffer->Renderer, Entry->Texture);
     }
     
-    v2 ActualScreenCenter = V2(Buffer->ScreenWidth * 0.5f, Buffer->ScreenHeight * 0.5f);
-    v2 ViewportCenter = V2(Buffer->ViewportWidth * 0.5f, Buffer->ViewportHeight * 0.5f);
+    v2 ActualScreenCenter = {};
+    v2 ViewportCenter = {};
     
-    rectangle2 ResultRectangle = {};
+    ActualScreenCenter = V2(Buffer->ScreenWidth * 0.5f, Buffer->ScreenHeight * 0.5f);
+    ViewportCenter = V2(Buffer->ViewportWidth * 0.5f, Buffer->ViewportHeight * 0.5f);
+    
+    if (Entry->RelativeCenter.x == 100.0f && Entry->RelativeCenter.y == 100.0f) {
+        printf("");
+    }
+    
+    rectangle2 ResultRectangle = Entry->Rectangle;
     ResultRectangle.Min = ScaleByLogicalResolution(Buffer, Entry->Rectangle.Min);
     ResultRectangle.Max = ScaleByLogicalResolution(Buffer, Entry->Rectangle.Max);
     
-    game_point Center = {};
+    SDL_FPoint Center = {};
     {
-        v2 CenterResult = ScaleByLogicalResolution(Buffer, Entry->RelativeCenter);
-        Center.x = roundf(CenterResult.x);
-        Center.y = roundf(CenterResult.y);
+        v2 CenterResult = Entry->RelativeCenter;
+        CenterResult = ScaleByLogicalResolution(Buffer, Entry->RelativeCenter);
+        Center.x = (CenterResult.x);
+        Center.y = (CenterResult.y);
     }
     
     if (!Entry->Texture2) {
@@ -280,12 +288,12 @@ DrawEntryTexture(game_offscreen_buffer *Buffer, render_entry_texture *Entry)
         ResultRectangle.Max += (ActualScreenCenter - ViewportCenter);
     }
     
-    game_rect Rectangle = {};
+    SDL_FRect Rectangle = {};
     if (!Entry->IsFont) {
-        Rectangle.x = roundf(ResultRectangle.Min.x);
-        Rectangle.y = roundf(ResultRectangle.Min.y);
-        Rectangle.w = roundf(ResultRectangle.Max.x - ResultRectangle.Min.x);
-        Rectangle.h = roundf(ResultRectangle.Max.y - ResultRectangle.Min.y);
+        Rectangle.x = (ResultRectangle.Min.x);
+        Rectangle.y = (ResultRectangle.Min.y);
+        Rectangle.w = (ResultRectangle.Max.x - ResultRectangle.Min.x);
+        Rectangle.h = (ResultRectangle.Max.y - ResultRectangle.Min.y);
     }
     else {
         Rectangle.w = roundf(Entry->Rectangle.Max.x - Entry->Rectangle.Min.x);
@@ -308,11 +316,11 @@ DrawEntryTexture(game_offscreen_buffer *Buffer, render_entry_texture *Entry)
         ClipRectangle.w = roundf(ClipDim.w);
         ClipRectangle.h = roundf(ClipDim.h);
         
-        SDL_RenderCopyEx(Buffer->Renderer, Texture, &ClipRectangle, &Rectangle, Entry->Angle, &Center, Entry->Flip);
+        SDL_RenderCopyExF(Buffer->Renderer, Texture, &ClipRectangle, &Rectangle, Entry->Angle, &Center, Entry->Flip);
     }
     else 
     {
-        SDL_RenderCopyEx(Buffer->Renderer, Texture, 0, &Rectangle, Entry->Angle, &Center, Entry->Flip);
+        SDL_RenderCopyExF(Buffer->Renderer, Texture, 0, &Rectangle, Entry->Angle, &Center, Entry->Flip);
     }
     
     if (Entry->Texture2) {

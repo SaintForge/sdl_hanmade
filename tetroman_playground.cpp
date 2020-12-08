@@ -1175,7 +1175,7 @@ MoveObject2D(v2 Position, v2 TargetPosition, r32 dtForFrame, r32 Speed)
 static void
 RenderFigureStructure(render_group *RenderGroup, figure_unit *Entity)
 {
-    v4 Color = V4(0.0f, 255.0f, 255.0f, 255.0f);
+    v4 Color = V4(0.0f, 255.0f, 0.0f, 255.0f);
     
     rectangle2 Rectangle = {};
     Rectangle.Min.x = Entity->Position.x;
@@ -1270,10 +1270,12 @@ GridEntityRender(grid_entity *GridEntity, render_group *RenderGroup) {
             if(GridUnit == 0 || GridUnit == 2 || GridUnit == 3)
             {
                 rectangle2 TextureRectangle = {};
-                TextureRectangle.Min.x = GridCellRectangle.Min.x - (25.0f / 2.0f);
-                TextureRectangle.Min.y = GridCellRectangle.Min.y - (25.0f / 2.0f);
+                TextureRectangle.Min.x = GridCellRectangle.Min.x - (25.0f * 0.5f);
+                TextureRectangle.Min.y = GridCellRectangle.Min.y - (25.0f * 0.5f);
                 SetDim(&TextureRectangle, GetDim(GridCellRectangle).w + 25.0f, GetDim(GridCellRectangle).h + 25.0f);
                 PushBitmap(RenderGroup, GridEntity->GridCell2Texture, TextureRectangle);
+                //PushRectangleOutline(RenderGroup, GridCellRectangle, V4(0.0f, 255.0f, 0.0f, 255.0f));
+                //PushRectangle(RenderGroup, GridCellRectangle, V4(255.0f, 255.0f, 255.0f, 255.0f));
             }
         }
     }
@@ -1299,11 +1301,13 @@ GridEntityRender(grid_entity *GridEntity, render_group *RenderGroup) {
             if(GridUnit == 0 || GridUnit == 2 || GridUnit == 3)
             {
                 rectangle2 TextureRectangle = {};
-                TextureRectangle.Min.x = GridCellRectangle.Min.x - (25.0f / 2.0f);
-                TextureRectangle.Min.y = GridCellRectangle.Min.y - (25.0f / 2.0f);
+                TextureRectangle.Min.x = GridCellRectangle.Min.x - (25.0f * 0.5f);
+                TextureRectangle.Min.y = GridCellRectangle.Min.y - (25.0f * 0.5f);
                 SetDim(&TextureRectangle, GetDim(GridCellRectangle).w + 25.0f, GetDim(GridCellRectangle).h + 25.0f);
                 
                 PushBitmap(RenderGroup, GridEntity->GridCell1Texture, TextureRectangle);
+                //PushRectangleOutline(RenderGroup, GridCellRectangle, V4(0.0f, 255.0f, 0.0f, 255.0f));
+                //PushRectangle(RenderGroup, GridCellRectangle, V4(255.0f, 255.0f, 255.0f, 255.0f));
             }
         }
     }
@@ -1361,7 +1365,7 @@ FigureEntityRenderFigures(figure_entity *FigureEntity, render_group *RenderGroup
             game_texture *OutlineTexture = PickFigureOutlineTexture(Entity->Form, FigureEntity);
             PushBitmapEx(RenderGroup, OutlineTexture, Rectangle, Entity->Angle, Center, Entity->Flip);
         }
-        RenderFigureStructure(RenderGroup, Entity);
+        //RenderFigureStructure(RenderGroup, Entity);
     }
 }
 
