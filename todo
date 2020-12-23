@@ -17,21 +17,32 @@ New TODO:
 	10. Grid Animation idea: what if we animate grid with alpha blending but in the same way that we render it.
 	11. Maybe hightlight the figure wheneves the mouse is around it. (Done. )
 	12. Make separate texture for a background. (Done. )
-	13. Finish resolution independent rendering.
+	13. Finish resolution independent rendering. (Done .)
 	14. Something feels off with the font rendering in playground options (Done. )
 	15. There is something wrong with relative center for the gear button. It doesn't work when I choose different resolution. (Done. )
 	16. There is something wrong with mouse coordinates on low resolutions. (Done. )
 	17. Maybe we don't need cliping in the playground as we want to use all the space for the sake of game design. (Done. )
 	18. Reopen fonts once window resolution has changed and also reupdate all font textures.
-	19. Separate border sprites from actual borders and their corresponding shadows.
+	19. Separate border sprites from actual borders and their corresponding shadows. (Done. )
 	20. Figure out how to solve the problem with level selection menu. Currently it has two problems:
 		1. The texture gets blacked out completely whenever you alt+tab in fullscreen mode;
 		2. Scaling doesn't work whenever we change window resolution, so we have to recreate this texture every time.
-
+	21. Instead of declaring whole pack of game_textures's why not just make it an array? (Done. )
+	22. Start the timer only after animation is done. (Done. )
+	23. Also render level number in level selection menu.  (Done. )
+	24. Get Animation Timing right.
+	25. Finish grid animation.
+	26. Finish level indicator animation.
+	27. Redraw level indicator sprites.
 BUGS:
 	1. When you make less figures in the editor and finish the level, the playground does not switch to the next level (Fixed.)
 	2. Theres is some weird bug that is hard to reproduce. Sometimes whenever you delete or add figure, two figures pop up instead of one.
+	3. There was/is a ground texture bug on level 3
 
+Music to try:
+	1. LE JARDIN FEERIQUE 
+	2. Ravel: Miroirs III. Une Barque sur L'Ocean
+	3. Edvard Grieg - Peer Gynt - Suite No. 1, Op. 46 - III. Anitra's Dance
 
 ---General---
 +	1. Change order of the figure when it sticks to the grid 

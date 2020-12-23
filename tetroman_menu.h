@@ -55,7 +55,9 @@ struct playground_menu
     
     game_texture *MainMenuTexture[3];
     game_texture *MainMenuShadowTexture[3];
-    game_texture *CornerTexture[4];
+    
+    game_texture *CornerTexture;
+    game_texture *CornerShadowTexture;
     
     /* Settings */
     // For sound and music settings
@@ -94,9 +96,15 @@ struct playground_menu
     game_texture *LevelButtonTexture;
     game_texture *NextLevelTexture;
     game_texture *NextLevelBackgroundTexture;
-    game_texture *LevelTimeTexture[100];
-    game_texture *LevelTimeShadowTexture[100];
-    game_texture *LevelCornerTexture[4];
+    
+    game_texture *LevelNumberTexture[PLAYGROUND_MAXIMUM];
+    game_texture *LevelNumberShadowTexture[PLAYGROUND_MAXIMUM];
+    game_texture *LevelTimeTexture[PLAYGROUND_MAXIMUM];
+    game_texture *LevelTimeShadowTexture[PLAYGROUND_MAXIMUM];
+    
+    game_texture *LevelCornerTexture;
+    game_texture *LevelCornerShadowTexture;
+    
     game_texture *SquareFrameLocked;
     game_texture *SquareFrameUnlocked;
     game_texture *ColorBarTexture[4];

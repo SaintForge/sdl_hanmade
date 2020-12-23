@@ -71,12 +71,18 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         }
         
 		{
-            r32 StandardSize = 40.0f;
+            r32 StandardSize = 30.0f;
             r32 PixelHeight = roundf(StandardSize * HeightRatio * Buffer->ViewportHeight);
             GameState->MenuTimerFont = TTF_OpenFont(FontPath, PixelHeight);
             Assert(GameState->MenuTimerFont);
         }
         
+        {
+            r32 StandardSize = 100.0f;
+            r32 PixelHeight = roundf(StandardSize * HeightRatio * Buffer->ViewportHeight);
+            GameState->MenuDifficultyFont = TTF_OpenFont(FontPath, PixelHeight);
+            Assert(GameState->MenuTimerFont);
+        }
 		
         GameState->PlaygroundIndex = 0;
         GameState->CurrentMode     = game_mode::MENU;
@@ -98,7 +104,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         Playground->BackgroundTexture         = GetTexture(Memory, "background_.png", Buffer->Renderer);
         Playground->BackgroundDimTexture      = GetTexture(Memory, "background_dimmed.png", Buffer->Renderer);
-        Playground->CornerLeftTopTexture      = GetTexture(Memory, "corner_left_top.png", Buffer->Renderer);
+        Playground->CornerLeftTopTexture      = GetTexture(Memory, "corner_left_top1.png", Buffer->Renderer);
+        Playground->CornerLeftTopShadowTexture      = GetTexture(Memory, "corner_left_top_shadow.png", Buffer->Renderer);
+        
         Playground->CornerLeftBottomTexture   = GetTexture(Memory, "corner_left_bottom.png", Buffer->Renderer);
         Playground->CornerRightTopTexture     = GetTexture(Memory, "corner_right_top.png", Buffer->Renderer);
         Playground->CornerRightBottomTexture  = GetTexture(Memory, "corner_right_bottom.png", Buffer->Renderer);
@@ -114,9 +122,12 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         SDL_SetTextureBlendMode(Playground->BackgroundDimTexture, SDL_BLENDMODE_BLEND);
         SDL_SetTextureBlendMode(Playground->BackgroundTexture, SDL_BLENDMODE_BLEND);
         
-        Playground->PickSound   = GetSound(Memory, "figure_pick.wav");
-        Playground->StickSound  = GetSound(Memory, "figure_stick.wav");
-        Playground->RotateSound = GetSound(Memory, "figure_drop.wav");
+        Playground->DropSound     = GetSound(Memory, "figure_rotate.wav");
+        Playground->PickSound     = GetSound(Memory, "figure_pick.wav");
+        Playground->StickSound    = GetSound(Memory, "figure_drop.wav");
+        Playground->RotateSound   = GetSound(Memory, "figure_rotation.wav");
+        Playground->CompleteSound = GetSound(Memory, "complete_sound2.wav");
+        Mix_VolumeChunk(Playground->CompleteSound, MIX_MAX_VOLUME / 2);
         
         /* Playground Option Menu */ 
         playground_options *PlaygroundOptions = &Playground->Options;
@@ -178,54 +189,66 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             FigureEntity->FigureOrder[i] = i;
         }
         
-        FigureEntity->O_GreenTexture   = GetTexture(Memory, "o_green.png", Buffer->Renderer);
-        FigureEntity->O_BlueTexture    = GetTexture(Memory, "o_blue.png", Buffer->Renderer);
-        FigureEntity->O_OrangeTexture  = GetTexture(Memory, "o_orange.png", Buffer->Renderer);
-        FigureEntity->O_ClassicTexture = GetTexture(Memory, "o_red.png", Buffer->Renderer);
-        FigureEntity->O_ShadowTexture  = GetTexture(Memory, "o_shadow.png", Buffer->Renderer);
-        FigureEntity->O_OutlineTexture  = GetTexture(Memory, "o_outline.png", Buffer->Renderer);
+        FigureEntity->BlueTexture[0] = GetTexture(Memory, "o_blue.png", Buffer->Renderer);
+        FigureEntity->BlueTexture[1] = GetTexture(Memory, "i_blue.png", Buffer->Renderer);
+        FigureEntity->BlueTexture[2] = GetTexture(Memory, "l_blue.png", Buffer->Renderer);
+        FigureEntity->BlueTexture[3] = GetTexture(Memory, "j_blue.png", Buffer->Renderer);
+        FigureEntity->BlueTexture[4] = GetTexture(Memory, "z_blue.png", Buffer->Renderer);
+        FigureEntity->BlueTexture[5] = GetTexture(Memory, "s_blue.png", Buffer->Renderer);
+        FigureEntity->BlueTexture[6] = GetTexture(Memory, "t_blue.png", Buffer->Renderer);
         
-        FigureEntity->I_GreenTexture   = GetTexture(Memory, "i_green.png", Buffer->Renderer);
-        FigureEntity->I_BlueTexture    = GetTexture(Memory, "i_blue.png", Buffer->Renderer);
-        FigureEntity->I_OrangeTexture  = GetTexture(Memory, "i_orange.png", Buffer->Renderer);
-        FigureEntity->I_ClassicTexture = GetTexture(Memory, "i_red.png", Buffer->Renderer);
-        FigureEntity->I_ShadowTexture  = GetTexture(Memory, "i_shadow.png", Buffer->Renderer);
-        FigureEntity->I_OutlineTexture  = GetTexture(Memory, "i_outline.png", Buffer->Renderer);
+        FigureEntity->GreenTexture[0] = GetTexture(Memory, "o_green.png", Buffer->Renderer);
+        FigureEntity->GreenTexture[1] = GetTexture(Memory, "i_green.png", Buffer->Renderer);
+        FigureEntity->GreenTexture[2] = GetTexture(Memory, "l_green.png", Buffer->Renderer);
+        FigureEntity->GreenTexture[3] = GetTexture(Memory, "j_green.png", Buffer->Renderer);
+        FigureEntity->GreenTexture[4] = GetTexture(Memory, "z_green.png", Buffer->Renderer);
+        FigureEntity->GreenTexture[5] = GetTexture(Memory, "s_green.png", Buffer->Renderer);
+        FigureEntity->GreenTexture[6] = GetTexture(Memory, "t_green.png", Buffer->Renderer);
         
-        FigureEntity->L_GreenTexture   = GetTexture(Memory, "l_green.png", Buffer->Renderer);
-        FigureEntity->L_BlueTexture    = GetTexture(Memory, "l_blue.png", Buffer->Renderer);
-        FigureEntity->L_OrangeTexture  = GetTexture(Memory, "l_orange.png", Buffer->Renderer);
-        FigureEntity->L_ClassicTexture = GetTexture(Memory, "l_red.png", Buffer->Renderer);
-        FigureEntity->L_ShadowTexture  = GetTexture(Memory, "l_shadow.png", Buffer->Renderer);
-        FigureEntity->L_OutlineTexture  = GetTexture(Memory, "l_outline.png", Buffer->Renderer);
+        FigureEntity->OrangeTexture[0] = GetTexture(Memory, "o_orange.png", Buffer->Renderer);
+        FigureEntity->OrangeTexture[1] = GetTexture(Memory, "i_orange.png", Buffer->Renderer);
+        FigureEntity->OrangeTexture[2] = GetTexture(Memory, "l_orange.png", Buffer->Renderer);
+        FigureEntity->OrangeTexture[3] = GetTexture(Memory, "j_orange.png", Buffer->Renderer);
+        FigureEntity->OrangeTexture[4] = GetTexture(Memory, "z_orange.png", Buffer->Renderer);
+        FigureEntity->OrangeTexture[5] = GetTexture(Memory, "s_orange.png", Buffer->Renderer);
+        FigureEntity->OrangeTexture[6] = GetTexture(Memory, "t_orange.png", Buffer->Renderer);
         
-        FigureEntity->J_GreenTexture   = GetTexture(Memory, "j_green.png", Buffer->Renderer);
-        FigureEntity->J_BlueTexture    = GetTexture(Memory, "j_blue.png", Buffer->Renderer);
-        FigureEntity->J_OrangeTexture  = GetTexture(Memory, "j_orange.png", Buffer->Renderer);
-        FigureEntity->J_ClassicTexture = GetTexture(Memory, "j_red.png", Buffer->Renderer);
-        FigureEntity->J_OutlineTexture = GetTexture(Memory, "j_outline.png", Buffer->Renderer);
-        FigureEntity->J_ShadowTexture  = GetTexture(Memory, "j_shadow.png", Buffer->Renderer);
+        FigureEntity->RedTexture[0] = GetTexture(Memory, "o_red.png", Buffer->Renderer);
+        FigureEntity->RedTexture[1] = GetTexture(Memory, "i_red.png", Buffer->Renderer);
+        FigureEntity->RedTexture[2] = GetTexture(Memory, "l_red.png", Buffer->Renderer);
+        FigureEntity->RedTexture[3] = GetTexture(Memory, "j_red.png", Buffer->Renderer);
+        FigureEntity->RedTexture[4] = GetTexture(Memory, "z_red.png", Buffer->Renderer);
+        FigureEntity->RedTexture[5] = GetTexture(Memory, "s_red.png", Buffer->Renderer);
+        FigureEntity->RedTexture[6] = GetTexture(Memory, "t_red.png", Buffer->Renderer);
         
-        FigureEntity->Z_GreenTexture   = GetTexture(Memory, "z_green.png", Buffer->Renderer);
-        FigureEntity->Z_BlueTexture    = GetTexture(Memory, "z_blue.png", Buffer->Renderer);
-        FigureEntity->Z_OrangeTexture  = GetTexture(Memory, "z_orange.png", Buffer->Renderer);
-        FigureEntity->Z_ClassicTexture = GetTexture(Memory, "z_red.png", Buffer->Renderer);
-        FigureEntity->Z_ShadowTexture = GetTexture(Memory, "z_shadow.png", Buffer->Renderer);
-        FigureEntity->Z_OutlineTexture = GetTexture(Memory, "z_outline.png", Buffer->Renderer);
+        FigureEntity->ShadowTexture[0] = GetTexture(Memory, "o_shadow.png", Buffer->Renderer);
+        FigureEntity->ShadowTexture[1] = GetTexture(Memory, "i_shadow.png", Buffer->Renderer);
+        FigureEntity->ShadowTexture[2] = GetTexture(Memory, "l_shadow.png", Buffer->Renderer);
+        FigureEntity->ShadowTexture[3] = GetTexture(Memory, "j_shadow.png", Buffer->Renderer);
+        FigureEntity->ShadowTexture[4] = GetTexture(Memory, "z_shadow.png", Buffer->Renderer);
+        FigureEntity->ShadowTexture[5] = GetTexture(Memory, "s_shadow.png", Buffer->Renderer);
+        FigureEntity->ShadowTexture[6] = GetTexture(Memory, "t_shadow.png", Buffer->Renderer);
         
-        FigureEntity->S_GreenTexture   = GetTexture(Memory, "s_green.png", Buffer->Renderer);
-        FigureEntity->S_BlueTexture    = GetTexture(Memory, "s_blue.png", Buffer->Renderer);
-        FigureEntity->S_OrangeTexture  = GetTexture(Memory, "s_orange.png", Buffer->Renderer);
-        FigureEntity->S_ClassicTexture = GetTexture(Memory, "s_red.png", Buffer->Renderer);
-        FigureEntity->S_ShadowTexture  = GetTexture(Memory, "s_shadow.png", Buffer->Renderer);
-        FigureEntity->S_OutlineTexture  = GetTexture(Memory, "s_outline.png", Buffer->Renderer);
+        FigureEntity->OutlineTexture[0] = GetTexture(Memory, "o_outline.png", Buffer->Renderer);
+        FigureEntity->OutlineTexture[1] = GetTexture(Memory, "i_outline.png", Buffer->Renderer);
+        FigureEntity->OutlineTexture[2] = GetTexture(Memory, "l_outline.png", Buffer->Renderer);
+        FigureEntity->OutlineTexture[3] = GetTexture(Memory, "j_outline.png", Buffer->Renderer);
+        FigureEntity->OutlineTexture[4] = GetTexture(Memory, "z_outline.png", Buffer->Renderer);
+        FigureEntity->OutlineTexture[5] = GetTexture(Memory, "s_outline.png", Buffer->Renderer);
+        FigureEntity->OutlineTexture[6] = GetTexture(Memory, "t_outline.png", Buffer->Renderer);
         
-        FigureEntity->T_GreenTexture   = GetTexture(Memory, "t_green.png", Buffer->Renderer);
-        FigureEntity->T_BlueTexture    = GetTexture(Memory, "t_blue.png", Buffer->Renderer);
-        FigureEntity->T_OrangeTexture  = GetTexture(Memory, "t_orange.png", Buffer->Renderer);
-        FigureEntity->T_ClassicTexture = GetTexture(Memory, "t_red.png", Buffer->Renderer);
-        FigureEntity->T_ShadowTexture  = GetTexture(Memory, "t_shadow.png", Buffer->Renderer);
-        FigureEntity->T_OutlineTexture  = GetTexture(Memory, "t_outline.png", Buffer->Renderer);
+        FigureEntity->GroundTexture[0] = GetTexture(Memory, "o_ground.png", Buffer->Renderer);
+        FigureEntity->GroundTexture[1] = GetTexture(Memory, "i_ground.png", Buffer->Renderer);
+        FigureEntity->GroundTexture[2] = GetTexture(Memory, "l_ground.png", Buffer->Renderer);
+        FigureEntity->GroundTexture[3] = GetTexture(Memory, "j_ground.png", Buffer->Renderer);
+        FigureEntity->GroundTexture[4] = GetTexture(Memory, "z_ground.png", Buffer->Renderer);
+        FigureEntity->GroundTexture[5] = GetTexture(Memory, "s_ground.png", Buffer->Renderer);
+        FigureEntity->GroundTexture[6] = GetTexture(Memory, "t_ground.png", Buffer->Renderer);
+        
+        for (int i = 0; i < 7; ++i) {
+            SDL_SetTextureBlendMode(FigureEntity->GroundTexture[i], SDL_BLENDMODE_BLEND);
+            SDL_SetTextureAlphaMod(FigureEntity->GroundTexture[i], 100.0f);
+        }
         
         /* NOTE(msokolov): grid_entity initialization starts here */
         grid_entity *GridEntity = &Playground->GridEntity;
@@ -327,14 +350,14 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         PlaygroundMenu->LevelsCanvasTexture = SDL_CreateTexture(Buffer->Renderer, SDL_PIXELFORMAT_RGBA8888,
                                                                 SDL_TEXTUREACCESS_TARGET, RealSizeCanvas.w, RealSizeCanvas.h);
-        PlaygroundMenu->DifficultyTexture[0] = MakeTextureFromString(Buffer, GameState->TimerFont, "I", V4(255.0f, 255.0f, 255.0f, 255.0f));
-        PlaygroundMenu->DifficultyShadowTexture[0] = MakeTextureFromString(Buffer, GameState->TimerFont, "I", V4(0, 0, 0, 128));
+        PlaygroundMenu->DifficultyTexture[0] = MakeTextureFromString(Buffer, GameState->MenuDifficultyFont, "I", V4(255.0f, 255.0f, 255.0f, 255.0f));
+        PlaygroundMenu->DifficultyShadowTexture[0] = MakeTextureFromString(Buffer, GameState->MenuDifficultyFont, "I", V4(0, 0, 0, 128));
         
-        PlaygroundMenu->DifficultyTexture[1] = MakeTextureFromString(Buffer, GameState->TimerFont, "II", V4(255, 255, 255, 255));
-        PlaygroundMenu->DifficultyShadowTexture[1] = MakeTextureFromString(Buffer, GameState->TimerFont, "II", V4(0, 0, 0, 128));
+        PlaygroundMenu->DifficultyTexture[1] = MakeTextureFromString(Buffer, GameState->MenuDifficultyFont, "II", V4(255, 255, 255, 255));
+        PlaygroundMenu->DifficultyShadowTexture[1] = MakeTextureFromString(Buffer, GameState->MenuDifficultyFont, "II", V4(0, 0, 0, 128));
         
-        PlaygroundMenu->DifficultyTexture[2] = MakeTextureFromString(Buffer, GameState->TimerFont, "III", V4(255, 255, 255, 255));
-        PlaygroundMenu->DifficultyShadowTexture[2] = MakeTextureFromString(Buffer, GameState->TimerFont, "III", V4(0, 0, 0, 128));
+        PlaygroundMenu->DifficultyTexture[2] = MakeTextureFromString(Buffer, GameState->MenuDifficultyFont, "III", V4(255, 255, 255, 255));
+        PlaygroundMenu->DifficultyShadowTexture[2] = MakeTextureFromString(Buffer, GameState->MenuDifficultyFont, "III", V4(0, 0, 0, 128));
         
         for(u32 Index = 0;
             Index < PLAYGROUND_MAXIMUM;
@@ -346,10 +369,16 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             GameState->PlaygroundMenu.LevelTimeTexture[Index] = MakeTextureFromString(Buffer, GameState->MenuTimerFont, TimeString, {255, 255, 255, 255});
             
             GameState->PlaygroundMenu.LevelTimeShadowTexture[Index] = MakeTextureFromString(Buffer, GameState->MenuTimerFont, TimeString, {0, 0, 0, 255});
+            
+            char LevelString[8] = {};
+            sprintf(LevelString, "%d", Index + 1);
+            
+            GameState->PlaygroundMenu.LevelNumberTexture[Index] = MakeTextureFromString(Buffer, GameState->MenuTimerFont, LevelString, V4(255.0f, 255.0f, 255.0f, 255.0f));
+            GameState->PlaygroundMenu.LevelNumberShadowTexture[Index] = MakeTextureFromString(Buffer, GameState->MenuTimerFont, LevelString, V4(0.0f, 0.0f, 0.0f, 255.0f));
         }
         
         PlaygroundMenu->NextLevelTexture = GetTexture(Memory, "next_level_indicator.png", Buffer->Renderer);
-        PlaygroundMenu->NextLevelBackgroundTexture = GetTexture(Memory, "square_frame_unlocked_next.png", Buffer->Renderer);
+        PlaygroundMenu->NextLevelBackgroundTexture = GetTexture(Memory, "square_frame_unlocked.png", Buffer->Renderer);
         
         PlaygroundMenu->MainMenuTexture[0] = MakeTextureFromString(Buffer, GameState->Font, "Play", V4(255, 255, 255, 255));
         PlaygroundMenu->MainMenuTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "Settings", V4(255, 255, 255, 255));
@@ -359,16 +388,13 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundMenu->MainMenuShadowTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "Settings", V4(0, 0, 0, 128));
         PlaygroundMenu->MainMenuShadowTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "Quit", V4(0, 0, 0, 128));
         
-        PlaygroundMenu->CornerTexture[0] = GetTexture(Memory, "corner_left_top.png", Buffer->Renderer);
-        PlaygroundMenu->CornerTexture[1] = GetTexture(Memory, "corner_left_bottom.png", Buffer->Renderer);
-        PlaygroundMenu->CornerTexture[2] = GetTexture(Memory, "corner_right_top.png", Buffer->Renderer);
-        PlaygroundMenu->CornerTexture[3] = GetTexture(Memory, "corner_right_bottom.png", Buffer->Renderer);
+        PlaygroundMenu->CornerTexture       = GetTexture(Memory, "corner_left_top1.png", Buffer->Renderer);
+        PlaygroundMenu->CornerShadowTexture = GetTexture(Memory, "corner_left_top_shadow.png", Buffer->Renderer);
+        
         PlaygroundMenu->HorizontalLineTexture = GetTexture(Memory, "horizontal_border_2.png", Buffer->Renderer);
         
-        PlaygroundMenu->LevelCornerTexture[0] = GetTexture(Memory, "corner_menu_left_top.png", Buffer->Renderer);
-        PlaygroundMenu->LevelCornerTexture[1] = GetTexture(Memory, "corner_menu_left_bottom.png", Buffer->Renderer);
-        PlaygroundMenu->LevelCornerTexture[2] = GetTexture(Memory, "corner_menu_right_top.png", Buffer->Renderer);
-        PlaygroundMenu->LevelCornerTexture[3] = GetTexture(Memory, "corner_menu_right_bottom.png", Buffer->Renderer);
+        PlaygroundMenu->LevelCornerTexture = GetTexture(Memory, "corner_menu_left_top.png", Buffer->Renderer);
+        PlaygroundMenu->LevelCornerShadowTexture = GetTexture(Memory, "corner_menu_left_top_shadow.png", Buffer->Renderer);
         
         PlaygroundMenu->SquareFrameLocked   = GetTexture(Memory, "square_frame_locked.png", Buffer->Renderer);
         PlaygroundMenu->SquareFrameUnlocked = GetTexture(Memory, "square_frame_unlocked.png", Buffer->Renderer);
@@ -457,8 +483,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         SetDim(&PlaygroundEditor->GridButtonsArea, 300.0f, 120.0f);
         
         for (u32 Index = 0; Index < PLAYGROUND_MAXIMUM; ++ Index) {
-            //PlayerData->PlaygroundUnlocked[Index] = true;
+            PlayerData->PlaygroundUnlocked[Index] = false;
         }
+        PlayerData->PlaygroundUnlocked[0] = true;
         
         // NOTE(msokolov): temporary
         PlaygroundData[0].FigureAmount = 4;
@@ -485,7 +512,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Playground->LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
         Assert(Playground->LevelNumberTexture);
         
-        game_music *Music = GetMusic(Memory, "Jami Saber - Maenam.ogg");
+        game_music *Music = GetMusic(Memory, "Satie_-_Gnossienne_1.ogg");
+        Mix_VolumeMusic(MIX_MAX_VOLUME);
         Mix_PlayMusic(Music, -1);
         
         if (!Settings->MusicIsOn)
@@ -613,7 +641,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             {
                 /* Updating the timer UI */ 
                 // Don't update the timer once a level is finished and we're waiting for the animation to finish
-                if (!Playground->LevelFinished)
+                if (!Playground->LevelFinished && Playground->Animation.Finished)
                     Playground->TimeElapsed += Input->dtForFrame;
                 
                 if (Playground->ShowTimer)

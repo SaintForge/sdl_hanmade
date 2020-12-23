@@ -254,7 +254,7 @@ PushFontBitmap(render_group *Group, game_texture* Texture, rectangle2 CenterRect
 static void
 DrawEntryTexture(game_offscreen_buffer *Buffer, render_entry_texture *Entry)
 {
-    if (Entry->Rectangle.Min.x < 0 || Entry->Rectangle.Min.x > Buffer->Width) return;
+    //if (Entry->Rectangle.Min.x < 0 || Entry->Rectangle.Min.x > Buffer->Width) return;
     game_texture *Texture = Entry->Texture;
     if (Entry->Texture2) {
         Texture = Entry->Texture2;
@@ -303,8 +303,8 @@ DrawEntryTexture(game_offscreen_buffer *Buffer, render_entry_texture *Entry)
     }
     
     if (Rectangle.w == 0 || Rectangle.h == 0) {
-        Rectangle.w = Buffer->ScreenWidth;
-        Rectangle.h = Buffer->ScreenHeight;
+        //Rectangle.w = Buffer->ScreenWidth;
+        //Rectangle.h = Buffer->ScreenHeight;
     }
     
     v2 ClipDim = GetDim(Entry->ClipRectangle);

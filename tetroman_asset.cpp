@@ -90,8 +90,8 @@ SDLWriteSoundToFile(SDL_RWops *&BinaryFile, const char *FileName)
     AssetHeader.AssetSize = SDLSizeOfSDL_RWops(SoundFile);
     AssetHeader.AssetType = AssetType_Sound;
     strcpy(AssetHeader.AssetName, FileName);
-    AssetHeader.Audio.Header.IsMusic = false;
     
+    AssetHeader.Audio.Header.IsMusic = false;
     void *Memory = malloc(AssetHeader.AssetSize);
     Assert(Memory);
     
@@ -214,7 +214,9 @@ GetSound(game_memory *Memory, char* FileName)
         Audio->Data = (u8*)AssetHeader;
         Audio->Data = Audio->Data + sizeof(asset_header);
         
-        Sound = Mix_QuickLoad_WAV(Audio->Data);
+        SDL_RWops* rw = SDL_RWFromMem(Audio->Data, AssetHeader->AssetSize);
+        Sound = Mix_LoadWAV_RW(rw, 0);
+        
         Assert(Sound);
     }
     
@@ -364,12 +366,15 @@ SDLAssetBuildBinaryFile()
     SDLWriteBitmapToFile(BinaryFile, "horizontal_border_2.png");
     
     SDLWriteBitmapToFile(BinaryFile, "next_level_indicator.png");
-    SDLWriteBitmapToFile(BinaryFile, "corner_left_top.png");
+    SDLWriteBitmapToFile(BinaryFile, "corner_left_top1.png");
+    SDLWriteBitmapToFile(BinaryFile, "corner_left_top_shadow.png");
     SDLWriteBitmapToFile(BinaryFile, "corner_left_bottom.png");
     SDLWriteBitmapToFile(BinaryFile, "corner_right_top.png");
     SDLWriteBitmapToFile(BinaryFile, "corner_right_bottom.png");
     
     SDLWriteBitmapToFile(BinaryFile, "corner_menu_left_top.png");
+    SDLWriteBitmapToFile(BinaryFile, "corner_menu_left_top_shadow.png");
+    
     SDLWriteBitmapToFile(BinaryFile, "corner_menu_left_bottom.png");
     SDLWriteBitmapToFile(BinaryFile, "corner_menu_right_top.png");
     SDLWriteBitmapToFile(BinaryFile, "corner_menu_right_bottom.png");
@@ -408,6 +413,7 @@ SDLAssetBuildBinaryFile()
     SDLWriteBitmapToFile(BinaryFile, "i_red.png");
     SDLWriteBitmapToFile(BinaryFile, "i_outline.png");
     SDLWriteBitmapToFile(BinaryFile, "i_shadow.png");
+    SDLWriteBitmapToFile(BinaryFile, "i_ground.png");
     
     SDLWriteBitmapToFile(BinaryFile, "o_green.png");
     SDLWriteBitmapToFile(BinaryFile, "o_blue.png");
@@ -415,6 +421,7 @@ SDLAssetBuildBinaryFile()
     SDLWriteBitmapToFile(BinaryFile, "o_red.png");
     SDLWriteBitmapToFile(BinaryFile, "o_outline.png");
     SDLWriteBitmapToFile(BinaryFile, "o_shadow.png");
+    SDLWriteBitmapToFile(BinaryFile, "o_ground.png");
     
     SDLWriteBitmapToFile(BinaryFile, "l_green.png");
     SDLWriteBitmapToFile(BinaryFile, "l_blue.png");
@@ -422,6 +429,7 @@ SDLAssetBuildBinaryFile()
     SDLWriteBitmapToFile(BinaryFile, "l_red.png");
     SDLWriteBitmapToFile(BinaryFile, "l_outline.png");
     SDLWriteBitmapToFile(BinaryFile, "l_shadow.png");
+    SDLWriteBitmapToFile(BinaryFile, "l_ground.png");
     
     SDLWriteBitmapToFile(BinaryFile, "j_green.png");
     SDLWriteBitmapToFile(BinaryFile, "j_blue.png");
@@ -429,6 +437,7 @@ SDLAssetBuildBinaryFile()
     SDLWriteBitmapToFile(BinaryFile, "j_red.png");
     SDLWriteBitmapToFile(BinaryFile, "j_outline.png");
     SDLWriteBitmapToFile(BinaryFile, "j_shadow.png");
+    SDLWriteBitmapToFile(BinaryFile, "j_ground.png");
     
     SDLWriteBitmapToFile(BinaryFile, "s_green.png");
     SDLWriteBitmapToFile(BinaryFile, "s_blue.png");
@@ -436,6 +445,7 @@ SDLAssetBuildBinaryFile()
     SDLWriteBitmapToFile(BinaryFile, "s_red.png");
     SDLWriteBitmapToFile(BinaryFile, "s_outline.png");
     SDLWriteBitmapToFile(BinaryFile, "s_shadow.png");
+    SDLWriteBitmapToFile(BinaryFile, "s_ground.png");
     
     SDLWriteBitmapToFile(BinaryFile, "z_green.png");
     SDLWriteBitmapToFile(BinaryFile, "z_blue.png");
@@ -443,6 +453,7 @@ SDLAssetBuildBinaryFile()
     SDLWriteBitmapToFile(BinaryFile, "z_red.png");
     SDLWriteBitmapToFile(BinaryFile, "z_outline.png");
     SDLWriteBitmapToFile(BinaryFile, "z_shadow.png");
+    SDLWriteBitmapToFile(BinaryFile, "z_ground.png");
     
     SDLWriteBitmapToFile(BinaryFile, "t_green.png");
     SDLWriteBitmapToFile(BinaryFile, "t_blue.png");
@@ -450,6 +461,7 @@ SDLAssetBuildBinaryFile()
     SDLWriteBitmapToFile(BinaryFile, "t_red.png");
     SDLWriteBitmapToFile(BinaryFile, "t_outline.png");
     SDLWriteBitmapToFile(BinaryFile, "t_shadow.png");
+    SDLWriteBitmapToFile(BinaryFile, "t_ground.png");
     
     SDLWriteBitmapToFile(BinaryFile, "left_arrow.png");
     SDLWriteBitmapToFile(BinaryFile, "right_arrow.png");
@@ -457,12 +469,21 @@ SDLAssetBuildBinaryFile()
     /* Audio loading */
     BinaryHeader.AudioSizeInBytes = SDL_RWtell(BinaryFile) - sizeof(binary_header);
     
+    SDLWriteSoundToFile(BinaryFile, "complete_sound2.wav");
     SDLWriteSoundToFile(BinaryFile, "figure_pick.wav");
     SDLWriteSoundToFile(BinaryFile, "figure_stick.wav");
     SDLWriteSoundToFile(BinaryFile, "figure_rotate.wav");
     SDLWriteSoundToFile(BinaryFile, "figure_drop.wav");
+    SDLWriteSoundToFile(BinaryFile, "piano_key.wav");
+    SDLWriteSoundToFile(BinaryFile, "string_pick1.wav");
+    SDLWriteSoundToFile(BinaryFile, "string_pick2.wav");
+    SDLWriteSoundToFile(BinaryFile, "figure_rotation.wav");
+    SDLWriteSoundToFile(BinaryFile, "lego_snap1.wav");
+    SDLWriteSoundToFile(BinaryFile, "lego_snap2.wav");
+    SDLWriteSoundToFile(BinaryFile, "lego_snap3.wav");
+    SDLWriteSoundToFile(BinaryFile, "lego_snap4.wav");
     
-    SDLWriteMusicToFile(BinaryFile, "music_test.ogg");
+    SDLWriteMusicToFile(BinaryFile, "Satie_-_Gnossienne_1.ogg");
     SDLWriteMusicToFile(BinaryFile, "Jami Saber - Maenam.ogg");
     
     SDL_RWseek(BinaryFile, 0, RW_SEEK_SET);

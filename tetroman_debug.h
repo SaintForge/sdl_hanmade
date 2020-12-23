@@ -10,6 +10,14 @@
 #define TETROMAN_DEBUG_H
 
 
+void PrintRectangle(rectangle2 *Rectangle, const char* Message = "") {
+    
+    printf(Message);
+    printf("Rect.Min.x: %f\n", Rectangle->Min.x);
+    printf("Rect.Min.y: %f\n", Rectangle->Min.y);
+    printf("Rect.Max.x: %f\n", Rectangle->Max.x);
+    printf("Rect.Max.y: %f\n", Rectangle->Max.y);
+}
 
 void PrintMatrix(u32 Matrix[4][4])
 {

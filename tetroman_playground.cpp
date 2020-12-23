@@ -173,7 +173,7 @@ FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form)
     
     switch(Form)
     {
-        case I_figure:
+        case figure_form::I_figure:
         {
             /* TODO(msokolov): Implement something like this instead of using std::vector
 
@@ -196,7 +196,7 @@ FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form)
             ColumnAmount = 1;
         } break;
         
-        case O_figure:
+        case figure_form::O_figure:
         {
             matrix = 
             { 
@@ -208,7 +208,7 @@ FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form)
             ColumnAmount = 2;
         }break;
         
-        case Z_figure:
+        case figure_form::Z_figure:
         {
             matrix =
             {
@@ -220,7 +220,7 @@ FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form)
             ColumnAmount = 2;
         }break;
         
-        case S_figure:
+        case figure_form::S_figure:
         {
             matrix =
             { 
@@ -232,7 +232,7 @@ FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form)
             ColumnAmount = 2;
         }break;
         
-        case T_figure:
+        case figure_form::T_figure:
         {
             matrix = 
             { 
@@ -245,7 +245,7 @@ FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form)
             ColumnAmount = 2;
         }break;
         
-        case L_figure:
+        case figure_form::L_figure:
         {
             matrix = 
             { 
@@ -258,7 +258,7 @@ FigureUnitInitFigure(figure_unit *FigureUnit, figure_form Form)
             ColumnAmount = 2;
         }break;
         
-        case J_figure:
+        case figure_form::J_figure:
         {
             matrix = 
             {
@@ -364,149 +364,27 @@ FigureUnitMove(figure_unit *Entity, v2 dt)
 }
 
 static game_texture *
-PickFigureTexture(figure_form Form, figure_type Type, figure_entity *FigureEntity)
+PickFigureTexture(figure_entity *FigureEntity, figure_form Form)
 {
     game_texture *Result = NULL;
     
-    switch(Form)
+    u32 FormIndex = static_cast<u32> (Form);
+    
+    switch(FigureEntity->CurrentType)
     {
-        case O_figure:
-        {
-            switch(Type)
-            {
-                case figure_type::Green: {
-                    Result = FigureEntity->O_GreenTexture;
-                } break;
-                case figure_type::Blue: {
-                    Result = FigureEntity->O_BlueTexture;
-                } break;
-                case figure_type::Orange: {
-                    Result = FigureEntity->O_OrangeTexture;
-                } break;
-                case figure_type::Red: {
-                    Result = FigureEntity->O_ClassicTexture;
-                } break;
-            }
+        case figure_type::Blue: {
+            Result = FigureEntity->BlueTexture[FormIndex];
         } break;
-        
-        case I_figure:
-        {
-            switch(Type)
-            {
-                case figure_type::Green: {
-                    Result = FigureEntity->I_GreenTexture;
-                } break;
-                case figure_type::Blue: {
-                    Result = FigureEntity->I_BlueTexture;
-                } break;
-                case figure_type::Orange: {
-                    Result = FigureEntity->I_OrangeTexture;
-                } break;
-                case figure_type::Red: {
-                    Result = FigureEntity->I_ClassicTexture;
-                } break;
-                
-            }
+        case figure_type::Green: {
+            Result = FigureEntity->GreenTexture[FormIndex];
         } break;
-        
-        case L_figure:
-        {
-            switch(Type)
-            {
-                case figure_type::Green: {
-                    Result = FigureEntity->L_GreenTexture;
-                } break;
-                case figure_type::Blue: {
-                    Result = FigureEntity->L_BlueTexture;
-                } break;
-                case figure_type::Orange: {
-                    Result = FigureEntity->L_OrangeTexture;
-                } break;
-                case figure_type::Red: {
-                    Result = FigureEntity->L_ClassicTexture;
-                } break;
-            }
+        case figure_type::Orange: {
+            Result = FigureEntity->OrangeTexture[FormIndex];
         } break;
-        
-        case J_figure:
-        {
-            switch(Type)
-            {
-                case figure_type::Green: {
-                    Result = FigureEntity->J_GreenTexture;
-                } break;
-                case figure_type::Blue: {
-                    Result = FigureEntity->J_BlueTexture;
-                } break;
-                case figure_type::Orange: {
-                    Result = FigureEntity->J_OrangeTexture;
-                } break;
-                case figure_type::Red: {
-                    Result = FigureEntity->J_ClassicTexture;
-                } break;
-            }
-        } break;
-        
-        case Z_figure:
-        {
-            switch(Type)
-            {
-                case figure_type::Green: {
-                    Result = FigureEntity->Z_GreenTexture;
-                } break;
-                case figure_type::Blue: {
-                    Result = FigureEntity->Z_BlueTexture;
-                } break;
-                case figure_type::Orange: {
-                    Result = FigureEntity->Z_OrangeTexture;
-                } break;
-                case figure_type::Red:
-                {
-                    Result = FigureEntity->Z_ClassicTexture;
-                } break;
-            }
-        } break;
-        
-        case S_figure:
-        {
-            switch(Type)
-            {
-                case figure_type::Green: {
-                    Result = FigureEntity->S_GreenTexture;
-                } break;
-                case figure_type::Blue: {
-                    Result = FigureEntity->S_BlueTexture;
-                } break;
-                case figure_type::Orange: {
-                    Result = FigureEntity->S_OrangeTexture;
-                } break;
-                case figure_type::Red:
-                {
-                    Result = FigureEntity->S_ClassicTexture;
-                } break;
-            }
-        } break;
-        
-        case T_figure:
-        {
-            switch(Type)
-            {
-                case figure_type::Green: {
-                    Result = FigureEntity->T_GreenTexture;
-                } break;
-                case figure_type::Blue: {
-                    Result = FigureEntity->T_BlueTexture;
-                } break;
-                case figure_type::Orange: {
-                    Result = FigureEntity->T_OrangeTexture;
-                } break;
-                case figure_type::Red: {
-                    Result = FigureEntity->T_ClassicTexture;
-                } break;
-            } 
+        case figure_type::Red: {
+            Result = FigureEntity->RedTexture[FormIndex];
         } break;
     }
-    
     
     return(Result);
 }
@@ -517,44 +395,8 @@ PickFigureShadowTexture(figure_form Form, figure_entity *FigureEntity)
 {
     game_texture *Result = NULL;
     
-    switch(Form)
-    {
-        case O_figure:
-        {
-            Result = FigureEntity->O_ShadowTexture;
-        } break;
-        
-        case I_figure:
-        {
-            Result = FigureEntity->I_ShadowTexture;
-        } break;
-        
-        case L_figure:
-        {
-            Result = FigureEntity->L_ShadowTexture;
-        } break;
-        
-        case J_figure:
-        {
-            Result = FigureEntity->J_ShadowTexture;
-        } break;
-        
-        case Z_figure:
-        {
-            Result = FigureEntity->Z_ShadowTexture;
-        } break;
-        
-        case S_figure:
-        {
-            Result = FigureEntity->S_ShadowTexture;
-        } break;
-        
-        case T_figure:
-        {
-            Result = FigureEntity->T_ShadowTexture;
-        } break;
-    }
-    
+    u32 FormIndex = static_cast<u32>(Form);
+    Result = FigureEntity->ShadowTexture[FormIndex];
     
     return(Result);
 }
@@ -563,48 +405,22 @@ static game_texture*
 PickFigureOutlineTexture(figure_form Form, figure_entity *FigureEntity)
 {
     game_texture *Result = NULL;
-    
-    switch(Form)
-    {
-        case O_figure:
-        {
-            Result = FigureEntity->O_OutlineTexture;
-        } break;
-        
-        case I_figure:
-        {
-            Result = FigureEntity->I_OutlineTexture;
-        } break;
-        
-        case L_figure:
-        {
-            Result = FigureEntity->L_OutlineTexture;
-        } break;
-        
-        case J_figure:
-        {
-            Result = FigureEntity->J_OutlineTexture;
-        } break;
-        
-        case Z_figure:
-        {
-            Result = FigureEntity->Z_OutlineTexture;
-        } break;
-        
-        case S_figure:
-        {
-            Result = FigureEntity->S_OutlineTexture;
-        } break;
-        
-        case T_figure:
-        {
-            Result = FigureEntity->T_OutlineTexture;
-        } break;
-    }
-    
+    u32 FormIndex = static_cast<u32>(Form);
+    Result = FigureEntity->OutlineTexture[FormIndex];
     
     return(Result);
 }
+
+static game_texture*
+PickFigureGroundTexture(figure_form Form, figure_entity *FigureEntity)
+{
+    game_texture *Result = NULL;
+    u32 FormIndex = static_cast<u32>(Form);
+    Result = FigureEntity->GroundTexture[FormIndex];
+    
+    return(Result);
+}
+
 
 static void
 FigureUnitSetToDefaultArea(figure_unit* Unit, r32 BlockRatio)
@@ -951,6 +767,8 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
                     SDL_ShowCursor(SDL_ENABLE);
                     FigureEntity->IsGrabbed    = false;
                     FigureEntity->FigureActive = -1;
+                    
+                    Mix_PlayChannel(1, LevelEntity->DropSound, 0);
                 }
             }
         }
@@ -1273,9 +1091,10 @@ GridEntityRender(grid_entity *GridEntity, render_group *RenderGroup) {
                 TextureRectangle.Min.x = GridCellRectangle.Min.x - (25.0f * 0.5f);
                 TextureRectangle.Min.y = GridCellRectangle.Min.y - (25.0f * 0.5f);
                 SetDim(&TextureRectangle, GetDim(GridCellRectangle).w + 25.0f, GetDim(GridCellRectangle).h + 25.0f);
+                
                 PushBitmap(RenderGroup, GridEntity->GridCell2Texture, TextureRectangle);
-                //PushRectangleOutline(RenderGroup, GridCellRectangle, V4(0.0f, 255.0f, 0.0f, 255.0f));
-                //PushRectangle(RenderGroup, GridCellRectangle, V4(255.0f, 255.0f, 255.0f, 255.0f));
+                //PushRectangleOutline(RenderGroup, TextureRectangle, V4(255.0f, 0.0f, 0.0f, 255.0f));
+                //PushRectangleOutline(RenderGroup, GridCellRectangle, V4(255.0f, 255.0f, 0.0f, 255.0f));
             }
         }
     }
@@ -1306,8 +1125,6 @@ GridEntityRender(grid_entity *GridEntity, render_group *RenderGroup) {
                 SetDim(&TextureRectangle, GetDim(GridCellRectangle).w + 25.0f, GetDim(GridCellRectangle).h + 25.0f);
                 
                 PushBitmap(RenderGroup, GridEntity->GridCell1Texture, TextureRectangle);
-                //PushRectangleOutline(RenderGroup, GridCellRectangle, V4(0.0f, 255.0f, 0.0f, 255.0f));
-                //PushRectangle(RenderGroup, GridCellRectangle, V4(255.0f, 255.0f, 255.0f, 255.0f));
             }
         }
     }
@@ -1352,12 +1169,8 @@ FigureEntityRenderFigures(figure_entity *FigureEntity, render_group *RenderGroup
         ShadowRectangle.Min = Rectangle.Min + ShadowOffset;
         ShadowRectangle.Max = Rectangle.Max + ShadowOffset;
         
-        game_texture *Texture = PickFigureTexture(Entity->Form, FigureEntity->CurrentType, FigureEntity);
+        game_texture *Texture = PickFigureTexture(FigureEntity, Entity->Form);
         game_texture *ShadowTexture = PickFigureShadowTexture(Entity->Form, FigureEntity);
-        
-        if (Entity->Form == O_figure) {
-            printf("");
-        }
         
         PushBitmapEx(RenderGroup, ShadowTexture, ShadowRectangle, Entity->Angle, Center, Entity->Flip);
         PushBitmapEx(RenderGroup, Texture, Rectangle, Entity->Angle, Center, Entity->Flip);
@@ -1365,6 +1178,7 @@ FigureEntityRenderFigures(figure_entity *FigureEntity, render_group *RenderGroup
             game_texture *OutlineTexture = PickFigureOutlineTexture(Entity->Form, FigureEntity);
             PushBitmapEx(RenderGroup, OutlineTexture, Rectangle, Entity->Angle, Center, Entity->Flip);
         }
+        
         //RenderFigureStructure(RenderGroup, Entity);
     }
 }
@@ -1374,12 +1188,16 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
                                    r32 dtForFrame, b32 IsStartup) {
     b32 Result = false;
     
-    float InterpPoint = Playground->Animation.InterpPoint + (dtForFrame / Playground->Animation.TimeMax);
+    b32 AnimationDone = true;
+    
+    r32 InterpPoint = Playground->Animation.InterpPoint + (dtForFrame / Playground->Animation.TimeMax);
     if (InterpPoint >= 1.0f) 
         InterpPoint = 1.0f;
     
     if (!IsStartup) 
         InterpPoint = 1.0f - InterpPoint;
+    
+    printf("InterpPoint: %f\n", InterpPoint);
     
     /* Background */
     rectangle2 BackgroundRectangle = {V2(0.0, 0.0f), V2(VIRTUAL_GAME_WIDTH, VIRTUAL_GAME_HEIGHT)};
@@ -1396,7 +1214,7 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
     rectangle2 ClipRectangle   = {};
     
     v2 TextureDim = QueryTextureDim(Playground->CornerLeftTopTexture);
-    v2 RectangleDim = {400.0f, 400.0f};
+    v2 RectangleDim = {408.0f, 408.0f};
     
     /* Top Left */
     {
@@ -1404,8 +1222,12 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
         v2 FinishPos = {RectangleDim.w + 20.0f, RectangleDim.h + 20.0f};
         BorderRectangle = LerpRectangleDimension(StartPos, FinishPos, InterpPoint);
         ClipRectangle = LerpRectangleDimension(V2(0.0f, 0.0f), V2(TextureDim.w, TextureDim.h), InterpPoint);
-        PushBitmapEx(RenderGroup, Playground->CornerLeftTopTexture, BorderRectangle, ClipRectangle, 0.0f, V2(0.0f, 0.0f), SDL_FLIP_NONE);
         
+        BorderRectangle += V2(5.0f, 5.0f);
+        PushBitmapEx(RenderGroup, Playground->CornerLeftTopShadowTexture, BorderRectangle, ClipRectangle, 0.0f, V2(0.0f, 0.0f), SDL_FLIP_NONE);
+        
+        BorderRectangle -= V2(5.0f, 5.0f);
+        PushBitmapEx(RenderGroup, Playground->CornerLeftTopTexture, BorderRectangle, ClipRectangle, 0.0f, V2(0.0f, 0.0f), SDL_FLIP_NONE);
     }
     
     /* Top Right */
@@ -1413,14 +1235,24 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
         rectangle2 Rectangle = BorderRectangle;
         Rectangle.Min += V2(VIRTUAL_GAME_WIDTH - 20.0f - 20.0f - 308.0f, 0.0f);
         Rectangle.Max += V2(VIRTUAL_GAME_WIDTH - 20.0f - 20.0f - 308.0f, 0.0f);
+        
+        Rectangle += V2(5.0f, 5.0f);
+        PushBitmapEx(RenderGroup, Playground->CornerLeftTopShadowTexture, Rectangle, ClipRectangle, 90.0f, V2(154.0f, 154.0f), SDL_FLIP_NONE);
+        
+        Rectangle -= V2(5.0f, 5.0f);
         PushBitmapEx(RenderGroup, Playground->CornerLeftTopTexture, Rectangle, ClipRectangle, 90.0f, V2(154.0f, 154.0f), SDL_FLIP_NONE);
+        
     }
-    
     /* Bottom Left */
     {
         rectangle2 Rectangle = BorderRectangle;
         Rectangle.Min += V2(0.0f, VIRTUAL_GAME_HEIGHT - 20.0f - 20.0f - 308.0f);
         Rectangle.Max += V2(0.0f, VIRTUAL_GAME_HEIGHT - 20.0f - 20.0f - 308.0f);
+        
+        Rectangle += V2(5.0f, 5.0f);
+        PushBitmapEx(RenderGroup, Playground->CornerLeftTopShadowTexture, Rectangle, ClipRectangle, -90.0f, V2(154.0f, 154.0f), SDL_FLIP_NONE);
+        
+        Rectangle -= V2(5.0f, 5.0f);
         PushBitmapEx(RenderGroup, Playground->CornerLeftTopTexture, Rectangle, ClipRectangle, -90.0f, V2(154.0f, 154.0f), SDL_FLIP_NONE);
     }
     
@@ -1429,6 +1261,11 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
         rectangle2 Rectangle = BorderRectangle;
         Rectangle.Min += V2(VIRTUAL_GAME_WIDTH - 20.0f - 20.0f - 308.0f, VIRTUAL_GAME_HEIGHT - 20.0f - 20.0f - 308.0f);
         Rectangle.Max += V2(VIRTUAL_GAME_WIDTH - 20.0f - 20.0f - 308.0f, VIRTUAL_GAME_HEIGHT - 20.0f - 20.0f - 308.0f);
+        
+        Rectangle += V2(5.0f, 5.0f);
+        PushBitmapEx(RenderGroup, Playground->CornerLeftTopShadowTexture, Rectangle, ClipRectangle, 180.0f, V2(154.0f, 154.0f), SDL_FLIP_NONE);
+        
+        Rectangle -= V2(5.0f, 5.0f);
         PushBitmapEx(RenderGroup, Playground->CornerLeftTopTexture, Rectangle, ClipRectangle, 180.0f, V2(154.0f, 154.0f), SDL_FLIP_NONE);
     }
     
@@ -1456,6 +1293,118 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
     /* Grid Animation */
     if (IsStartup)
     {
+        rectangle2 GridArea = GridEntityGetGridRectangle(&Playground->GridEntity);
+        
+        s32 DiagonalAmount = Playground->GridEntity.RowAmount + Playground->GridEntity.ColumnAmount - 1;
+        r32 DiagonalMaxInterpP = (1.0f / ((DiagonalAmount / 2) + 1));
+        
+#if 0
+        //r32 InterpPoint = Playground->Animation.InterpPoint + (dtForFrame / Playground->Animation.TimeMax);
+        r32 GridInterpPoint = Playground->GridInterpPoint + (dtForFrame / 2.0f);
+        Playground->GridInterpPoint = GridInterpPoint;
+        
+        if (GridInterpPoint < 1.0f)
+            AnimationDone = false;
+#endif
+        
+        r32 InterpP = InterpPoint < 0.5f ? InterpPoint * 2.0f : (InterpPoint * 2.0f) - 1.0f;
+        //r32 InterpP = InterpPoint;
+        
+        if (InterpPoint > 0.5f) {
+            for (int k = DiagonalAmount, i = 0; k >= 0; --k) {
+                if (k % 2 != 0) continue;
+                
+                r32 StartInterpP = i * DiagonalMaxInterpP;
+                r32 EndInterpP   = (i * DiagonalMaxInterpP) + DiagonalMaxInterpP;
+                
+                r32 DiagonalInterpP = (InterpP - StartInterpP) / DiagonalMaxInterpP;
+                if (InterpP < StartInterpP)
+                    DiagonalInterpP = 0.0f;
+                if (InterpP > EndInterpP)
+                    DiagonalInterpP = 1.0f;
+                
+                i++;
+                
+                for (int Col = 0; Col <= k; ++Col) {
+                    int Row = k - Col;
+                    
+                    if (Row < Playground->GridEntity.RowAmount && Col < Playground->GridEntity.ColumnAmount) {
+                        
+                        s32 MirrorCol = Col - (Playground->GridEntity.ColumnAmount - 1);
+                        if (MirrorCol < 0) MirrorCol = -MirrorCol;
+                        
+                        r32 LerpSize = Lerp1(0.0f, GRID_BLOCK_SIZE + 25.0f, DiagonalInterpP);
+                        //r32 LerpSize = GRID_BLOCK_SIZE + 25.0f;
+                        
+                        rectangle2 CellRectangle = {};
+                        CellRectangle.Min.x = GridArea.Min.x + (GRID_BLOCK_SIZE * MirrorCol);
+                        CellRectangle.Min.y = GridArea.Min.y + (GRID_BLOCK_SIZE * Row);
+                        
+                        v2 StartPos  = V2(GridArea.Max.x - GRID_BLOCK_SIZE, GridArea.Min.y);
+                        v2 TargetPos = CellRectangle.Min;
+                        v2 LerpPos = Lerp2(StartPos, TargetPos, DiagonalInterpP);
+                        //if (InterpPoint > 0.5f) 
+                        //LerpPos = TargetPos;
+                        
+                        LerpPos = CellRectangle.Min;
+                        rectangle2 TextureRectangle = {};
+                        TextureRectangle.Min.x = LerpPos.x + (GRID_BLOCK_SIZE * 0.5f) - (LerpSize * 0.5f);
+                        TextureRectangle.Min.y = LerpPos.y + (GRID_BLOCK_SIZE * 0.5f) - (LerpSize * 0.5f);
+                        SetDim(&TextureRectangle, LerpSize, LerpSize);
+                        
+                        PushBitmap(RenderGroup, Playground->GridEntity.GridCell2Texture, TextureRectangle);
+                    }
+                }
+            }
+        }
+        
+        for (int k = DiagonalAmount, i = 0; k >=0; --k) {
+            if (k % 2 != 0) continue;
+            
+            r32 StartInterpP = i * DiagonalMaxInterpP;
+            r32 EndInterpP   = (i * DiagonalMaxInterpP) + DiagonalMaxInterpP;
+            
+            r32 DiagonalInterpP = (InterpP - StartInterpP) / DiagonalMaxInterpP;
+            if (InterpP < StartInterpP)
+                DiagonalInterpP = 0.0f;
+            if (InterpP > EndInterpP)
+                DiagonalInterpP = 1.0f;
+            
+            i++;
+            
+            for (int Col = 0; Col <= k; ++Col) {
+                int Row = k - Col;
+                
+                if (Row < Playground->GridEntity.RowAmount && Col < Playground->GridEntity.ColumnAmount) {
+                    
+                    rectangle2 CellRectangle = {};
+                    CellRectangle.Min.x = GridArea.Min.x + (GRID_BLOCK_SIZE * Col);
+                    CellRectangle.Min.y = GridArea.Min.y + (GRID_BLOCK_SIZE * Row);
+                    
+                    r32 LerpSize = InterpPoint > 0.5f ? GRID_BLOCK_SIZE + 25.0f : Lerp1(0.0f, GRID_BLOCK_SIZE + 25.0f, DiagonalInterpP);
+                    //r32 LerpSize = Lerp1(0.0f, GRID_BLOCK_SIZE + 25.0f, DiagonalInterpP);
+                    //r32 LerpSize = GRID_BLOCK_SIZE + 25.0f;
+                    if (InterpPoint > 0.5f)
+                        LerpSize = GRID_BLOCK_SIZE + 25.0f;
+                    
+                    v2 StartPos  = GridArea.Min;
+                    v2 TargetPos = CellRectangle.Min;
+                    v2 LerpPos = Lerp2(StartPos, TargetPos, DiagonalInterpP);
+                    if (InterpPoint > 0.5f) 
+                        LerpPos = TargetPos;
+                    
+                    LerpPos = CellRectangle.Min;
+                    rectangle2 TextureRectangle = {};
+                    TextureRectangle.Min.x = LerpPos.x + (GRID_BLOCK_SIZE * 0.5f) - (LerpSize * 0.5f);
+                    TextureRectangle.Min.y = LerpPos.y + (GRID_BLOCK_SIZE * 0.5f) - (LerpSize * 0.5f);
+                    SetDim(&TextureRectangle, LerpSize, LerpSize);
+                    
+                    PushBitmap(RenderGroup, Playground->GridEntity.GridCell1Texture, TextureRectangle);
+                }
+            }
+        }
+        
+#if 0
         GridEntityRender(&Playground->GridEntity, RenderGroup);
         
         s32 MaxDim = Playground->GridEntity.RowAmount + Playground->GridEntity.ColumnAmount - 1;
@@ -1465,8 +1414,8 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
         rectangle2 GridArea = GridEntityGetGridRectangle(&Playground->GridEntity);
         
         for (int k = 0; k <= MaxDim; ++k) {
-            
             for (int Col = 0; Col <= k; ++Col) {
+                
                 int Row = k - Col;
                 if (Row < Playground->GridEntity.RowAmount && Col < Playground->GridEntity.ColumnAmount) {
                     
@@ -1504,11 +1453,64 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
             AnimTimeLeft -= 255.0f;
             if (AnimTimeLeft < 0.0f) AnimTimeLeft = 0.0f; 
         }
+#endif
     }
     
-    
     /* Figure Animation */
+    
+    b32 FoundFirstThrough = false;
     figure_unit *FigureUnit = Playground->FigureEntity.FigureUnit;
+    if (IsStartup) {
+        for(u32 i = 0; 
+            i < Playground->FigureEntity.FigureAmount;
+            ++i) {
+            
+            r32 FigureInterpPoint = 1.0f;
+            if (FoundFirstThrough) 
+                FigureInterpPoint = 0.0f;
+            
+            if (!Playground->FInterpStop[i] && !FoundFirstThrough) {
+                FoundFirstThrough = true;
+                AnimationDone = false;
+                
+                FigureInterpPoint = Playground->FInterpPoint + (dtForFrame / 0.12f);
+                if (FigureInterpPoint > 1.0f) {
+                    FigureInterpPoint = 1.0f;
+                    if (!Playground->FInterpStop[i]) {
+                        Playground->FInterpStop[i] = true;
+                        
+                        Mix_PlayChannel(((i+3) % 5) + 3, Playground->DropSound, 0);
+                        printf("Index %d is done\n", i);
+                    }
+                }
+                
+                Playground->FInterpPoint = FigureInterpPoint == 1.0f ? 0.0f : FigureInterpPoint;
+            }
+            
+            v2 FinishDimension  = Playground->AnimFigureDim[i];
+            v2 StartDimension   = FinishDimension * 2.0f;
+            
+            v2 LerpDim = Lerp2(StartDimension, FinishDimension, FigureInterpPoint);
+            FigureUnit[i].Size = LerpDim;
+            
+            v2 StartPos = {VIRTUAL_GAME_WIDTH, 0.0f};
+            v2 LerpPos = Lerp2(StartPos, FigureUnit[i].HomePosition, FigureInterpPoint);
+            FigureUnit[i].Position = LerpPos;
+            
+            r32 AngleOffset = 45.0f;
+            r32 FinishAngle = FigureUnit[i].HomeAngle;
+            r32 StartAngle  = FinishAngle + AngleOffset;
+            r32 LerpAngle   = Lerp1(StartAngle, FinishAngle, FigureInterpPoint);
+            FigureUnit[i].Angle = LerpAngle;
+            
+            if (FigureInterpPoint == 0.0f)
+                FigureUnit[i].Position = V2(-VIRTUAL_GAME_WIDTH, -VIRTUAL_GAME_HEIGHT);
+        }
+        
+        FigureEntityRenderFigures(&Playground->FigureEntity, RenderGroup);
+    }
+#if 0
+    
     if (IsStartup)
     {
         r32 InterpStepsPassed = InterpPoint / (dtForFrame / Playground->Animation.TimeMax);
@@ -1538,6 +1540,7 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
         
         FigureEntityRenderFigures(&Playground->FigureEntity, RenderGroup);
     }
+#endif
     else {
         
         FigureEntityRenderFigures(&Playground->FigureEntity, RenderGroup);
@@ -1547,6 +1550,72 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
         GridArea.Max += 20.0f;
         
         PushRectangle(RenderGroup, GridArea, V4(51.0f, 8.0f, 23.0f, (1.0f - InterpPoint) * 255.0f));
+#if 0
+        r32 AlphaChannel = Playground->FAlphaInterPoint - (dtForFrame * 5.0f );
+        if (AlphaChannel < 0)
+            AlphaChannel = 0.0f;
+        
+        for (u32 Index = 0; 
+             Index < Playground->FigureEntity.FigureAmount;
+             ++Index) {
+            
+            r32 FigureInterpPoint = 1.0f;
+            if (FoundFirstThrough)
+                FigureInterpPoint = 0.0f;
+            
+            if (!Playground->FInterpStop[Index]) continue;
+            
+            if (Playground->FInterpStop[Index] && !FoundFirstThrough) {
+                FoundFirstThrough = true;
+                AnimationDone = false;
+                
+                FigureInterpPoint = Playground->FInterpPoint + (dtForFrame * 8.0f);
+                if (FigureInterpPoint > 1.0f) {
+                    FigureInterpPoint = 1.0f;
+                    if (Playground->FInterpStop[Index]) {
+                        Playground->FInterpStop[Index] = false;
+                        
+                        //Mix_PlayChannel(((Index+3) % 5) + 3, Playground->DropSound, 0);
+                        printf("Index %d is done\n", Index);
+                    }
+                }
+                
+                Playground->FInterpPoint = FigureInterpPoint == 1.0f ? 0.0f : FigureInterpPoint;
+            }
+            
+            v2 StartPos = V2(Playground->AnimFigureDim[Index].x, Playground->AnimFigureDim[Index].y);
+            v2 FinishPos = V2(0.0f, 100.0f);
+            
+            v2 LerpPos = Lerp2(StartPos, FinishPos, FigureInterpPoint);
+            FigureUnit[Index].Position = LerpPos;
+            
+            game_texture *Texture = PickFigureTexture(&Playground->FigureEntity, FigureUnit[Index].Form);
+            //game_texture *ShadowTexture = PickFigureShadowTexture(FigureUnit[Index].Form, &Playground->FigureEntity);
+            
+            SDL_SetTextureAlphaMod(Texture, (1.0f - FigureInterpPoint) * 255.0f);
+            //SDL_SetTextureAlphaMod(ShadowTexture, (1.0f - FigureInterpPoint) * 255.0f);
+            
+            v2 FigureCenter = {};
+            FigureCenter.x   = FigureUnit[Index].Position.x + (FigureUnit[Index].Size.w / 2);
+            FigureCenter.y   = FigureUnit[Index].Position.y + (FigureUnit[Index].Size.h) * FigureUnit[Index].CenterOffset;
+            
+            v2 Center;
+            Center.x = FigureCenter.x - FigureUnit[Index].Position.x;
+            Center.y = FigureCenter.y - FigureUnit[Index].Position.y;
+            
+            rectangle2 Rectangle = {};
+            Rectangle.Min.x = FigureUnit[Index].Position.x;
+            Rectangle.Min.y = FigureUnit[Index].Position.y;
+            Rectangle.Max.w = Rectangle.Min.x + FigureUnit[Index].Size.w;
+            Rectangle.Max.h = Rectangle.Min.y + FigureUnit[Index].Size.h;
+            
+            //PushBitmapEx(RenderGroup, ShadowTexture, Rectangle, FigureUnit[Index].Angle, Center, FigureUnit[Index].Flip);
+            PushBitmapEx(RenderGroup, Texture, Rectangle, FigureUnit[Index].Angle, Center, FigureUnit[Index].Flip);
+        }
+        
+#endif
+        //FigureEntityRenderFigures(&Playground->FigureEntity, RenderGroup);
+        //Playground->FAlphaInterPoint = AlphaChannel;
     }
     
     /* Level Indicator Animation */
@@ -1615,7 +1684,8 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
     PushBitmap(RenderGroup, Playground->BackgroundTexture);
     
     Playground->Animation.InterpPoint = IsStartup ? InterpPoint : 1.0f - InterpPoint;
-    if ((IsStartup && InterpPoint == 1.0f) ||  (!IsStartup && InterpPoint <= 0.0f)) Result = true;
+    
+    if ((IsStartup && InterpPoint == 1.0f && AnimationDone) ||  (!IsStartup && InterpPoint <= 0.0f)) Result = true;
     
     return (Result);
 }
@@ -1673,6 +1743,18 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         
         if (LevelEntity->Animation.Finished) {
             if (LevelEntity->LevelFinished) {
+                //LevelEntity->IsStartup = false;
+                //LevelEntity->Animation.Finished = false;
+                //LevelEntity->Animation.InterpPoint = 0.0f;
+                //LevelEntity->FInterpPoint = 0.0f;
+                //LevelEntity->FAlphaInterPoint = 1.0f;
+                
+                //Mix_PlayChannel(2, LevelEntity->CompleteSound, 0);
+                
+                for (int i = 0; i < FigureAmount; ++i) {
+                    //LevelEntity->AnimFigureDim[i] = {FigureUnit[i].Position.x, FigureUnit[i].Position.y}; 
+                    //LevelEntity->FInterpStop[i] = true;
+                }
                 Result = playground_status::LEVEL_FINISHED;
             }
         }
@@ -1847,9 +1929,12 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         LevelEntity->IsStartup = false;
         LevelEntity->Animation.Finished = false;
         LevelEntity->Animation.InterpPoint = 0.0f;
+        LevelEntity->FInterpPoint = 0.0f;
+        
+        Mix_PlayChannel(2, LevelEntity->CompleteSound, 0);
         
         for (int i = 0; i < FigureAmount; ++i) 
-            LevelEntity->AnimFigureDim[i] = {FigureUnit[i].Angle, FigureUnit[i].Position.y};
+            LevelEntity->AnimFigureDim[i] = {FigureUnit[i].Position.x, FigureUnit[i].Position.y};
         
         printf("level is completed\n");
     }
@@ -2032,10 +2117,70 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     rectangle2 BackgroundRectangle = {V2(0.0, 0.0f), V2(VIRTUAL_GAME_WIDTH, VIRTUAL_GAME_HEIGHT)};
     PushBitmap(RenderGroup, LevelEntity->BackgroundTexture, BackgroundRectangle);
     
-    
-    
     // NOTE(msokolov): GridEntity Rendering
     GridEntityRender(GridEntity, RenderGroup);
+    
+    if (FigureEntity->IsGrabbed) {
+        u32 FigureIndex = FigureEntity->FigureActive;
+        if (!FigureEntity->IsRotating) {
+            
+            b32 IsInsideGrid = true;
+            for (int i = 0; i < FIGURE_BLOCKS_MAXIMUM && IsInsideGrid; ++i) {
+                
+                if (!IsInRectangle(FigureUnit[FigureIndex].Shell[i], GridArea))
+                    IsInsideGrid = false;
+            }
+            
+            if (IsInsideGrid) {
+                v2 Offset = {};
+                
+                u32 Count = 0;
+                for (u32 i = 0 ; i < RowAmount && Count != 4 && IsInsideGrid; ++i) {
+                    for (u32 j = 0; j < ColumnAmount && Count != 4 && IsInsideGrid; ++j) {
+                        rectangle2 Rect = {};
+                        Rect.Min.x = GridArea.Min.x + (j * GridBlockSize);
+                        Rect.Min.y = GridArea.Min.y + (i * GridBlockSize);
+                        Rect.Max.x = Rect.Min.x + GridBlockSize;
+                        Rect.Max.y = Rect.Min.y + GridBlockSize;
+                        
+                        for (u32 l = 0; l < FIGURE_BLOCKS_MAXIMUM; ++l) {
+                            if (IsInRectangle(FigureUnit[FigureIndex].Shell[l], Rect)) {
+                                if(GridEntity->UnitField[(i * ColumnAmount) + j] > 0) {
+                                    IsInsideGrid = false;
+                                    break;
+                                }
+                                
+                                Offset = Rect.Min + (GridBlockSize * 0.5f) - FigureUnit[FigureIndex].Shell[l];
+                                Count++;
+                            }
+                        }
+                    }
+                    
+                    
+                }
+                
+                if (Count == 4) {
+                    
+                    rectangle2 Rectangle = {};
+                    Rectangle.Min.x = FigureUnit[FigureIndex].Position.x + Offset.x;
+                    Rectangle.Min.y = FigureUnit[FigureIndex].Position.y + Offset.y;
+                    Rectangle.Max.w = Rectangle.Min.x + FigureUnit[FigureIndex].Size.w;
+                    Rectangle.Max.h = Rectangle.Min.y + FigureUnit[FigureIndex].Size.h;
+                    
+                    v2 FigureCenter = {};
+                    FigureCenter.x   = FigureUnit[FigureIndex].Position.x + (FigureUnit[FigureIndex].Size.w * 0.5f);
+                    FigureCenter.y   = FigureUnit[FigureIndex].Position.y + (FigureUnit[FigureIndex].Size.h) * FigureUnit[FigureIndex].CenterOffset;
+                    
+                    v2 Center;
+                    Center.x = FigureCenter.x - FigureUnit[FigureIndex].Position.x;
+                    Center.y = FigureCenter.y - FigureUnit[FigureIndex].Position.y;
+                    
+                    game_texture *Texture = PickFigureGroundTexture(FigureUnit[FigureIndex].Form, FigureEntity);
+                    PushBitmapEx(RenderGroup, Texture, Rectangle, FigureUnit[FigureIndex].Angle, Center, FigureUnit[FigureIndex].Flip);
+                }
+            }
+        }
+    }
     
     /* FigureEntity Update and Rendering */
     if(FigureEntity->IsRestarting)
@@ -2111,43 +2256,66 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
     
     /* UI Rendering */
     {
-        rectangle2 Rectangle = {};
+        rectangle2 BorderRectangle = {};
         v2 TextureDim = QueryTextureDim(LevelEntity->CornerLeftTopTexture);
-        v2 RectangleDim = {400.0f, 400.0f};
+        v2 RectangleDim = {408.0f, 408.0f};
         v2 OffsetFromWall = {20.0f, 20.0f};
         
         /* Top Left */
         {
-            Rectangle = {OffsetFromWall};
-            SetDim(&Rectangle, RectangleDim);
-            PushBitmap(RenderGroup, LevelEntity->CornerLeftTopTexture, Rectangle);
-        }
-        
-        /* Bottom Left */
-        {
-            Rectangle = {{OffsetFromWall.x, VIRTUAL_GAME_HEIGHT - OffsetFromWall.y - RectangleDim.h}};
-            SetDim(&Rectangle, RectangleDim);
-            PushBitmap(RenderGroup, LevelEntity->CornerLeftBottomTexture, Rectangle);
+            BorderRectangle = {OffsetFromWall};
+            SetDim(&BorderRectangle, RectangleDim);
+            
+            BorderRectangle += V2(5.0f, 5.0f);
+            PushBitmap(RenderGroup, LevelEntity->CornerLeftTopShadowTexture, BorderRectangle);
+            
+            BorderRectangle -= V2(5.0f, 5.0f);
+            PushBitmap(RenderGroup, LevelEntity->CornerLeftTopTexture, BorderRectangle);
         }
         
         /* Top Right */
         {
-            Rectangle = {{VIRTUAL_GAME_WIDTH - RectangleDim.w - OffsetFromWall.x, OffsetFromWall.y}};
-            SetDim(&Rectangle, RectangleDim);
-            PushBitmap(RenderGroup, LevelEntity->CornerRightTopTexture, Rectangle);
+            rectangle2 Rectangle = BorderRectangle;
+            Rectangle.Min += V2(VIRTUAL_GAME_WIDTH - 20.0f - 20.0f - 308.0f, 0.0f);
+            Rectangle.Max += V2(VIRTUAL_GAME_WIDTH - 20.0f - 20.0f - 308.0f, 0.0f);
+            
+            Rectangle += V2(5.0f, 5.0f);
+            PushBitmapEx(RenderGroup, LevelEntity->CornerLeftTopShadowTexture, Rectangle, 90.0f, V2(154.0f, 154.0f), SDL_FLIP_NONE);
+            
+            Rectangle -= V2(5.0f, 5.0f);
+            PushBitmapEx(RenderGroup, LevelEntity->CornerLeftTopTexture, Rectangle, 90.0f, V2(154.0f, 154.0f), SDL_FLIP_NONE);
+        }
+        
+        /* Bottom Left */
+        {
+            rectangle2 Rectangle = BorderRectangle;
+            Rectangle.Min += V2(0.0f, VIRTUAL_GAME_HEIGHT - 20.0f - 20.0f - 308.0f);
+            Rectangle.Max += V2(0.0f, VIRTUAL_GAME_HEIGHT - 20.0f - 20.0f - 308.0f);
+            
+            Rectangle += V2(5.0f, 5.0f);
+            PushBitmapEx(RenderGroup, LevelEntity->CornerLeftTopShadowTexture, Rectangle, -90.0f, V2(154.0f, 154.0f), SDL_FLIP_NONE);
+            
+            Rectangle -= V2(5.0f, 5.0f);
+            PushBitmapEx(RenderGroup, LevelEntity->CornerLeftTopTexture, Rectangle, -90.0f, V2(154.0f, 154.0f), SDL_FLIP_NONE);
         }
         
         /* Bottom Right */
         {
-            Rectangle = {{VIRTUAL_GAME_WIDTH - RectangleDim.w - OffsetFromWall.x, VIRTUAL_GAME_HEIGHT - RectangleDim.h - OffsetFromWall.y}};
-            SetDim(&Rectangle, RectangleDim);
-            PushBitmap(RenderGroup, LevelEntity->CornerRightBottomTexture, Rectangle);
+            rectangle2 Rectangle = BorderRectangle;
+            Rectangle.Min += V2(VIRTUAL_GAME_WIDTH - 20.0f - 20.0f - 308.0f, VIRTUAL_GAME_HEIGHT - 20.0f - 20.0f - 308.0f);
+            Rectangle.Max += V2(VIRTUAL_GAME_WIDTH - 20.0f - 20.0f - 308.0f, VIRTUAL_GAME_HEIGHT - 20.0f - 20.0f - 308.0f);
+            
+            Rectangle += V2(5.0f, 5.0f);
+            PushBitmapEx(RenderGroup, LevelEntity->CornerLeftTopShadowTexture, Rectangle, 180.0f, V2(154.0f, 154.0f), SDL_FLIP_NONE);
+            
+            Rectangle -= V2(5.0f, 5.0f);
+            PushBitmapEx(RenderGroup, LevelEntity->CornerLeftTopTexture, Rectangle, 180.0f, V2(154.0f, 154.0f), SDL_FLIP_NONE);
         }
         
         /* Vertical Border*/
         {
             v2 Dim = QueryTextureDim(LevelEntity->VerticalBorderTexture);
-            Rectangle = {{1200.0f, 100.0f}, {}};
+            rectangle2 Rectangle = {{1200.0f, 100.0f}, {}};
             SetDim(&Rectangle, Dim);
             PushBitmap(RenderGroup, LevelEntity->VerticalBorderTexture, Rectangle);
         }
@@ -2223,15 +2391,12 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
             // Gear Shadow Texture
             PushBitmapEx(RenderGroup, Options->GearShadowTexture, GearRectangle, LevelEntity->GearAngle, V2(50.0f, 50.0f), SDL_FLIP_NONE);
             
-            
-            
             GearRectangle.Min.x = VIRTUAL_GAME_WIDTH  - 200.0f;
             GearRectangle.Min.y = VIRTUAL_GAME_HEIGHT - 200.0f;
-            SetDim(&GearRectangle, 96.0f, 96.0f);
+            SetDim(&GearRectangle, 100.0f, 100.0f);
             
             // Gear Texture
-            PushBitmapEx(RenderGroup, Options->GearTexture, GearRectangle, LevelEntity->GearAngle, V2(48.0f, 48.0f), SDL_FLIP_NONE);
-            PushRectangleOutline(RenderGroup, GearRectangle, V4(255.0f, 255.0f, 255.0f, 255.0f));
+            PushBitmapEx(RenderGroup, Options->GearTexture, GearRectangle, LevelEntity->GearAngle, V2(50.0f, 50.0f), SDL_FLIP_NONE);
         }
         
         /* Level Indicator Bar */ 
@@ -2320,6 +2485,15 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
 {
     Assert(Index >= 0 || Index < PLAYGROUND_MAXIMUM);
     
+    for (int i = 0; i < Playground->FigureEntity.FigureAmount; ++i) {
+        figure_unit *FigureUnit = &Playground->FigureEntity.FigureUnit[i];
+        game_texture *Texture = PickFigureTexture(&Playground->FigureEntity, FigureUnit->Form);
+        game_texture *ShadowTexture = PickFigureShadowTexture(FigureUnit->Form, &Playground->FigureEntity);
+        
+        SDL_SetTextureAlphaMod(Texture, 255.0f);
+        SDL_SetTextureAlphaMod(ShadowTexture, 255.0f);
+    }
+    
     playground_data PlaygroundData = ReadPlaygroundData(Data, Index);
     
     Playground->LevelStarted  = true;
@@ -2329,6 +2503,9 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
     Playground->ShowTimer    = false;
     
     Playground->IsStartup = true;
+    Playground->GridInterpPoint = 0.0f;
+    Playground->FInterpPoint = 0.0f;
+    Playground->FAlphaInterPoint  = 1.0f;
     Playground->Animation.Finished = false;
     Playground->Animation.InterpPoint = 0.0f;
     Playground->Animation.TimeMax = 1.0f;
@@ -2358,6 +2535,8 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
     
     for (u32 i = 0; i < FIGURE_AMOUNT_MAXIMUM; ++i)
     {
+        Playground->FInterpStop[i] = false;
+        
         Playground->GridEntity.StickUnits[i].Index = -1;
         Playground->GridEntity.StickUnits[i].IsSticked = false;
     }
@@ -2406,7 +2585,6 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
     // For animation
     for (int i = 0; i < Playground->FigureEntity.FigureAmount; ++i) 
         Playground->AnimFigureDim[i] = FigureUnits[i].Size;
-    
     
 }
 

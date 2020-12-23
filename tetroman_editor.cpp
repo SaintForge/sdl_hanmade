@@ -11,16 +11,16 @@ GetNextFigureShape(figure_form CurrentForm)
 {
     switch(CurrentForm)
     {
-        case I_figure: return O_figure;
-        case O_figure: return Z_figure;
-        case Z_figure: return S_figure;
-        case S_figure: return T_figure;
-        case T_figure: return L_figure;
-        case L_figure: return J_figure;
-        case J_figure: return I_figure;
+        case figure_form::I_figure: return figure_form::O_figure;
+        case figure_form::O_figure: return figure_form::Z_figure;
+        case figure_form::Z_figure: return figure_form::S_figure;
+        case figure_form::S_figure: return figure_form::T_figure;
+        case figure_form::T_figure: return figure_form::L_figure;
+        case figure_form::L_figure: return figure_form::J_figure;
+        case figure_form::J_figure: return figure_form::I_figure;
     }
     
-    return O_figure;
+    return figure_form::O_figure;
 }
 
 static void

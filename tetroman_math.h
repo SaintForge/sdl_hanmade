@@ -233,8 +233,6 @@ operator+=(v2 &A, v2 B)
     return(A);
 }
 
-
-
 inline v2 &
 operator+=(v2 &A, r32 B)
 {
@@ -300,6 +298,26 @@ struct rectangle2
     v2 Min;
     v2 Max;
 };
+
+
+inline rectangle2&
+operator+=(rectangle2 &A, v2 B)
+{
+    A.Min += B;
+    A.Max += B;
+    
+    return(A);
+}
+
+inline rectangle2&
+operator-=(rectangle2 &A, v2 B)
+{
+    A.Min -= B;
+    A.Max -= B;
+    
+    return(A);
+}
+
 
 inline static v2
 GetDim(rectangle2 Rectangle)

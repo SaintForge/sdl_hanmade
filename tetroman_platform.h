@@ -31,9 +31,10 @@
 // TODO(msokolov): I don't know whether we should consider this or not
 enum game_resolution
 {
-    HD      = 0, // 1280x720    
-    FULLHD  = 1, // 1920x1080
-    QFULLHD = 2  // 2560x1440
+    HD    = 0, // 1280x720    
+    FHD   = 1, // 1920x1080
+    UWFHD = 2, // 2560x1080
+    WQHD  = 3  // 2560x1440
 };
 
 using namespace std;

@@ -269,12 +269,19 @@ SetWindowResolution(SDL_Window *Window, game_resolution Resolution)
             Result.Height = 720;
         } break;
         
-        case FULLHD:
+        case FHD:
         {
             Result.Width = 1920;
             Result.Height = 1080;
         } break;
-        case QFULLHD:
+        
+        case UWFHD:
+        {
+            Result.Width = 2560;
+            Result.Height = 1080;
+        } break;
+        
+        case WQHD:
         {
             Result.Width = 2560;
             Result.Height = 1440;
@@ -381,8 +388,6 @@ int main(int argc, char **argv)
                                                     SDL_RENDERER_TARGETTEXTURE|SDL_RENDERER_ACCELERATED);
         
         SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
-        //SDL_RenderSetLogicalSize(Renderer, VIRTUAL_GAME_WIDTH, VIRTUAL_GAME_HEIGHT);
-        //SDL_RenderSetIntegerScale(Renderer, SDL_TRUE);
         
         if(Renderer)
         {
@@ -390,9 +395,7 @@ int main(int argc, char **argv)
             
             window_dimension Dimension = {Display.w, Display.h};
             
-            //SetWindowFullscreen(Window, false);
-            //Dimension = SDLGetWindowDimension(Window);
-            Dimension = SetWindowResolution(Window, game_resolution::QFULLHD);
+            Dimension = SetWindowResolution(Window, game_resolution::FHD);
             
             game_offscreen_buffer Buffer = {};
             Buffer.Renderer      = Renderer;
@@ -496,9 +499,6 @@ int main(int argc, char **argv)
                             
                             NewMouse.x = NewMouse.x * Buffer.Width;
                             NewMouse.y = NewMouse.y * Buffer.Height;
-                            
-                            printf("NewMouse.x : %f\n", NewMouse.x);
-                            printf("NewMouse.y : %f\n", NewMouse.y);
                             
                             Input.MouseX = roundf(NewMouse.x);
                             Input.MouseY = roundf(NewMouse.y);

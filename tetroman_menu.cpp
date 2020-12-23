@@ -47,33 +47,65 @@ GetBackgroundMenuArea(menu_page Page) {
 }
 
 static inline void
-DrawCornersOnButton(render_group *RenderGroup, game_texture *CornerTexture[4], 
-                    rectangle2 ButtonRectangle, v2 CornerDim)
+DrawCornersOnButton(render_group *RenderGroup, rectangle2 ButtonRectangle, v2 CornerDim,
+                    game_texture *CornerTexture, game_texture *ShadowTexture)
+
 {
-    rectangle2 CornerRectangle = {};
+    rectangle2 BorderRectangle = ButtonRectangle;
+    SetDim(&BorderRectangle, CornerDim);
     
-    // top left
-    CornerRectangle.Min.x = ButtonRectangle.Min.x;
-    CornerRectangle.Min.y = ButtonRectangle.Min.y;
-    SetDim(&CornerRectangle, CornerDim);
-    PushBitmap(RenderGroup, CornerTexture[0], CornerRectangle);
+    v2 Center = CornerDim * 0.5f;
     
-    // bottom left
-    CornerRectangle.Min.x = ButtonRectangle.Min.x;
-    CornerRectangle.Min.y = ButtonRectangle.Max.y - CornerDim.h;
-    SetDim(&CornerRectangle, CornerDim);
-    PushBitmap(RenderGroup, CornerTexture[1], CornerRectangle);
+    /* Top Left */
+    {
+        rectangle2 Rectangle = BorderRectangle;
+        SetDim(&Rectangle, CornerDim);
+        
+        Rectangle += V2(3.0f, 3.0f);
+        PushBitmapEx(RenderGroup, ShadowTexture, Rectangle, 0.0f, Center, SDL_FLIP_NONE);
+        Rectangle -= V2(3.0f, 3.0f);
+        PushBitmapEx(RenderGroup, CornerTexture, Rectangle, 0.0f, Center, SDL_FLIP_NONE);
+    }
     
-    // top right
-    CornerRectangle.Min.x = ButtonRectangle.Max.x - CornerDim.w;
-    CornerRectangle.Min.y = ButtonRectangle.Min.y;
-    SetDim(&CornerRectangle, CornerDim);
-    PushBitmap(RenderGroup, CornerTexture[2], CornerRectangle);
+    /* Top Right */
+    {
+        rectangle2 Rectangle;
+        Rectangle.Min.x = ButtonRectangle.Max.x - CornerDim.w;
+        Rectangle.Min.y = ButtonRectangle.Min.y;
+        SetDim(&Rectangle, CornerDim);
+        
+        Rectangle += V2(3.0f, 3.0f);
+        PushBitmapEx(RenderGroup, ShadowTexture, Rectangle, 90.0f, Center, SDL_FLIP_NONE);
+        Rectangle -= V2(3.0f, 3.0f);
+        PushBitmapEx(RenderGroup, CornerTexture, Rectangle, 90.0f, Center, SDL_FLIP_NONE);
+    }
     
-    // bottom right
-    CornerRectangle.Min.y = ButtonRectangle.Max.y - (CornerDim.h);
-    SetDim(&CornerRectangle, CornerDim);
-    PushBitmap(RenderGroup, CornerTexture[3], CornerRectangle);
+    /* Bottom Left */
+    {
+        rectangle2 Rectangle;
+        Rectangle.Min.x = ButtonRectangle.Min.x;
+        Rectangle.Min.y = ButtonRectangle.Max.y - CornerDim.h;
+        SetDim(&Rectangle, CornerDim);
+        
+        Rectangle += V2(3.0f, 3.0f);
+        PushBitmapEx(RenderGroup, ShadowTexture, Rectangle, -90.0f, Center, SDL_FLIP_NONE);
+        Rectangle -= V2(3.0f, 3.0f);
+        PushBitmapEx(RenderGroup, CornerTexture, Rectangle, -90.0f, Center, SDL_FLIP_NONE);
+    }
+    
+    /* Bottom Right */
+    {
+        rectangle2 Rectangle;
+        Rectangle.Min.x = ButtonRectangle.Max.x - CornerDim.w;
+        Rectangle.Min.y = ButtonRectangle.Max.y - CornerDim.h;
+        SetDim(&Rectangle, CornerDim);
+        
+        Rectangle += V2(3.0f, 3.0f);
+        PushBitmapEx(RenderGroup, ShadowTexture, Rectangle, 180.0f, Center, SDL_FLIP_NONE);
+        Rectangle -= V2(3.0f, 3.0f);
+        PushBitmapEx(RenderGroup, CornerTexture, Rectangle, 180.0f, Center, SDL_FLIP_NONE);
+    }
+    
 }
 
 static void
@@ -143,19 +175,37 @@ UpdateTextureForLevels(playground_menu *PlaygroundMenu, player_data *PlayerData,
                     NextLevelFound = true;
                 }
                 else {
+                    
                     PushBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->NextLevelBackgroundTexture, LevelRectangle);
                     
-                    LevelRectangle = GetTextOnTheCenterOfRectangle(ButtonRectangle, PlaygroundMenu->LevelTimeTexture[LevelIndex]);
+                    rectangle2 LevelNumberRectangle = ButtonRectangle;
+                    LevelNumberRectangle.Max.y -= GetDim(LevelRectangle).h * 0.5f;
                     
-                    LevelRectangle.Min += V2(5.0f, 5.0f);
-                    LevelRectangle.Max += V2(5.0f, 5.0f);
+                    rectangle2 Rectangle = GetTextOnTheCenterOfRectangle(LevelNumberRectangle, PlaygroundMenu->LevelNumberShadowTexture[LevelIndex]);
                     
-                    PushFontBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->LevelTimeShadowTexture[LevelIndex], LevelRectangle);
+                    Rectangle.Min += V2(5.0f, 5.0f);
+                    Rectangle.Max += V2(5.0f, 5.0f);
                     
-                    LevelRectangle.Min -= V2(5.0f, 5.0f);
-                    LevelRectangle.Max -= V2(5.0f, 5.0f);
+                    PushFontBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->LevelNumberShadowTexture[LevelIndex], Rectangle);
                     
-                    PushFontBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->LevelTimeTexture[LevelIndex], LevelRectangle);
+                    Rectangle.Min -= V2(3.0f, 3.0f);
+                    Rectangle.Max -= V2(3.0f, 3.0f);
+                    
+                    PushFontBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->LevelNumberTexture[LevelIndex], Rectangle);
+                    
+                    rectangle2 TimerRectangle = ButtonRectangle;
+                    TimerRectangle.Min.y += GetDim(ButtonRectangle).h * 0.5f;
+                    
+                    Rectangle = GetTextOnTheCenterOfRectangle(ButtonRectangle, PlaygroundMenu->LevelTimeShadowTexture[LevelIndex]);
+                    
+                    Rectangle.Min += V2(0.0f, 15.0f);
+                    Rectangle.Max += V2(0.0f, 15.0f);
+                    PushFontBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->LevelTimeShadowTexture[LevelIndex], Rectangle);
+                    
+                    Rectangle.Min -= V2(3.0f, 3.0f);
+                    Rectangle.Max -= V2(3.0f, 3.0f);
+                    
+                    PushFontBitmapOnBitmap(RenderGroup, PlaygroundMenu->LevelsCanvasTexture, PlaygroundMenu->LevelTimeTexture[LevelIndex], Rectangle);
                 }
             }
             else
@@ -216,7 +266,9 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
     
     v2 DifficultyPosition = {};
     DifficultyPosition.x = (VIRTUAL_GAME_WIDTH * 0.5f) - (DifficultyButtonSize.w * 0.5f);
-    DifficultyPosition.y = (VIRTUAL_GAME_HEIGHT * 0.5f) - (DifficultyButtonSize.h * 0.5f) - (VIRTUAL_GAME_HEIGHT * 0.4f);
+    DifficultyPosition.y = (VIRTUAL_GAME_HEIGHT * 0.5f) - (DifficultyButtonSize.h * 2.0f);
+    
+    DifficultyPosition.x = (VIRTUAL_GAME_WIDTH * 0.5f) - ((DifficultyButtonSize.w * 3) * 0.5f);
     
     v2 MainMenuPosition = {};
     MainMenuPosition.x = VIRTUAL_GAME_WIDTH / 2.0f - (MainMenuButtonSize.w / 2.0f);
@@ -427,8 +479,8 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                  Index < 3;
                  ++Index)
             {
-                DifficultyRectangle.Min.x = DifficultyPosition.x;
-                DifficultyRectangle.Min.y = DifficultyPosition.y  + (Index * DifficultyButtonSize.h);
+                DifficultyRectangle.Min.x = DifficultyPosition.x  + (Index * DifficultyButtonSize.w);
+                DifficultyRectangle.Min.y = DifficultyPosition.y;
                 SetDim(&DifficultyRectangle, 400, 150);
                 
                 if (IsInRectangle(MousePos, DifficultyRectangle))
@@ -548,7 +600,7 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                 PushBitmap(RenderGroup, PlaygroundMenu->BackgroundTexture, BackgroundRectangle);
             }
             
-            DrawCornersOnButton(RenderGroup, PlaygroundMenu->CornerTexture, FinalBackgroundRectangle, V2(200.0f, 200.0f));
+            DrawCornersOnButton(RenderGroup, FinalBackgroundRectangle, V2(200.0f, 200.0f), PlaygroundMenu->CornerTexture, PlaygroundMenu->CornerShadowTexture);
             
             rectangle2 ButtonRectangle = {};
             for (u32 Index = 0;
@@ -625,7 +677,7 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                 PushBitmap(RenderGroup, PlaygroundMenu->BackgroundTexture, BackgroundRectangle);
             }
             
-            DrawCornersOnButton(RenderGroup, PlaygroundMenu->CornerTexture, FinalBackgroundRectangle, V2(200.0f, 200.0f));
+            DrawCornersOnButton(RenderGroup,FinalBackgroundRectangle, V2(200.0f, 200.0f), PlaygroundMenu->CornerTexture, PlaygroundMenu->CornerShadowTexture);
             
             // NOTE(msokolov): Settings buttons
             v2 SettingsButtonSize = V2(200.0f, 100.0f);
@@ -795,15 +847,15 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                 PushBitmap(RenderGroup, PlaygroundMenu->BackgroundTexture, BackgroundRectangle);
             }
             
-            DrawCornersOnButton(RenderGroup, PlaygroundMenu->CornerTexture, FinalBackgroundRectangle, V2(200.0f, 200.0f));
+            DrawCornersOnButton(RenderGroup, FinalBackgroundRectangle, V2(200.0f, 200.0f), PlaygroundMenu->CornerTexture, PlaygroundMenu->CornerShadowTexture);
+            
+            v2 CornerDim = V2(150.0f * 0.4f, 150.0f * 0.4f);
             
             rectangle2 DifficultyRectangle = {};
-            for (u32 Index = 0;
-                 Index < 3;
-                 ++Index)
+            for (u32 Index = 0; Index < 3; ++Index)
             {
-                DifficultyRectangle.Min.x = DifficultyPosition.x;
-                DifficultyRectangle.Min.y = DifficultyPosition.y + ((Index * DifficultyButtonSize.h));
+                DifficultyRectangle.Min.x = DifficultyPosition.x + (Index * DifficultyButtonSize.w);
+                DifficultyRectangle.Min.y = DifficultyPosition.y;
                 SetDim(&DifficultyRectangle, DifficultyButtonSize);
                 
                 rectangle2 TextRectangle = GetTextOnTheCenterOfRectangle(DifficultyRectangle, PlaygroundMenu->DifficultyTexture[Index]);
@@ -812,14 +864,19 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                 TextShadowRectangle.Min += 5.0f;
                 TextShadowRectangle.Max += 5.0f;
                 
+                DrawCornersOnButton(RenderGroup, DifficultyRectangle, CornerDim, PlaygroundMenu->LevelCornerTexture, PlaygroundMenu->LevelCornerShadowTexture);
+                
                 PushFontBitmap(RenderGroup, PlaygroundMenu->DifficultyShadowTexture[Index], TextShadowRectangle);
                 PushFontBitmap(RenderGroup, PlaygroundMenu->DifficultyTexture[Index], TextRectangle);
                 
                 if (Index == (s32)PlaygroundMenu->DiffMode)
                 {
-                    v2 CornerDim = V2(150.0f * 0.4f, 150.0f * 0.4f);
-                    DrawCornersOnButton(RenderGroup, PlaygroundMenu->LevelCornerTexture, DifficultyRectangle, CornerDim);
+                    PushRectangle(RenderGroup, DifficultyRectangle, V4(51.0f, 8.0f, 23.0f, 0.0f));
                 }
+                else {
+                    PushRectangle(RenderGroup, DifficultyRectangle, V4(51.0f, 8.0f, 23.0f, 210.0f));
+                }
+                
                 
                 if (!PlaygroundMenu->AnimationFinished) {
                     r32 AlphaChannel = (1.0f - PlaygroundMenu->InterpPoint) * 255.0f;

@@ -68,8 +68,9 @@ struct game_state
     playground_data *PlaygroundData;
     
     game_font *Font;
-    game_font *MenuTimerFont;
     game_font *TimerFont;
+    game_font *MenuTimerFont;
+    game_font *MenuDifficultyFont;
     
     /* NOTE(msokolov): Non-release thing only */
 #if DEBUG_BUILD

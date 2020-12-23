@@ -18,7 +18,7 @@
 #define ROW_AMOUNT_MAXIMUM    10
 #define PLAYGROUND_MAXIMUM    100
 
-enum figure_form
+enum struct figure_form
 {
     O_figure, 
     I_figure, 
@@ -87,54 +87,13 @@ struct figure_entity
     r32 RotationVelocity;
     
     /* Texture Assets */
-    game_texture *O_GreenTexture;
-    game_texture *O_BlueTexture;
-    game_texture *O_OrangeTexture;
-    game_texture *O_ClassicTexture;
-    game_texture *O_ShadowTexture;
-    game_texture *O_OutlineTexture;
-    
-    game_texture *I_GreenTexture;
-    game_texture *I_BlueTexture;
-    game_texture *I_OrangeTexture;
-    game_texture *I_ClassicTexture;
-    game_texture *I_ShadowTexture;
-    game_texture *I_OutlineTexture;
-    
-    game_texture *L_GreenTexture;
-    game_texture *L_BlueTexture;
-    game_texture *L_OrangeTexture;
-    game_texture *L_ClassicTexture;
-    game_texture *L_ShadowTexture;
-    game_texture *L_OutlineTexture;
-    
-    game_texture *J_GreenTexture;
-    game_texture *J_BlueTexture;
-    game_texture *J_OrangeTexture;
-    game_texture *J_ClassicTexture;
-    game_texture *J_ShadowTexture;
-    game_texture *J_OutlineTexture;
-    
-    game_texture *Z_GreenTexture;
-    game_texture *Z_BlueTexture;
-    game_texture *Z_OrangeTexture;
-    game_texture *Z_ClassicTexture;
-    game_texture *Z_ShadowTexture;
-    game_texture *Z_OutlineTexture;
-    
-    game_texture *S_GreenTexture;
-    game_texture *S_BlueTexture;
-    game_texture *S_OrangeTexture;
-    game_texture *S_ClassicTexture;
-    game_texture *S_ShadowTexture;
-    game_texture *S_OutlineTexture;
-    
-    game_texture *T_GreenTexture;
-    game_texture *T_BlueTexture;
-    game_texture *T_OrangeTexture;
-    game_texture *T_ClassicTexture;
-    game_texture *T_ShadowTexture;
-    game_texture *T_OutlineTexture;
+    game_texture *BlueTexture[7];
+    game_texture *GreenTexture[7];
+    game_texture *OrangeTexture[7];
+    game_texture *RedTexture[7];
+    game_texture* ShadowTexture[7];
+    game_texture* OutlineTexture[7];
+    game_texture* GroundTexture[7];
 };
 
 struct sticked_unit
@@ -302,10 +261,17 @@ struct playground
     r32 GearAngle;
     v2 AnimFigureDim[FIGURE_AMOUNT_MAXIMUM];
     
+    b32 FInterpStop[FIGURE_AMOUNT_MAXIMUM];
+    r32 FInterpPoint;
+    r32 FAlphaInterPoint;
+    r32 GridInterpPoint;
+    
     /* Texture Assets */
     game_texture *BackgroundTexture;
     game_texture *BackgroundDimTexture;
     game_texture *CornerLeftTopTexture;
+    game_texture *CornerLeftTopShadowTexture;
+    
     game_texture *CornerLeftBottomTexture;
     game_texture *CornerRightTopTexture;
     game_texture *CornerRightBottomTexture;
@@ -319,9 +285,11 @@ struct playground
     game_texture *IndicatorFilledTexture;
     
     /* Sound Assets */
+    game_sound *DropSound;
     game_sound *PickSound;
     game_sound *StickSound;
     game_sound *RotateSound;
+    game_sound *CompleteSound;
 };
 
 struct menu_button
