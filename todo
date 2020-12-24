@@ -30,10 +30,10 @@ New TODO:
 	21. Instead of declaring whole pack of game_textures's why not just make it an array? (Done. )
 	22. Start the timer only after animation is done. (Done. )
 	23. Also render level number in level selection menu.  (Done. )
-	24. Get Animation Timing right.
-	25. Finish grid animation.
-	26. Finish level indicator animation.
-	27. Redraw level indicator sprites.
+	24. Get Animation Timing right. (Done. )
+	25. Finish grid animation. (Done. )
+	26. Finish level indicator animation. (Done. )
+	27. Redraw level indicator sprites. (Done. )
 BUGS:
 	1. When you make less figures in the editor and finish the level, the playground does not switch to the next level (Fixed.)
 	2. Theres is some weird bug that is hard to reproduce. Sometimes whenever you delete or add figure, two figures pop up instead of one.
