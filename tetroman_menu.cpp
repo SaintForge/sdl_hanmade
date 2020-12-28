@@ -283,12 +283,14 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
     // NOTE(msokolov): input events and logic
     if (Input->Keyboard.Escape.EndedDown)
     {
+        
         switch(PlaygroundMenu->MenuPage)
         {
             case MAIN_PAGE:
             case QUIT_PAGE:
             {
                 Result.QuitGame = true;
+                Mix_PlayChannel(0, PlaygroundMenu->MenuUp, 0);
             } break;
             case DIFFICULTY_PAGE: {
                 PlaygroundMenu->AnimationFinished = false;
@@ -296,6 +298,7 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                 PlaygroundMenu->InterpPoint = 0.0f;
                 PlaygroundMenu->InterpPointDiff = 1.0f;
                 PlaygroundMenu->MenuPage = MAIN_PAGE;
+                Mix_PlayChannel(0, PlaygroundMenu->MenuUp, 0);
             } break;
             case SETTINGS_PAGE:
             {
@@ -310,6 +313,7 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                     PlaygroundMenu->AnimationFinished = false;
                     PlaygroundMenu->InterpPoint = 0.0f;
                     PlaygroundMenu->MenuPage = MAIN_PAGE;
+                    Mix_PlayChannel(0, PlaygroundMenu->MenuUp, 0);
                 }
                 
             } break;
@@ -359,6 +363,8 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                         }
                         
                         PlaygroundMenu->ButtonIndex = 0;
+                        
+                        Mix_PlayChannel(0, PlaygroundMenu->MenuDown, 0);
                     }
                 }
             }
@@ -461,6 +467,7 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                         PlaygroundMenu->AnimationFinished = false;
                         PlaygroundMenu->InterpPoint = 0.0f;
                         PlaygroundMenu->MenuPage = MAIN_PAGE;
+                        Mix_PlayChannel(0, PlaygroundMenu->MenuUp, 0);
                     }
                 }
             }
@@ -564,6 +571,7 @@ PlaygroundMenuUpdateAndRender(playground_menu *PlaygroundMenu,
                     PlaygroundMenu->InterpPoint = 0.0f;
                     PlaygroundMenu->ButtonIndex = 0;
                     PlaygroundMenu->MenuPage = MAIN_PAGE;
+                    Mix_PlayChannel(0, PlaygroundMenu->MenuUp, 0);
                 }
             }
             

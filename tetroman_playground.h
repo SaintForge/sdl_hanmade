@@ -216,11 +216,13 @@ enum options_choice
 struct playground_options
 {
     b32 ToggleMenu;
+    r32 InterpPoint;
     options_choice Choice;
     
     v2 MenuPosition;
     v2 ButtonDimension;
     
+    game_sound *GearSound;
     game_texture *GearTexture;
     game_texture *GearShadowTexture;
     game_texture *HorizontalLineTexture;
@@ -290,6 +292,9 @@ struct playground
     game_sound *StickSound;
     game_sound *RotateSound;
     game_sound *CompleteSound;
+    
+    s32 PrevMusicIndex;
+    game_music *Music[6];
 };
 
 struct menu_button

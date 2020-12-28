@@ -607,8 +607,10 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
         Result = options_choice::MAINMENU_OPTION;
         
         if (FigureEntity->IsGrabbed) {
-            FigureEntity->IsGrabbed    = false;
+            FigureEntity->IsGrabbed = false;
         }
+        
+        Mix_FadeOutMusic(128);
     }
     
     if (!FigureEntity->IsGrabbed && !LevelEntity->LevelFinished) {
@@ -662,6 +664,8 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
                 ToggleMenuOption = LevelEntity->Options.ToggleMenu ? false : true;
                 LevelEntity->Options.Choice = options_choice::RESTART_OPTION;
                 LevelEntity->GearIsRotating = true;
+                
+                Mix_PlayChannel(0, LevelEntity->Options.GearSound, 0);
             }
             else if(!FigureEntity->IsGrabbed)
             {
@@ -707,10 +711,7 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
                         FigureEntityHighOrderFigure(FigureEntity, ActiveIndex);
                         SDL_ShowCursor(SDL_DISABLE);
                         
-                        if(Mix_PlayChannel(1, LevelEntity->PickSound, 0)==-1) {
-                            printf("Mix_PlayChannel: %s\n", Mix_GetError());
-                        }
-                        
+                        Mix_PlayChannel(1, LevelEntity->PickSound, 0);
                         break;
                     }
                 }
@@ -846,16 +847,29 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
                             case MAINMENU_OPTION:
                             {
                                 Result = options_choice::MAINMENU_OPTION;
+                                Mix_FadeOutMusic(128);
                             } break;
                             case QUIT_OPTION:
                             {
                                 Result = options_choice::QUIT_OPTION;
+                                Mix_FadeOutMusic(128);
                             } break;
                         }
                         
                         ButtonWasPressed = true;
                         ToggleMenuOption = false;
                         LevelEntity->Options.Choice = OptionChoice;
+                        
+                        if (OptionChoice == RESTART_OPTION) {
+                            LevelEntity->GearIsRotating = true;
+                            Mix_PlayChannel(0, LevelEntity->Options.GearSound, 0);
+                        }
+                        else if (OptionChoice == SETTINGS_OPTION) {
+                            LevelEntity->GearAngle = 0.0f;
+                            LevelEntity->Options.InterpPoint = 0.0f;
+                        }
+                        
+                        
                     }
                 }
             }
@@ -865,6 +879,11 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
         {
             ToggleMenuOption = false;
         }
+    }
+    
+    if (LevelEntity->Options.ToggleMenu && !ToggleMenuOption && LevelEntity->Options.Choice != MAINMENU_OPTION) {
+        LevelEntity->GearIsRotating = true;
+        Mix_PlayChannel(0, LevelEntity->Options.GearSound, 0);
     }
     
     LevelEntity->Options.ToggleMenu = ToggleMenuOption;
@@ -1197,8 +1216,6 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
     if (!IsStartup) 
         InterpPoint = 1.0f - InterpPoint;
     
-    printf("InterpPoint: %f\n", InterpPoint);
-    
     /* Background */
     rectangle2 BackgroundRectangle = {V2(0.0, 0.0f), V2(VIRTUAL_GAME_WIDTH, VIRTUAL_GAME_HEIGHT)};
     PushBitmap(RenderGroup, Playground->BackgroundTexture, BackgroundRectangle);
@@ -1403,57 +1420,6 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
                 }
             }
         }
-        
-#if 0
-        GridEntityRender(&Playground->GridEntity, RenderGroup);
-        
-        s32 MaxDim = Playground->GridEntity.RowAmount + Playground->GridEntity.ColumnAmount - 1;
-        r32 MaxTimeForDiagonal = Playground->Animation.TimeMax / MaxDim;
-        r32 AnimTimeLeft = (InterpPoint / MaxTimeForDiagonal) * 255.0f;
-        
-        rectangle2 GridArea = GridEntityGetGridRectangle(&Playground->GridEntity);
-        
-        for (int k = 0; k <= MaxDim; ++k) {
-            for (int Col = 0; Col <= k; ++Col) {
-                
-                int Row = k - Col;
-                if (Row < Playground->GridEntity.RowAmount && Col < Playground->GridEntity.ColumnAmount) {
-                    
-                    rectangle2 rect = {};
-                    rect.Min.x = GridArea.Min.x + (GRID_BLOCK_SIZE * Col);
-                    rect.Min.y = GridArea.Min.y + (GRID_BLOCK_SIZE * Row);
-                    SetDim(&rect, GRID_BLOCK_SIZE + 25.0f, GRID_BLOCK_SIZE + 25.0f);
-                    
-                    // NOTE(msokolov): this is lazy lifehack for fixing shadows around tiles
-                    // comment this section to see what I'm talking about
-                    if (Col == 0 || Row == 0) {
-                        rect.Min -= 5.0f;
-                        rect.Max += 12.0f;
-                    }
-                    
-                    s32 AlphaChannel = AnimTimeLeft > 0.0f ? (s32)roundf(AnimTimeLeft) % 256 : 0.0f;
-                    if (AnimTimeLeft > 255.0f) 
-                        AlphaChannel = 255;
-                    
-                    rectangle2 GridCellRectangle = {};
-                    GridCellRectangle.Min.x = GridArea.Min.x + (GRID_BLOCK_SIZE * Col);
-                    GridCellRectangle.Min.y = GridArea.Min.y + (GRID_BLOCK_SIZE * Row);
-                    GridCellRectangle.Max.x = GridCellRectangle.Min.x + GRID_BLOCK_SIZE;
-                    GridCellRectangle.Max.y = GridCellRectangle.Min.y + GRID_BLOCK_SIZE;
-                    
-                    rectangle2 TextureRectangle = {};
-                    TextureRectangle.Min.x = GridCellRectangle.Min.x - (25.0f / 2.0f);
-                    TextureRectangle.Min.y = GridCellRectangle.Min.y - (25.0f / 2.0f);
-                    SetDim(&TextureRectangle, GetDim(GridCellRectangle).w + 25.0f, GetDim(GridCellRectangle).h + 25.0f);
-                    
-                    PushRectangle(RenderGroup, rect, V4(51, 8, 23, 255 - AlphaChannel));
-                }
-            }
-            
-            AnimTimeLeft -= 255.0f;
-            if (AnimTimeLeft < 0.0f) AnimTimeLeft = 0.0f; 
-        }
-#endif
     }
     
     /* Figure Animation */
@@ -1509,38 +1475,7 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
         
         FigureEntityRenderFigures(&Playground->FigureEntity, RenderGroup);
     }
-#if 0
     
-    if (IsStartup)
-    {
-        r32 InterpStepsPassed = InterpPoint / (dtForFrame / Playground->Animation.TimeMax);
-        
-        // Figure Animation startup should be 2 times faster than playground
-        r32 FigureInterpPoint = InterpStepsPassed * (dtForFrame * 2.0f);
-        if (FigureInterpPoint >= 1.0f) FigureInterpPoint = 1.0f;
-        
-        for(u32 i = 0; i < Playground->FigureEntity.FigureAmount; ++i) {
-            
-            v2 FinishDimension  = Playground->AnimFigureDim[i];
-            v2 StartDimension   = FinishDimension * 2.0f;
-            
-            v2 LerpDim = Lerp2(StartDimension, FinishDimension, FigureInterpPoint);
-            FigureUnit[i].Size = LerpDim;
-            
-            v2 StartPos = {VIRTUAL_GAME_WIDTH, 0.0f};
-            v2 LerpPos = Lerp2(StartPos, FigureUnit[i].HomePosition, FigureInterpPoint);
-            FigureUnit[i].Position = LerpPos;
-            
-            r32 AngleOffset = 45.0f;
-            r32 FinishAngle = FigureUnit[i].HomeAngle;
-            r32 StartAngle = FinishAngle + AngleOffset;
-            r32 LerpAngle = Lerp1(StartAngle, FinishAngle, FigureInterpPoint);
-            FigureUnit[i].Angle = LerpAngle;
-        }
-        
-        FigureEntityRenderFigures(&Playground->FigureEntity, RenderGroup);
-    }
-#endif
     else {
         
         FigureEntityRenderFigures(&Playground->FigureEntity, RenderGroup);
@@ -1550,72 +1485,6 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
         GridArea.Max += 20.0f;
         
         PushRectangle(RenderGroup, GridArea, V4(51.0f, 8.0f, 23.0f, (1.0f - InterpPoint) * 255.0f));
-#if 0
-        r32 AlphaChannel = Playground->FAlphaInterPoint - (dtForFrame * 5.0f );
-        if (AlphaChannel < 0)
-            AlphaChannel = 0.0f;
-        
-        for (u32 Index = 0; 
-             Index < Playground->FigureEntity.FigureAmount;
-             ++Index) {
-            
-            r32 FigureInterpPoint = 1.0f;
-            if (FoundFirstThrough)
-                FigureInterpPoint = 0.0f;
-            
-            if (!Playground->FInterpStop[Index]) continue;
-            
-            if (Playground->FInterpStop[Index] && !FoundFirstThrough) {
-                FoundFirstThrough = true;
-                AnimationDone = false;
-                
-                FigureInterpPoint = Playground->FInterpPoint + (dtForFrame * 8.0f);
-                if (FigureInterpPoint > 1.0f) {
-                    FigureInterpPoint = 1.0f;
-                    if (Playground->FInterpStop[Index]) {
-                        Playground->FInterpStop[Index] = false;
-                        
-                        //Mix_PlayChannel(((Index+3) % 5) + 3, Playground->DropSound, 0);
-                        printf("Index %d is done\n", Index);
-                    }
-                }
-                
-                Playground->FInterpPoint = FigureInterpPoint == 1.0f ? 0.0f : FigureInterpPoint;
-            }
-            
-            v2 StartPos = V2(Playground->AnimFigureDim[Index].x, Playground->AnimFigureDim[Index].y);
-            v2 FinishPos = V2(0.0f, 100.0f);
-            
-            v2 LerpPos = Lerp2(StartPos, FinishPos, FigureInterpPoint);
-            FigureUnit[Index].Position = LerpPos;
-            
-            game_texture *Texture = PickFigureTexture(&Playground->FigureEntity, FigureUnit[Index].Form);
-            //game_texture *ShadowTexture = PickFigureShadowTexture(FigureUnit[Index].Form, &Playground->FigureEntity);
-            
-            SDL_SetTextureAlphaMod(Texture, (1.0f - FigureInterpPoint) * 255.0f);
-            //SDL_SetTextureAlphaMod(ShadowTexture, (1.0f - FigureInterpPoint) * 255.0f);
-            
-            v2 FigureCenter = {};
-            FigureCenter.x   = FigureUnit[Index].Position.x + (FigureUnit[Index].Size.w / 2);
-            FigureCenter.y   = FigureUnit[Index].Position.y + (FigureUnit[Index].Size.h) * FigureUnit[Index].CenterOffset;
-            
-            v2 Center;
-            Center.x = FigureCenter.x - FigureUnit[Index].Position.x;
-            Center.y = FigureCenter.y - FigureUnit[Index].Position.y;
-            
-            rectangle2 Rectangle = {};
-            Rectangle.Min.x = FigureUnit[Index].Position.x;
-            Rectangle.Min.y = FigureUnit[Index].Position.y;
-            Rectangle.Max.w = Rectangle.Min.x + FigureUnit[Index].Size.w;
-            Rectangle.Max.h = Rectangle.Min.y + FigureUnit[Index].Size.h;
-            
-            //PushBitmapEx(RenderGroup, ShadowTexture, Rectangle, FigureUnit[Index].Angle, Center, FigureUnit[Index].Flip);
-            PushBitmapEx(RenderGroup, Texture, Rectangle, FigureUnit[Index].Angle, Center, FigureUnit[Index].Flip);
-        }
-        
-#endif
-        //FigureEntityRenderFigures(&Playground->FigureEntity, RenderGroup);
-        //Playground->FAlphaInterPoint = AlphaChannel;
     }
     
     /* Level Indicator Animation */
@@ -1743,18 +1612,6 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         
         if (LevelEntity->Animation.Finished) {
             if (LevelEntity->LevelFinished) {
-                //LevelEntity->IsStartup = false;
-                //LevelEntity->Animation.Finished = false;
-                //LevelEntity->Animation.InterpPoint = 0.0f;
-                //LevelEntity->FInterpPoint = 0.0f;
-                //LevelEntity->FAlphaInterPoint = 1.0f;
-                
-                //Mix_PlayChannel(2, LevelEntity->CompleteSound, 0);
-                
-                for (int i = 0; i < FigureAmount; ++i) {
-                    //LevelEntity->AnimFigureDim[i] = {FigureUnit[i].Position.x, FigureUnit[i].Position.y}; 
-                    //LevelEntity->FInterpStop[i] = true;
-                }
                 Result = playground_status::LEVEL_FINISHED;
             }
         }
@@ -1903,9 +1760,7 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
             {
                 GridEntity->StickUnits[i].IsSticked = true;
                 
-                if(Mix_PlayChannel(1, LevelEntity->StickSound, 0)==-1) {
-                    printf("Mix_PlayChannel: %s\n", Mix_GetError());
-                }
+                Mix_PlayChannel(1, LevelEntity->StickSound, 0);
                 
                 u32 RowIndex = 0;
                 u32 ColIndex = 0;
@@ -1931,6 +1786,7 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
         LevelEntity->Animation.InterpPoint = 0.0f;
         LevelEntity->FInterpPoint = 0.0f;
         
+        Mix_FadeOutMusic(128);
         Mix_PlayChannel(2, LevelEntity->CompleteSound, 0);
         
         for (int i = 0; i < FigureAmount; ++i) 
@@ -2324,63 +2180,65 @@ PlaygroundUpdateAndRender(playground *LevelEntity, render_group *RenderGroup, ga
             /* Playground Options Gear Button */
             playground_options *Options = &LevelEntity->Options;
             
-            if (Options->ToggleMenu)
-            {
-                if (LevelEntity->GearIsRotating) {
-                    r32 AngleDt = Input->dtForFrame * FigureEntity->RotationVelocity;
-                    if(LevelEntity->GearRotationSum < 90.0f && !(LevelEntity->GearRotationSum + AngleDt >= 90.0f)) {
-                        LevelEntity->GearAngle += AngleDt;
-                        LevelEntity->GearRotationSum += AngleDt;
-                    }
-                    else {
-                        LevelEntity->GearAngle += 90.0f - LevelEntity->GearRotationSum;
-                        
-                        LevelEntity->GearIsRotating = false;
-                        LevelEntity->GearRotationSum = 0.0f;
-                    }
+            if (LevelEntity->GearIsRotating) {
+                
+                Options->InterpPoint = Options->ToggleMenu ? (Options->InterpPoint + Input->dtForFrame * 10.0f)
+                    : (Options->InterpPoint - Input->dtForFrame * 10.0f);
+                
+                r32 GearAngle = Lerp1(0.0f, 90.0f, Options->InterpPoint);
+                if (Options->ToggleMenu && GearAngle >= 90.0f) {
+                    GearAngle = 90.0f;
+                    LevelEntity->GearIsRotating = false;
                 }
-                else {
-                    
-                    v2 ButtonRectangleDim = Options->ButtonDimension;
-                    v2 MenuPosition       = Options->MenuPosition;
-                    v2 TextureDim         = {};
-                    
-                    rectangle2 ButtonRectangle = {};
-                    rectangle2 TextRectangle = {};
-                    rectangle2 TextShadowRectangle = {};
-                    
-                    for (u32 Index = 0;
-                         Index < 4;
-                         ++Index)
-                    {
-                        ButtonRectangle.Min.x = MenuPosition.x;
-                        ButtonRectangle.Min.y = MenuPosition.y + (ButtonRectangleDim.h * Index);
-                        SetDim(&ButtonRectangle, ButtonRectangleDim);
-                        
-                        TextureDim = QueryTextureDim(LevelEntity->Options.MenuTexture[Index]);
-                        TextRectangle.Min.x = ButtonRectangle.Min.x + (ButtonRectangleDim.w / 2.0f);
-                        TextRectangle.Min.y = ButtonRectangle.Min.y + (ButtonRectangleDim.h / 2.0f);
-                        SetDim(&TextRectangle, TextureDim);
-                        
-                        TextShadowRectangle.Min = TextRectangle.Min + 5.0f;
-                        SetDim(&TextShadowRectangle, TextureDim);
-                        
-                        PushFontBitmap(RenderGroup, Options->MenuShadowTexture[Index], TextShadowRectangle);
-                        PushFontBitmap(RenderGroup, Options->MenuTexture[Index], TextRectangle);
-                    }
-                    
-                    if (Options->Choice != options_choice::NONE_OPTION)
-                    {
-                        TextureDim = QueryTextureDim(Options->HorizontalLineTexture);
-                        u32 ButtonIndex  = (u32)Options->Choice;
-                        
-                        v2 LineDim = {200.0f, 33.0f};
-                        TextRectangle.Min.x = MenuPosition.x + (GetDim(ButtonRectangle).w / 2.0f) - (LineDim.w / 2.0f);
-                        TextRectangle.Min.y = MenuPosition.y + (ButtonRectangleDim.h * (ButtonIndex + 1)) - (LineDim.h * 0.8f);
-                        SetDim(&TextRectangle, LineDim);
-                        PushBitmap(RenderGroup, Options->HorizontalLineTexture, TextRectangle);
-                    }
+                if (!Options->ToggleMenu && GearAngle <= 0.0f) {
+                    GearAngle = 0.0f;
+                    LevelEntity->GearIsRotating = false;
                 }
+                
+                LevelEntity->GearAngle = GearAngle;
+            }
+            else if (Options->ToggleMenu) {
+                
+                v2 ButtonRectangleDim = Options->ButtonDimension;
+                v2 MenuPosition       = Options->MenuPosition;
+                v2 TextureDim         = {};
+                
+                rectangle2 ButtonRectangle = {};
+                rectangle2 TextRectangle = {};
+                rectangle2 TextShadowRectangle = {};
+                
+                for (u32 Index = 0;
+                     Index < 4;
+                     ++Index)
+                {
+                    ButtonRectangle.Min.x = MenuPosition.x;
+                    ButtonRectangle.Min.y = MenuPosition.y + (ButtonRectangleDim.h * Index);
+                    SetDim(&ButtonRectangle, ButtonRectangleDim);
+                    
+                    TextureDim = QueryTextureDim(LevelEntity->Options.MenuTexture[Index]);
+                    TextRectangle.Min.x = ButtonRectangle.Min.x + (ButtonRectangleDim.w / 2.0f);
+                    TextRectangle.Min.y = ButtonRectangle.Min.y + (ButtonRectangleDim.h / 2.0f);
+                    SetDim(&TextRectangle, TextureDim);
+                    
+                    TextShadowRectangle.Min = TextRectangle.Min + 5.0f;
+                    SetDim(&TextShadowRectangle, TextureDim);
+                    
+                    PushFontBitmap(RenderGroup, Options->MenuShadowTexture[Index], TextShadowRectangle);
+                    PushFontBitmap(RenderGroup, Options->MenuTexture[Index], TextRectangle);
+                }
+                
+                if (Options->Choice != options_choice::NONE_OPTION)
+                {
+                    TextureDim = QueryTextureDim(Options->HorizontalLineTexture);
+                    u32 ButtonIndex  = (u32)Options->Choice;
+                    
+                    v2 LineDim = {200.0f, 33.0f};
+                    TextRectangle.Min.x = MenuPosition.x + (GetDim(ButtonRectangle).w / 2.0f) - (LineDim.w / 2.0f);
+                    TextRectangle.Min.y = MenuPosition.y + (ButtonRectangleDim.h * (ButtonIndex + 1)) - (LineDim.h * 0.8f);
+                    SetDim(&TextRectangle, LineDim);
+                    PushBitmap(RenderGroup, Options->HorizontalLineTexture, TextRectangle);
+                }
+                
             }
             
             rectangle2 GearRectangle = {};
@@ -2509,6 +2367,11 @@ PrepareNextPlayground(playground *Playground, playground_config *Configuration, 
     Playground->Animation.Finished = false;
     Playground->Animation.InterpPoint = 0.0f;
     Playground->Animation.TimeMax = 1.0f;
+    
+    Playground->GearAngle = 0.0f;
+    Playground->GearIsRotating = false;
+    Playground->Options.ToggleMenu  = false;
+    Playground->Options.InterpPoint = 0.0f;
     
     Playground->GridEntity.RowAmount          = PlaygroundData.RowAmount;
     Playground->GridEntity.ColumnAmount       = PlaygroundData.ColumnAmount;

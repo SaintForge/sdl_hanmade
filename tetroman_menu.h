@@ -53,6 +53,9 @@ struct playground_menu
     game_resolution Resolution;
     rectangle2 BackgroundArea;
     
+    game_sound *MenuUp;
+    game_sound *MenuDown;
+    
     game_texture *MainMenuTexture[3];
     game_texture *MainMenuShadowTexture[3];
     

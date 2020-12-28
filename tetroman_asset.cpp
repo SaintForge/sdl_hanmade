@@ -482,9 +482,17 @@ SDLAssetBuildBinaryFile()
     SDLWriteSoundToFile(BinaryFile, "lego_snap2.wav");
     SDLWriteSoundToFile(BinaryFile, "lego_snap3.wav");
     SDLWriteSoundToFile(BinaryFile, "lego_snap4.wav");
+    SDLWriteSoundToFile(BinaryFile, "gear_sound.wav");
+    SDLWriteSoundToFile(BinaryFile, "menu_slider_down.wav");
+    SDLWriteSoundToFile(BinaryFile, "menu_slider_up.wav");
     
-    SDLWriteMusicToFile(BinaryFile, "Satie_-_Gnossienne_1.ogg");
     SDLWriteMusicToFile(BinaryFile, "Jami Saber - Maenam.ogg");
+    SDLWriteMusicToFile(BinaryFile, "music_1.ogg");
+    SDLWriteMusicToFile(BinaryFile, "music_2.ogg");
+    SDLWriteMusicToFile(BinaryFile, "music_3.ogg");
+    SDLWriteMusicToFile(BinaryFile, "music_4.ogg");
+    SDLWriteMusicToFile(BinaryFile, "music_5.ogg");
+    SDLWriteMusicToFile(BinaryFile, "music_6.ogg");
     
     SDL_RWseek(BinaryFile, 0, RW_SEEK_SET);
     

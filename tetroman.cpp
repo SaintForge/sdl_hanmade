@@ -43,6 +43,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     if(!Memory->IsInitialized)
     {
+        /* initialize random seed: */
+        srand (time(NULL));
+        
+        
         // NOTE(msokolov): figure colors 
         // 212, 151, 0
         // 212, 10,  128
@@ -127,12 +131,25 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Playground->StickSound    = GetSound(Memory, "figure_drop.wav");
         Playground->RotateSound   = GetSound(Memory, "figure_rotation.wav");
         Playground->CompleteSound = GetSound(Memory, "complete_sound2.wav");
-        Mix_VolumeChunk(Playground->CompleteSound, MIX_MAX_VOLUME / 2);
+        Mix_VolumeChunk(Playground->CompleteSound, MIX_MAX_VOLUME * 0.1f);
+        Mix_VolumeChunk(Playground->PickSound, MIX_MAX_VOLUME * 0.1f);
+        Mix_VolumeChunk(Playground->StickSound, MIX_MAX_VOLUME * 0.1f);
+        Mix_VolumeChunk(Playground->DropSound, MIX_MAX_VOLUME * 0.1f);
+        Mix_VolumeChunk(Playground->RotateSound, MIX_MAX_VOLUME * 0.2f);
+        
+        Playground->Music[0] = GetMusic(Memory, "music_1.ogg");
+        Playground->Music[1] = GetMusic(Memory, "music_2.ogg");
+        Playground->Music[2] = GetMusic(Memory, "music_3.ogg");
+        Playground->Music[3] = GetMusic(Memory, "music_4.ogg");
+        Playground->Music[4] = GetMusic(Memory, "music_5.ogg");
+        Playground->Music[5] = GetMusic(Memory, "music_6.ogg");
+        Playground->PrevMusicIndex = -1;
         
         /* Playground Option Menu */ 
         playground_options *PlaygroundOptions = &Playground->Options;
         
         PlaygroundOptions->ToggleMenu  = false;
+        PlaygroundOptions->InterpPoint = 0.0f;
         PlaygroundOptions->Choice      = options_choice::RESTART_OPTION;
         PlaygroundOptions->MenuPosition    = { 1500.0f, 650.0f };
         PlaygroundOptions->ButtonDimension = { 180.0f, 80.0f };
@@ -148,6 +165,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundOptions->MenuShadowTexture[1] = MakeTextureFromString(Buffer, GameState->Font, "Settings", {0, 0, 0, 127});
         PlaygroundOptions->MenuShadowTexture[2] = MakeTextureFromString(Buffer, GameState->Font, "Menu", {0, 0, 0, 127});
         PlaygroundOptions->MenuShadowTexture[3] = MakeTextureFromString(Buffer, GameState->Font, "Quit", {0, 0, 0, 127});
+        
+        PlaygroundOptions->GearSound = GetSound(Memory, "gear_sound.wav");
+        Mix_VolumeChunk(PlaygroundOptions->GearSound, MIX_MAX_VOLUME * 0.1f);
         
         // Animation control
         Playground->Animation.Finished = false;
@@ -333,7 +353,12 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         PlaygroundMenu->ForwardAnimation = false;
         PlaygroundMenu->InterpPointNext  = 1.0f;
         
-        //game_settings *Settings = &PlayerData->Settings;
+        PlaygroundMenu->MenuDown = GetSound(Memory, "menu_slider_down.wav");
+        Mix_VolumeChunk(PlaygroundMenu->MenuDown, MIX_MAX_VOLUME * 0.3f);
+        
+        PlaygroundMenu->MenuUp   = GetSound(Memory, "menu_slider_up.wav");
+        Mix_VolumeChunk(PlaygroundMenu->MenuUp, MIX_MAX_VOLUME * 0.3f);
+        
         PlaygroundMenu->SoundOn = Settings->SoundIsOn;
         PlaygroundMenu->MusicOn = Settings->MusicIsOn;
         
@@ -451,6 +476,24 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Memory->IsInitialized = true;
         printf("Memory has been initialized!\n");
         
+        if (!Settings->MusicIsOn)
+            Mix_PauseMusic();
+        
+        if(!Settings->SoundIsOn) {
+            
+            // playground sound channels
+            // 0 channel - gear button
+            // 1 channel - figure stick/drop/pick/rotate sound
+            // 2 channel - level complete sound
+            // 3-7 channel - figure animation drop sound
+            
+            // menu sound channels
+            // 0 - menu switches
+            
+            Mix_Volume(1, 0);
+        }
+        
+        
 #if DEBUG_BUILD
         
         GameState->EditorMode = false;
@@ -512,15 +555,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Playground->LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
         Assert(Playground->LevelNumberTexture);
         
-        game_music *Music = GetMusic(Memory, "Satie_-_Gnossienne_1.ogg");
-        Mix_VolumeMusic(MIX_MAX_VOLUME);
-        Mix_PlayMusic(Music, -1);
-        
-        if (!Settings->MusicIsOn)
-            Mix_PauseMusic();
-        
-        if(!Settings->SoundIsOn)
-            Mix_Volume(1, 0);
+        //game_music *Music = GetMusic(Memory, "music_5.ogg");
+        //Mix_VolumeMusic(MIX_MAX_VOLUME);
+        //Mix_PlayMusic(Playground->Music[0], -1);
         
         PlaygroundEditor->IsInitialized = true;
 #endif
@@ -718,6 +755,17 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                         PrepareNextPlayground(Playground, &GameState->Configuration, PlaygroundData, GameState->PlaygroundIndex);
                         
                         RestartLevelEntity(Playground);
+                        
+                        s32 RandomMusicIndex = rand() % 6;
+                        if (Playground->PrevMusicIndex == RandomMusicIndex) {
+                            RandomMusicIndex += 1;
+                            if (RandomMusicIndex >= 6)
+                                RandomMusicIndex = 0;
+                            
+                        }
+                        Playground->PrevMusicIndex = RandomMusicIndex;
+                        
+                        Mix_FadeInMusic(Playground->Music[RandomMusicIndex], -1, 256);
 #if DEBUG_BUILD
                         char LevelString[64] = {};
                         sprintf(LevelString, "%d", Playground->LevelNumber);
@@ -744,6 +792,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 
                 UpdateTextureForLevels(PlaygroundMenu, PlayerData, RenderGroup);
                 SDL_ShowCursor(SDL_ENABLE);
+                
+                Mix_PlayChannel(0, PlaygroundMenu->MenuUp, 0);
                 
 #if DEBUG_BUILD
                 GameState->EditorMode = false;
@@ -792,6 +842,21 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                     
                     PrepareNextPlayground(Playground, &GameState->Configuration, PlaygroundData, ResultLevelIndex);
                     
+                    s32 RandomMusicIndex = rand() % 6;
+                    printf("RandomMusicIndex: %d\n", RandomMusicIndex);
+                    printf("PrevMusicIndex: %d\n", Playground->PrevMusicIndex);
+                    
+                    if (Playground->PrevMusicIndex == RandomMusicIndex) {
+                        RandomMusicIndex += 1;
+                        if (RandomMusicIndex >= 6)
+                            RandomMusicIndex = 0;
+                    }
+                    
+                    Playground->PrevMusicIndex = RandomMusicIndex;
+                    
+                    //Mix_PlayMusic(Playground->Music[RandomMusicIndex], -1);
+                    Mix_FadeInMusic(Playground->Music[RandomMusicIndex], -1, 256);
+                    Mix_VolumeMusic(MIX_MAX_VOLUME * 0.2f);
 #if DEBUG_BUILD
                     char LevelString[64] = {};
                     sprintf(LevelString, "%d", Playground->LevelNumber);
