@@ -26,7 +26,7 @@ New TODO:
 	19. Separate border sprites from actual borders and their corresponding shadows. (Done. )
 	20. Figure out how to solve the problem with level selection menu. Currently it has two problems:
 		1. The texture gets blacked out completely whenever you alt+tab in fullscreen mode;
-		2. Scaling doesn't work whenever we change window resolution, so we have to recreate this texture every time.
+		2. Scaling doesn't work whenever we change window resolution, so we have to recreate this texture every time.  (Not done. )
 	21. Instead of declaring whole pack of game_textures's why not just make it an array? (Done. )
 	22. Start the timer only after animation is done. (Done. )
 	23. Also render level number in level selection menu.  (Done. )
