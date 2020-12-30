@@ -669,50 +669,52 @@ PlaygroundUpdateEvents(game_input *Input, playground *LevelEntity, u32 ScreenWid
             }
             else if(!FigureEntity->IsGrabbed)
             {
-                for (s32 i = Size - 1; i >= 0; --i)
-                {
-                    ActiveIndex = FigureEntity->FigureOrder[i];
-                    
-                    r32 CurrentBlockSize = FigureUnit[ActiveIndex].IsEnlarged ? GridBlockSize : InActiveBlockSize;
-                    r32 HalfShellSize = CurrentBlockSize / 2.0f;
-                    
-                    b32 IsInShell = false;
-                    for (int BlockIndex = 0;
-                         BlockIndex < FIGURE_BLOCKS_MAXIMUM;
-                         ++BlockIndex)
+                if (!LevelEntity->Options.ToggleMenu) {
+                    for (s32 i = Size - 1; i >= 0; --i)
                     {
-                        rectangle2 BlockRectangle = {};
-                        BlockRectangle.Min.x = FigureUnit[ActiveIndex].Shell[BlockIndex].x - HalfShellSize;
-                        BlockRectangle.Min.y = FigureUnit[ActiveIndex].Shell[BlockIndex].y - HalfShellSize;
-                        BlockRectangle.Max.x = FigureUnit[ActiveIndex].Shell[BlockIndex].x + HalfShellSize;
-                        BlockRectangle.Max.y = FigureUnit[ActiveIndex].Shell[BlockIndex].y + HalfShellSize;
+                        ActiveIndex = FigureEntity->FigureOrder[i];
                         
-                        if (IsInRectangle(MousePos, BlockRectangle))
+                        r32 CurrentBlockSize = FigureUnit[ActiveIndex].IsEnlarged ? GridBlockSize : InActiveBlockSize;
+                        r32 HalfShellSize = CurrentBlockSize / 2.0f;
+                        
+                        b32 IsInShell = false;
+                        for (int BlockIndex = 0;
+                             BlockIndex < FIGURE_BLOCKS_MAXIMUM;
+                             ++BlockIndex)
                         {
-                            IsInShell = true;
+                            rectangle2 BlockRectangle = {};
+                            BlockRectangle.Min.x = FigureUnit[ActiveIndex].Shell[BlockIndex].x - HalfShellSize;
+                            BlockRectangle.Min.y = FigureUnit[ActiveIndex].Shell[BlockIndex].y - HalfShellSize;
+                            BlockRectangle.Max.x = FigureUnit[ActiveIndex].Shell[BlockIndex].x + HalfShellSize;
+                            BlockRectangle.Max.y = FigureUnit[ActiveIndex].Shell[BlockIndex].y + HalfShellSize;
+                            
+                            if (IsInRectangle(MousePos, BlockRectangle))
+                            {
+                                IsInShell = true;
+                                break;
+                            }
+                        }
+                        
+                        if (IsInShell)
+                        {
+                            FigureEntity->IsGrabbed = true;
+                            FigureEntity->FigureOutline = -1;
+                            
+                            if(!FigureUnit[ActiveIndex].IsEnlarged)
+                            {
+                                BlockRatio = GridBlockSize / InActiveBlockSize;
+                                FigureUnit[ActiveIndex].IsIdle = false;
+                                FigureUnit[ActiveIndex].IsEnlarged = true;
+                                FigureUnitResizeBy(&FigureUnit[ActiveIndex], BlockRatio);
+                            }
+                            
+                            FigureEntity->FigureActive = ActiveIndex;
+                            FigureEntityHighOrderFigure(FigureEntity, ActiveIndex);
+                            SDL_ShowCursor(SDL_DISABLE);
+                            
+                            Mix_PlayChannel(1, LevelEntity->PickSound, 0);
                             break;
                         }
-                    }
-                    
-                    if (IsInShell)
-                    {
-                        FigureEntity->IsGrabbed = true;
-                        FigureEntity->FigureOutline = -1;
-                        
-                        if(!FigureUnit[ActiveIndex].IsEnlarged)
-                        {
-                            BlockRatio = GridBlockSize / InActiveBlockSize;
-                            FigureUnit[ActiveIndex].IsIdle = false;
-                            FigureUnit[ActiveIndex].IsEnlarged = true;
-                            FigureUnitResizeBy(&FigureUnit[ActiveIndex], BlockRatio);
-                        }
-                        
-                        FigureEntity->FigureActive = ActiveIndex;
-                        FigureEntityHighOrderFigure(FigureEntity, ActiveIndex);
-                        SDL_ShowCursor(SDL_DISABLE);
-                        
-                        Mix_PlayChannel(1, LevelEntity->PickSound, 0);
-                        break;
                     }
                 }
                 
@@ -1545,6 +1547,7 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
         
         r32 AlphaChannel = Lerp1(255.0f, 0.0f, InterpPoint);
         PushRectangle(RenderGroup, GearRectangle, V4(51.0f, 8.0f, 23.0f, AlphaChannel));
+        //PushRectangleOutline(RenderGroup, GearRectangle, V4(255.0f, 0.0f, 0.0f, 255.0f));
     }
     
     r32 AlphaChannel = Lerp1(0.0f, 255.0f, 1.0f - InterpPoint);

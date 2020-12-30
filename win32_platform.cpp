@@ -361,9 +361,8 @@ int main(int argc, char **argv)
                                           SDL_WINDOWPOS_CENTERED,
                                           SDL_WINDOWPOS_CENTERED,
                                           Display.w, Display.h,
-                                          //SDL_WINDOW_FULLSCREEN);
-                                          SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIDDEN);
-    
+                                          //SDL_WINDOW_FULLSCREEN | SDL_WINDOW_ALLOW_HIGHDPI);
+                                          SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIDDEN|SDL_WINDOW_ALLOW_HIGHDPI);
     if(Window)
     {
         //SDL_HideWindow(Window);
@@ -382,10 +381,9 @@ int main(int argc, char **argv)
             }
         }
         
-        //printf("scale_quality: %d\n", SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1"));
-        printf("vsync: %d\n", SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1"));
+        SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
         SDL_Renderer* Renderer = SDL_CreateRenderer(Window, driver_index, 
-                                                    SDL_RENDERER_TARGETTEXTURE|SDL_RENDERER_ACCELERATED);
+                                                    SDL_RENDERER_TARGETTEXTURE|SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
         
         SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
         
@@ -533,8 +531,9 @@ int main(int argc, char **argv)
                             // NOTE(msokolov): Sound will be changed here
                             PrevSettings.SoundIsOn = Settings->SoundIsOn;
                             
-                            if (!Settings->SoundIsOn) 
+                            if (!Settings->SoundIsOn) {
                                 Mix_Volume(1, 0);
+                            }
                             else
                                 Mix_Volume(1, MIX_MAX_VOLUME);
                         }
@@ -548,7 +547,6 @@ int main(int argc, char **argv)
                     
                     r32 CurrentTimeTick = SDL_GetTicks();
                     TimeElapsed += (CurrentTimeTick - PreviousTimeTick) / 1000.0f;
-                    //printf("TimeElapsed: %f\n", TimeElapsed);
                 }
             }
         }
