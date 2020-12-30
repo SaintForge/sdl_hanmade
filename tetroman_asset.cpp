@@ -257,7 +257,7 @@ GetSurface(game_memory *Memory, const char* FileName, SDL_Renderer *Renderer)
 }
 
 static game_texture*
-GetTexture(game_memory *Memory, const char* FileName, SDL_Renderer *Renderer)
+GetTexture(game_memory *Memory, const char* FileName, SDL_Renderer *Renderer, quality_scale_hint Hint = NEAREST_SCALE)
 {
     game_texture *Result = NULL;
     
@@ -285,6 +285,13 @@ GetTexture(game_memory *Memory, const char* FileName, SDL_Renderer *Renderer)
         {
             SDL_SetPaletteColors(Surface->format->palette, Header->Palette, 0, 256);
         }
+        
+        if (Hint == NEAREST_SCALE) 
+            SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
+        else if (Hint == LINEAR_SCALE)
+            SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+        else if (Hint == BEST_SCALE)
+            SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "2");
         
         Result = SDL_CreateTextureFromSurface(Renderer, Surface);
         Assert(Result);

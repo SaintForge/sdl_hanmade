@@ -65,9 +65,10 @@ struct binary_header
     u32 AudioSizeInBytes;
 };
 
+
 static game_sound*   GetSound(game_memory *Memory, char* FileName);
 static game_music*   GetMusic(game_memory *Memory, char* FileName);
-static game_texture* GetTexture(game_memory *Memory, const char* FileName, SDL_Renderer* Renderer);
+static game_texture* GetTexture(game_memory *Memory, const char* FileName, SDL_Renderer* Renderer, quality_scale_hint Hint);
 
 static void FreeSound(game_sound *&Sound)
 {

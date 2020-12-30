@@ -3,6 +3,12 @@
 #ifndef TETROMAN_INTRINSICS_H
 #define TETROMAN_INTRINSICS_H
 
+enum quality_scale_hint {
+    NEAREST_SCALE,
+    LINEAR_SCALE,
+    BEST_SCALE
+};
+
 #define Assert(Expression) if(!(Expression)) { LogErrorLine( __FILE__, __LINE__); *(int *)0 = 0; }
 void LogErrorLine(const char* Message, int Line)
 {
@@ -66,7 +72,7 @@ IsInRectangle(v2 Position, rectangle2 *Target, u32 TargetAmount)
 
 inline static game_texture*
 MakeTextureFromString(game_offscreen_buffer *Buffer, game_font *Font, 
-                      const char *Text, v4 Color)
+                      const char *Text, v4 Color, quality_scale_hint Hint = NEAREST_SCALE)
 {
     game_texture *Result = {};
     
@@ -77,6 +83,13 @@ MakeTextureFromString(game_offscreen_buffer *Buffer, game_font *Font,
     
     game_surface *Surface = TTF_RenderText_Blended(Font, Text, SDLColor);
     Assert(Surface);
+    
+    if (Hint == NEAREST_SCALE) 
+        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
+    else if (Hint == LINEAR_SCALE)
+        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+    else if (Hint == BEST_SCALE)
+        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "2");
     
     Result = SDL_CreateTextureFromSurface(Buffer->Renderer, Surface);
     Assert(Result);
