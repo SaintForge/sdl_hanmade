@@ -324,6 +324,7 @@ int main(int argc, char **argv)
         printf("Error in Mix_OpenAudio: %s", Mix_GetError());
         
     }
+    
     int flags=MIX_INIT_OGG|MIX_INIT_MOD;
     int initted=Mix_Init(flags);
     if(initted&flags != flags) {
@@ -333,12 +334,15 @@ int main(int argc, char **argv)
     }
     
     
+#if ASSET_BUILD
+    
     s32 img_flags = IMG_INIT_PNG;
     s32 return_flags = IMG_Init(img_flags);
     if ((return_flags&img_flags) != img_flags) {
         printf("IMG_Init: Failed to init required jpg and png support!\n");
         printf("IMG_Init: %s\n", IMG_GetError());
     }
+#endif
     
     SDL_version compiled;
     SDL_version linked;

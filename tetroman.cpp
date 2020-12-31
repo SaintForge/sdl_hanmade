@@ -465,10 +465,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         SetDim(&PlaygroundEditor->GridButtonsArea, 300.0f, 120.0f);
         
         for (u32 Index = 0; Index < PLAYGROUND_MAXIMUM; ++ Index) {
-            PlayerData->PlaygroundUnlocked[Index] = false;
+            PlayerData->PlaygroundUnlocked[Index] = true;
         }
         PlayerData->PlaygroundUnlocked[0] = true;
         
+#if 0
         // NOTE(msokolov): temporary
         PlaygroundData[0].FigureAmount = 4;
         PlaygroundData[0].Figures[0].Form = figure_form::I_figure;
@@ -494,6 +495,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Playground->LevelNumberTexture = MakeTextureFromString(Buffer, GameState->Font, LevelString, {255, 255, 255, 255});
         Assert(Playground->LevelNumberTexture);
         
+#endif
         PlaygroundEditor->IsInitialized = true;
 #endif
         

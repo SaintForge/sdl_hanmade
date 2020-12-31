@@ -1317,17 +1317,7 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
         s32 DiagonalAmount = Playground->GridEntity.RowAmount + Playground->GridEntity.ColumnAmount - 1;
         r32 DiagonalMaxInterpP = (1.0f / ((DiagonalAmount / 2) + 1));
         
-#if 0
-        //r32 InterpPoint = Playground->Animation.InterpPoint + (dtForFrame / Playground->Animation.TimeMax);
-        r32 GridInterpPoint = Playground->GridInterpPoint + (dtForFrame / 2.0f);
-        Playground->GridInterpPoint = GridInterpPoint;
-        
-        if (GridInterpPoint < 1.0f)
-            AnimationDone = false;
-#endif
-        
         r32 InterpP = InterpPoint < 0.5f ? InterpPoint * 2.0f : (InterpPoint * 2.0f) - 1.0f;
-        //r32 InterpP = InterpPoint;
         
         if (InterpPoint > 0.5f) {
             for (int k = DiagonalAmount, i = 0; k >= 0; --k) {
@@ -1353,7 +1343,6 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
                         if (MirrorCol < 0) MirrorCol = -MirrorCol;
                         
                         r32 LerpSize = Lerp1(0.0f, GRID_BLOCK_SIZE + 25.0f, DiagonalInterpP);
-                        //r32 LerpSize = GRID_BLOCK_SIZE + 25.0f;
                         
                         rectangle2 CellRectangle = {};
                         CellRectangle.Min.x = GridArea.Min.x + (GRID_BLOCK_SIZE * MirrorCol);
@@ -1362,8 +1351,6 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
                         v2 StartPos  = V2(GridArea.Max.x - GRID_BLOCK_SIZE, GridArea.Min.y);
                         v2 TargetPos = CellRectangle.Min;
                         v2 LerpPos = Lerp2(StartPos, TargetPos, DiagonalInterpP);
-                        //if (InterpPoint > 0.5f) 
-                        //LerpPos = TargetPos;
                         
                         LerpPos = CellRectangle.Min;
                         rectangle2 TextureRectangle = {};
@@ -1401,8 +1388,6 @@ PlaygroundAnimationUpdateAndRender(playground *Playground, render_group *RenderG
                     CellRectangle.Min.y = GridArea.Min.y + (GRID_BLOCK_SIZE * Row);
                     
                     r32 LerpSize = InterpPoint > 0.5f ? GRID_BLOCK_SIZE + 25.0f : Lerp1(0.0f, GRID_BLOCK_SIZE + 25.0f, DiagonalInterpP);
-                    //r32 LerpSize = Lerp1(0.0f, GRID_BLOCK_SIZE + 25.0f, DiagonalInterpP);
-                    //r32 LerpSize = GRID_BLOCK_SIZE + 25.0f;
                     if (InterpPoint > 0.5f)
                         LerpSize = GRID_BLOCK_SIZE + 25.0f;
                     
